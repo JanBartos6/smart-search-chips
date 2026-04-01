@@ -26,12 +26,13 @@ class SSC_Search_Handler {
      * Register AJAX hooks.
      */
     public function init() {
-        $ajax_action = $this->settings->get( 'override_ajax' );
-
-        if ( ! empty( $ajax_action ) ) {
-            // Override an existing AJAX action (e.g. theme's search handler)
-            add_action( 'wp_ajax_' . $ajax_action, array( $this, 'handle_search' ), 0 );
-            add_action( 'wp_ajax_nopriv_' . $ajax_action, array( $this, 'handle_search' ), 0 );
+        // Override existing AJAX action (Pro only)
+        if ( SSC_License::can_override_ajax() ) {
+            $ajax_action = $this->settings->get( 'override_ajax' );
+            if ( ! empty( $ajax_action ) ) {
+                add_action( 'wp_ajax_' . $ajax_action, array( $this, 'handle_search' ), 0 );
+                add_action( 'wp_ajax_nopriv_' . $ajax_action, array( $this, 'handle_search' ), 0 );
+            }
         }
 
         // Always register our own action
@@ -43,6 +44,11 @@ class SSC_Search_Handler {
      * Handle the AJAX search request.
      */
     public function handle_search() {
+        // Nonce verification (optional — skip if overriding a theme handler that doesn't use nonces)
+        if ( isset( $_POST['ssc_nonce'] ) && ! wp_verify_nonce( $_POST['ssc_nonce'], 'ssc_search_nonce' ) ) {
+            wp_die( __( 'Security check failed.', 'smart-search-chips' ) );
+        }
+
         $keyword     = isset( $_POST['keyword'] ) ? sanitize_text_field( $_POST['keyword'] ) : '';
         $active_tags = isset( $_POST['active_tags'] ) ? array_map( 'sanitize_text_field', $_POST['active_tags'] ) : array();
 
@@ -53,11 +59,14 @@ class SSC_Search_Handler {
         $post_types     = $this->settings->get( 'post_types', array( 'post' ) );
         $max_results    = (int) $this->settings->get( 'search_results_count', 50 );
         $threshold_pct  = (float) $this->settings->get( 'relevance_threshold', 0.3 );
-        $max_chips      = (int) $this->settings->get( 'max_chips', 8 );
         $max_tag_length = (int) $this->settings->get( 'max_tag_length', 40 );
         $display_count  = (int) $this->settings->get( 'max_results', 10 );
-        $tag_field      = $this->settings->get( 'tag_fields', '' );
-        $extra_field    = $this->settings->get( 'extra_fields', '' );
+
+        // Enforce free version limits
+        $max_chips = min(
+            (int) $this->settings->get( 'max_chips', 8 ),
+            SSC_License::max_chips()
+        );
 
         // Run search query (Relevanssi hooks in automatically if active)
         $query = new WP_Query( array(
@@ -88,8 +97,8 @@ class SSC_Search_Handler {
         }
         wp_reset_postdata();
 
-        // Filter by relevance threshold (only if Relevanssi is active and scores exist)
-        if ( $top_score > 0 ) {
+        // Filter by relevance threshold (Pro + Relevanssi only)
+        if ( SSC_License::can_use_relevanssi() && $top_score > 0 ) {
             $threshold      = $top_score * $threshold_pct;
             $relevant_posts = array_filter( $scored_posts, function( $p ) use ( $threshold ) {
                 return $p['score'] >= $threshold;
@@ -100,32 +109,11 @@ class SSC_Search_Handler {
         }
 
         // Build posts data with tags
-        $posts_data = array();
-
-        foreach ( $relevant_posts as $rp ) {
-            $pid = $rp['post']->ID;
-
-            // Get tag fields - support ACF and regular post meta
-            $primary_tags = $this->get_field_value( $pid, $tag_field );
-            $extra_tags   = $this->get_field_value( $pid, $extra_field );
-
-            $tag_data = $this->engine->extract_tags( $primary_tags, $extra_tags );
-
-            $posts_data[] = array(
-                'id'         => $pid,
-                'url'        => get_permalink( $pid ),
-                'title'      => get_the_title( $pid ),
-                'thumbnail'  => get_the_post_thumbnail( $pid, apply_filters( 'ssc_thumbnail_size', 'thumbnail' ) ),
-                'tags'       => $tag_data['tags'],
-                'tags_lower' => $tag_data['tags_lower'],
-            );
-        }
+        $posts_data = $this->collect_posts_data( $relevant_posts );
 
         // Filter by active tags
         if ( ! empty( $active_tags ) ) {
             $posts_data = $this->engine->filter_by_tags( $posts_data, $active_tags );
-
-            // Regenerate tag counts after filtering
         }
 
         $total = count( $posts_data );
@@ -141,6 +129,46 @@ class SSC_Search_Handler {
         $this->render_results( $posts_data, $display_count );
 
         wp_die();
+    }
+
+    /**
+     * Collect post data with tags from relevant posts.
+     *
+     * @param array $relevant_posts Scored posts.
+     * @return array Posts data with tags.
+     */
+    private function collect_posts_data( $relevant_posts ) {
+        $posts_data = array();
+
+        foreach ( $relevant_posts as $rp ) {
+            $pid = $rp['post']->ID;
+
+            // Get tags from appropriate source
+            if ( SSC_License::can_use_custom_fields() ) {
+                // Pro: use configured custom fields
+                $tag_field   = $this->settings->get( 'tag_fields', '' );
+                $extra_field = $this->settings->get( 'extra_fields', '' );
+                $primary     = $this->get_field_value( $pid, $tag_field );
+                $extra       = $this->get_field_value( $pid, $extra_field );
+            } else {
+                // Free: use built-in ssc_tags field only
+                $primary = get_post_meta( $pid, SSC_Meta_Box::META_KEY, true ) ?: '';
+                $extra   = '';
+            }
+
+            $tag_data = $this->engine->extract_tags( $primary, $extra );
+
+            $posts_data[] = array(
+                'id'         => $pid,
+                'url'        => get_permalink( $pid ),
+                'title'      => get_the_title( $pid ),
+                'thumbnail'  => get_the_post_thumbnail( $pid, apply_filters( 'ssc_thumbnail_size', 'thumbnail' ) ),
+                'tags'       => $tag_data['tags'],
+                'tags_lower' => $tag_data['tags_lower'],
+            );
+        }
+
+        return $posts_data;
     }
 
     /**

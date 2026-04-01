@@ -53,6 +53,7 @@ class SSC_Frontend {
             'action'     => ! empty( $ajax_action ) ? $ajax_action : 'ssc_search',
             'minChars'   => 2,
             'postType'   => implode( ',', (array) $this->settings->get( 'post_types', array( 'post' ) ) ),
+            'nonce'      => wp_create_nonce( 'ssc_search_nonce' ),
         ) );
     }
 

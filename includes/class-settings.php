@@ -66,12 +66,20 @@ class SSC_Settings {
         add_settings_section( 'ssc_search', __( 'Search Settings', 'smart-search-chips' ), null, 'smart-search-chips' );
 
         $this->add_field( 'post_types', __( 'Post Types', 'smart-search-chips' ), 'render_post_types_field', 'ssc_search' );
-        $this->add_field( 'tag_fields', __( 'Primary Tag Field', 'smart-search-chips' ), 'render_text_field', 'ssc_search',
-            __( 'Custom field name containing semicolon-separated tags (e.g. title_info). Supports ACF and regular post meta.', 'smart-search-chips' ) );
-        $this->add_field( 'extra_fields', __( 'Extra Tag Field', 'smart-search-chips' ), 'render_text_field', 'ssc_search',
-            __( 'Custom field name containing comma-separated tags (e.g. extra_info). Tags from both fields are merged and deduplicated.', 'smart-search-chips' ) );
-        $this->add_field( 'override_ajax', __( 'Override AJAX Action', 'smart-search-chips' ), 'render_text_field', 'ssc_search',
-            __( 'If your theme has its own AJAX search handler, enter its action name here (e.g. search_processing) to override it. Leave empty to use the built-in ssc_search action.', 'smart-search-chips' ) );
+
+        if ( SSC_License::can_use_custom_fields() ) {
+            $this->add_field( 'tag_fields', __( 'Primary Tag Field', 'smart-search-chips' ), 'render_text_field', 'ssc_search',
+                __( 'Custom field name containing semicolon-separated tags (e.g. title_info). Supports ACF and regular post meta.', 'smart-search-chips' ) );
+            $this->add_field( 'extra_fields', __( 'Extra Tag Field', 'smart-search-chips' ), 'render_text_field', 'ssc_search',
+                __( 'Custom field name containing comma-separated tags (e.g. extra_info). Tags from both fields are merged and deduplicated.', 'smart-search-chips' ) );
+        } else {
+            $this->add_field( 'tag_fields_free', __( 'Tag Source', 'smart-search-chips' ), 'render_free_tag_info', 'ssc_search' );
+        }
+
+        if ( SSC_License::can_override_ajax() ) {
+            $this->add_field( 'override_ajax', __( 'Override AJAX Action', 'smart-search-chips' ), 'render_text_field', 'ssc_search',
+                __( 'If your theme has its own AJAX search handler, enter its action name here (e.g. search_processing) to override it. Leave empty to use the built-in ssc_search action.', 'smart-search-chips' ) );
+        }
 
         // Chip section
         add_settings_section( 'ssc_chips', __( 'Chip Settings', 'smart-search-chips' ), null, 'smart-search-chips' );
@@ -92,8 +100,10 @@ class SSC_Settings {
             __( 'Maximum number of search results to display.', 'smart-search-chips' ) );
         $this->add_field( 'search_results_count', __( 'Results to Analyze', 'smart-search-chips' ), 'render_number_field', 'ssc_results',
             __( 'Number of results to fetch for chip generation. Higher = more accurate chips but slower. Recommended: 50.', 'smart-search-chips' ) );
-        $this->add_field( 'relevance_threshold', __( 'Relevance Threshold', 'smart-search-chips' ), 'render_range_field', 'ssc_results',
-            __( 'Minimum relevance score (as fraction of top score) to include a result. Only works with Relevanssi. 0 = include all, 1 = only exact matches.', 'smart-search-chips' ) );
+        if ( SSC_License::can_use_relevanssi() ) {
+            $this->add_field( 'relevance_threshold', __( 'Relevance Threshold', 'smart-search-chips' ), 'render_range_field', 'ssc_results',
+                __( 'Minimum relevance score (as fraction of top score) to include a result. Only works with Relevanssi. 0 = include all, 1 = only exact matches.', 'smart-search-chips' ) );
+        }
     }
 
     /**
@@ -198,6 +208,14 @@ class SSC_Settings {
         if ( ! empty( $args['description'] ) ) {
             printf( '<p class="description">%s</p>', esc_html( $args['description'] ) );
         }
+    }
+
+    public function render_free_tag_info( $args ) {
+        echo '<p>' . esc_html__( 'Tags are read from the built-in "Search Chips Tags" meta box in the post editor.', 'smart-search-chips' ) . '</p>';
+        echo '<p class="description">' . sprintf(
+            __( '%sUpgrade to Pro%s to use existing custom fields (ACF, post meta) as tag sources.', 'smart-search-chips' ),
+            '<strong>', '</strong>'
+        ) . '</p>';
     }
 
     public function render_post_types_field( $args ) {

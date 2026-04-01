@@ -26,15 +26,20 @@ define( 'SSC_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 /**
  * Core includes
  */
+require_once SSC_PLUGIN_DIR . 'includes/class-license.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-chip-engine.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-search-handler.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-settings.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-frontend.php';
+require_once SSC_PLUGIN_DIR . 'includes/class-meta-box.php';
 
 /**
  * Initialize the plugin
  */
 function ssc_init() {
+    $license = new SSC_License();
+    $license->init();
+
     $settings = new SSC_Settings();
     $settings->init();
 
@@ -45,6 +50,10 @@ function ssc_init() {
 
     $frontend = new SSC_Frontend( $settings );
     $frontend->init();
+
+    // Always show the built-in meta box (free feature)
+    $meta_box = new SSC_Meta_Box();
+    $meta_box->init();
 }
 add_action( 'plugins_loaded', 'ssc_init' );
 
@@ -57,20 +66,23 @@ function ssc_register_meta() {
         $post_types = array( $post_types );
     }
 
-    $fields = array();
-    $tag_field   = get_option( 'ssc_tag_fields', '' );
-    $extra_field = get_option( 'ssc_extra_fields', '' );
-    if ( $tag_field )   $fields[] = $tag_field;
-    if ( $extra_field ) $fields[] = $extra_field;
+    // Only register custom field meta if Pro
+    if ( SSC_License::is_pro() ) {
+        $fields = array();
+        $tag_field   = get_option( 'ssc_tag_fields', '' );
+        $extra_field = get_option( 'ssc_extra_fields', '' );
+        if ( $tag_field )   $fields[] = $tag_field;
+        if ( $extra_field ) $fields[] = $extra_field;
 
-    foreach ( $post_types as $pt ) {
-        foreach ( $fields as $field ) {
-            register_post_meta( $pt, $field, array(
-                'show_in_rest'  => true,
-                'single'        => true,
-                'type'          => 'string',
-                'auth_callback' => '__return_true',
-            ) );
+        foreach ( $post_types as $pt ) {
+            foreach ( $fields as $field ) {
+                register_post_meta( $pt, $field, array(
+                    'show_in_rest'  => true,
+                    'single'        => true,
+                    'type'          => 'string',
+                    'auth_callback' => '__return_true',
+                ) );
+            }
         }
     }
 }
@@ -81,16 +93,16 @@ add_action( 'init', 'ssc_register_meta' );
  */
 function ssc_activate() {
     $defaults = array(
-        'ssc_post_types'        => array( 'post' ),
-        'ssc_tag_fields'        => '',
-        'ssc_extra_fields'      => '',
-        'ssc_max_chips'         => 8,
-        'ssc_max_results'       => 10,
+        'ssc_post_types'          => array( 'post' ),
+        'ssc_tag_fields'          => '',
+        'ssc_extra_fields'        => '',
+        'ssc_max_chips'           => 8,
+        'ssc_max_results'         => 10,
         'ssc_relevance_threshold' => 0.3,
-        'ssc_max_tag_length'    => 40,
-        'ssc_chip_color'        => '#e74c3c',
-        'ssc_chip_text_color'   => '#ffffff',
-        'ssc_override_ajax'     => '',
+        'ssc_max_tag_length'      => 40,
+        'ssc_chip_color'          => '#e74c3c',
+        'ssc_chip_text_color'     => '#ffffff',
+        'ssc_override_ajax'       => '',
         'ssc_search_results_count' => 50,
     );
 
