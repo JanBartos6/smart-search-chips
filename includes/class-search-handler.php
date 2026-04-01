@@ -1,0 +1,254 @@
+<?php
+/**
+ * Search Handler - AJAX endpoint for search with chips
+ *
+ * @package SmartSearchChips
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class SSC_Search_Handler {
+
+    /** @var SSC_Chip_Engine */
+    private $engine;
+
+    /** @var SSC_Settings */
+    private $settings;
+
+    public function __construct( SSC_Chip_Engine $engine, SSC_Settings $settings ) {
+        $this->engine   = $engine;
+        $this->settings = $settings;
+    }
+
+    /**
+     * Register AJAX hooks.
+     */
+    public function init() {
+        $ajax_action = $this->settings->get( 'override_ajax' );
+
+        if ( ! empty( $ajax_action ) ) {
+            // Override an existing AJAX action (e.g. theme's search handler)
+            add_action( 'wp_ajax_' . $ajax_action, array( $this, 'handle_search' ), 0 );
+            add_action( 'wp_ajax_nopriv_' . $ajax_action, array( $this, 'handle_search' ), 0 );
+        }
+
+        // Always register our own action
+        add_action( 'wp_ajax_ssc_search', array( $this, 'handle_search' ) );
+        add_action( 'wp_ajax_nopriv_ssc_search', array( $this, 'handle_search' ) );
+    }
+
+    /**
+     * Handle the AJAX search request.
+     */
+    public function handle_search() {
+        $keyword     = isset( $_POST['keyword'] ) ? sanitize_text_field( $_POST['keyword'] ) : '';
+        $active_tags = isset( $_POST['active_tags'] ) ? array_map( 'sanitize_text_field', $_POST['active_tags'] ) : array();
+
+        if ( empty( $keyword ) || strlen( $keyword ) < 2 ) {
+            wp_die();
+        }
+
+        $post_types     = $this->settings->get( 'post_types', array( 'post' ) );
+        $max_results    = (int) $this->settings->get( 'search_results_count', 50 );
+        $threshold_pct  = (float) $this->settings->get( 'relevance_threshold', 0.3 );
+        $max_chips      = (int) $this->settings->get( 'max_chips', 8 );
+        $max_tag_length = (int) $this->settings->get( 'max_tag_length', 40 );
+        $display_count  = (int) $this->settings->get( 'max_results', 10 );
+        $tag_field      = $this->settings->get( 'tag_fields', '' );
+        $extra_field    = $this->settings->get( 'extra_fields', '' );
+
+        // Run search query (Relevanssi hooks in automatically if active)
+        $query = new WP_Query( array(
+            's'              => $keyword,
+            'post_type'      => $post_types,
+            'posts_per_page' => $max_results,
+        ) );
+
+        if ( ! $query->have_posts() ) {
+            echo '<p class="ssc-empty">' . esc_html( apply_filters( 'ssc_no_results_text', __( 'No results found.', 'smart-search-chips' ) ) ) . '</p>';
+            wp_die();
+        }
+
+        // Collect posts with relevance scores
+        $top_score    = 0;
+        $scored_posts = array();
+
+        while ( $query->have_posts() ) {
+            $query->the_post();
+            $score = isset( $GLOBALS['post']->relevance_score ) ? floatval( $GLOBALS['post']->relevance_score ) : 0;
+            if ( $score > $top_score ) {
+                $top_score = $score;
+            }
+            $scored_posts[] = array(
+                'post'  => $GLOBALS['post'],
+                'score' => $score,
+            );
+        }
+        wp_reset_postdata();
+
+        // Filter by relevance threshold (only if Relevanssi is active and scores exist)
+        if ( $top_score > 0 ) {
+            $threshold      = $top_score * $threshold_pct;
+            $relevant_posts = array_filter( $scored_posts, function( $p ) use ( $threshold ) {
+                return $p['score'] >= $threshold;
+            } );
+            $relevant_posts = array_values( $relevant_posts );
+        } else {
+            $relevant_posts = $scored_posts;
+        }
+
+        // Build posts data with tags
+        $posts_data = array();
+
+        foreach ( $relevant_posts as $rp ) {
+            $pid = $rp['post']->ID;
+
+            // Get tag fields - support ACF and regular post meta
+            $primary_tags = $this->get_field_value( $pid, $tag_field );
+            $extra_tags   = $this->get_field_value( $pid, $extra_field );
+
+            $tag_data = $this->engine->extract_tags( $primary_tags, $extra_tags );
+
+            $posts_data[] = array(
+                'id'         => $pid,
+                'url'        => get_permalink( $pid ),
+                'title'      => get_the_title( $pid ),
+                'thumbnail'  => get_the_post_thumbnail( $pid, apply_filters( 'ssc_thumbnail_size', 'thumbnail' ) ),
+                'tags'       => $tag_data['tags'],
+                'tags_lower' => $tag_data['tags_lower'],
+            );
+        }
+
+        // Filter by active tags
+        if ( ! empty( $active_tags ) ) {
+            $posts_data = $this->engine->filter_by_tags( $posts_data, $active_tags );
+
+            // Regenerate tag counts after filtering
+        }
+
+        $total = count( $posts_data );
+
+        // Generate chips
+        $chips = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_tag_length );
+
+        // Allow themes/plugins to modify chips
+        $chips = apply_filters( 'ssc_chips', $chips, $posts_data, $active_tags );
+
+        // Render
+        $this->render_chips( $chips, $active_tags );
+        $this->render_results( $posts_data, $display_count );
+
+        wp_die();
+    }
+
+    /**
+     * Get a field value from a post, supporting ACF and regular post meta.
+     *
+     * @param int    $post_id    Post ID.
+     * @param string $field_name Field name.
+     * @return string Field value.
+     */
+    private function get_field_value( $post_id, $field_name ) {
+        if ( empty( $field_name ) ) {
+            return '';
+        }
+
+        // Try ACF first
+        if ( function_exists( 'get_field' ) ) {
+            $value = get_field( $field_name, $post_id );
+            if ( $value ) {
+                return (string) $value;
+            }
+        }
+
+        // Fall back to regular post meta
+        $value = get_post_meta( $post_id, $field_name, true );
+        return $value ? (string) $value : '';
+    }
+
+    /**
+     * Render chips HTML.
+     *
+     * @param array $chips       Chips to render.
+     * @param array $active_tags Currently active tags.
+     */
+    private function render_chips( $chips, $active_tags ) {
+        if ( empty( $chips ) ) {
+            return;
+        }
+
+        $color      = $this->settings->get( 'chip_color', '#e74c3c' );
+        $text_color = $this->settings->get( 'chip_text_color', '#ffffff' );
+
+        echo '<div class="ssc-chips">';
+
+        foreach ( $chips as $key => $chip ) {
+            $is_active = in_array( $chip['label'], $active_tags, true );
+            $bg        = $is_active ? esc_attr( $color ) : '#fff';
+            $fg        = $is_active ? esc_attr( $text_color ) : '#333';
+            $border    = esc_attr( $color );
+
+            printf(
+                '<button type="button" class="ssc-chip%s" data-tag="%s" style="background:%s;color:%s;border:1px solid %s;">%s (%d)</button>',
+                $is_active ? ' ssc-chip--active' : '',
+                esc_attr( $chip['label'] ),
+                $bg,
+                $fg,
+                $border,
+                esc_html( $chip['label'] ),
+                $chip['count']
+            );
+        }
+
+        echo '</div>';
+    }
+
+    /**
+     * Render search results HTML.
+     *
+     * @param array $posts_data Posts to display.
+     * @param int   $max        Maximum number to show.
+     */
+    private function render_results( $posts_data, $max = 10 ) {
+        if ( empty( $posts_data ) ) {
+            echo '<p class="ssc-empty">' . esc_html( apply_filters( 'ssc_no_filter_results_text', __( 'No results match the selected filters.', 'smart-search-chips' ) ) ) . '</p>';
+            return;
+        }
+
+        // Allow themes to override the result template
+        $template = locate_template( 'smart-search-chips/results.php' );
+
+        if ( $template ) {
+            $ssc_posts = array_slice( $posts_data, 0, $max );
+            include $template;
+            return;
+        }
+
+        // Default rendering
+        echo '<ul class="ssc-results">';
+
+        $shown = 0;
+        foreach ( $posts_data as $post ) {
+            if ( $shown >= $max ) {
+                break;
+            }
+
+            echo '<li class="ssc-result">';
+            echo '<a href="' . esc_url( $post['url'] ) . '">';
+
+            if ( $post['thumbnail'] ) {
+                echo '<figure class="ssc-result__image">' . $post['thumbnail'] . '</figure>';
+            }
+
+            echo '<span class="ssc-result__title">' . esc_html( $post['title'] ) . '</span>';
+            echo '</a>';
+            echo '</li>';
+
+            $shown++;
+        }
+
+        echo '</ul>';
+    }
+}
