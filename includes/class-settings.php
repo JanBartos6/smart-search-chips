@@ -47,7 +47,7 @@ class SSC_Settings {
         $fields = array(
             'post_types', 'tag_fields', 'extra_fields', 'override_ajax',
             'max_chips', 'max_tag_length',
-            'chip_color', 'chip_text_color', 'chip_radius', 'chip_font_size', 'chip_padding_x', 'chip_padding_y',
+            'chip_color', 'chip_text_color', 'chip_inactive_color', 'chip_inactive_text_color', 'chip_radius', 'chip_font_size', 'chip_padding_x', 'chip_padding_y',
             'max_results', 'search_results_count', 'relevance_threshold',
         );
         foreach ( $fields as $f ) {
@@ -188,6 +188,14 @@ class SSC_Settings {
                                     <th><?php _e( 'Active Text', 'smart-search-chips' ); ?></th>
                                     <td><input type="color" name="ssc_chip_text_color" value="<?php echo esc_attr( $chip_text ); ?>" /></td>
                                 </tr>
+                                <tr>
+                                    <th><?php _e( 'Inactive Color', 'smart-search-chips' ); ?></th>
+                                    <td><input type="color" name="ssc_chip_inactive_color" value="<?php echo esc_attr( get_option( 'ssc_chip_inactive_color', '#ffffff' ) ); ?>" /></td>
+                                </tr>
+                                <tr>
+                                    <th><?php _e( 'Inactive Text', 'smart-search-chips' ); ?></th>
+                                    <td><input type="color" name="ssc_chip_inactive_text_color" value="<?php echo esc_attr( get_option( 'ssc_chip_inactive_text_color', '#333333' ) ); ?>" /></td>
+                                </tr>
                                 <?php if ( $is_pro ) : ?>
                                 <tr>
                                     <th><?php _e( 'Border Radius', 'smart-search-chips' ); ?></th>
@@ -268,8 +276,11 @@ class SSC_Settings {
         <style>
             #ssc-settings-layout { display: flex; gap: 24px; align-items: flex-start; margin-top: 16px; }
             #ssc-settings-left { flex: 1; min-width: 0; }
-            #ssc-settings-right { width: 320px; flex-shrink: 0; position: relative; }
-            #ssc-preview-panel { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: transform 0.15s ease; }
+            #ssc-settings-right { width: 320px; flex-shrink: 0; }
+            #ssc-preview-panel { position: sticky; top: 48px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+            #wpbody-content { overflow: visible !important; }
+            .wrap { overflow: visible !important; }
+            form { overflow: visible !important; }
             #ssc-preview-panel h3 { margin: 0 0 12px; font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
             .ssc-settings-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 0 20px 12px; margin-bottom: 16px; }
             .ssc-settings-card h2 { font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
@@ -300,6 +311,8 @@ class SSC_Settings {
             function renderPreview() {
                 var color = val('ssc_chip_color') || '#e74c3c';
                 var textColor = val('ssc_chip_text_color') || '#ffffff';
+                var inactiveColor = val('ssc_chip_inactive_color') || '#ffffff';
+                var inactiveText = val('ssc_chip_inactive_text_color') || '#333333';
                 var radius = (val('ssc_chip_radius') || '16') + 'px';
                 var fontSize = (val('ssc_chip_font_size') || '13') + 'px';
                 var padX = (val('ssc_chip_padding_x') || '12') + 'px';
@@ -326,13 +339,13 @@ class SSC_Settings {
                         + 'border:1px solid ' + color + ';'
                         + (c.active
                             ? 'background:' + color + ';color:' + textColor + ';'
-                            : 'background:#fff;color:#333;');
+                            : 'background:' + inactiveColor + ';color:' + inactiveText + ';');
                     container.appendChild(btn);
                 });
             }
 
             // Listen to all design inputs
-            var inputs = ['ssc_chip_color', 'ssc_chip_text_color', 'ssc_chip_radius', 'ssc_chip_font_size', 'ssc_chip_padding_x', 'ssc_chip_padding_y'];
+            var inputs = ['ssc_chip_color', 'ssc_chip_text_color', 'ssc_chip_inactive_color', 'ssc_chip_inactive_text_color', 'ssc_chip_radius', 'ssc_chip_font_size', 'ssc_chip_padding_x', 'ssc_chip_padding_y'];
             inputs.forEach(function(name) {
                 var el = document.querySelector('[name="' + name + '"]');
                 if (el) {
@@ -344,63 +357,6 @@ class SSC_Settings {
             // Initial render
             renderPreview();
 
-            // Make preview follow scroll
-            var panel = document.getElementById('ssc-preview-panel');
-            var right = document.getElementById('ssc-settings-right');
-            var left = document.getElementById('ssc-settings-left');
-
-            if (panel && right && left && window.innerWidth > 960) {
-                var adminBarHeight = 32;
-                var gap = 16;
-                // Store the initial width before any positioning changes
-                var panelWidth = right.offsetWidth;
-                // Set min-height on right column so it doesn't collapse
-                right.style.minHeight = panel.offsetHeight + 'px';
-
-                function positionPreview() {
-                    var rightRect = right.getBoundingClientRect();
-                    var leftRect = left.getBoundingClientRect();
-                    var panelHeight = panel.offsetHeight;
-
-                    var topEdge = adminBarHeight + gap;
-                    var bottomLimit = leftRect.bottom - panelHeight;
-
-                    if (rightRect.top < topEdge && bottomLimit > topEdge) {
-                        // Fix it
-                        panel.style.position = 'fixed';
-                        panel.style.top = topEdge + 'px';
-                        panel.style.width = panelWidth + 'px';
-                        panel.style.left = '';
-                    } else if (bottomLimit <= topEdge) {
-                        // Stick to bottom of left column
-                        panel.style.position = 'absolute';
-                        panel.style.top = (left.offsetHeight - panelHeight) + 'px';
-                        panel.style.width = panelWidth + 'px';
-                    } else {
-                        // Normal flow
-                        panel.style.position = '';
-                        panel.style.top = '';
-                        panel.style.width = '';
-                    }
-                }
-
-                window.addEventListener('scroll', positionPreview, { passive: true });
-                window.addEventListener('resize', function() {
-                    if (window.innerWidth <= 960) {
-                        panel.style.position = '';
-                        panel.style.top = '';
-                        panel.style.width = '';
-                    } else {
-                        // Temporarily reset to recalculate natural width
-                        panel.style.position = '';
-                        panel.style.width = '';
-                        panelWidth = right.offsetWidth;
-                        right.style.minHeight = panel.offsetHeight + 'px';
-                        positionPreview();
-                    }
-                });
-                positionPreview();
-            }
         })();
         </script>
         <?php

@@ -20,6 +20,8 @@ $options = array(
     'ssc_max_tag_length',
     'ssc_chip_color',
     'ssc_chip_text_color',
+    'ssc_chip_inactive_color',
+    'ssc_chip_inactive_text_color',
     'ssc_chip_radius',
     'ssc_chip_font_size',
     'ssc_chip_padding_x',

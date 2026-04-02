@@ -205,8 +205,10 @@ class SSC_Search_Handler {
             return;
         }
 
-        $color      = $this->settings->get( 'chip_color', '#e74c3c' );
-        $text_color = $this->settings->get( 'chip_text_color', '#ffffff' );
+        $color          = $this->settings->get( 'chip_color', '#e74c3c' );
+        $text_color     = $this->settings->get( 'chip_text_color', '#ffffff' );
+        $inactive_color = $this->settings->get( 'chip_inactive_color', '#ffffff' );
+        $inactive_text  = $this->settings->get( 'chip_inactive_text_color', '#333333' );
 
         // Pro design options
         $radius    = SSC_License::can_use_advanced_design() ? $this->settings->get( 'chip_radius', '16' ) : '16';
@@ -218,8 +220,8 @@ class SSC_Search_Handler {
 
         foreach ( $chips as $key => $chip ) {
             $is_active = in_array( $chip['label'], $active_tags, true );
-            $bg        = $is_active ? esc_attr( $color ) : '#fff';
-            $fg        = $is_active ? esc_attr( $text_color ) : '#333';
+            $bg        = $is_active ? esc_attr( $color ) : esc_attr( $inactive_color );
+            $fg        = $is_active ? esc_attr( $text_color ) : esc_attr( $inactive_text );
             $border    = esc_attr( $color );
 
             printf(

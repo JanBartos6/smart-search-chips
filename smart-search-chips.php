@@ -102,6 +102,8 @@ function ssc_activate() {
         'ssc_max_tag_length'      => 40,
         'ssc_chip_color'           => '#e74c3c',
         'ssc_chip_text_color'      => '#ffffff',
+        'ssc_chip_inactive_color'  => '#ffffff',
+        'ssc_chip_inactive_text_color' => '#333333',
         'ssc_chip_radius'          => 16,
         'ssc_chip_font_size'       => 13,
         'ssc_chip_padding_x'       => 12,
