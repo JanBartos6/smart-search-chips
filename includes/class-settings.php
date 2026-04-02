@@ -352,6 +352,10 @@ class SSC_Settings {
             if (panel && right && left && window.innerWidth > 960) {
                 var adminBarHeight = 32;
                 var gap = 16;
+                // Store the initial width before any positioning changes
+                var panelWidth = right.offsetWidth;
+                // Set min-height on right column so it doesn't collapse
+                right.style.minHeight = panel.offsetHeight + 'px';
 
                 function positionPreview() {
                     var rightRect = right.getBoundingClientRect();
@@ -365,12 +369,13 @@ class SSC_Settings {
                         // Fix it
                         panel.style.position = 'fixed';
                         panel.style.top = topEdge + 'px';
-                        panel.style.width = rightRect.width + 'px';
+                        panel.style.width = panelWidth + 'px';
+                        panel.style.left = '';
                     } else if (bottomLimit <= topEdge) {
                         // Stick to bottom of left column
                         panel.style.position = 'absolute';
                         panel.style.top = (left.offsetHeight - panelHeight) + 'px';
-                        panel.style.width = '';
+                        panel.style.width = panelWidth + 'px';
                     } else {
                         // Normal flow
                         panel.style.position = '';
@@ -386,6 +391,11 @@ class SSC_Settings {
                         panel.style.top = '';
                         panel.style.width = '';
                     } else {
+                        // Temporarily reset to recalculate natural width
+                        panel.style.position = '';
+                        panel.style.width = '';
+                        panelWidth = right.offsetWidth;
+                        right.style.minHeight = panel.offsetHeight + 'px';
                         positionPreview();
                     }
                 });
