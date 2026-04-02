@@ -362,7 +362,7 @@ class SSC_Settings {
                 var rect = right.getBoundingClientRect();
                 var origTop = rect.top + window.scrollY;
                 var origLeft = rect.left;
-                var origWidth = rect.width;
+                var origWidth = rect.width - 20;
 
                 function resetPanel() {
                     panel.removeAttribute('style');
