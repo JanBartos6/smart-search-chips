@@ -375,9 +375,12 @@ class SSC_Settings {
                     var scrollTop = window.scrollY || document.documentElement.scrollTop;
                     var offset = 48;
                     if (scrollTop + offset > origTop) {
+                        // Recalculate right distance from viewport edge
+                        var vpWidth = document.documentElement.clientWidth;
+                        var rightDist = vpWidth - panelL - panelW;
                         panel.style.position = 'fixed';
                         panel.style.top = offset + 'px';
-                        panel.style.right = '20px';
+                        panel.style.right = rightDist + 'px';
                         panel.style.left = 'auto';
                         panel.style.width = panelW + 'px';
                         placeholder.style.display = 'block';
