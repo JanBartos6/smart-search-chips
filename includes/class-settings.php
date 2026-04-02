@@ -277,8 +277,7 @@ class SSC_Settings {
             #ssc-settings-layout { display: flex; gap: 24px; align-items: flex-start; margin-top: 16px; }
             #ssc-settings-left { flex: 1; min-width: 0; }
             #ssc-settings-right { width: 320px; flex-shrink: 0; }
-            #ssc-preview-panel { position: sticky; top: 48px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-            #wpbody-content, #wpbody, .wrap, .wrap > form, #ssc-settings-layout, #ssc-settings-right { overflow: visible !important; }
+            #ssc-preview-panel { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
             #ssc-preview-panel h3 { margin: 0 0 12px; font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
             .ssc-settings-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 0 20px 12px; margin-bottom: 16px; }
             .ssc-settings-card h2 { font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
@@ -354,6 +353,56 @@ class SSC_Settings {
 
             // Initial render
             renderPreview();
+
+            // Floating preview - JS approach since CSS sticky doesn't work in WP admin
+            var panel = document.getElementById('ssc-preview-panel');
+            var right = document.getElementById('ssc-settings-right');
+            if (panel && right && window.innerWidth > 960) {
+                var origTop = right.getBoundingClientRect().top + window.scrollY;
+                var panelW = right.offsetWidth;
+                var panelL = right.getBoundingClientRect().left;
+
+                var placeholder = document.createElement('div');
+                placeholder.style.cssText = 'width:' + panelW + 'px;height:' + panel.offsetHeight + 'px;display:none;';
+                right.appendChild(placeholder);
+
+                function onScroll() {
+                    if (window.innerWidth <= 960) {
+                        panel.style.cssText = '';
+                        placeholder.style.display = 'none';
+                        return;
+                    }
+                    var scrollTop = window.scrollY || document.documentElement.scrollTop;
+                    var offset = 48;
+                    if (scrollTop + offset > origTop) {
+                        panel.style.position = 'fixed';
+                        panel.style.top = offset + 'px';
+                        panel.style.left = panelL + 'px';
+                        panel.style.width = panelW + 'px';
+                        placeholder.style.display = 'block';
+                    } else {
+                        panel.style.position = '';
+                        panel.style.top = '';
+                        panel.style.left = '';
+                        panel.style.width = '';
+                        placeholder.style.display = 'none';
+                    }
+                }
+
+                window.addEventListener('scroll', onScroll, { passive: true });
+                window.addEventListener('resize', function() {
+                    panel.style.position = '';
+                    panel.style.top = '';
+                    panel.style.left = '';
+                    panel.style.width = '';
+                    placeholder.style.display = 'none';
+                    panelW = right.offsetWidth;
+                    panelL = right.getBoundingClientRect().left;
+                    origTop = right.getBoundingClientRect().top + window.scrollY;
+                    placeholder.style.cssText = 'width:' + panelW + 'px;height:' + panel.offsetHeight + 'px;display:none;';
+                    onScroll();
+                });
+            }
 
         })();
         </script>
