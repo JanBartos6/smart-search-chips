@@ -377,12 +377,14 @@ class SSC_Settings {
                     if (scrollTop + offset > origTop) {
                         panel.style.position = 'fixed';
                         panel.style.top = offset + 'px';
-                        panel.style.left = panelL + 'px';
+                        panel.style.right = '20px';
+                        panel.style.left = 'auto';
                         panel.style.width = panelW + 'px';
                         placeholder.style.display = 'block';
                     } else {
                         panel.style.position = '';
                         panel.style.top = '';
+                        panel.style.right = '';
                         panel.style.left = '';
                         panel.style.width = '';
                         placeholder.style.display = 'none';
