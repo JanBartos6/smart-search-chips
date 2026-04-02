@@ -199,19 +199,19 @@ class SSC_Settings {
                                 <?php if ( $is_pro ) : ?>
                                 <tr>
                                     <th><?php _e( 'Border Radius', 'smart-search-chips' ); ?></th>
-                                    <td><input type="number" name="ssc_chip_radius" value="<?php echo esc_attr( $chip_radius ); ?>" class="small-text" min="0" max="50" /> px</td>
+                                    <td><input type="number" name="ssc_chip_radius" value="<?php echo esc_attr( $chip_radius ); ?>" class="small-text" min="0" max="50" placeholder="16" /> px</td>
                                 </tr>
                                 <tr>
                                     <th><?php _e( 'Font Size', 'smart-search-chips' ); ?></th>
-                                    <td><input type="number" name="ssc_chip_font_size" value="<?php echo esc_attr( $chip_font ); ?>" class="small-text" min="8" max="24" /> px</td>
+                                    <td><input type="number" name="ssc_chip_font_size" value="<?php echo esc_attr( $chip_font ); ?>" class="small-text" min="8" max="24" placeholder="13" /> px</td>
                                 </tr>
                                 <tr>
                                     <th><?php _e( 'Padding H', 'smart-search-chips' ); ?></th>
-                                    <td><input type="number" name="ssc_chip_padding_x" value="<?php echo esc_attr( $chip_pad_x ); ?>" class="small-text" min="0" max="40" /> px</td>
+                                    <td><input type="number" name="ssc_chip_padding_x" value="<?php echo esc_attr( $chip_pad_x ); ?>" class="small-text" min="0" max="40" placeholder="12" /> px</td>
                                 </tr>
                                 <tr>
                                     <th><?php _e( 'Padding V', 'smart-search-chips' ); ?></th>
-                                    <td><input type="number" name="ssc_chip_padding_y" value="<?php echo esc_attr( $chip_pad_y ); ?>" class="small-text" min="0" max="24" /> px</td>
+                                    <td><input type="number" name="ssc_chip_padding_y" value="<?php echo esc_attr( $chip_pad_y ); ?>" class="small-text" min="0" max="24" placeholder="4" /> px</td>
                                 </tr>
                                 <?php else : ?>
                                 <tr>
