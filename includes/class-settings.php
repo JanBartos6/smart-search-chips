@@ -362,7 +362,8 @@ class SSC_Settings {
                 var rect = right.getBoundingClientRect();
                 var origTop = rect.top + window.scrollY;
                 var origLeft = rect.left;
-                var origWidth = rect.width - 20;
+                var availableWidth = document.documentElement.clientWidth - rect.left - 20;
+                var origWidth = Math.min(rect.width, availableWidth);
 
                 function resetPanel() {
                     panel.removeAttribute('style');
@@ -373,6 +374,7 @@ class SSC_Settings {
                     panel.style.top = '48px';
                     panel.style.left = origLeft + 'px';
                     panel.style.width = origWidth + 'px';
+                    panel.style.boxSizing = 'border-box';
                     panel.style.zIndex = '100';
                     panel.style.background = '#fff';
                     panel.style.border = '1px solid #ddd';
