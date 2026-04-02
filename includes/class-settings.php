@@ -358,53 +358,46 @@ class SSC_Settings {
             var panel = document.getElementById('ssc-preview-panel');
             var right = document.getElementById('ssc-settings-right');
             if (panel && right && window.innerWidth > 960) {
-                var origTop = right.getBoundingClientRect().top + window.scrollY;
-                var panelW = panel.offsetWidth;
-                var panelL = panel.getBoundingClientRect().left;
+                // Capture original measurements before anything changes
+                var rect = right.getBoundingClientRect();
+                var origTop = rect.top + window.scrollY;
+                var origLeft = rect.left;
+                var origWidth = rect.width;
 
-                var placeholder = document.createElement('div');
-                placeholder.style.cssText = 'width:' + panelW + 'px;height:' + panel.offsetHeight + 'px;display:none;';
-                right.appendChild(placeholder);
+                function resetPanel() {
+                    panel.removeAttribute('style');
+                }
+
+                function fixPanel() {
+                    panel.style.position = 'fixed';
+                    panel.style.top = '48px';
+                    panel.style.left = origLeft + 'px';
+                    panel.style.width = origWidth + 'px';
+                    panel.style.zIndex = '100';
+                    panel.style.background = '#fff';
+                    panel.style.border = '1px solid #ddd';
+                    panel.style.borderRadius = '8px';
+                    panel.style.padding = '20px';
+                    panel.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)';
+                }
 
                 function onScroll() {
-                    if (window.innerWidth <= 960) {
-                        panel.style.cssText = '';
-                        placeholder.style.display = 'none';
-                        return;
-                    }
+                    if (window.innerWidth <= 960) { resetPanel(); return; }
                     var scrollTop = window.scrollY || document.documentElement.scrollTop;
-                    var offset = 48;
-                    if (scrollTop + offset > origTop) {
-                        // Recalculate right distance from viewport edge
-                        var vpWidth = document.documentElement.clientWidth;
-                        var rightDist = vpWidth - panelL - panelW;
-                        panel.style.position = 'fixed';
-                        panel.style.top = offset + 'px';
-                        panel.style.right = rightDist + 'px';
-                        panel.style.left = 'auto';
-                        panel.style.width = panelW + 'px';
-                        placeholder.style.display = 'block';
+                    if (scrollTop + 48 > origTop) {
+                        fixPanel();
                     } else {
-                        panel.style.position = '';
-                        panel.style.top = '';
-                        panel.style.right = '';
-                        panel.style.left = '';
-                        panel.style.width = '';
-                        placeholder.style.display = 'none';
+                        resetPanel();
                     }
                 }
 
                 window.addEventListener('scroll', onScroll, { passive: true });
                 window.addEventListener('resize', function() {
-                    panel.style.position = '';
-                    panel.style.top = '';
-                    panel.style.left = '';
-                    panel.style.width = '';
-                    placeholder.style.display = 'none';
-                    panelW = panel.offsetWidth;
-                    panelL = panel.getBoundingClientRect().left;
-                    origTop = panel.getBoundingClientRect().top + window.scrollY;
-                    placeholder.style.cssText = 'width:' + panelW + 'px;height:' + panel.offsetHeight + 'px;display:none;';
+                    resetPanel();
+                    var r = right.getBoundingClientRect();
+                    origTop = r.top + window.scrollY;
+                    origLeft = r.left;
+                    origWidth = r.width;
                     onScroll();
                 });
             }
