@@ -359,8 +359,8 @@ class SSC_Settings {
             var right = document.getElementById('ssc-settings-right');
             if (panel && right && window.innerWidth > 960) {
                 var origTop = right.getBoundingClientRect().top + window.scrollY;
-                var panelW = right.offsetWidth;
-                var panelL = right.getBoundingClientRect().left;
+                var panelW = panel.offsetWidth;
+                var panelL = panel.getBoundingClientRect().left;
 
                 var placeholder = document.createElement('div');
                 placeholder.style.cssText = 'width:' + panelW + 'px;height:' + panel.offsetHeight + 'px;display:none;';
@@ -396,9 +396,9 @@ class SSC_Settings {
                     panel.style.left = '';
                     panel.style.width = '';
                     placeholder.style.display = 'none';
-                    panelW = right.offsetWidth;
-                    panelL = right.getBoundingClientRect().left;
-                    origTop = right.getBoundingClientRect().top + window.scrollY;
+                    panelW = panel.offsetWidth;
+                    panelL = panel.getBoundingClientRect().left;
+                    origTop = panel.getBoundingClientRect().top + window.scrollY;
                     placeholder.style.cssText = 'width:' + panelW + 'px;height:' + panel.offsetHeight + 'px;display:none;';
                     onScroll();
                 });
