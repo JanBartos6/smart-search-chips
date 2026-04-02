@@ -191,19 +191,19 @@ class SSC_Settings {
                                 <?php if ( $is_pro ) : ?>
                                 <tr>
                                     <th><?php _e( 'Border Radius', 'smart-search-chips' ); ?></th>
-                                    <td><input type="range" name="ssc_chip_radius" value="<?php echo esc_attr( $chip_radius ); ?>" min="0" max="24" step="1" /> <span class="ssc-range-val"><?php echo esc_html( $chip_radius ); ?>px</span></td>
+                                    <td><input type="number" name="ssc_chip_radius" value="<?php echo esc_attr( $chip_radius ); ?>" class="small-text" min="0" max="50" /> px</td>
                                 </tr>
                                 <tr>
                                     <th><?php _e( 'Font Size', 'smart-search-chips' ); ?></th>
-                                    <td><input type="range" name="ssc_chip_font_size" value="<?php echo esc_attr( $chip_font ); ?>" min="10" max="20" step="1" /> <span class="ssc-range-val"><?php echo esc_html( $chip_font ); ?>px</span></td>
+                                    <td><input type="number" name="ssc_chip_font_size" value="<?php echo esc_attr( $chip_font ); ?>" class="small-text" min="8" max="24" /> px</td>
                                 </tr>
                                 <tr>
                                     <th><?php _e( 'Padding H', 'smart-search-chips' ); ?></th>
-                                    <td><input type="range" name="ssc_chip_padding_x" value="<?php echo esc_attr( $chip_pad_x ); ?>" min="4" max="24" step="1" /> <span class="ssc-range-val"><?php echo esc_html( $chip_pad_x ); ?>px</span></td>
+                                    <td><input type="number" name="ssc_chip_padding_x" value="<?php echo esc_attr( $chip_pad_x ); ?>" class="small-text" min="0" max="40" /> px</td>
                                 </tr>
                                 <tr>
                                     <th><?php _e( 'Padding V', 'smart-search-chips' ); ?></th>
-                                    <td><input type="range" name="ssc_chip_padding_y" value="<?php echo esc_attr( $chip_pad_y ); ?>" min="2" max="16" step="1" /> <span class="ssc-range-val"><?php echo esc_html( $chip_pad_y ); ?>px</span></td>
+                                    <td><input type="number" name="ssc_chip_padding_y" value="<?php echo esc_attr( $chip_pad_y ); ?>" class="small-text" min="0" max="24" /> px</td>
                                 </tr>
                                 <?php else : ?>
                                 <tr>
@@ -330,17 +330,6 @@ class SSC_Settings {
                     container.appendChild(btn);
                 });
             }
-
-            // Update range value labels
-            document.querySelectorAll('input[type="range"]').forEach(function(el) {
-                var span = el.nextElementSibling;
-                if (span && span.classList.contains('ssc-range-val')) {
-                    el.addEventListener('input', function() {
-                        var unit = el.name === 'ssc_relevance_threshold' ? '' : 'px';
-                        span.textContent = el.value + unit;
-                    });
-                }
-            });
 
             // Listen to all design inputs
             var inputs = ['ssc_chip_color', 'ssc_chip_text_color', 'ssc_chip_radius', 'ssc_chip_font_size', 'ssc_chip_padding_x', 'ssc_chip_padding_y'];
