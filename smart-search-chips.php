@@ -32,6 +32,7 @@ require_once SSC_PLUGIN_DIR . 'includes/class-search-handler.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-settings.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-frontend.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-meta-box.php';
+require_once SSC_PLUGIN_DIR . 'includes/class-woocommerce.php';
 
 /**
  * Initialize the plugin
@@ -54,6 +55,10 @@ function ssc_init() {
     // Always show the built-in meta box (free feature)
     $meta_box = new SSC_Meta_Box();
     $meta_box->init();
+
+    // WooCommerce integration (if WooCommerce is active)
+    $woo = new SSC_WooCommerce();
+    $woo->init();
 }
 add_action( 'plugins_loaded', 'ssc_init' );
 
