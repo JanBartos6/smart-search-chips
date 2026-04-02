@@ -278,9 +278,7 @@ class SSC_Settings {
             #ssc-settings-left { flex: 1; min-width: 0; }
             #ssc-settings-right { width: 320px; flex-shrink: 0; }
             #ssc-preview-panel { position: sticky; top: 48px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-            #wpbody-content { overflow: visible !important; }
-            .wrap { overflow: visible !important; }
-            form { overflow: visible !important; }
+            #wpbody-content, #wpbody, .wrap, .wrap > form, #ssc-settings-layout, #ssc-settings-right { overflow: visible !important; }
             #ssc-preview-panel h3 { margin: 0 0 12px; font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
             .ssc-settings-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 0 20px 12px; margin-bottom: 16px; }
             .ssc-settings-card h2 { font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
