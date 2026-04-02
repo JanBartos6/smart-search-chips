@@ -26,13 +26,11 @@ class SSC_Search_Handler {
      * Register AJAX hooks.
      */
     public function init() {
-        // Override existing AJAX action (Pro only)
-        if ( SSC_License::can_override_ajax() ) {
-            $ajax_action = $this->settings->get( 'override_ajax' );
-            if ( ! empty( $ajax_action ) ) {
-                add_action( 'wp_ajax_' . $ajax_action, array( $this, 'handle_search' ), 0 );
-                add_action( 'wp_ajax_nopriv_' . $ajax_action, array( $this, 'handle_search' ), 0 );
-            }
+        // Override existing AJAX action (free + pro)
+        $ajax_action = $this->settings->get( 'override_ajax' );
+        if ( ! empty( $ajax_action ) ) {
+            add_action( 'wp_ajax_' . $ajax_action, array( $this, 'handle_search' ), 0 );
+            add_action( 'wp_ajax_nopriv_' . $ajax_action, array( $this, 'handle_search' ), 0 );
         }
 
         // Always register our own action
@@ -210,6 +208,12 @@ class SSC_Search_Handler {
         $color      = $this->settings->get( 'chip_color', '#e74c3c' );
         $text_color = $this->settings->get( 'chip_text_color', '#ffffff' );
 
+        // Pro design options
+        $radius    = SSC_License::can_use_advanced_design() ? $this->settings->get( 'chip_radius', '16' ) : '16';
+        $font_size = SSC_License::can_use_advanced_design() ? $this->settings->get( 'chip_font_size', '13' ) : '13';
+        $pad_x     = SSC_License::can_use_advanced_design() ? $this->settings->get( 'chip_padding_x', '12' ) : '12';
+        $pad_y     = SSC_License::can_use_advanced_design() ? $this->settings->get( 'chip_padding_y', '4' ) : '4';
+
         echo '<div class="ssc-chips">';
 
         foreach ( $chips as $key => $chip ) {
@@ -219,12 +223,12 @@ class SSC_Search_Handler {
             $border    = esc_attr( $color );
 
             printf(
-                '<button type="button" class="ssc-chip%s" data-tag="%s" style="background:%s;color:%s;border:1px solid %s;">%s (%d)</button>',
+                '<button type="button" class="ssc-chip%s" data-tag="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;">%s (%d)</button>',
                 $is_active ? ' ssc-chip--active' : '',
                 esc_attr( $chip['label'] ),
-                $bg,
-                $fg,
-                $border,
+                $bg, $fg, $border,
+                esc_attr( $radius ), esc_attr( $font_size ),
+                esc_attr( $pad_y ), esc_attr( $pad_x ),
                 esc_html( $chip['label'] ),
                 $chip['count']
             );

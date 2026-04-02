@@ -11,8 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SSC_License {
 
-    /** @var string Option key for license */
-    const LICENSE_KEY_OPTION = 'ssc_license_key';
+    /** @var string Option keys */
+    const LICENSE_KEY_OPTION    = 'ssc_license_key';
     const LICENSE_STATUS_OPTION = 'ssc_license_status';
 
     /**
@@ -31,7 +31,7 @@ class SSC_License {
      * @return int
      */
     public static function max_chips() {
-        return self::is_pro() ? 99 : 4;
+        return self::is_pro() ? 99 : 5;
     }
 
     /**
@@ -44,20 +44,20 @@ class SSC_License {
     }
 
     /**
-     * Check if AJAX override is allowed (Pro only).
-     *
-     * @return bool
-     */
-    public static function can_override_ajax() {
-        return self::is_pro();
-    }
-
-    /**
      * Check if Relevanssi integration is allowed (Pro only).
      *
      * @return bool
      */
     public static function can_use_relevanssi() {
+        return self::is_pro();
+    }
+
+    /**
+     * Check if advanced design options are available (Pro only).
+     *
+     * @return bool
+     */
+    public static function can_use_advanced_design() {
         return self::is_pro();
     }
 
@@ -94,7 +94,7 @@ class SSC_License {
         if ( self::is_pro() ) {
             echo '<div class="notice notice-success inline"><p><strong>' . esc_html__( 'Pro license active.', 'smart-search-chips' ) . '</strong> ' . esc_html__( 'All features unlocked.', 'smart-search-chips' ) . '</p></div>';
         } else {
-            echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Free version. Upgrade to Pro for custom field mapping, unlimited chips, Relevanssi integration, and AJAX override.', 'smart-search-chips' ) . '</p></div>';
+            echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Free version — up to 5 chips, built-in tag field. Upgrade to Pro for custom field mapping, unlimited chips, Relevanssi integration, and advanced design options.', 'smart-search-chips' ) . '</p></div>';
         }
     }
 
@@ -135,8 +135,7 @@ class SSC_License {
             return $key;
         }
 
-        // TODO: Replace with actual license server validation
-        // For now, validate format: SSC-PRO-XXXX-XXXX-XXXX
+        // TODO: Replace with actual license server validation (Stripe/Lemon Squeezy/Freemius API)
         if ( preg_match( '/^SSC-PRO-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/', $key ) ) {
             update_option( self::LICENSE_STATUS_OPTION, 'valid' );
         } else {

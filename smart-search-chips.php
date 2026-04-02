@@ -100,9 +100,13 @@ function ssc_activate() {
         'ssc_max_results'         => 10,
         'ssc_relevance_threshold' => 0.3,
         'ssc_max_tag_length'      => 40,
-        'ssc_chip_color'          => '#e74c3c',
-        'ssc_chip_text_color'     => '#ffffff',
-        'ssc_override_ajax'       => '',
+        'ssc_chip_color'           => '#e74c3c',
+        'ssc_chip_text_color'      => '#ffffff',
+        'ssc_chip_radius'          => 16,
+        'ssc_chip_font_size'       => 13,
+        'ssc_chip_padding_x'       => 12,
+        'ssc_chip_padding_y'       => 4,
+        'ssc_override_ajax'        => '',
         'ssc_search_results_count' => 50,
     );
 
