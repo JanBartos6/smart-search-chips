@@ -26,6 +26,7 @@ $options = array(
     'ssc_chip_font_size',
     'ssc_chip_padding_x',
     'ssc_chip_padding_y',
+    'ssc_woo_enabled',
     'ssc_override_ajax',
     'ssc_search_results_count',
     'ssc_license_key',

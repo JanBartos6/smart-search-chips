@@ -113,6 +113,7 @@ function ssc_activate() {
         'ssc_chip_font_size'       => 13,
         'ssc_chip_padding_x'       => 12,
         'ssc_chip_padding_y'       => 4,
+        'ssc_woo_enabled'          => '1',
         'ssc_override_ajax'        => '',
         'ssc_search_results_count' => 50,
     );

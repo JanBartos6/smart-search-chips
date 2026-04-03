@@ -47,6 +47,7 @@ class SSC_Settings {
         $fields = array(
             'post_types', 'tag_fields', 'extra_fields', 'override_ajax',
             'max_chips', 'max_tag_length',
+            'woo_enabled',
             'chip_color', 'chip_text_color', 'chip_inactive_color', 'chip_inactive_text_color', 'chip_radius', 'chip_font_size', 'chip_padding_x', 'chip_padding_y',
             'max_results', 'search_results_count', 'relevance_threshold',
         );
@@ -143,6 +144,17 @@ class SSC_Settings {
                                     <td>
                                         <p><?php _e( 'Built-in "Search Chips Tags" meta box.', 'smart-search-chips' ); ?></p>
                                         <p class="description"><?php _e( 'Upgrade to Pro to use custom fields (ACF, post meta).', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <?php endif; ?>
+                                <?php if ( class_exists( 'WooCommerce' ) ) : ?>
+                                <tr>
+                                    <th><?php _e( 'WooCommerce Auto-Tags', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <label>
+                                            <input type="checkbox" name="ssc_woo_enabled" value="1" <?php checked( get_option( 'ssc_woo_enabled', '1' ), '1' ); ?> />
+                                            <?php _e( 'Auto-populate tags from product attributes, categories, and SKU', 'smart-search-chips' ); ?>
+                                        </label>
                                     </td>
                                 </tr>
                                 <?php endif; ?>

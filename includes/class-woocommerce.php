@@ -15,8 +15,8 @@ class SSC_WooCommerce {
      * Initialize WooCommerce hooks.
      */
     public function init() {
-        // Only load if WooCommerce is active
-        if ( ! class_exists( 'WooCommerce' ) ) {
+        // Only load if WooCommerce is active and feature is enabled
+        if ( ! class_exists( 'WooCommerce' ) || get_option( 'ssc_woo_enabled', '1' ) !== '1' ) {
             return;
         }
 
