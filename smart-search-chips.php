@@ -125,3 +125,15 @@ function ssc_activate() {
     }
 }
 register_activation_hook( __FILE__, 'ssc_activate' );
+
+/**
+ * Privacy Policy suggested content
+ */
+function ssc_privacy_policy_content() {
+    $content = '<h2>' . __( 'Smart Search Chips', 'smart-search-chips' ) . '</h2>'
+        . '<p>' . __( 'This plugin processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this server and are not stored or sent to any third-party service.', 'smart-search-chips' ) . '</p>'
+        . '<p>' . __( 'No personal data is collected, stored, or shared by this plugin.', 'smart-search-chips' ) . '</p>';
+
+    wp_add_privacy_policy_content( 'Smart Search Chips', wp_kses_post( $content ) );
+}
+add_action( 'admin_init', 'ssc_privacy_policy_content' );
