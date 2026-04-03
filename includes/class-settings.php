@@ -175,7 +175,7 @@ class SSC_Settings {
                                 <tr>
                                     <th><?php _e( 'Max Chips', 'smart-search-chips' ); ?></th>
                                     <td>
-                                        <input type="number" name="ssc_max_chips" value="<?php echo esc_attr( get_option( 'ssc_max_chips', '8' ) ); ?>" class="small-text" min="1" max="<?php echo SSC_License::max_chips(); ?>" />
+                                        <input type="number" name="ssc_max_chips" value="<?php echo esc_attr( min( (int) get_option( 'ssc_max_chips', '5' ), SSC_License::max_chips() ) ); ?>" class="small-text" min="1" max="<?php echo SSC_License::max_chips(); ?>" />
                                         <?php if ( ! $is_pro ) : ?>
                                             <span class="description"><?php _e( 'Free: max 5', 'smart-search-chips' ); ?></span>
                                         <?php endif; ?>
