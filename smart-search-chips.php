@@ -29,6 +29,7 @@ define( 'SSC_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 require_once SSC_PLUGIN_DIR . 'includes/class-license.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-chip-engine.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-search-handler.php';
+require_once SSC_PLUGIN_DIR . 'includes/class-ai-tagger.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-settings.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-frontend.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-meta-box.php';
@@ -51,6 +52,9 @@ function ssc_init() {
 
     $frontend = new SSC_Frontend( $settings );
     $frontend->init();
+
+    $ai_tagger = new SSC_AI_Tagger( $settings );
+    $ai_tagger->init();
 
     // Always show the built-in meta box (free feature)
     $meta_box = new SSC_Meta_Box();
@@ -116,6 +120,17 @@ function ssc_activate() {
         'ssc_woo_enabled'          => '1',
         'ssc_override_ajax'        => '',
         'ssc_search_results_count' => 50,
+        'ssc_ai_provider'          => 'openai',
+        'ssc_ai_model'             => 'gpt-5-mini',
+        'ssc_ai_openai_key'        => '',
+        'ssc_ai_anthropic_key'     => '',
+        'ssc_ai_gemini_key'        => '',
+        'ssc_ai_source_fields'     => array( 'title', 'excerpt', 'content' ),
+        'ssc_ai_custom_read_fields'=> '',
+        'ssc_ai_target_field'      => 'built_in',
+        'ssc_ai_max_tags'          => 8,
+        'ssc_ai_language'          => '',
+        'ssc_ai_custom_instruction'=> '',
     );
 
     foreach ( $defaults as $key => $value ) {
