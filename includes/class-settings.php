@@ -62,15 +62,6 @@ class SSC_Settings {
         register_setting( 'smart-search-chips', 'ssc_ai_model', array(
             'sanitize_callback' => 'sanitize_text_field',
         ) );
-        register_setting( 'smart-search-chips', 'ssc_ai_openai_key', array(
-            'sanitize_callback' => 'sanitize_text_field',
-        ) );
-        register_setting( 'smart-search-chips', 'ssc_ai_anthropic_key', array(
-            'sanitize_callback' => 'sanitize_text_field',
-        ) );
-        register_setting( 'smart-search-chips', 'ssc_ai_gemini_key', array(
-            'sanitize_callback' => 'sanitize_text_field',
-        ) );
         register_setting( 'smart-search-chips', 'ssc_ai_source_fields', array(
             'sanitize_callback' => array( $this, 'sanitize_ai_source_fields' ),
         ) );
@@ -114,11 +105,17 @@ class SSC_Settings {
             'nonce'   => wp_create_nonce( SSC_AI_Tagger::AJAX_NONCE ),
             'models'  => SSC_AI_Tagger::get_models(),
             'strings' => array(
-                'working'    => __( 'Working...', 'smart-search-chips' ),
-                'saved'      => __( 'Generated tags saved.', 'smart-search-chips' ),
-                'preview'    => __( 'Preview generated tags', 'smart-search-chips' ),
-                'connectOk'  => __( 'Connection OK.', 'smart-search-chips' ),
-                'selectItem' => __( 'Choose a post or product first.', 'smart-search-chips' ),
+                'working'             => __( 'Working...', 'smart-search-chips' ),
+                'saved'               => __( 'Generated tags saved.', 'smart-search-chips' ),
+                'preview'             => __( 'Preview generated tags', 'smart-search-chips' ),
+                'connectOk'           => __( 'Connection OK.', 'smart-search-chips' ),
+                'selectItem'          => __( 'Choose a post or product first.', 'smart-search-chips' ),
+                'liveModels'          => __( 'Live models loaded from provider.', 'smart-search-chips' ),
+                'fallbackModels'      => __( 'Using fallback models because live discovery is unavailable.', 'smart-search-chips' ),
+                'confirmPreview'      => __( 'Preview request', 'smart-search-chips' ),
+                'confirmGenerate'     => __( 'Generate and save request', 'smart-search-chips' ),
+                'confirmConnection'   => __( 'Connection test request', 'smart-search-chips' ),
+                'confirmationWarning' => __( 'You are responsible for provider-side usage caps, spend limits, and any API charges.', 'smart-search-chips' ),
             ),
         ) );
     }
@@ -142,12 +139,14 @@ class SSC_Settings {
         $chip_pad_x    = get_option( 'ssc_chip_padding_x', '12' );
         $chip_pad_y    = get_option( 'ssc_chip_padding_y', '4' );
         $ai_provider   = get_option( 'ssc_ai_provider', 'openai' );
-        $ai_model      = get_option( 'ssc_ai_model', 'gpt-5-mini' );
+        $ai_model      = get_option( 'ssc_ai_model', 'gpt-5.4-mini' );
         $ai_sources    = get_option( 'ssc_ai_source_fields', array( 'title', 'excerpt', 'content' ) );
         if ( ! is_array( $ai_sources ) ) {
             $ai_sources = array( 'title', 'excerpt', 'content' );
         }
         $ai_posts      = $this->get_ai_lab_posts();
+        $ai_secrets    = $this->get_ai_secret_statuses();
+        $legacy_keys   = $this->has_legacy_ai_keys();
 
         ?>
         <div class="wrap">
@@ -358,20 +357,34 @@ class SSC_Settings {
                                             <select name="ssc_ai_model" id="ssc-ai-model" data-selected="<?php echo esc_attr( $ai_model ); ?>">
                                                 <?php $this->render_ai_model_options( $ai_provider, $ai_model ); ?>
                                             </select>
-                                            <p class="description"><?php _e( 'Curated model list only. The AI Lab below shows an approximate cost for the selected item before you generate tags.', 'smart-search-chips' ); ?></p>
+                                            <span id="ssc-ai-model-status" class="ssc-ai-inline-status" aria-live="polite"></span>
+                                            <p class="description"><?php _e( 'The plugin tries to load live models from the selected provider first. If discovery fails, it falls back to a curated list.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th><?php _e( 'OpenAI API Key', 'smart-search-chips' ); ?></th>
-                                        <td><input type="password" name="ssc_ai_openai_key" id="ssc-ai-openai-key" value="<?php echo esc_attr( get_option( 'ssc_ai_openai_key', '' ) ); ?>" class="regular-text code" autocomplete="off" /></td>
-                                    </tr>
-                                    <tr>
-                                        <th><?php _e( 'Anthropic API Key', 'smart-search-chips' ); ?></th>
-                                        <td><input type="password" name="ssc_ai_anthropic_key" id="ssc-ai-anthropic-key" value="<?php echo esc_attr( get_option( 'ssc_ai_anthropic_key', '' ) ); ?>" class="regular-text code" autocomplete="off" /></td>
-                                    </tr>
-                                    <tr>
-                                        <th><?php _e( 'Gemini API Key', 'smart-search-chips' ); ?></th>
-                                        <td><input type="password" name="ssc_ai_gemini_key" id="ssc-ai-gemini-key" value="<?php echo esc_attr( get_option( 'ssc_ai_gemini_key', '' ) ); ?>" class="regular-text code" autocomplete="off" /></td>
+                                        <th><?php _e( 'Secret Setup', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <p><?php _e( 'API keys are never stored in plugin settings. Configure them in wp-config.php or as environment variables on the server.', 'smart-search-chips' ); ?></p>
+                                            <div class="ssc-ai-secret-list">
+                                                <?php foreach ( $ai_secrets as $provider_key => $secret_status ) : ?>
+                                                    <div class="ssc-ai-secret-item">
+                                                        <strong><?php echo esc_html( SSC_AI_Tagger::get_providers()[ $provider_key ] ); ?></strong>:
+                                                        <?php if ( $secret_status['configured'] ) : ?>
+                                                            <span class="ssc-ai-secret-ok"><?php echo esc_html( sprintf( __( 'configured via %1$s (%2$s)', 'smart-search-chips' ), $secret_status['source'], $secret_status['name'] ) ); ?></span>
+                                                        <?php else : ?>
+                                                            <span class="ssc-ai-secret-missing"><?php echo esc_html( sprintf( __( 'missing. Add %1$s or set %2$s.', 'smart-search-chips' ), $secret_status['constant'], $secret_status['env'] ) ); ?></span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                            <pre class="ssc-ai-code-snippet">define( 'SSC_OPENAI_API_KEY', 'your-openai-key' );
+define( 'SSC_ANTHROPIC_API_KEY', 'your-anthropic-key' );
+define( 'SSC_GEMINI_API_KEY', 'your-gemini-key' );</pre>
+                                            <p class="description"><?php _e( 'Environment variables work too. The plugin checks plugin-prefixed constants first, then provider-standard names.', 'smart-search-chips' ); ?></p>
+                                            <?php if ( $legacy_keys ) : ?>
+                                                <p class="ssc-ai-warning"><?php _e( 'Legacy API key options were detected in the database. They are ignored by this version. Move secrets into wp-config.php or environment variables and delete the old options if needed.', 'smart-search-chips' ); ?></p>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                     <tr>
                                         <th><?php _e( 'Source Fields', 'smart-search-chips' ); ?></th>
@@ -426,6 +439,7 @@ class SSC_Settings {
                                         <td>
                                             <button type="button" class="button" id="ssc-ai-test-connection"><?php _e( 'Test connection', 'smart-search-chips' ); ?></button>
                                             <span id="ssc-ai-test-result" class="ssc-ai-inline-status" aria-live="polite"></span>
+                                            <p class="description"><?php _e( 'This sends a tiny request directly from the WordPress server to the selected provider using the configured server-side secret.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                 </table>
@@ -460,6 +474,8 @@ class SSC_Settings {
                                                 <input type="checkbox" id="ssc-ai-overwrite" value="1" />
                                                 <?php _e( 'Overwrite existing target tags', 'smart-search-chips' ); ?>
                                             </label>
+                                            <p class="description"><?php _e( 'Every preview, connection test, and save action requires confirmation. Review provider, model, source fields, destination field, and estimated cost before approving the request.', 'smart-search-chips' ); ?></p>
+                                            <p class="ssc-ai-warning"><?php _e( 'You are responsible for provider-side usage caps, spend limits, and any charges incurred on your API account.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                 </table>
@@ -471,6 +487,10 @@ class SSC_Settings {
                                 <div id="ssc-ai-preview-panel" class="ssc-ai-panel">
                                     <strong><?php _e( 'Preview', 'smart-search-chips' ); ?></strong>
                                     <div id="ssc-ai-preview-output"><?php _e( 'Previewed tags will appear here.', 'smart-search-chips' ); ?></div>
+                                </div>
+                                <div id="ssc-ai-request-panel" class="ssc-ai-panel">
+                                    <strong><?php _e( 'Technical Summary', 'smart-search-chips' ); ?></strong>
+                                    <div id="ssc-ai-request-output"><?php _e( 'Estimate or preview an item to inspect what will be sent and where generated tags will be written.', 'smart-search-chips' ); ?></div>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -518,6 +538,11 @@ class SSC_Settings {
             .ssc-ai-panel strong { display: block; margin-bottom: 8px; }
             .ssc-ai-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
             .ssc-ai-tags span { display: inline-flex; padding: 4px 10px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 999px; }
+            .ssc-ai-secret-list { display: grid; gap: 6px; margin: 8px 0 12px; }
+            .ssc-ai-secret-ok { color: #1d6f42; }
+            .ssc-ai-secret-missing { color: #8a5a00; }
+            .ssc-ai-warning { margin-top: 10px; padding: 10px 12px; background: #fff8e5; border-left: 4px solid #dba617; }
+            .ssc-ai-code-snippet { margin: 10px 0; padding: 10px 12px; background: #f6f7f7; border: 1px solid #dcdcde; overflow-x: auto; }
             .ssc-preview-result { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
             .ssc-preview-result:last-child { border-bottom: none; }
             .ssc-preview-thumb { width: 36px; height: 36px; background: #eee; border-radius: 4px; flex-shrink: 0; }
@@ -724,6 +749,46 @@ class SSC_Settings {
             'orderby'        => 'date',
             'order'          => 'DESC',
         ) );
+    }
+
+    /**
+     * Report current AI secret configuration status per provider.
+     *
+     * @return array
+     */
+    private function get_ai_secret_statuses() {
+        $statuses   = array();
+        $providers  = SSC_AI_Tagger::get_providers();
+        $references = SSC_AI_Tagger::get_secret_references();
+
+        foreach ( $providers as $provider_key => $label ) {
+            $status = SSC_AI_Tagger::get_secret_status( $provider_key );
+            $refs   = isset( $references[ $provider_key ] ) ? $references[ $provider_key ] : array( 'constants' => array(), 'env' => array() );
+
+            $statuses[ $provider_key ] = array(
+                'label'      => $label,
+                'configured' => ! empty( $status['configured'] ),
+                'source'     => isset( $status['source'] ) ? $status['source'] : '',
+                'name'       => isset( $status['name'] ) ? $status['name'] : '',
+                'constant'   => ! empty( $refs['constants'][0] ) ? $refs['constants'][0] : '',
+                'env'        => ! empty( $refs['env'][0] ) ? $refs['env'][0] : '',
+            );
+        }
+
+        return $statuses;
+    }
+
+    /**
+     * Detect ignored legacy key options from earlier builds.
+     *
+     * @return bool
+     */
+    private function has_legacy_ai_keys() {
+        return (bool) (
+            get_option( 'ssc_ai_openai_key', '' ) !== ''
+            || get_option( 'ssc_ai_anthropic_key', '' ) !== ''
+            || get_option( 'ssc_ai_gemini_key', '' ) !== ''
+        );
     }
 
     /**

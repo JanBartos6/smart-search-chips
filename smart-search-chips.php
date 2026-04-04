@@ -121,10 +121,7 @@ function ssc_activate() {
         'ssc_override_ajax'        => '',
         'ssc_search_results_count' => 50,
         'ssc_ai_provider'          => 'openai',
-        'ssc_ai_model'             => 'gpt-5-mini',
-        'ssc_ai_openai_key'        => '',
-        'ssc_ai_anthropic_key'     => '',
-        'ssc_ai_gemini_key'        => '',
+        'ssc_ai_model'             => 'gpt-5.4-mini',
         'ssc_ai_source_fields'     => array( 'title', 'excerpt', 'content' ),
         'ssc_ai_custom_read_fields'=> '',
         'ssc_ai_target_field'      => 'built_in',
@@ -147,7 +144,8 @@ register_activation_hook( __FILE__, 'ssc_activate' );
 function ssc_privacy_policy_content() {
     $content = '<h2>' . __( 'Smart Search Chips', 'smart-search-chips' ) . '</h2>'
         . '<p>' . __( 'This plugin processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this server and are not stored or sent to any third-party service.', 'smart-search-chips' ) . '</p>'
-        . '<p>' . __( 'No personal data is collected, stored, or shared by this plugin.', 'smart-search-chips' ) . '</p>';
+        . '<p>' . __( 'If an administrator uses the optional AI tagging tools, selected post or product content may be sent from this server to the administrator\'s chosen AI provider to generate search tags. The site owner is responsible for configuring that provider, reviewing what content is sent, and managing any provider-side privacy settings, usage caps, and costs.', 'smart-search-chips' ) . '</p>'
+        . '<p>' . __( 'No personal data is collected, stored, or shared by this plugin beyond the site owner\'s own WordPress and provider configuration.', 'smart-search-chips' ) . '</p>';
 
     wp_add_privacy_policy_content( 'Smart Search Chips', wp_kses_post( $content ) );
 }
