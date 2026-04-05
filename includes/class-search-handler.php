@@ -145,11 +145,23 @@ class SSC_Search_Handler {
 
             // Get tags from appropriate source
             if ( SSC_License::can_use_custom_fields() ) {
-                // Pro: use configured custom fields
+                // Pro: use configured custom fields when present, otherwise keep
+                // the built-in fallback so sites do not lose chips just because
+                // Pro is active before field mapping is configured.
                 $tag_field   = $this->settings->get( 'tag_fields', '' );
                 $extra_field = $this->settings->get( 'extra_fields', '' );
-                $primary     = $this->get_field_value( $pid, $tag_field );
-                $extra       = $this->get_field_value( $pid, $extra_field );
+
+                if ( ! empty( $tag_field ) || ! empty( $extra_field ) ) {
+                    $primary = $this->get_field_value( $pid, $tag_field );
+                    $extra   = $this->get_field_value( $pid, $extra_field );
+
+                    if ( '' === $primary && '' === $extra && empty( $tag_field ) ) {
+                        $primary = get_post_meta( $pid, SSC_Meta_Box::META_KEY, true ) ?: '';
+                    }
+                } else {
+                    $primary = get_post_meta( $pid, SSC_Meta_Box::META_KEY, true ) ?: '';
+                    $extra   = '';
+                }
             } else {
                 // Free: use built-in ssc_tags field only
                 $primary = get_post_meta( $pid, SSC_Meta_Box::META_KEY, true ) ?: '';
