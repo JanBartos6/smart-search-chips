@@ -9,7 +9,6 @@
     "use strict";
 
     var config = window.sscAiAdmin || {};
-    var restConfirmed = false;
     var browserState = {
         collections: [],
         search: "",
@@ -61,6 +60,7 @@
         data.append("nonce", config.nonce || "");
         data.append("custom_read_fields", $("ssc-ai-custom-read-fields") ? $("ssc-ai-custom-read-fields").value : "");
         data.append("target_field", document.querySelector('input[name="ssc_ai_target_field"]:checked') ? document.querySelector('input[name="ssc_ai_target_field"]:checked').value : "built_in");
+        data.append("rest_enabled", $("ssc-ai-rest-enabled") && $("ssc-ai-rest-enabled").checked ? "1" : "0");
         data.append("max_tags", $("ssc-ai-max-tags") ? $("ssc-ai-max-tags").value : "8");
         data.append("language", $("ssc-ai-language") ? $("ssc-ai-language").value : "");
         data.append("tag_style", $("ssc-ai-tag-style") ? $("ssc-ai-tag-style").value : "technical");
@@ -100,8 +100,6 @@
     }
 
     function resetRestConfirmation() {
-        restConfirmed = false;
-        setStatus("ssc-ai-rest-status", "", false);
         setStatus("ssc-ai-build-status", "", false);
     }
 
@@ -677,7 +675,6 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
-        var allowRestButton = $("ssc-ai-allow-rest");
         var buildPromptButton = $("ssc-ai-build-prompt");
         var copyPromptButton = $("ssc-ai-copy-prompt");
         var browserRefreshButton = $("ssc-ai-browser-refresh");
@@ -689,6 +686,7 @@
             "#ssc-ai-custom-read-fields",
             "#ssc-ai-max-tags",
             "#ssc-ai-language",
+            "#ssc-ai-rest-enabled",
             "#ssc-ai-tag-style",
             "#ssc-ai-custom-instruction",
             'input[name="ssc_ai_target_field"]',
@@ -789,23 +787,8 @@
             clearSelectionButton.addEventListener("click", clearSelection);
         }
 
-        if (allowRestButton) {
-            allowRestButton.addEventListener("click", function () {
-                request("ssc_ai_check_rest", allowRestButton, function (data) {
-                    restConfirmed = true;
-                    renderRestSummary(data);
-                    setStatus("ssc-ai-rest-status", config.strings && config.strings.restReady ? config.strings.restReady : "REST ready.", false);
-                }, "ssc-ai-rest-status");
-            });
-        }
-
         if (buildPromptButton) {
             buildPromptButton.addEventListener("click", function () {
-                if (!restConfirmed) {
-                    setStatus("ssc-ai-build-status", config.strings && config.strings.confirmRest ? config.strings.confirmRest : "Confirm REST first.", true);
-                    return;
-                }
-
                 request("ssc_ai_build_prompt", buildPromptButton, function (data) {
                     renderRestSummary(data.summary);
                     renderPrompt(data.prompt);

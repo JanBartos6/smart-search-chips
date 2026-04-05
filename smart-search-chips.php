@@ -123,6 +123,7 @@ function ssc_activate() {
         'ssc_ai_source_fields'     => array( 'title', 'excerpt', 'content' ),
         'ssc_ai_custom_read_fields'=> '',
         'ssc_ai_target_field'      => 'built_in',
+        'ssc_ai_rest_enabled'      => '1',
         'ssc_ai_max_tags'          => 8,
         'ssc_ai_language'          => '',
         'ssc_ai_tag_style'         => 'technical',

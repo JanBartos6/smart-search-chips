@@ -65,6 +65,9 @@ class SSC_Settings {
         register_setting( 'smart-search-chips', 'ssc_ai_target_field', array(
             'sanitize_callback' => array( $this, 'sanitize_ai_target_field' ),
         ) );
+        register_setting( 'smart-search-chips', 'ssc_ai_rest_enabled', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
         register_setting( 'smart-search-chips', 'ssc_ai_max_tags', array(
             'sanitize_callback' => 'absint',
         ) );
@@ -121,9 +124,6 @@ class SSC_Settings {
                 'expandGroup'         => __( 'Show products', 'smart-search-chips' ),
                 'collapseGroup'       => __( 'Hide products', 'smart-search-chips' ),
                 'selectItems'         => __( 'Select at least one product or post first.', 'smart-search-chips' ),
-                'confirmRest'         => __( 'Click "Allow REST API" first so the plugin can verify the selected routes and target field.', 'smart-search-chips' ),
-                'restReady'           => __( 'REST API confirmed for the current selection.', 'smart-search-chips' ),
-                'restFailed'          => __( 'REST API check failed.', 'smart-search-chips' ),
                 'promptReady'         => __( 'Agent prompt generated.', 'smart-search-chips' ),
                 'copied'              => __( 'Copied.', 'smart-search-chips' ),
                 'copyFailed'          => __( 'Copy failed. Copy the snippet manually.', 'smart-search-chips' ),
@@ -155,6 +155,7 @@ class SSC_Settings {
         }
         $ai_tag_style  = get_option( 'ssc_ai_tag_style', 'technical' );
         $ai_max_tags   = max( 3, (int) get_option( 'ssc_ai_max_tags', 8 ) );
+        $ai_rest_mode  = get_option( 'ssc_ai_rest_enabled', '1' );
 
         ?>
         <div class="wrap">
@@ -352,10 +353,13 @@ class SSC_Settings {
                                     <tr>
                                         <th><?php _e( 'REST API', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <button type="button" class="button button-secondary" id="ssc-ai-allow-rest"><?php _e( 'Allow REST API', 'smart-search-chips' ); ?></button>
-                                            <span id="ssc-ai-rest-status" class="ssc-ai-inline-status" aria-live="polite"></span>
-                                            <p class="description"><?php _e( 'Click this before generating the prompt. The plugin will verify that the selected post types expose REST routes and that the chosen target field can be addressed through REST updates.', 'smart-search-chips' ); ?></p>
-                                            <p class="description"><?php _e( 'The generated prompt assumes you will use WordPress Application Passwords or another REST-compatible authentication method outside this plugin.', 'smart-search-chips' ); ?></p>
+                                            <label class="ssc-ai-toggle">
+                                                <input type="hidden" name="ssc_ai_rest_enabled" value="0" />
+                                                <input type="checkbox" name="ssc_ai_rest_enabled" id="ssc-ai-rest-enabled" value="1" <?php checked( $ai_rest_mode, '1' ); ?> />
+                                                <span><?php _e( 'Allow REST API write-back in generated prompt', 'smart-search-chips' ); ?></span>
+                                            </label>
+                                            <p class="description"><?php _e( 'Turn this on if you want the external agent to read and write through the WordPress REST API. Turn it off if you only want the prompt to analyze the selected products and return tags for manual review.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php _e( 'When enabled, the prompt assumes you will use WordPress Application Passwords or another REST-compatible authentication method outside this plugin.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -474,8 +478,8 @@ class SSC_Settings {
                                     </tr>
                                 </table>
                                 <div id="ssc-ai-rest-panel" class="ssc-ai-panel">
-                                    <strong><?php _e( 'REST Summary', 'smart-search-chips' ); ?></strong>
-                                    <div id="ssc-ai-rest-output"><?php _e( 'Click "Allow REST API" to validate the current selection and target field.', 'smart-search-chips' ); ?></div>
+                                    <strong><?php _e( 'Run Summary', 'smart-search-chips' ); ?></strong>
+                                    <div id="ssc-ai-rest-output"><?php _e( 'Generate the prompt to inspect the current batch, write mode, and output target.', 'smart-search-chips' ); ?></div>
                                 </div>
                                 <div id="ssc-ai-prompt-panel" class="ssc-ai-panel">
                                     <strong><?php _e( 'Generated Prompt', 'smart-search-chips' ); ?></strong>
@@ -526,6 +530,7 @@ class SSC_Settings {
             .ssc-ai-panel { border-top: 1px solid #eee; margin-top: 16px; padding-top: 16px; }
             .ssc-ai-panel strong { display: block; margin-bottom: 8px; }
             .ssc-ai-warning { margin-top: 10px; padding: 10px 12px; background: #fff8e5; border-left: 4px solid #dba617; }
+            .ssc-ai-toggle { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; }
             #ssc-ai-prompt-output { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
             .ssc-ai-picker { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr); gap: 18px; }
             .ssc-ai-picker__browser, .ssc-ai-picker__selection { border: 1px solid #dcdcde; border-radius: 12px; background: #fcfcfd; overflow: hidden; }
@@ -779,5 +784,15 @@ class SSC_Settings {
      */
     public function sanitize_ai_target_field( $value ) {
         return $value === 'mapped_primary' ? 'mapped_primary' : 'built_in';
+    }
+
+    /**
+     * Sanitize checkbox-style settings.
+     *
+     * @param mixed $value Raw checkbox value.
+     * @return string
+     */
+    public function sanitize_checkbox( $value ) {
+        return ! empty( $value ) ? '1' : '0';
     }
 }
