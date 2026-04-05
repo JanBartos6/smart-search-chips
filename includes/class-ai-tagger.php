@@ -142,14 +142,6 @@ class SSC_AI_Tagger {
      * @return array
      */
     private function get_request_config() {
-        $source_fields = array();
-        if ( isset( $_POST['source_fields'] ) && is_array( $_POST['source_fields'] ) ) {
-            $source_fields = array_map( 'sanitize_key', wp_unslash( $_POST['source_fields'] ) );
-        } else {
-            $saved_source_fields = $this->settings->get( 'ai_source_fields', array( 'title', 'excerpt', 'content' ) );
-            $source_fields       = is_array( $saved_source_fields ) ? $saved_source_fields : array( 'title', 'excerpt', 'content' );
-        }
-
         $post_ids = array();
         if ( isset( $_POST['post_ids'] ) && is_array( $_POST['post_ids'] ) ) {
             $post_ids = array_map( 'absint', wp_unslash( $_POST['post_ids'] ) );
@@ -157,7 +149,6 @@ class SSC_AI_Tagger {
 
         return array(
             'post_ids'           => array_values( array_filter( array_unique( $post_ids ) ) ),
-            'source_fields'      => array_values( array_unique( array_filter( $source_fields ) ) ),
             'custom_read_fields' => isset( $_POST['custom_read_fields'] ) ? sanitize_text_field( wp_unslash( $_POST['custom_read_fields'] ) ) : $this->settings->get( 'ai_custom_read_fields', '' ),
             'target_field'       => isset( $_POST['target_field'] ) ? sanitize_text_field( wp_unslash( $_POST['target_field'] ) ) : $this->settings->get( 'ai_target_field', 'built_in' ),
             'rest_enabled'       => isset( $_POST['rest_enabled'] ) ? ( ! empty( $_POST['rest_enabled'] ) ? '1' : '0' ) : $this->settings->get( 'ai_rest_enabled', '1' ),
@@ -204,16 +195,8 @@ class SSC_AI_Tagger {
      * @return array|WP_Error
      */
     private function build_rest_summary( $posts, $config ) {
-        $routes      = array();
-        $source_map  = $this->get_source_field_map();
-        $source_keys = array();
+        $routes       = array();
         $rest_enabled = ! empty( $config['rest_enabled'] ) && $config['rest_enabled'] === '1';
-
-        foreach ( $config['source_fields'] as $field ) {
-            if ( isset( $source_map[ $field ] ) ) {
-                $source_keys[] = $source_map[ $field ];
-            }
-        }
 
         $target_meta_key = $this->get_target_meta_key( $config );
         if ( $target_meta_key === '' ) {
@@ -262,7 +245,6 @@ class SSC_AI_Tagger {
 
         return array(
             'selectedCount'     => count( $posts ),
-            'sourceLabels'      => $source_keys,
             'customReadFields'  => $this->parse_csv_option( $config['custom_read_fields'] ),
             'targetFieldLabel'  => $this->get_target_label( $config ),
             'targetMetaKey'     => $target_meta_key,
@@ -335,13 +317,9 @@ class SSC_AI_Tagger {
             $lines[] = '6. Do not write anything back to WordPress automatically.';
             $lines[] = '7. Return a final list of every selected item with its proposed semicolon-separated value so the site owner can review and paste it manually.';
         }
-        $lines[] = '';
-        $lines[] = 'Selected source fields';
-        foreach ( $summary['sourceLabels'] as $label ) {
-            $lines[] = '- ' . $label;
-        }
-
         if ( ! empty( $summary['customReadFields'] ) ) {
+            $lines[] = '';
+            $lines[] = 'Extra custom fields to consider';
             $lines[] = '- Extra custom fields: ' . implode( ', ', $summary['customReadFields'] );
         }
         $lines[] = '';
@@ -460,21 +438,6 @@ class SSC_AI_Tagger {
         }
 
         return __( 'Built-in Search Chips Tags', 'smart-search-chips' );
-    }
-
-    /**
-     * Return the label map for selectable source fields.
-     *
-     * @return array
-     */
-    private function get_source_field_map() {
-        return array(
-            'title'          => __( 'Title', 'smart-search-chips' ),
-            'excerpt'        => __( 'Excerpt', 'smart-search-chips' ),
-            'content'        => __( 'Content', 'smart-search-chips' ),
-            'taxonomies'     => __( 'Categories and taxonomies', 'smart-search-chips' ),
-            'woo_attributes' => __( 'WooCommerce attributes and SKU', 'smart-search-chips' ),
-        );
     }
 
     /**

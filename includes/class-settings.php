@@ -56,9 +56,6 @@ class SSC_Settings {
             register_setting( 'smart-search-chips', $this->prefix . $f );
         }
 
-        register_setting( 'smart-search-chips', 'ssc_ai_source_fields', array(
-            'sanitize_callback' => array( $this, 'sanitize_ai_source_fields' ),
-        ) );
         register_setting( 'smart-search-chips', 'ssc_ai_custom_read_fields', array(
             'sanitize_callback' => 'sanitize_text_field',
         ) );
@@ -146,10 +143,6 @@ class SSC_Settings {
         $chip_font     = get_option( 'ssc_chip_font_size', '13' );
         $chip_pad_x    = get_option( 'ssc_chip_padding_x', '12' );
         $chip_pad_y    = get_option( 'ssc_chip_padding_y', '4' );
-        $ai_sources    = get_option( 'ssc_ai_source_fields', array( 'title', 'excerpt', 'content' ) );
-        if ( ! is_array( $ai_sources ) || empty( $ai_sources ) ) {
-            $ai_sources = array( 'title', 'excerpt', 'content' );
-        }
         $ai_max_tags   = max( 0, (int) get_option( 'ssc_ai_max_tags', 8 ) );
         $ai_rest_mode  = get_option( 'ssc_ai_rest_enabled', '1' );
 
@@ -357,10 +350,6 @@ class SSC_Settings {
                                             <p class="description"><?php _e( 'Turn this on if you want the external agent to read and write through the WordPress REST API. Turn it off if you only want the prompt to analyze the selected products and return tags for manual review.', 'smart-search-chips' ); ?></p>
                                             <p class="description"><?php _e( 'When enabled, the prompt assumes you will use WordPress Application Passwords or another REST-compatible WordPress authentication method outside this plugin. The plugin does not ask for or store LLM-provider credentials.', 'smart-search-chips' ); ?></p>
                                         </td>
-                                    </tr>
-                                    <tr>
-                                        <th><?php _e( 'Source Fields', 'smart-search-chips' ); ?></th>
-                                        <td><?php $this->render_ai_source_fields( $ai_sources ); ?></td>
                                     </tr>
                                     <tr>
                                         <th><?php _e( 'Extra Read Fields', 'smart-search-chips' ); ?></th>
@@ -712,44 +701,6 @@ class SSC_Settings {
                 esc_html( $pt->label )
             );
         }
-    }
-
-    /**
-     * Render AI source field checkboxes.
-     *
-     * @param array $selected Selected sources.
-     */
-    private function render_ai_source_fields( $selected ) {
-        $fields = array(
-            'title'          => __( 'Title', 'smart-search-chips' ),
-            'excerpt'        => __( 'Excerpt', 'smart-search-chips' ),
-            'content'        => __( 'Content', 'smart-search-chips' ),
-            'taxonomies'     => __( 'Categories and taxonomies', 'smart-search-chips' ),
-            'woo_attributes' => __( 'WooCommerce attributes and SKU', 'smart-search-chips' ),
-        );
-
-        foreach ( $fields as $key => $label ) {
-            printf(
-                '<label style="display:block;margin-bottom:4px;"><input type="checkbox" name="ssc_ai_source_fields[]" value="%s" %s /> %s</label>',
-                esc_attr( $key ),
-                checked( in_array( $key, $selected, true ), true, false ),
-                esc_html( $label )
-            );
-        }
-    }
-
-    /**
-     * Sanitize selected AI source fields.
-     *
-     * @param array|string $value Raw selected fields.
-     * @return array
-     */
-    public function sanitize_ai_source_fields( $value ) {
-        $allowed = array( 'title', 'excerpt', 'content', 'taxonomies', 'woo_attributes' );
-        $value   = is_array( $value ) ? $value : array();
-        $value   = array_map( 'sanitize_key', $value );
-
-        return array_values( array_intersect( $value, $allowed ) );
     }
 
     /**

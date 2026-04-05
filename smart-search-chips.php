@@ -120,7 +120,6 @@ function ssc_activate() {
         'ssc_woo_enabled'          => '1',
         'ssc_override_ajax'        => '',
         'ssc_search_results_count' => 50,
-        'ssc_ai_source_fields'     => array( 'title', 'excerpt', 'content' ),
         'ssc_ai_custom_read_fields'=> '',
         'ssc_ai_target_field'      => 'built_in',
         'ssc_ai_rest_enabled'      => '1',

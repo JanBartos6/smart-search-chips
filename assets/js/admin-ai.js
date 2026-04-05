@@ -22,12 +22,6 @@
         return document.getElementById(id);
     }
 
-    function checkedValues(name) {
-        return Array.prototype.slice.call(document.querySelectorAll('input[name="' + name + '"]:checked')).map(function (el) {
-            return el.value;
-        });
-    }
-
     function selectedPostIds() {
         return Object.keys(selectedItems);
     }
@@ -64,10 +58,6 @@
         data.append("max_tags", $("ssc-ai-max-tags") ? $("ssc-ai-max-tags").value : "8");
         data.append("language", $("ssc-ai-language") ? $("ssc-ai-language").value : "");
         data.append("custom_instruction", $("ssc-ai-custom-instruction") ? $("ssc-ai-custom-instruction").value : "");
-
-        checkedValues("ssc_ai_source_fields[]").forEach(function (field) {
-            data.append("source_fields[]", field);
-        });
 
         selectedPostIds().forEach(function (postId) {
             data.append("post_ids[]", postId);
@@ -598,7 +588,6 @@
 
         var html = [];
         html.push("<p><strong>Selected items:</strong> " + escapeHtml(String(summary.selectedCount)) + "</p>");
-        html.push("<p><strong>Source fields:</strong> " + escapeHtml((summary.sourceLabels || []).join(", ")) + "</p>");
         html.push("<p><strong>Target field:</strong> " + escapeHtml(summary.targetFieldLabel) + "</p>");
         html.push("<p><strong>Write format:</strong> " + escapeHtml(summary.writeFormat) + "</p>");
         html.push("<p><strong>Max tags:</strong> " + escapeHtml(summary.maxTagsLabel || String(summary.maxTags)) + "</p>");
@@ -687,8 +676,7 @@
             "#ssc-ai-language",
             "#ssc-ai-rest-enabled",
             "#ssc-ai-custom-instruction",
-            'input[name="ssc_ai_target_field"]',
-            'input[name="ssc_ai_source_fields[]"]'
+            'input[name="ssc_ai_target_field"]'
         ];
 
         resetSelectors.forEach(function (selector) {
