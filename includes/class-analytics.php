@@ -24,6 +24,7 @@ class SSC_Analytics {
         add_action( 'init', array( __CLASS__, 'maybe_install' ) );
         add_action( 'wp_ajax_ssc_track_event', array( $this, 'ajax_track_event' ) );
         add_action( 'wp_ajax_nopriv_ssc_track_event', array( $this, 'ajax_track_event' ) );
+        add_action( 'admin_post_ssc_export_analytics', array( $this, 'handle_export' ) );
     }
 
     /**
@@ -147,32 +148,34 @@ class SSC_Analytics {
      * @param int $days Rolling time window in days.
      * @return array
      */
-    public static function get_dashboard_data( $days = 30 ) {
+    public static function get_dashboard_data( $args = array() ) {
         global $wpdb;
 
         self::maybe_install();
 
         $table_name = self::table_name();
-        $days       = max( 1, absint( $days ) );
-        $from_gmt   = gmdate( 'Y-m-d H:i:s', time() - ( $days * DAY_IN_SECONDS ) );
+        $range      = self::get_date_range( $args );
+        $from_gmt   = $range['from_gmt'];
+        $to_gmt     = $range['to_gmt'];
 
         $summary = array(
-            'total_searches'     => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND created_at >= %s", 'search', $from_gmt ) ),
-            'unique_visitors'    => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT visitor_id) FROM {$table_name} WHERE created_at >= %s", $from_gmt ) ),
-            'zero_result_search' => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND created_at >= %s AND result_count = 0", 'search', $from_gmt ) ),
-            'chip_clicks'        => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND created_at >= %s", 'chip_click', $from_gmt ) ),
+            'total_searches'     => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND created_at BETWEEN %s AND %s", 'search', $from_gmt, $to_gmt ) ),
+            'unique_visitors'    => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT visitor_id) FROM {$table_name} WHERE created_at BETWEEN %s AND %s", $from_gmt, $to_gmt ) ),
+            'zero_result_search' => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND created_at BETWEEN %s AND %s AND result_count = 0", 'search', $from_gmt, $to_gmt ) ),
+            'chip_clicks'        => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND created_at BETWEEN %s AND %s", 'chip_click', $from_gmt, $to_gmt ) ),
         );
 
         $top_chips = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT chip_label, COUNT(*) AS clicks, COUNT(DISTINCT visitor_id) AS visitors
                 FROM {$table_name}
-                WHERE event_type = %s AND created_at >= %s AND chip_label <> ''
+                WHERE event_type = %s AND created_at BETWEEN %s AND %s AND chip_label <> ''
                 GROUP BY chip_label
                 ORDER BY clicks DESC, visitors DESC
                 LIMIT 10",
                 'chip_click',
-                $from_gmt
+                $from_gmt,
+                $to_gmt
             ),
             ARRAY_A
         );
@@ -181,12 +184,13 @@ class SSC_Analytics {
             $wpdb->prepare(
                 "SELECT search_query, COUNT(*) AS searches, AVG(COALESCE(result_count, 0)) AS avg_results
                 FROM {$table_name}
-                WHERE event_type = %s AND created_at >= %s AND search_query <> ''
+                WHERE event_type = %s AND created_at BETWEEN %s AND %s AND search_query <> ''
                 GROUP BY search_query
                 ORDER BY searches DESC
                 LIMIT 10",
                 'search',
-                $from_gmt
+                $from_gmt,
+                $to_gmt
             ),
             ARRAY_A
         );
@@ -195,22 +199,166 @@ class SSC_Analytics {
             $wpdb->prepare(
                 "SELECT search_query, COUNT(*) AS misses
                 FROM {$table_name}
-                WHERE event_type = %s AND created_at >= %s AND result_count = 0 AND search_query <> ''
+                WHERE event_type = %s AND created_at BETWEEN %s AND %s AND result_count = 0 AND search_query <> ''
                 GROUP BY search_query
                 ORDER BY misses DESC
                 LIMIT 10",
                 'search',
-                $from_gmt
+                $from_gmt,
+                $to_gmt
             ),
             ARRAY_A
         );
 
         return array(
-            'days'        => $days,
+            'range'       => $range,
             'summary'     => $summary,
             'top_chips'   => is_array( $top_chips ) ? $top_chips : array(),
             'top_queries' => is_array( $top_queries ) ? $top_queries : array(),
             'zero_queries'=> is_array( $zero_queries ) ? $zero_queries : array(),
         );
+    }
+
+    /**
+     * Return recent analytics events for the selected range.
+     *
+     * @param array $args Range/limit arguments.
+     * @return array
+     */
+    public static function get_recent_events( $args = array() ) {
+        global $wpdb;
+
+        self::maybe_install();
+
+        $range      = self::get_date_range( $args );
+        $table_name = self::table_name();
+        $limit      = isset( $args['limit'] ) ? absint( $args['limit'] ) : 100;
+
+        if ( $limit > 0 ) {
+            $results = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT created_at, event_type, search_query, chip_label, result_count, active_tag_count, page_url, visitor_id
+                    FROM {$table_name}
+                    WHERE created_at BETWEEN %s AND %s
+                    ORDER BY created_at DESC
+                    LIMIT %d",
+                    $range['from_gmt'],
+                    $range['to_gmt'],
+                    $limit
+                ),
+                ARRAY_A
+            );
+        } else {
+            $results = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT created_at, event_type, search_query, chip_label, result_count, active_tag_count, page_url, visitor_id
+                    FROM {$table_name}
+                    WHERE created_at BETWEEN %s AND %s
+                    ORDER BY created_at DESC",
+                    $range['from_gmt'],
+                    $range['to_gmt']
+                ),
+                ARRAY_A
+            );
+        }
+
+        return is_array( $results ) ? $results : array();
+    }
+
+    /**
+     * Export analytics events as CSV.
+     */
+    public function handle_export() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have permission to export analytics.', 'smart-search-chips' ) );
+        }
+
+        check_admin_referer( 'ssc_export_analytics' );
+
+        if ( ! self::is_enabled() ) {
+            wp_die( esc_html__( 'Analytics is not enabled.', 'smart-search-chips' ) );
+        }
+
+        $args   = array(
+            'from'  => isset( $_GET['from'] ) ? sanitize_text_field( wp_unslash( $_GET['from'] ) ) : '',
+            'to'    => isset( $_GET['to'] ) ? sanitize_text_field( wp_unslash( $_GET['to'] ) ) : '',
+            'limit' => 0,
+        );
+        $range  = self::get_date_range( $args );
+        $events = self::get_recent_events( $args );
+
+        nocache_headers();
+        header( 'Content-Type: text/csv; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename=ssc-analytics-' . $range['from'] . '-to-' . $range['to'] . '.csv' );
+
+        $out = fopen( 'php://output', 'w' );
+        fputcsv( $out, array( 'created_at_utc', 'event_type', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'page_url', 'visitor_id' ) );
+
+        foreach ( $events as $event ) {
+            fputcsv( $out, array(
+                $event['created_at'],
+                $event['event_type'],
+                $event['search_query'],
+                $event['chip_label'],
+                $event['result_count'],
+                $event['active_tag_count'],
+                $event['page_url'],
+                $event['visitor_id'],
+            ) );
+        }
+
+        fclose( $out );
+        exit;
+    }
+
+    /**
+     * Normalize a date range for dashboard queries and export.
+     *
+     * @param array $args Date arguments.
+     * @return array
+     */
+    public static function get_date_range( $args = array() ) {
+        $timezone = wp_timezone();
+        $now      = new DateTimeImmutable( 'now', $timezone );
+
+        $default_to   = $now->format( 'Y-m-d' );
+        $default_from = $now->sub( new DateInterval( 'P29D' ) )->format( 'Y-m-d' );
+
+        $from = isset( $args['from'] ) ? self::sanitize_date_value( $args['from'] ) : $default_from;
+        $to   = isset( $args['to'] ) ? self::sanitize_date_value( $args['to'] ) : $default_to;
+
+        if ( $from === '' ) {
+            $from = $default_from;
+        }
+        if ( $to === '' ) {
+            $to = $default_to;
+        }
+        if ( $from > $to ) {
+            $swap = $from;
+            $from = $to;
+            $to   = $swap;
+        }
+
+        $from_local = new DateTimeImmutable( $from . ' 00:00:00', $timezone );
+        $to_local   = new DateTimeImmutable( $to . ' 23:59:59', $timezone );
+
+        return array(
+            'from'     => $from,
+            'to'       => $to,
+            'from_gmt' => $from_local->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' ),
+            'to_gmt'   => $to_local->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' ),
+        );
+    }
+
+    /**
+     * Validate a YYYY-MM-DD date string.
+     *
+     * @param string $value Raw date value.
+     * @return string
+     */
+    private static function sanitize_date_value( $value ) {
+        $value = sanitize_text_field( (string) $value );
+
+        return preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ? $value : '';
     }
 }
