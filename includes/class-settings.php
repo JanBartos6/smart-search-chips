@@ -459,11 +459,11 @@ class SSC_Settings {
                                     <div id="ssc-ai-rest-output"><?php _e( 'Generate the prompt to inspect the current batch, write mode, and output target.', 'smart-search-chips' ); ?></div>
                                 </div>
                                 <div id="ssc-ai-prompt-panel" class="ssc-ai-panel">
-                                    <div class="ssc-ai-panel__header">
-                                        <strong><?php _e( 'Generated Prompt', 'smart-search-chips' ); ?></strong>
-                                        <button type="button" class="button button-secondary" id="ssc-ai-copy-prompt-panel"><?php _e( 'Copy Prompt', 'smart-search-chips' ); ?></button>
-                                    </div>
+                                    <strong><?php _e( 'Generated Prompt', 'smart-search-chips' ); ?></strong>
                                     <textarea id="ssc-ai-prompt-output" class="large-text code" rows="18" readonly><?php echo esc_textarea( __( 'Generate the prompt to see the external-agent instructions here.', 'smart-search-chips' ) ); ?></textarea>
+                                    <p style="margin-top:10px;">
+                                        <button type="button" class="button button-secondary" id="ssc-ai-copy-prompt-panel"><?php _e( 'Copy Prompt', 'smart-search-chips' ); ?></button>
+                                    </p>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -509,8 +509,6 @@ class SSC_Settings {
             .ssc-ai-inline-status { margin-left: 10px; }
             .ssc-ai-panel { border-top: 1px solid #eee; margin-top: 16px; padding-top: 16px; }
             .ssc-ai-panel strong { display: block; margin-bottom: 8px; }
-            .ssc-ai-panel__header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
-            .ssc-ai-panel__header strong { margin-bottom: 0; }
             .ssc-ai-warning { margin-top: 10px; padding: 10px 12px; background: #fff8e5; border-left: 4px solid #dba617; }
             .ssc-ai-toggle { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; }
             #ssc-ai-prompt-output { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
