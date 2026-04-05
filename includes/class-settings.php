@@ -441,42 +441,47 @@ class SSC_Settings {
                             <?php endif; ?>
                         </div>
 
-                        <div class="ssc-settings-card">
-                            <h2><?php _e( 'Advanced', 'smart-search-chips' ); ?></h2>
-                            <p class="description"><?php _e( 'Only change these if you already know your field names or need to integrate with an existing setup.', 'smart-search-chips' ); ?></p>
-                            <table class="form-table">
-                                <?php if ( $is_pro ) : ?>
-                                <tr>
-                                    <th><?php _e( 'Custom Tag Field', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <input type="text" name="ssc_tag_fields" value="<?php echo esc_attr( get_option( 'ssc_tag_fields', '' ) ); ?>" class="regular-text" />
-                                        <p class="description"><?php _e( 'Optional existing meta key that already stores your semicolon-separated search tags, for example `title_info`.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th><?php _e( 'Extra Tag Field', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <input type="text" name="ssc_extra_fields" value="<?php echo esc_attr( get_option( 'ssc_extra_fields', '' ) ); ?>" class="regular-text" />
-                                        <p class="description"><?php _e( 'Optional extra meta key with comma-separated helper tags. These values are merged with the primary tag source.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <?php else : ?>
-                                <tr>
-                                    <th><?php _e( 'Custom Fields', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <p class="description"><?php _e( 'Pro can map an existing custom tag field if you already maintain labeled products elsewhere.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <?php endif; ?>
-                                <tr>
-                                    <th><?php _e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <input type="text" name="ssc_override_ajax" value="<?php echo esc_attr( get_option( 'ssc_override_ajax', '' ) ); ?>" class="regular-text" />
-                                        <p class="description"><?php _e( 'Advanced integration only. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
+                        <details class="ssc-settings-card ssc-settings-card--collapsible">
+                            <summary class="ssc-settings-card__summary">
+                                <span class="ssc-settings-card__summary-title"><?php _e( 'Advanced', 'smart-search-chips' ); ?></span>
+                                <span class="ssc-settings-card__summary-hint"><?php _e( 'Hidden by default', 'smart-search-chips' ); ?></span>
+                            </summary>
+                            <div class="ssc-settings-card__body">
+                                <p class="description"><?php _e( 'Only change these if you already know your field names or need to integrate with an existing setup.', 'smart-search-chips' ); ?></p>
+                                <table class="form-table">
+                                    <?php if ( $is_pro ) : ?>
+                                    <tr>
+                                        <th><?php _e( 'Custom Tag Field', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <input type="text" name="ssc_tag_fields" value="<?php echo esc_attr( get_option( 'ssc_tag_fields', '' ) ); ?>" class="regular-text" />
+                                            <p class="description"><?php _e( 'Optional existing meta key that already stores your semicolon-separated search tags, for example `title_info`.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php _e( 'Extra Tag Field', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <input type="text" name="ssc_extra_fields" value="<?php echo esc_attr( get_option( 'ssc_extra_fields', '' ) ); ?>" class="regular-text" />
+                                            <p class="description"><?php _e( 'Optional extra meta key with comma-separated helper tags. These values are merged with the primary tag source.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <?php else : ?>
+                                    <tr>
+                                        <th><?php _e( 'Custom Fields', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <p class="description"><?php _e( 'Pro can map an existing custom tag field if you already maintain labeled products elsewhere.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <tr>
+                                        <th><?php _e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <input type="text" name="ssc_override_ajax" value="<?php echo esc_attr( get_option( 'ssc_override_ajax', '' ) ); ?>" class="regular-text" />
+                                            <p class="description"><?php _e( 'Advanced integration only. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </details>
 
                         <?php submit_button(); ?>
                     </div>
@@ -510,6 +515,15 @@ class SSC_Settings {
             #ssc-preview-panel h3 { margin: 0 0 12px; font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
             .ssc-settings-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 0 20px 12px; margin-bottom: 16px; }
             .ssc-settings-card h2 { font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+            .ssc-settings-card--collapsible { padding: 0; overflow: hidden; }
+            .ssc-settings-card__summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; cursor: pointer; list-style: none; font-size: 16px; font-weight: 600; }
+            .ssc-settings-card__summary::-webkit-details-marker { display: none; }
+            .ssc-settings-card__summary::after { content: "+"; font-size: 18px; line-height: 1; color: #50575e; }
+            .ssc-settings-card--collapsible[open] .ssc-settings-card__summary { border-bottom: 1px solid #eee; }
+            .ssc-settings-card--collapsible[open] .ssc-settings-card__summary::after { content: "\2212"; }
+            .ssc-settings-card__summary-title { color: #1d2327; }
+            .ssc-settings-card__summary-hint { font-size: 12px; font-weight: 500; color: #646970; text-transform: uppercase; letter-spacing: 0.04em; }
+            .ssc-settings-card__body { padding: 0 20px 12px; }
             .ssc-settings-card .form-table th { width: 140px; padding: 10px 8px; font-weight: 500; }
             .ssc-settings-card .form-table td { padding: 10px 8px; }
             .ssc-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
