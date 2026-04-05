@@ -602,6 +602,7 @@
         html.push("<p><strong>Source fields:</strong> " + escapeHtml((summary.sourceLabels || []).join(", ")) + "</p>");
         html.push("<p><strong>Target field:</strong> " + escapeHtml(summary.targetFieldLabel) + "</p>");
         html.push("<p><strong>Write format:</strong> " + escapeHtml(summary.writeFormat) + "</p>");
+        html.push("<p><strong>Max tags:</strong> " + escapeHtml(summary.maxTagsLabel || String(summary.maxTags)) + "</p>");
         html.push("<p><strong>Language:</strong> " + escapeHtml(summary.languageMode) + "</p>");
         html.push("<p><strong>Tag style:</strong> " + escapeHtml(summary.tagStyleLabel) + "</p>");
         html.push("<p><strong>REST auth:</strong> " + escapeHtml(summary.restAuth) + "</p>");

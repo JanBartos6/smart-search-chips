@@ -154,7 +154,7 @@ class SSC_Settings {
             $ai_sources = array( 'title', 'excerpt', 'content' );
         }
         $ai_tag_style  = get_option( 'ssc_ai_tag_style', 'technical' );
-        $ai_max_tags   = max( 3, (int) get_option( 'ssc_ai_max_tags', 8 ) );
+        $ai_max_tags   = max( 0, (int) get_option( 'ssc_ai_max_tags', 8 ) );
         $ai_rest_mode  = get_option( 'ssc_ai_rest_enabled', '1' );
 
         ?>
@@ -394,7 +394,10 @@ class SSC_Settings {
                                     </tr>
                                     <tr>
                                         <th><?php _e( 'Max Tags', 'smart-search-chips' ); ?></th>
-                                        <td><input type="number" name="ssc_ai_max_tags" id="ssc-ai-max-tags" value="<?php echo esc_attr( $ai_max_tags ); ?>" class="small-text" min="3" max="20" /></td>
+                                        <td>
+                                            <input type="number" name="ssc_ai_max_tags" id="ssc-ai-max-tags" value="<?php echo esc_attr( $ai_max_tags ); ?>" class="small-text" min="0" step="1" />
+                                            <p class="description"><?php _e( 'Set to 0 for no limit. Any positive number caps the number of generated tags per item.', 'smart-search-chips' ); ?></p>
+                                        </td>
                                     </tr>
                                     <tr>
                                         <th><?php _e( 'Language Override', 'smart-search-chips' ); ?></th>

@@ -281,7 +281,8 @@ class SSC_AI_Tagger {
             'customReadFields'  => $this->parse_csv_option( $config['custom_read_fields'] ),
             'targetFieldLabel'  => $this->get_target_label( $config ),
             'targetMetaKey'     => $target_meta_key,
-            'maxTags'           => max( 3, min( 20, absint( $config['max_tags'] ) ) ),
+            'maxTags'           => max( 0, absint( $config['max_tags'] ) ),
+            'maxTagsLabel'      => absint( $config['max_tags'] ) === 0 ? __( 'No limit', 'smart-search-chips' ) : (string) absint( $config['max_tags'] ),
             'tagStyleLabel'     => $this->get_tag_style_label( $config['tag_style'] ),
             'languageMode'      => $config['language'] ? $config['language'] : __( 'Same language as each selected item by default', 'smart-search-chips' ),
             'customInstruction' => $config['custom_instruction'],
@@ -327,7 +328,11 @@ class SSC_AI_Tagger {
             $lines[] = '2. Fetch every selected item from its REST route using context=edit when available.';
             $lines[] = '3. Analyze the entire selected batch together before writing anything. Cluster similar items by shared category, taxonomy, attributes, materials, certifications, compatibility, and naming patterns so you can identify what stands out within each group.';
             $lines[] = '4. Use only facts supported by the fetched data. Do not invent missing specifications.';
-            $lines[] = '5. Produce up to ' . $summary['maxTags'] . ' tags per item.';
+            if ( $summary['maxTags'] > 0 ) {
+                $lines[] = '5. Produce up to ' . $summary['maxTags'] . ' tags per item.';
+            } else {
+                $lines[] = '5. There is no hard tag limit per item, but keep the tag list disciplined and useful for filtering.';
+            }
             $lines[] = '6. Store tags as a single semicolon-separated string, for example: `IP65; Stainless steel; CE; Outdoor use`.';
             $lines[] = '7. Default to the same language as the content of each selected item. Only override that language behavior if the custom instruction explicitly requires it.';
             $lines[] = '8. Write the result back into `' . $summary['targetMetaKey'] . '` through the WordPress REST API using the `meta` payload.';
@@ -336,7 +341,11 @@ class SSC_AI_Tagger {
         } else {
             $lines[] = '1. Analyze the entire selected batch together before writing anything. Cluster similar items by shared category, taxonomy, attributes, materials, certifications, compatibility, and naming patterns so you can identify what stands out within each group.';
             $lines[] = '2. Use only facts supported by the known item titles and context. Do not invent missing specifications.';
-            $lines[] = '3. Produce up to ' . $summary['maxTags'] . ' tags per item.';
+            if ( $summary['maxTags'] > 0 ) {
+                $lines[] = '3. Produce up to ' . $summary['maxTags'] . ' tags per item.';
+            } else {
+                $lines[] = '3. There is no hard tag limit per item, but keep the tag list disciplined and useful for filtering.';
+            }
             $lines[] = '4. Store tags as a single semicolon-separated string, for example: `IP65; Stainless steel; CE; Outdoor use`.';
             $lines[] = '5. Default to the same language as the content of each selected item. Only override that language behavior if the custom instruction explicitly requires it.';
             $lines[] = '6. Do not write anything back to WordPress automatically.';
