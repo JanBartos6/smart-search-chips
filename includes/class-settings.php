@@ -313,43 +313,6 @@ class SSC_Settings {
                             </table>
                         </div>
 
-                        <div class="ssc-settings-card">
-                            <h2><?php _e( 'Advanced', 'smart-search-chips' ); ?></h2>
-                            <p class="description"><?php _e( 'Only change these if you already know your field names or need to integrate with an existing setup.', 'smart-search-chips' ); ?></p>
-                            <table class="form-table">
-                                <?php if ( $is_pro ) : ?>
-                                <tr>
-                                    <th><?php _e( 'Custom Tag Field', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <input type="text" name="ssc_tag_fields" value="<?php echo esc_attr( get_option( 'ssc_tag_fields', '' ) ); ?>" class="regular-text" />
-                                        <p class="description"><?php _e( 'Optional existing meta key that already stores your semicolon-separated search tags, for example `title_info`.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th><?php _e( 'Extra Tag Field', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <input type="text" name="ssc_extra_fields" value="<?php echo esc_attr( get_option( 'ssc_extra_fields', '' ) ); ?>" class="regular-text" />
-                                        <p class="description"><?php _e( 'Optional extra meta key with comma-separated helper tags. These values are merged with the primary tag source.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <?php else : ?>
-                                <tr>
-                                    <th><?php _e( 'Custom Fields', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <p class="description"><?php _e( 'Pro can map an existing custom tag field if you already maintain labeled products elsewhere.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <?php endif; ?>
-                                <tr>
-                                    <th><?php _e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <input type="text" name="ssc_override_ajax" value="<?php echo esc_attr( get_option( 'ssc_override_ajax', '' ) ); ?>" class="regular-text" />
-                                        <p class="description"><?php _e( 'Advanced integration only. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-
                         <div class="ssc-settings-card ssc-settings-card--ai">
                             <h2><?php _e( 'AI Prompt Builder', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
@@ -476,6 +439,43 @@ class SSC_Settings {
                                     </p>
                                 </div>
                             <?php endif; ?>
+                        </div>
+
+                        <div class="ssc-settings-card">
+                            <h2><?php _e( 'Advanced', 'smart-search-chips' ); ?></h2>
+                            <p class="description"><?php _e( 'Only change these if you already know your field names or need to integrate with an existing setup.', 'smart-search-chips' ); ?></p>
+                            <table class="form-table">
+                                <?php if ( $is_pro ) : ?>
+                                <tr>
+                                    <th><?php _e( 'Custom Tag Field', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <input type="text" name="ssc_tag_fields" value="<?php echo esc_attr( get_option( 'ssc_tag_fields', '' ) ); ?>" class="regular-text" />
+                                        <p class="description"><?php _e( 'Optional existing meta key that already stores your semicolon-separated search tags, for example `title_info`.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><?php _e( 'Extra Tag Field', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <input type="text" name="ssc_extra_fields" value="<?php echo esc_attr( get_option( 'ssc_extra_fields', '' ) ); ?>" class="regular-text" />
+                                        <p class="description"><?php _e( 'Optional extra meta key with comma-separated helper tags. These values are merged with the primary tag source.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <?php else : ?>
+                                <tr>
+                                    <th><?php _e( 'Custom Fields', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <p class="description"><?php _e( 'Pro can map an existing custom tag field if you already maintain labeled products elsewhere.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <?php endif; ?>
+                                <tr>
+                                    <th><?php _e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <input type="text" name="ssc_override_ajax" value="<?php echo esc_attr( get_option( 'ssc_override_ajax', '' ) ); ?>" class="regular-text" />
+                                        <p class="description"><?php _e( 'Advanced integration only. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                            </table>
                         </div>
 
                         <?php submit_button(); ?>
