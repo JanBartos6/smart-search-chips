@@ -28,7 +28,8 @@ class SSC_AI_Tagger {
      * Register admin AJAX hooks.
      */
     public function init() {
-        add_action( 'wp_ajax_ssc_ai_browse_items', array( $this, 'ajax_browse_items' ) );
+        add_action( 'wp_ajax_ssc_ai_browse_terms', array( $this, 'ajax_browse_terms' ) );
+        add_action( 'wp_ajax_ssc_ai_load_term_items', array( $this, 'ajax_load_term_items' ) );
         add_action( 'wp_ajax_ssc_ai_check_rest', array( $this, 'ajax_check_rest' ) );
         add_action( 'wp_ajax_ssc_ai_build_prompt', array( $this, 'ajax_build_prompt' ) );
     }
@@ -48,59 +49,79 @@ class SSC_AI_Tagger {
     }
 
     /**
-     * AJAX: browse selectable items for the prompt builder.
+     * AJAX: load taxonomy collections for the prompt builder.
      */
-    public function ajax_browse_items() {
+    public function ajax_browse_terms() {
         $this->assert_admin_request();
-
-        $search    = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
-        $post_type = isset( $_POST['post_type'] ) ? sanitize_key( wp_unslash( $_POST['post_type'] ) ) : 'all';
-        $page      = isset( $_POST['page'] ) ? max( 1, absint( $_POST['page'] ) ) : 1;
-        $per_page  = 12;
 
         $allowed_post_types = $this->get_allowed_post_types();
         if ( empty( $allowed_post_types ) ) {
             wp_send_json_error( array( 'message' => __( 'No selectable post types are configured for the AI prompt builder.', 'smart-search-chips' ) ), 400 );
         }
 
-        $query_post_types = $allowed_post_types;
-        if ( $post_type !== 'all' ) {
-            if ( ! in_array( $post_type, $allowed_post_types, true ) ) {
-                wp_send_json_error( array( 'message' => __( 'The selected post type filter is not available.', 'smart-search-chips' ) ), 400 );
-            }
+        wp_send_json_success( array(
+            'collections' => $this->get_term_collections( $allowed_post_types ),
+        ) );
+    }
 
-            $query_post_types = array( $post_type );
+    /**
+     * AJAX: load all items for a specific taxonomy term.
+     */
+    public function ajax_load_term_items() {
+        $this->assert_admin_request();
+
+        $taxonomy = isset( $_POST['taxonomy'] ) ? sanitize_key( wp_unslash( $_POST['taxonomy'] ) ) : '';
+        $term_id  = isset( $_POST['term_id'] ) ? absint( $_POST['term_id'] ) : 0;
+
+        if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) || $term_id < 1 ) {
+            wp_send_json_error( array( 'message' => __( 'Select a valid category before loading its items.', 'smart-search-chips' ) ), 400 );
         }
 
-        $query = new WP_Query( array(
+        $allowed_post_types = $this->get_allowed_post_types();
+        $taxonomy_object    = get_taxonomy( $taxonomy );
+
+        if ( ! $taxonomy_object ) {
+            wp_send_json_error( array( 'message' => __( 'The selected taxonomy is not available.', 'smart-search-chips' ) ), 400 );
+        }
+
+        $query_post_types = array_values( array_intersect( $allowed_post_types, (array) $taxonomy_object->object_type ) );
+        if ( empty( $query_post_types ) ) {
+            wp_send_json_error( array( 'message' => __( 'That category does not belong to the configured post types.', 'smart-search-chips' ) ), 400 );
+        }
+
+        $term = get_term( $term_id, $taxonomy );
+        if ( ! $term || is_wp_error( $term ) ) {
+            wp_send_json_error( array( 'message' => __( 'The selected category could not be loaded.', 'smart-search-chips' ) ), 400 );
+        }
+
+        $posts = get_posts( array(
             'post_type'           => $query_post_types,
             'post_status'         => array( 'publish', 'draft', 'private' ),
-            'posts_per_page'      => $per_page,
-            'paged'               => $page,
-            'orderby'             => 'date',
-            'order'               => 'DESC',
-            's'                   => $search,
-            'no_found_rows'       => false,
+            'posts_per_page'      => -1,
+            'orderby'             => 'title',
+            'order'               => 'ASC',
             'ignore_sticky_posts' => true,
+            'tax_query'           => array(
+                array(
+                    'taxonomy'         => $taxonomy,
+                    'terms'            => array( $term_id ),
+                    'field'            => 'term_id',
+                    'include_children' => is_taxonomy_hierarchical( $taxonomy ),
+                ),
+            ),
         ) );
 
         $items = array();
-        foreach ( $query->posts as $post ) {
+        foreach ( $posts as $post ) {
             $items[] = $this->format_browser_item( $post );
         }
 
         wp_send_json_success( array(
-            'items'   => $items,
-            'filters' => $this->get_browser_filters( $allowed_post_types, $search ),
-            'pager'   => array(
-                'page'         => $page,
-                'perPage'      => $per_page,
-                'totalItems'   => (int) $query->found_posts,
-                'totalPages'   => max( 1, (int) $query->max_num_pages ),
-                'hasMore'      => $page < (int) $query->max_num_pages,
-                'search'       => $search,
-                'activeFilter' => $post_type,
-            ),
+            'taxonomy' => $taxonomy,
+            'termId'   => $term_id,
+            'termName' => $term->name,
+            'count'    => count( $items ),
+            'items'    => $items,
         ) );
     }
 
@@ -476,55 +497,149 @@ class SSC_AI_Tagger {
     }
 
     /**
-     * Build browser filter metadata with counts.
+     * Build taxonomy collections for the term browser.
      *
      * @param string[] $allowed_post_types Allowed post types.
-     * @param string   $search             Current search term.
      * @return array[]
      */
-    private function get_browser_filters( $allowed_post_types, $search ) {
-        $filters = array();
+    private function get_term_collections( $allowed_post_types ) {
+        $collections = array();
+        $taxonomies  = $this->get_allowed_taxonomies( $allowed_post_types );
 
-        $filters[] = array(
-            'value' => 'all',
-            'label' => __( 'All items', 'smart-search-chips' ),
-            'count' => $this->count_browser_items( $allowed_post_types, $search ),
-        );
+        foreach ( $taxonomies as $taxonomy ) {
+            $terms = get_terms( array(
+                'taxonomy'   => $taxonomy->name,
+                'hide_empty' => true,
+                'orderby'    => 'name',
+                'order'      => 'ASC',
+            ) );
 
-        foreach ( $allowed_post_types as $post_type ) {
-            $object    = get_post_type_object( $post_type );
-            $filters[] = array(
-                'value' => $post_type,
-                'label' => $object && ! empty( $object->labels->name ) ? $object->labels->name : $post_type,
-                'count' => $this->count_browser_items( array( $post_type ), $search ),
+            if ( is_wp_error( $terms ) || empty( $terms ) ) {
+                continue;
+            }
+
+            $collections[] = array(
+                'taxonomy'     => $taxonomy->name,
+                'label'        => ! empty( $taxonomy->labels->name ) ? $taxonomy->labels->name : $taxonomy->name,
+                'singular'     => ! empty( $taxonomy->labels->singular_name ) ? $taxonomy->labels->singular_name : $taxonomy->name,
+                'hierarchical' => ! empty( $taxonomy->hierarchical ),
+                'terms'        => $this->build_term_tree( $terms, ! empty( $taxonomy->hierarchical ) ),
             );
         }
 
-        return $filters;
+        return $collections;
     }
 
     /**
-     * Count matching items for a browser filter.
+     * Collect public taxonomies for the configured post types.
      *
-     * @param string[] $post_types Post types.
-     * @param string   $search     Search term.
+     * @param string[] $allowed_post_types Allowed post types.
+     * @return WP_Taxonomy[]
+     */
+    private function get_allowed_taxonomies( $allowed_post_types ) {
+        $taxonomies = array();
+
+        foreach ( $allowed_post_types as $post_type ) {
+            $objects = get_object_taxonomies( $post_type, 'objects' );
+
+            foreach ( $objects as $taxonomy ) {
+                if ( empty( $taxonomy->public ) || empty( $taxonomy->show_ui ) ) {
+                    continue;
+                }
+
+                $taxonomies[ $taxonomy->name ] = $taxonomy;
+            }
+        }
+
+        uasort( $taxonomies, array( $this, 'sort_taxonomies' ) );
+
+        return array_values( $taxonomies );
+    }
+
+    /**
+     * Sort taxonomy collections with hierarchical ones first.
+     *
+     * @param WP_Taxonomy $left  Taxonomy object.
+     * @param WP_Taxonomy $right Taxonomy object.
      * @return int
      */
-    private function count_browser_items( $post_types, $search ) {
-        $query = new WP_Query( array(
-            'post_type'           => $post_types,
-            'post_status'         => array( 'publish', 'draft', 'private' ),
-            'posts_per_page'      => 1,
-            'paged'               => 1,
-            'orderby'             => 'date',
-            'order'               => 'DESC',
-            's'                   => $search,
-            'fields'              => 'ids',
-            'no_found_rows'       => false,
-            'ignore_sticky_posts' => true,
-        ) );
+    private function sort_taxonomies( $left, $right ) {
+        if ( ! empty( $left->hierarchical ) && empty( $right->hierarchical ) ) {
+            return -1;
+        }
 
-        return (int) $query->found_posts;
+        if ( empty( $left->hierarchical ) && ! empty( $right->hierarchical ) ) {
+            return 1;
+        }
+
+        return strcmp( $left->labels->name, $right->labels->name );
+    }
+
+    /**
+     * Build a nested term tree for the browser.
+     *
+     * @param WP_Term[] $terms          Terms.
+     * @param bool      $hierarchical   Whether the taxonomy is hierarchical.
+     * @return array[]
+     */
+    private function build_term_tree( $terms, $hierarchical ) {
+        if ( ! $hierarchical ) {
+            return array_map( array( $this, 'format_term_node' ), $terms );
+        }
+
+        $terms_by_parent = array();
+        foreach ( $terms as $term ) {
+            $parent = (int) $term->parent;
+            if ( ! isset( $terms_by_parent[ $parent ] ) ) {
+                $terms_by_parent[ $parent ] = array();
+            }
+            $terms_by_parent[ $parent ][] = $term;
+        }
+
+        return $this->build_term_branch( $terms_by_parent, 0, 0 );
+    }
+
+    /**
+     * Recursively build a term branch.
+     *
+     * @param array $terms_by_parent Grouped terms.
+     * @param int   $parent_id       Parent term ID.
+     * @param int   $depth           Current depth.
+     * @return array[]
+     */
+    private function build_term_branch( $terms_by_parent, $parent_id, $depth ) {
+        $branch = array();
+
+        if ( empty( $terms_by_parent[ $parent_id ] ) ) {
+            return $branch;
+        }
+
+        foreach ( $terms_by_parent[ $parent_id ] as $term ) {
+            $node             = $this->format_term_node( $term );
+            $node['depth']    = $depth;
+            $node['children'] = $this->build_term_branch( $terms_by_parent, (int) $term->term_id, $depth + 1 );
+            $branch[]         = $node;
+        }
+
+        return $branch;
+    }
+
+    /**
+     * Format a term node for the browser.
+     *
+     * @param WP_Term $term Term object.
+     * @return array
+     */
+    private function format_term_node( $term ) {
+        return array(
+            'id'       => (int) $term->term_id,
+            'taxonomy' => $term->taxonomy,
+            'name'     => $term->name,
+            'slug'     => $term->slug,
+            'count'    => (int) $term->count,
+            'depth'    => 0,
+            'children' => array(),
+        );
     }
 
     /**

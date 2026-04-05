@@ -102,19 +102,24 @@ class SSC_Settings {
             'nonce'   => wp_create_nonce( SSC_AI_Tagger::AJAX_NONCE ),
             'strings' => array(
                 'working'             => __( 'Working...', 'smart-search-chips' ),
-                'loadingItems'        => __( 'Loading items...', 'smart-search-chips' ),
-                'loadItemsFailed'     => __( 'Could not load items for the picker.', 'smart-search-chips' ),
-                'searchPlaceholder'   => __( 'Search products, posts, or SKUs...', 'smart-search-chips' ),
+                'loadingTerms'        => __( 'Loading categories...', 'smart-search-chips' ),
+                'loadTermsFailed'     => __( 'Could not load categories for the picker.', 'smart-search-chips' ),
+                'loadingItems'        => __( 'Loading items for this category...', 'smart-search-chips' ),
+                'loadItemsFailed'     => __( 'Could not load items for this category.', 'smart-search-chips' ),
+                'searchPlaceholder'   => __( 'Filter categories or products...', 'smart-search-chips' ),
                 'selectionEmptyShort' => __( 'No items selected yet.', 'smart-search-chips' ),
                 'selectionEmpty'      => __( 'No items selected yet. Build a batch on the left and the selected items will stay pinned here.', 'smart-search-chips' ),
                 'selectionCount'      => __( '%d items selected', 'smart-search-chips' ),
-                'browseSummary'       => __( '%1$d matching items · page %2$d of %3$d', 'smart-search-chips' ),
-                'browseEmpty'         => __( 'No items matched the current search and filter.', 'smart-search-chips' ),
-                'loadMore'            => __( 'Load more', 'smart-search-chips' ),
-                'loadingMore'         => __( 'Loading more...', 'smart-search-chips' ),
+                'browseSummary'       => __( '%1$d taxonomies · %2$d visible categories', 'smart-search-chips' ),
+                'browseEmpty'         => __( 'No categories matched the current filter.', 'smart-search-chips' ),
+                'itemsEmpty'          => __( 'No items were found in this category.', 'smart-search-chips' ),
                 'clearAll'            => __( 'Clear all', 'smart-search-chips' ),
                 'addItem'             => __( 'Add to batch', 'smart-search-chips' ),
                 'removeItem'          => __( 'Remove', 'smart-search-chips' ),
+                'addGroup'            => __( 'Add category', 'smart-search-chips' ),
+                'removeGroup'         => __( 'Remove category items', 'smart-search-chips' ),
+                'expandGroup'         => __( 'Show products', 'smart-search-chips' ),
+                'collapseGroup'       => __( 'Hide products', 'smart-search-chips' ),
                 'selectItems'         => __( 'Select at least one product or post first.', 'smart-search-chips' ),
                 'confirmRest'         => __( 'Click "Allow REST API" first so the plugin can verify the selected routes and target field.', 'smart-search-chips' ),
                 'restReady'           => __( 'REST API confirmed for the current selection.', 'smart-search-chips' ),
@@ -428,20 +433,16 @@ class SSC_Settings {
                                             <div class="ssc-ai-picker">
                                                 <div class="ssc-ai-picker__browser">
                                                     <div class="ssc-ai-browser-toolbar">
-                                                        <label class="screen-reader-text" for="ssc-ai-browser-search"><?php _e( 'Search items', 'smart-search-chips' ); ?></label>
-                                                        <input type="search" id="ssc-ai-browser-search" class="regular-text" placeholder="<?php echo esc_attr__( 'Search products, posts, or SKUs...', 'smart-search-chips' ); ?>" />
+                                                        <label class="screen-reader-text" for="ssc-ai-browser-search"><?php _e( 'Filter categories', 'smart-search-chips' ); ?></label>
+                                                        <input type="search" id="ssc-ai-browser-search" class="regular-text" placeholder="<?php echo esc_attr__( 'Filter categories or products...', 'smart-search-chips' ); ?>" />
                                                         <button type="button" class="button" id="ssc-ai-browser-refresh"><?php _e( 'Refresh', 'smart-search-chips' ); ?></button>
                                                     </div>
-                                                    <div id="ssc-ai-browser-filters" class="ssc-ai-browser-filters" aria-live="polite"></div>
                                                     <div class="ssc-ai-browser-meta">
-                                                        <strong id="ssc-ai-browser-summary"><?php _e( 'Loading items...', 'smart-search-chips' ); ?></strong>
-                                                        <span class="description"><?php _e( 'Search first, then add matching items into one analysis batch. The browser keeps the selection separate so you can compare products across categories without losing context.', 'smart-search-chips' ); ?></span>
+                                                        <strong id="ssc-ai-browser-summary"><?php _e( 'Loading categories...', 'smart-search-chips' ); ?></strong>
+                                                        <span class="description"><?php _e( 'Start from taxonomy groups like product categories. Expand a category to inspect its products, or add the whole category to the batch in one click.', 'smart-search-chips' ); ?></span>
                                                     </div>
-                                                    <div id="ssc-ai-browser-results" class="ssc-ai-browser-results" aria-live="polite">
-                                                        <div class="ssc-ai-browser-empty"><?php _e( 'Loading items...', 'smart-search-chips' ); ?></div>
-                                                    </div>
-                                                    <div class="ssc-ai-browser-footer">
-                                                        <button type="button" class="button" id="ssc-ai-browser-more" hidden><?php _e( 'Load more', 'smart-search-chips' ); ?></button>
+                                                    <div id="ssc-ai-browser-results" class="ssc-ai-browser-results ssc-ai-browser-results--terms" aria-live="polite">
+                                                        <div class="ssc-ai-browser-empty"><?php _e( 'Loading categories...', 'smart-search-chips' ); ?></div>
                                                     </div>
                                                 </div>
                                                 <div class="ssc-ai-picker__selection">
@@ -458,7 +459,7 @@ class SSC_Settings {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <p class="description"><?php _e( 'Use search and the type filters to narrow the catalog, then keep building one batch in the right-hand panel. This works better than a giant multi-select when you need to compare large groups across categories.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php _e( 'Build the batch from categories first, then inspect individual products only where needed. This avoids endless paginated product lists and fits large catalogs much better.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -530,9 +531,30 @@ class SSC_Settings {
             .ssc-ai-picker__browser, .ssc-ai-picker__selection { border: 1px solid #dcdcde; border-radius: 12px; background: #fcfcfd; overflow: hidden; }
             .ssc-ai-browser-toolbar { display: flex; gap: 10px; align-items: center; padding: 14px; border-bottom: 1px solid #ebecef; background: linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%); }
             .ssc-ai-browser-toolbar input[type="search"] { flex: 1; min-width: 0; }
-            .ssc-ai-browser-filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px 0; }
             .ssc-ai-browser-meta { display: grid; gap: 4px; padding: 12px 14px; }
             .ssc-ai-browser-results { display: grid; gap: 10px; padding: 0 14px 14px; max-height: 520px; overflow: auto; }
+            .ssc-ai-browser-results--terms { align-content: start; }
+            .ssc-ai-taxonomy { border: 1px solid #e3e5e8; border-radius: 12px; background: #fff; overflow: hidden; }
+            .ssc-ai-taxonomy__header { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 14px; background: #f7f8fa; border-bottom: 1px solid #ebecef; }
+            .ssc-ai-taxonomy__header strong { margin: 0; }
+            .ssc-ai-taxonomy__terms { display: grid; gap: 0; }
+            .ssc-ai-term { border-top: 1px solid #f0f1f3; }
+            .ssc-ai-term:first-child { border-top: 0; }
+            .ssc-ai-term.is-hidden { display: none; }
+            .ssc-ai-term__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; }
+            .ssc-ai-term__main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+            .ssc-ai-term__toggle { width: 32px; height: 32px; border: 1px solid #d0d7df; border-radius: 999px; background: #fff; cursor: pointer; flex-shrink: 0; }
+            .ssc-ai-term__toggle[disabled] { opacity: 0.5; cursor: default; }
+            .ssc-ai-term__title { min-width: 0; }
+            .ssc-ai-term__name { font-weight: 600; color: #1d2327; }
+            .ssc-ai-term__actions { display: flex; gap: 8px; align-items: center; }
+            .ssc-ai-term__children { display: grid; gap: 0; }
+            .ssc-ai-term__items { display: none; padding: 0 14px 14px 56px; }
+            .ssc-ai-term.is-expanded > .ssc-ai-term__items { display: block; }
+            .ssc-ai-term-items { display: grid; gap: 8px; margin-top: 8px; }
+            .ssc-ai-term-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid #ececec; border-radius: 10px; background: #fcfcfd; }
+            .ssc-ai-term-item__title { margin: 0 0 4px; font-size: 13px; line-height: 1.4; }
+            .ssc-ai-term-item__meta { display: flex; flex-wrap: wrap; gap: 6px; }
             .ssc-ai-browser-card { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr) auto; align-items: start; padding: 14px; border: 1px solid #e3e5e8; border-radius: 12px; background: #fff; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02); }
             .ssc-ai-browser-card.is-selected { border-color: #135e96; background: #f4f9ff; }
             .ssc-ai-browser-card__title { margin: 0 0 6px; font-size: 14px; line-height: 1.4; }
@@ -541,9 +563,6 @@ class SSC_Settings {
             .ssc-ai-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; background: #eff2f6; color: #1d2327; font-size: 12px; line-height: 1.2; }
             .ssc-ai-badge--soft { background: #f7efe3; color: #8a5a12; }
             .ssc-ai-badge--active { background: #dbeafe; color: #0b4f83; }
-            .ssc-ai-filter { border: 1px solid #d0d7df; background: #fff; color: #1d2327; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
-            .ssc-ai-filter.is-active { border-color: #135e96; background: #135e96; color: #fff; }
-            .ssc-ai-browser-footer { padding: 0 14px 14px; }
             .ssc-ai-browser-empty { padding: 24px 18px; border: 1px dashed #ccd0d4; border-radius: 12px; background: #fff; color: #50575e; text-align: center; }
             .ssc-ai-selection-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: 14px 14px 10px; border-bottom: 1px solid #ebecef; background: linear-gradient(180deg, #fffaf1 0%, #fff 100%); }
             .ssc-ai-selection-header p { margin: 6px 0 0; }
@@ -564,6 +583,9 @@ class SSC_Settings {
                 #ssc-preview-panel { position: static; }
                 .ssc-ai-picker { grid-template-columns: 1fr; }
                 .ssc-ai-browser-results, .ssc-ai-selected-items { max-height: none; }
+                .ssc-ai-term__row, .ssc-ai-term-item { grid-template-columns: 1fr; }
+                .ssc-ai-term__actions { justify-content: flex-start; }
+                .ssc-ai-term__items { padding-left: 14px; }
             }
         </style>
 

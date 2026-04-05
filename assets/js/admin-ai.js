@@ -11,15 +11,10 @@
     var config = window.sscAiAdmin || {};
     var restConfirmed = false;
     var browserState = {
-        items: [],
-        filters: [],
+        collections: [],
         search: "",
-        activeFilter: "all",
-        page: 1,
-        totalItems: 0,
-        totalPages: 1,
-        hasMore: false,
-        loading: false
+        loading: false,
+        itemCache: {}
     };
     var selectedItems = {};
     var searchDebounce = null;
@@ -38,12 +33,26 @@
         return Object.keys(selectedItems);
     }
 
-    function selectedCount() {
-        return selectedPostIds().length;
-    }
-
     function getSelectedItem(id) {
         return selectedItems[String(id)] || null;
+    }
+
+    function getTermKey(taxonomy, termId) {
+        return String(taxonomy) + ":" + String(termId);
+    }
+
+    function getItemCache(termKey) {
+        if (!browserState.itemCache[termKey]) {
+            browserState.itemCache[termKey] = {
+                loading: false,
+                loaded: false,
+                expanded: false,
+                items: [],
+                termName: ""
+            };
+        }
+
+        return browserState.itemCache[termKey];
     }
 
     function currentFormData(action) {
@@ -65,16 +74,6 @@
             data.append("post_ids[]", postId);
         });
 
-        return data;
-    }
-
-    function currentBrowserData(page) {
-        var data = new FormData();
-        data.append("action", "ssc_ai_browse_items");
-        data.append("nonce", config.nonce || "");
-        data.append("search", browserState.search);
-        data.append("post_type", browserState.activeFilter);
-        data.append("page", String(page || 1));
         return data;
     }
 
@@ -104,48 +103,6 @@
         restConfirmed = false;
         setStatus("ssc-ai-rest-status", "", false);
         setStatus("ssc-ai-build-status", "", false);
-    }
-
-    function renderRestSummary(summary) {
-        var target = $("ssc-ai-rest-output");
-        if (!target) return;
-
-        var html = [];
-        html.push("<p><strong>Selected items:</strong> " + escapeHtml(String(summary.selectedCount)) + "</p>");
-        html.push("<p><strong>Source fields:</strong> " + escapeHtml((summary.sourceLabels || []).join(", ")) + "</p>");
-        html.push("<p><strong>Target field:</strong> " + escapeHtml(summary.targetFieldLabel) + "</p>");
-        html.push("<p><strong>Write format:</strong> " + escapeHtml(summary.writeFormat) + "</p>");
-        html.push("<p><strong>Language:</strong> " + escapeHtml(summary.languageMode) + "</p>");
-        html.push("<p><strong>Tag style:</strong> " + escapeHtml(summary.tagStyleLabel) + "</p>");
-        html.push("<p><strong>REST auth:</strong> " + escapeHtml(summary.restAuth) + "</p>");
-
-        if (summary.customReadFields && summary.customReadFields.length) {
-            html.push("<p><strong>Extra custom fields:</strong> " + escapeHtml(summary.customReadFields.join(", ")) + "</p>");
-        }
-
-        html.push("<p><strong>Routes:</strong></p><ul>");
-        (summary.routes || []).forEach(function (route) {
-            html.push("<li>" + escapeHtml(route.title + " [" + route.postType + "] -> " + route.route) + "</li>");
-        });
-        html.push("</ul>");
-
-        if (summary.customInstruction) {
-            html.push("<p><strong>Custom instruction:</strong> " + escapeHtml(summary.customInstruction) + "</p>");
-        }
-
-        target.innerHTML = html.join("");
-    }
-
-    function renderPrompt(prompt) {
-        var output = $("ssc-ai-prompt-output");
-        if (!output) return;
-        output.value = prompt || "";
-    }
-
-    function renderError(targetId, message) {
-        var target = $(targetId);
-        if (!target) return;
-        target.innerHTML = "<p style=\"color:#b32d2e;\">" + escapeHtml(message) + "</p>";
     }
 
     function request(action, button, onSuccess, statusTarget) {
@@ -181,126 +138,373 @@
         });
     }
 
-    function loadBrowser(reset) {
-        var moreButton = $("ssc-ai-browser-more");
+    function loadCollections() {
         var summary = $("ssc-ai-browser-summary");
-        var page = reset ? 1 : browserState.page + 1;
-
-        if (browserState.loading) return;
         browserState.loading = true;
 
-        if (summary && reset) {
-            summary.textContent = config.strings && config.strings.loadingItems ? config.strings.loadingItems : "Loading items...";
+        if (summary) {
+            summary.textContent = config.strings && config.strings.loadingTerms ? config.strings.loadingTerms : "Loading categories...";
         }
 
-        setBusy(moreButton, !reset, config.strings && config.strings.loadingMore ? config.strings.loadingMore : "Loading more...");
+        var data = new FormData();
+        data.append("action", "ssc_ai_browse_terms");
+        data.append("nonce", config.nonce || "");
 
         fetch(config.ajaxUrl, {
             method: "POST",
             credentials: "same-origin",
-            body: currentBrowserData(page)
+            body: data
         }).then(function (response) {
             return response.json();
         }).then(function (json) {
             if (!json || !json.success) {
-                throw new Error(json && json.data && json.data.message ? json.data.message : "Could not load items.");
+                throw new Error(json && json.data && json.data.message ? json.data.message : "Could not load categories.");
             }
 
-            browserState.filters = json.data.filters || [];
-            browserState.page = json.data.pager ? json.data.pager.page : page;
-            browserState.totalItems = json.data.pager ? json.data.pager.totalItems : 0;
-            browserState.totalPages = json.data.pager ? json.data.pager.totalPages : 1;
-            browserState.hasMore = json.data.pager ? !!json.data.pager.hasMore : false;
-            browserState.activeFilter = json.data.pager && json.data.pager.activeFilter ? json.data.pager.activeFilter : browserState.activeFilter;
-
-            if (reset) {
-                browserState.items = json.data.items || [];
-            } else {
-                browserState.items = browserState.items.concat(json.data.items || []);
-            }
-
-            renderBrowser();
+            browserState.collections = json.data.collections || [];
+            renderCollections();
         }).catch(function (error) {
-            if (summary) {
-                summary.textContent = error.message || (config.strings && config.strings.loadItemsFailed ? config.strings.loadItemsFailed : "Could not load items.");
-            }
-            renderBrowserError(error.message || (config.strings && config.strings.loadItemsFailed ? config.strings.loadItemsFailed : "Could not load items."));
+            renderCollectionsError(error.message || (config.strings && config.strings.loadTermsFailed ? config.strings.loadTermsFailed : "Could not load categories."));
         }).finally(function () {
             browserState.loading = false;
-            setBusy(moreButton, false);
         });
     }
 
-    function renderBrowser() {
-        var filterWrap = $("ssc-ai-browser-filters");
-        var results = $("ssc-ai-browser-results");
-        var summary = $("ssc-ai-browser-summary");
-        var moreButton = $("ssc-ai-browser-more");
+    function loadTermItems(taxonomy, termId, options) {
+        var termKey = getTermKey(taxonomy, termId);
+        var cache = getItemCache(termKey);
+        options = options || {};
 
-        if (filterWrap) {
-            filterWrap.innerHTML = (browserState.filters || []).map(function (filter) {
-                var activeClass = filter.value === browserState.activeFilter ? " is-active" : "";
-                return '<button type="button" class="ssc-ai-filter' + activeClass + '" data-filter="' + escapeHtml(filter.value) + '">' +
-                    '<span>' + escapeHtml(filter.label) + '</span> ' +
-                    '<span class="ssc-ai-filter__count">' + escapeHtml(String(filter.count)) + '</span>' +
-                "</button>";
-            }).join("");
+        if (cache.loading) {
+            return;
         }
 
-        if (summary) {
-            if (browserState.totalItems) {
-                summary.textContent = formatString(config.strings && config.strings.browseSummary ? config.strings.browseSummary : "%1$d matching items · page %2$d of %3$d", [
-                    browserState.totalItems,
-                    browserState.page || 1,
-                    browserState.totalPages || 1
-                ]);
-            } else {
-                summary.textContent = config.strings && config.strings.browseEmpty ? config.strings.browseEmpty : "No items matched the current search and filter.";
+        if (cache.loaded) {
+            if (options.expand !== false) {
+                cache.expanded = true;
             }
-        }
-
-        if (results) {
-            if (!browserState.items.length) {
-                results.innerHTML = '<div class="ssc-ai-browser-empty">' + escapeHtml(config.strings && config.strings.browseEmpty ? config.strings.browseEmpty : "No items matched the current search and filter.") + "</div>";
+            if (options.selectAll) {
+                addTermItems(termKey, cache.items);
             } else {
-                results.innerHTML = browserState.items.map(renderBrowserCard).join("");
+                renderCollections();
             }
+            return;
         }
 
-        if (moreButton) {
-            moreButton.hidden = !browserState.hasMore;
-        }
+        cache.loading = true;
+        cache.expanded = options.expand !== false;
+        renderCollections();
+
+        var data = new FormData();
+        data.append("action", "ssc_ai_load_term_items");
+        data.append("nonce", config.nonce || "");
+        data.append("taxonomy", taxonomy);
+        data.append("term_id", String(termId));
+
+        fetch(config.ajaxUrl, {
+            method: "POST",
+            credentials: "same-origin",
+            body: data
+        }).then(function (response) {
+            return response.json();
+        }).then(function (json) {
+            if (!json || !json.success) {
+                throw new Error(json && json.data && json.data.message ? json.data.message : "Could not load items for this category.");
+            }
+
+            cache.loading = false;
+            cache.loaded = true;
+            cache.expanded = options.expand !== false;
+            cache.items = json.data.items || [];
+            cache.termName = json.data.termName || "";
+
+            if (options.selectAll) {
+                addTermItems(termKey, cache.items);
+            } else {
+                renderCollections();
+            }
+        }).catch(function (error) {
+            cache.loading = false;
+            cache.loaded = false;
+            cache.expanded = false;
+            renderCollectionsError(error.message || (config.strings && config.strings.loadItemsFailed ? config.strings.loadItemsFailed : "Could not load items for this category."));
+        });
     }
 
-    function renderBrowserError(message) {
+    function renderCollections() {
         var results = $("ssc-ai-browser-results");
+        var summary = $("ssc-ai-browser-summary");
+        var collections = getFilteredCollections(browserState.collections, browserState.search.toLowerCase());
+        var visibleTerms = countVisibleTerms(collections);
+
+        if (summary) {
+            if (!collections.length || !visibleTerms) {
+                summary.textContent = config.strings && config.strings.browseEmpty ? config.strings.browseEmpty : "No categories matched the current filter.";
+            } else {
+                summary.textContent = formatString(config.strings && config.strings.browseSummary ? config.strings.browseSummary : "%1$d taxonomies · %2$d visible categories", [
+                    collections.length,
+                    visibleTerms
+                ]);
+            }
+        }
+
+        if (!results) {
+            return;
+        }
+
+        if (!collections.length || !visibleTerms) {
+            results.innerHTML = '<div class="ssc-ai-browser-empty">' + escapeHtml(config.strings && config.strings.browseEmpty ? config.strings.browseEmpty : "No categories matched the current filter.") + "</div>";
+            return;
+        }
+
+        results.innerHTML = collections.map(function (collection) {
+            if (!collection.terms.length) {
+                return "";
+            }
+
+            return '<section class="ssc-ai-taxonomy">' +
+                '<div class="ssc-ai-taxonomy__header">' +
+                    '<div><strong>' + escapeHtml(collection.label) + '</strong></div>' +
+                    badge(String(countVisibleTerms([collection])) + " terms", "soft") +
+                "</div>" +
+                '<div class="ssc-ai-taxonomy__terms">' + renderTermNodes(collection.terms) + "</div>" +
+            "</section>";
+        }).join("");
+    }
+
+    function renderCollectionsError(message) {
+        var results = $("ssc-ai-browser-results");
+        var summary = $("ssc-ai-browser-summary");
+
+        if (summary) {
+            summary.textContent = message;
+        }
+
         if (!results) return;
         results.innerHTML = '<div class="ssc-ai-browser-empty" style="color:#b32d2e;">' + escapeHtml(message) + "</div>";
     }
 
-    function renderBrowserCard(item) {
+    function renderTermNodes(terms) {
+        return (terms || []).map(function (term) {
+            return renderTermNode(term);
+        }).join("");
+    }
+
+    function renderTermNode(term) {
+        var termKey = getTermKey(term.taxonomy, term.id);
+        var cache = getItemCache(termKey);
+        var isFullySelected = cache.loaded && cache.items.length > 0 && cache.items.every(function (item) {
+            return isItemSelectedBySource(item.id, termKey);
+        });
+        var toggleLabel = cache.expanded
+            ? (config.strings && config.strings.collapseGroup ? config.strings.collapseGroup : "Hide products")
+            : (config.strings && config.strings.expandGroup ? config.strings.expandGroup : "Show products");
+        var selectLabel = isFullySelected
+            ? (config.strings && config.strings.removeGroup ? config.strings.removeGroup : "Remove category items")
+            : (config.strings && config.strings.addGroup ? config.strings.addGroup : "Add category");
+
+        return '<div class="ssc-ai-term' + (cache.expanded ? " is-expanded" : "") + '" data-term-key="' + escapeHtml(termKey) + '">' +
+            '<div class="ssc-ai-term__row" style="padding-left:' + escapeHtml(String(14 + (term.depth * 18))) + 'px;">' +
+                '<div class="ssc-ai-term__main">' +
+                    '<button type="button" class="ssc-ai-term__toggle" data-term-toggle="' + escapeHtml(termKey) + '" title="' + escapeHtml(toggleLabel) + '">' + (cache.expanded ? "−" : "+") + '</button>' +
+                    '<div class="ssc-ai-term__title">' +
+                        '<div class="ssc-ai-term__name">' + escapeHtml(term.name) + '</div>' +
+                        '<div class="ssc-ai-browser-card__meta">' +
+                            badge(String(term.count) + " items", "active") +
+                            badge(term.taxonomy, "") +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="ssc-ai-term__actions">' +
+                    '<button type="button" class="button button-secondary" data-term-select="' + escapeHtml(termKey) + '">' + escapeHtml(selectLabel) + '</button>' +
+                '</div>' +
+            '</div>' +
+            renderTermItems(termKey) +
+            (term.children && term.children.length ? '<div class="ssc-ai-term__children">' + renderTermNodes(term.children) + '</div>' : '') +
+        '</div>';
+    }
+
+    function renderTermItems(termKey) {
+        var cache = getItemCache(termKey);
+        var content = "";
+
+        if (cache.expanded) {
+            if (cache.loading) {
+                content = '<div class="ssc-ai-browser-empty">' + escapeHtml(config.strings && config.strings.loadingItems ? config.strings.loadingItems : "Loading items for this category...") + "</div>";
+            } else if (!cache.loaded || !cache.items.length) {
+                content = '<div class="ssc-ai-browser-empty">' + escapeHtml(config.strings && config.strings.itemsEmpty ? config.strings.itemsEmpty : "No items were found in this category.") + "</div>";
+            } else {
+                content = '<div class="ssc-ai-term-items">' + cache.items.map(function (item) {
+                    return renderTermItem(termKey, item);
+                }).join("") + "</div>";
+            }
+        }
+
+        return '<div class="ssc-ai-term__items">' + content + "</div>";
+    }
+
+    function renderTermItem(termKey, item) {
         var selected = !!getSelectedItem(item.id);
         var buttonLabel = selected
             ? (config.strings && config.strings.removeItem ? config.strings.removeItem : "Remove")
             : (config.strings && config.strings.addItem ? config.strings.addItem : "Add to batch");
-        var buttonClass = selected ? "button-link-delete" : "button button-secondary";
-        var meta = [
-            badge(item.postTypeLabel, "active"),
-            badge(item.statusLabel, "soft"),
-            badge(item.dateLabel, "")
-        ].join("");
-        var terms = (item.terms || []).map(function (term) {
+        var terms = (item.terms || []).slice(0, 3).map(function (term) {
             return badge(term, "");
         }).join("");
 
-        return '<article class="ssc-ai-browser-card' + (selected ? " is-selected" : "") + '" data-id="' + escapeHtml(String(item.id)) + '">' +
+        return '<article class="ssc-ai-term-item">' +
             '<div>' +
-                '<h3 class="ssc-ai-browser-card__title">' + escapeHtml(item.title) + "</h3>" +
-                '<div class="ssc-ai-browser-card__meta">' + meta + "</div>" +
-                (terms ? '<div class="ssc-ai-browser-card__terms">' + terms + "</div>" : "") +
-            "</div>" +
-            '<div><button type="button" class="' + buttonClass + '" data-item-toggle="' + escapeHtml(String(item.id)) + '">' + escapeHtml(buttonLabel) + "</button></div>" +
-        "</article>";
+                '<h4 class="ssc-ai-term-item__title">' + escapeHtml(item.title) + "</h4>" +
+                '<div class="ssc-ai-term-item__meta">' +
+                    badge(item.postTypeLabel, "active") +
+                    badge(item.statusLabel, "soft") +
+                    badge(item.dateLabel, "") +
+                '</div>' +
+                (terms ? '<div class="ssc-ai-browser-card__terms" style="margin-top:8px;">' + terms + "</div>" : "") +
+            '</div>' +
+            '<div><button type="button" class="' + (selected ? "button-link-delete" : "button button-secondary") + '" data-item-toggle="' + escapeHtml(String(item.id)) + '" data-item-source="' + escapeHtml(termKey) + '">' + escapeHtml(buttonLabel) + '</button></div>' +
+        '</article>';
+    }
+
+    function getFilteredCollections(collections, search) {
+        if (!search) {
+            return collections;
+        }
+
+        return (collections || []).map(function (collection) {
+            return {
+                taxonomy: collection.taxonomy,
+                label: collection.label,
+                singular: collection.singular,
+                hierarchical: collection.hierarchical,
+                terms: filterTerms(collection.terms || [], search)
+            };
+        }).filter(function (collection) {
+            return collection.terms.length > 0;
+        });
+    }
+
+    function filterTerms(terms, search) {
+        return (terms || []).map(function (term) {
+            var filteredChildren = filterTerms(term.children || [], search);
+            var cache = getItemCache(getTermKey(term.taxonomy, term.id));
+            var selfMatch = term.name.toLowerCase().indexOf(search) !== -1 || term.taxonomy.toLowerCase().indexOf(search) !== -1;
+            var itemMatch = cache.loaded && cache.items.some(function (item) {
+                return item.title.toLowerCase().indexOf(search) !== -1;
+            });
+
+            if (!selfMatch && !itemMatch && !filteredChildren.length) {
+                return null;
+            }
+
+            return {
+                id: term.id,
+                taxonomy: term.taxonomy,
+                name: term.name,
+                slug: term.slug,
+                count: term.count,
+                depth: term.depth,
+                children: filteredChildren
+            };
+        }).filter(Boolean);
+    }
+
+    function countVisibleTerms(collections) {
+        return (collections || []).reduce(function (total, collection) {
+            return total + countTerms(collection.terms || []);
+        }, 0);
+    }
+
+    function countTerms(terms) {
+        return (terms || []).reduce(function (total, term) {
+            return total + 1 + countTerms(term.children || []);
+        }, 0);
+    }
+
+    function addItemSelection(item, sourceKey) {
+        var id = String(item.id);
+        if (!selectedItems[id]) {
+            selectedItems[id] = {
+                id: item.id,
+                title: item.title,
+                postType: item.postType,
+                postTypeLabel: item.postTypeLabel,
+                status: item.status,
+                statusLabel: item.statusLabel,
+                dateLabel: item.dateLabel,
+                terms: item.terms || [],
+                sources: {}
+            };
+        }
+
+        selectedItems[id].sources[sourceKey] = true;
+    }
+
+    function addManualItem(item) {
+        addItemSelection(item, "manual");
+        resetRestConfirmation();
+        renderSelection();
+        renderCollections();
+    }
+
+    function addTermItems(termKey, items) {
+        (items || []).forEach(function (item) {
+            addItemSelection(item, termKey);
+        });
+        resetRestConfirmation();
+        renderSelection();
+        renderCollections();
+    }
+
+    function removeSelectedItem(id) {
+        delete selectedItems[String(id)];
+        resetRestConfirmation();
+        renderSelection();
+        renderCollections();
+    }
+
+    function removeTermItems(termKey) {
+        Object.keys(selectedItems).forEach(function (id) {
+            var item = selectedItems[id];
+            if (!item || !item.sources[termKey]) {
+                return;
+            }
+
+            delete item.sources[termKey];
+
+            if (!Object.keys(item.sources).length) {
+                delete selectedItems[id];
+            }
+        });
+        resetRestConfirmation();
+        renderSelection();
+        renderCollections();
+    }
+
+    function isItemSelectedBySource(id, sourceKey) {
+        var item = getSelectedItem(id);
+        return !!(item && item.sources && item.sources[sourceKey]);
+    }
+
+    function findItemInCaches(id) {
+        var needle = String(id);
+        var keys = Object.keys(browserState.itemCache);
+        var found = null;
+
+        keys.some(function (key) {
+            var cache = browserState.itemCache[key];
+            if (!cache || !cache.items) {
+                return false;
+            }
+
+            found = cache.items.filter(function (item) {
+                return String(item.id) === needle;
+            })[0] || null;
+
+            return !!found;
+        });
+
+        return found;
     }
 
     function renderSelection() {
@@ -355,9 +559,9 @@
                     badge(item.postTypeLabel, "active") +
                     badge(item.statusLabel, "soft") +
                     badge(item.dateLabel, "") +
-                "</div>" +
+                '</div>' +
                 (terms ? '<div class="ssc-ai-browser-card__terms" style="margin-top:8px;">' + terms + "</div>" : "") +
-            "</div>" +
+            '</div>' +
             '<div><button type="button" class="button-link-delete" data-selected-remove="' + escapeHtml(String(item.id)) + '">' +
                 escapeHtml(config.strings && config.strings.removeItem ? config.strings.removeItem : "Remove") +
             "</button></div>" +
@@ -384,38 +588,53 @@
         }).join(" · ");
     }
 
-    function badge(label, modifier) {
-        return '<span class="ssc-ai-badge' + (modifier ? " ssc-ai-badge--" + modifier : "") + '">' + escapeHtml(label) + "</span>";
-    }
-
-    function addSelectedItem(id) {
-        var item = findBrowserItem(id);
-        if (!item) return;
-        selectedItems[String(id)] = item;
-        resetRestConfirmation();
-        renderSelection();
-        renderBrowser();
-    }
-
-    function removeSelectedItem(id) {
-        delete selectedItems[String(id)];
-        resetRestConfirmation();
-        renderSelection();
-        renderBrowser();
-    }
-
     function clearSelection() {
         selectedItems = {};
         resetRestConfirmation();
         renderSelection();
-        renderBrowser();
+        renderCollections();
     }
 
-    function findBrowserItem(id) {
-        var needle = String(id);
-        return browserState.items.filter(function (item) {
-            return String(item.id) === needle;
-        })[0] || null;
+    function renderRestSummary(summary) {
+        var target = $("ssc-ai-rest-output");
+        if (!target) return;
+
+        var html = [];
+        html.push("<p><strong>Selected items:</strong> " + escapeHtml(String(summary.selectedCount)) + "</p>");
+        html.push("<p><strong>Source fields:</strong> " + escapeHtml((summary.sourceLabels || []).join(", ")) + "</p>");
+        html.push("<p><strong>Target field:</strong> " + escapeHtml(summary.targetFieldLabel) + "</p>");
+        html.push("<p><strong>Write format:</strong> " + escapeHtml(summary.writeFormat) + "</p>");
+        html.push("<p><strong>Language:</strong> " + escapeHtml(summary.languageMode) + "</p>");
+        html.push("<p><strong>Tag style:</strong> " + escapeHtml(summary.tagStyleLabel) + "</p>");
+        html.push("<p><strong>REST auth:</strong> " + escapeHtml(summary.restAuth) + "</p>");
+
+        if (summary.customReadFields && summary.customReadFields.length) {
+            html.push("<p><strong>Extra custom fields:</strong> " + escapeHtml(summary.customReadFields.join(", ")) + "</p>");
+        }
+
+        html.push("<p><strong>Routes:</strong></p><ul>");
+        (summary.routes || []).forEach(function (route) {
+            html.push("<li>" + escapeHtml(route.title + " [" + route.postType + "] -> " + route.route) + "</li>");
+        });
+        html.push("</ul>");
+
+        if (summary.customInstruction) {
+            html.push("<p><strong>Custom instruction:</strong> " + escapeHtml(summary.customInstruction) + "</p>");
+        }
+
+        target.innerHTML = html.join("");
+    }
+
+    function renderPrompt(prompt) {
+        var output = $("ssc-ai-prompt-output");
+        if (!output) return;
+        output.value = prompt || "";
+    }
+
+    function renderError(targetId, message) {
+        var target = $(targetId);
+        if (!target) return;
+        target.innerHTML = "<p style=\"color:#b32d2e;\">" + escapeHtml(message) + "</p>";
     }
 
     function copyPrompt() {
@@ -432,6 +651,10 @@
         }).catch(function () {
             setStatus("ssc-ai-build-status", config.strings && config.strings.copyFailed ? config.strings.copyFailed : "Copy failed.", true);
         });
+    }
+
+    function badge(label, modifier) {
+        return '<span class="ssc-ai-badge' + (modifier ? " ssc-ai-badge--" + modifier : "") + '">' + escapeHtml(label) + "</span>";
     }
 
     function formatString(template, values) {
@@ -457,10 +680,8 @@
         var allowRestButton = $("ssc-ai-allow-rest");
         var buildPromptButton = $("ssc-ai-build-prompt");
         var copyPromptButton = $("ssc-ai-copy-prompt");
-        var browserMoreButton = $("ssc-ai-browser-more");
         var browserRefreshButton = $("ssc-ai-browser-refresh");
         var browserSearch = $("ssc-ai-browser-search");
-        var browserFilters = $("ssc-ai-browser-filters");
         var browserResults = $("ssc-ai-browser-results");
         var selectedWrap = $("ssc-ai-selected-items");
         var clearSelectionButton = $("ssc-ai-clear-selection");
@@ -485,40 +706,69 @@
             browserSearch.addEventListener("input", function () {
                 browserState.search = browserSearch.value;
                 window.clearTimeout(searchDebounce);
-                searchDebounce = window.setTimeout(function () {
-                    loadBrowser(true);
-                }, 250);
+                searchDebounce = window.setTimeout(renderCollections, 180);
             });
         }
 
         if (browserRefreshButton) {
             browserRefreshButton.addEventListener("click", function () {
-                loadBrowser(true);
-            });
-        }
-
-        if (browserFilters) {
-            browserFilters.addEventListener("click", function (event) {
-                var trigger = event.target.closest("[data-filter]");
-                if (!trigger) return;
-
-                browserState.activeFilter = trigger.getAttribute("data-filter") || "all";
-                loadBrowser(true);
+                browserState.itemCache = {};
+                loadCollections();
             });
         }
 
         if (browserResults) {
             browserResults.addEventListener("click", function (event) {
-                var trigger = event.target.closest("[data-item-toggle]");
-                if (!trigger) return;
+                var toggle = event.target.closest("[data-term-toggle]");
+                var select = event.target.closest("[data-term-select]");
+                var itemToggle = event.target.closest("[data-item-toggle]");
 
-                var id = trigger.getAttribute("data-item-toggle");
-                if (!id) return;
+                if (toggle) {
+                    var termKey = toggle.getAttribute("data-term-toggle");
+                    if (!termKey) return;
 
-                if (getSelectedItem(id)) {
-                    removeSelectedItem(id);
-                } else {
-                    addSelectedItem(id);
+                    var parts = termKey.split(":");
+                    var cache = getItemCache(termKey);
+
+                    if (cache.expanded) {
+                        cache.expanded = false;
+                        renderCollections();
+                    } else {
+                        loadTermItems(parts[0], parts[1], { expand: true });
+                    }
+                    return;
+                }
+
+                if (select) {
+                    var selectKey = select.getAttribute("data-term-select");
+                    if (!selectKey) return;
+
+                    var selectParts = selectKey.split(":");
+                    var selectCache = getItemCache(selectKey);
+                    var fullySelected = selectCache.loaded && selectCache.items.length > 0 && selectCache.items.every(function (item) {
+                        return isItemSelectedBySource(item.id, selectKey);
+                    });
+
+                    if (fullySelected) {
+                        removeTermItems(selectKey);
+                    } else {
+                        loadTermItems(selectParts[0], selectParts[1], { expand: true, selectAll: true });
+                    }
+                    return;
+                }
+
+                if (itemToggle) {
+                    var itemId = itemToggle.getAttribute("data-item-toggle");
+                    if (!itemId) return;
+
+                    if (getSelectedItem(itemId)) {
+                        removeSelectedItem(itemId);
+                    } else {
+                        var item = findItemInCaches(itemId);
+                        if (item) {
+                            addManualItem(item);
+                        }
+                    }
                 }
             });
         }
@@ -537,12 +787,6 @@
 
         if (clearSelectionButton) {
             clearSelectionButton.addEventListener("click", clearSelection);
-        }
-
-        if (browserMoreButton) {
-            browserMoreButton.addEventListener("click", function () {
-                loadBrowser(false);
-            });
         }
 
         if (allowRestButton) {
@@ -575,6 +819,6 @@
         }
 
         renderSelection();
-        loadBrowser(true);
+        loadCollections();
     });
 })();
