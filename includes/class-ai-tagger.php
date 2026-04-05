@@ -277,67 +277,77 @@ class SSC_AI_Tagger {
      */
     private function build_agent_prompt( $posts, $config, $summary ) {
         $lines   = array();
-        if ( ! empty( $summary['restEnabled'] ) ) {
-            $lines[] = 'Use agent mode and your HTTP/REST tools for this task. Do not answer as a plain chat completion.';
-        } else {
-            $lines[] = 'Use agent mode for this task. Do not answer as a plain chat completion.';
-        }
+        $is_rest = ! empty( $summary['restEnabled'] );
+
+        $lines[] = $is_rest
+            ? 'Use agent mode and your HTTP/REST tools for this task. Do not answer as a plain chat completion.'
+            : 'Use agent mode for this task. Do not answer as a plain chat completion.';
+        $lines[] = '';
+        $lines[] = 'Role';
+        $lines[] = 'You are preparing search-chip tags for a WordPress catalog.';
         $lines[] = '';
         $lines[] = 'Goal';
-        $lines[] = ! empty( $summary['restEnabled'] )
-            ? 'Generate high-signal search-chip tags for every selected item and write them back to the WordPress REST API.'
-            : 'Generate high-signal search-chip tags for every selected item and return them for manual review.';
+        $lines[] = $is_rest
+            ? 'Generate high-signal search-chip tags for every selected item, compare the batch as a whole, and write the final values back to WordPress.'
+            : 'Generate high-signal search-chip tags for every selected item, compare the batch as a whole, and return the final values for manual review.';
         $lines[] = '';
-        $lines[] = 'What to do';
-        if ( ! empty( $summary['restEnabled'] ) ) {
-            $lines[] = '1. Authenticate to the WordPress REST API using the WordPress REST credentials pasted at the end of this prompt.';
-            $lines[] = '2. Fetch every selected item from its REST route using context=edit when available.';
-            $lines[] = '3. Analyze the entire selected batch together before writing anything. Cluster similar items by shared category, taxonomy, attributes, materials, certifications, compatibility, and naming patterns so you can identify what stands out within each group.';
-            $lines[] = '4. Use only facts supported by the fetched data. Do not invent missing specifications.';
-            if ( $summary['maxTags'] > 0 ) {
-                $lines[] = '5. Produce up to ' . $summary['maxTags'] . ' tags per item.';
-            } else {
-                $lines[] = '5. There is no hard tag limit per item, but keep the tag list disciplined and useful for filtering.';
-            }
-            $lines[] = '6. Store tags as a single semicolon-separated string, for example: `IP65; Stainless steel; CE; Outdoor use`.';
-            $lines[] = '7. Default to the same language as the content of each selected item. Only override that language behavior if the custom instruction explicitly requires it.';
-            $lines[] = '8. Write the result back into `' . $summary['targetMetaKey'] . '` through the WordPress REST API using the `meta` payload.';
-            $lines[] = '9. Preserve unrelated content and fields. Only update the chosen target field.';
-            $lines[] = '10. At the end, report which items were updated and the exact semicolon-separated value written for each one.';
+        $lines[] = 'Tag rules';
+        $lines[] = '- Write one semicolon-separated value per item, for example: `IP65; Stainless steel; CE; Outdoor use`.';
+        $lines[] = '- Prefer concise, filter-friendly tags that help users distinguish similar items.';
+        $lines[] = '- Use only facts supported by the available item data. Do not invent missing specifications.';
+        $lines[] = '- Avoid generic marketing phrases unless they genuinely help filtering.';
+        $lines[] = '- Keep the tags in the same language as the source content unless the custom instruction overrides that.';
+        if ( $summary['maxTags'] > 0 ) {
+            $lines[] = '- Use at most ' . $summary['maxTags'] . ' tags per item.';
         } else {
-            $lines[] = '1. Analyze the entire selected batch together before writing anything. Cluster similar items by shared category, taxonomy, attributes, materials, certifications, compatibility, and naming patterns so you can identify what stands out within each group.';
-            $lines[] = '2. Use only facts supported by the known item titles and context. Do not invent missing specifications.';
-            if ( $summary['maxTags'] > 0 ) {
-                $lines[] = '3. Produce up to ' . $summary['maxTags'] . ' tags per item.';
-            } else {
-                $lines[] = '3. There is no hard tag limit per item, but keep the tag list disciplined and useful for filtering.';
-            }
-            $lines[] = '4. Store tags as a single semicolon-separated string, for example: `IP65; Stainless steel; CE; Outdoor use`.';
-            $lines[] = '5. Default to the same language as the content of each selected item. Only override that language behavior if the custom instruction explicitly requires it.';
-            $lines[] = '6. Do not write anything back to WordPress automatically.';
-            $lines[] = '7. Return a final list of every selected item with its proposed semicolon-separated value so the site owner can review and paste it manually.';
+            $lines[] = '- There is no hard tag limit, but keep the final tag string disciplined and useful.';
         }
-        if ( ! empty( $summary['customReadFields'] ) ) {
-            $lines[] = '';
-            $lines[] = 'Extra custom fields to consider';
-            $lines[] = '- Extra custom fields: ' . implode( ', ', $summary['customReadFields'] );
+        $lines[] = '';
+        $lines[] = 'Workflow';
+        if ( $is_rest ) {
+            $lines[] = '1. Authenticate to the WordPress REST API using the WordPress REST credentials pasted at the end of this prompt.';
+            $lines[] = '2. Fetch every selected item from its REST route, using `context=edit` when available.';
+            $lines[] = '3. Inspect the normal WordPress fields plus any extra custom meta keys listed below if they are present in REST output.';
+            $lines[] = '4. Compare the entire selected batch before writing anything. Group similar items by category, taxonomy, attributes, materials, certifications, compatibility, and naming patterns so the final tags reflect what actually differentiates them.';
+            $lines[] = '5. Write the final semicolon-separated value back into `' . $summary['targetMetaKey'] . '` using the `meta` payload only.';
+            $lines[] = '6. Preserve unrelated content and fields. Only update the chosen target field.';
+            $lines[] = '7. Report which items were updated and the exact final value written for each one.';
+        } else {
+            $lines[] = '1. Review the selected item list below and compare the batch before proposing any tags.';
+            $lines[] = '2. If your tool has site access or imported product data, use it. Otherwise rely only on the known item references and do not guess missing details.';
+            $lines[] = '3. Produce one semicolon-separated tag value per selected item.';
+            $lines[] = '4. Return the final output in a simple reviewable list labeled by item ID and title.';
+            $lines[] = '5. Do not attempt to write anything back to WordPress automatically.';
         }
         $lines[] = '';
         $lines[] = 'Target field';
-        if ( ! empty( $summary['restEnabled'] ) ) {
-            $lines[] = $summary['targetFieldLabel'] . ' (`meta.' . $summary['targetMetaKey'] . '`)';
-            $lines[] = '';
-            $lines[] = 'REST routes to process';
+        $lines[] = $is_rest
+            ? $summary['targetFieldLabel'] . ' (`meta.' . $summary['targetMetaKey'] . '`)'
+            : $summary['targetFieldLabel'] . ' (manual review only, no automatic write-back)';
 
-            foreach ( $summary['routes'] as $route ) {
-                $lines[] = '- ID ' . $route['id'] . ' | ' . $route['postType'] . ' | ' . $route['title'];
-                $lines[] = '  Route: ' . $route['route'];
-            }
-        } else {
-            $lines[] = $summary['targetFieldLabel'] . ' (manual review only, no automatic write-back)';
+        if ( ! empty( $summary['customReadFields'] ) ) {
+            $lines[] = '';
+            $lines[] = 'Extra custom fields to inspect if available';
+            $lines[] = '- ' . implode( ', ', $summary['customReadFields'] );
         }
 
-        if ( ! empty( $summary['restEnabled'] ) ) {
+        $lines[] = '';
+        $lines[] = 'Selected items';
+        foreach ( $posts as $post ) {
+            $title    = get_the_title( $post );
+            $lines[]  = '- ID ' . $post->ID . ' | ' . $post->post_type . ' | ' . ( $title !== '' ? $title : '(no title)' );
+
+            if ( $is_rest ) {
+                foreach ( $summary['routes'] as $route ) {
+                    if ( (int) $route['id'] === (int) $post->ID ) {
+                        $lines[] = '  REST route: ' . $route['route'];
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ( $is_rest ) {
             $lines[] = '';
             $lines[] = 'REST update format';
             $lines[] = 'Send authenticated requests to each item route and update the selected field with a `meta` object. Example payload:';
@@ -346,19 +356,22 @@ class SSC_AI_Tagger {
             $lines[] = '    "' . $summary['targetMetaKey'] . '": "Tag one; Tag two; Tag three"';
             $lines[] = '  }';
             $lines[] = '}';
+        } else {
+            $lines[] = '';
+            $lines[] = 'Output format';
+            $lines[] = 'Return one line per selected item in this format:';
+            $lines[] = 'ID | Title | Tag one; Tag two; Tag three';
         }
 
         $lines[] = '';
         $lines[] = 'Operational notes';
-        if ( ! empty( $summary['restEnabled'] ) ) {
+        $lines[] = '- Be consistent across the whole batch. Similar items should share common baseline tags and differ on the dimensions that actually matter.';
+        if ( $is_rest ) {
             $lines[] = '- If an item route fails, stop and report the failure instead of guessing.';
-            $lines[] = '- If the current item already has useful tags in the target field, use them as context but replace them only with a clearly better semicolon-separated final value.';
-            $lines[] = '- Be consistent across the whole batch. Similar products should share taxonomy-level tags and differ on the dimensions that actually matter.';
+            $lines[] = '- If the current item already has useful tags in the target field, use them as context but replace them only with a clearly better final value.';
             $lines[] = '- If WooCommerce-specific attributes are not available from the REST route, continue with the rest of the fetched item data instead of hallucinating them.';
         } else {
-            $lines[] = '- Be consistent across the whole batch. Similar products should share taxonomy-level tags and differ on the dimensions that actually matter.';
-            $lines[] = '- Return one semicolon-separated value per selected item, clearly labeled by item title or ID.';
-            $lines[] = '- Do not assume access to unpublished fields or hidden metadata when REST write-back is disabled.';
+            $lines[] = '- If the available item references are too thin to justify confident tags, say so instead of guessing.';
         }
 
         if ( ! empty( $config['custom_instruction'] ) ) {
@@ -367,22 +380,18 @@ class SSC_AI_Tagger {
             $lines[] = trim( $config['custom_instruction'] );
         }
 
-        if ( ! empty( $summary['restEnabled'] ) ) {
+        if ( $is_rest ) {
             $lines[] = '';
             $lines[] = 'WordPress REST credentials to paste before running the agent';
-            $lines[] = 'Enter your WordPress REST credentials here:';
             $lines[] = 'WordPress site URL: ' . home_url( '/' );
             $lines[] = 'WordPress username: <PASTE HERE>';
             $lines[] = 'WordPress Application Password: <PASTE HERE>';
             $lines[] = 'Authentication method: Basic Auth with WordPress Application Passwords';
-            $lines[] = 'Do not use or request OpenAI, Anthropic, Gemini, or other LLM-provider API keys for this task.';
         }
 
-        if ( ! empty( $posts ) ) {
-            $lines[] = '';
-            $lines[] = 'Batch scope';
-            $lines[] = 'Selected items: ' . count( $posts );
-        }
+        $lines[] = '';
+        $lines[] = 'Batch scope';
+        $lines[] = 'Selected items: ' . count( $posts );
 
         return implode( "\n", $lines );
     }

@@ -405,7 +405,7 @@ class SSC_Settings {
                         <div class="ssc-settings-card ssc-settings-card--ai-lab">
                             <h2><?php _e( 'Agent Prompt', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
-                                <p class="description"><?php _e( 'The agent prompt builder becomes available in Pro. It prepares a long-form prompt that tells an external LLM agent to use the WordPress REST API, compare similar products together, and write semicolon-separated tags back into the selected field.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php _e( 'The agent prompt builder becomes available in Pro. It prepares a long-form prompt that tells an external LLM agent to compare similar products together and, when enabled, write semicolon-separated tags back through the WordPress REST API.', 'smart-search-chips' ); ?></p>
                             <?php else : ?>
                                 <table class="form-table">
                                     <tr>
@@ -449,7 +449,7 @@ class SSC_Settings {
                                             <button type="button" class="button button-primary" id="ssc-ai-build-prompt"><?php _e( 'Generate Agent Prompt', 'smart-search-chips' ); ?></button>
                                             <button type="button" class="button" id="ssc-ai-copy-prompt"><?php _e( 'Copy Prompt', 'smart-search-chips' ); ?></button>
                                             <span id="ssc-ai-build-status" class="ssc-ai-inline-status" aria-live="polite"></span>
-                                            <p class="description"><?php _e( 'If REST write-back is enabled, the prompt will end with placeholders for your WordPress REST credentials. Paste those WordPress credentials into your external AI tool, not into this plugin.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php _e( 'The generated prompt will always describe the selected batch clearly. If REST write-back is enabled, it will also end with placeholders for your WordPress REST credentials. Paste those WordPress credentials into your external AI tool, not into this plugin.', 'smart-search-chips' ); ?></p>
                                             <p class="ssc-ai-warning"><?php _e( 'You remain responsible for your WordPress REST credentials and for any changes the external AI tool makes through your site. Review the prompt before use. This plugin does not request or store LLM-provider API keys.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
