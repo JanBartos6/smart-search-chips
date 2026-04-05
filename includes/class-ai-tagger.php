@@ -34,20 +34,6 @@ class SSC_AI_Tagger {
     }
 
     /**
-     * Tag writing styles offered in the UI.
-     *
-     * @return array
-     */
-    public static function get_tag_styles() {
-        return array(
-            'technical' => __( 'Technical attributes', 'smart-search-chips' ),
-            'catalog'   => __( 'Catalog filters', 'smart-search-chips' ),
-            'mixed'     => __( 'Balanced mix', 'smart-search-chips' ),
-            'minimal'   => __( 'Very short chips', 'smart-search-chips' ),
-        );
-    }
-
-    /**
      * AJAX: load taxonomy collections for the prompt builder.
      */
     public function ajax_browse_terms() {
@@ -177,7 +163,6 @@ class SSC_AI_Tagger {
             'rest_enabled'       => isset( $_POST['rest_enabled'] ) ? ( ! empty( $_POST['rest_enabled'] ) ? '1' : '0' ) : $this->settings->get( 'ai_rest_enabled', '1' ),
             'max_tags'           => isset( $_POST['max_tags'] ) ? absint( $_POST['max_tags'] ) : (int) $this->settings->get( 'ai_max_tags', 8 ),
             'language'           => isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : $this->settings->get( 'ai_language', '' ),
-            'tag_style'          => isset( $_POST['tag_style'] ) ? sanitize_key( wp_unslash( $_POST['tag_style'] ) ) : $this->settings->get( 'ai_tag_style', 'technical' ),
             'custom_instruction' => isset( $_POST['custom_instruction'] ) ? sanitize_textarea_field( wp_unslash( $_POST['custom_instruction'] ) ) : $this->settings->get( 'ai_custom_instruction', '' ),
         );
     }
@@ -283,7 +268,6 @@ class SSC_AI_Tagger {
             'targetMetaKey'     => $target_meta_key,
             'maxTags'           => max( 0, absint( $config['max_tags'] ) ),
             'maxTagsLabel'      => absint( $config['max_tags'] ) === 0 ? __( 'No limit', 'smart-search-chips' ) : (string) absint( $config['max_tags'] ),
-            'tagStyleLabel'     => $this->get_tag_style_label( $config['tag_style'] ),
             'languageMode'      => $config['language'] ? $config['language'] : __( 'Same language as each selected item by default', 'smart-search-chips' ),
             'customInstruction' => $config['custom_instruction'],
             'restEnabled'       => $rest_enabled,
@@ -360,10 +344,6 @@ class SSC_AI_Tagger {
         if ( ! empty( $summary['customReadFields'] ) ) {
             $lines[] = '- Extra custom fields: ' . implode( ', ', $summary['customReadFields'] );
         }
-
-        $lines[] = '';
-        $lines[] = 'Tag writing style';
-        $lines[] = $summary['tagStyleLabel'] . '. Prioritize tags that help users filter similar products apart, not generic marketing claims.';
         $lines[] = '';
         $lines[] = 'Target field';
         if ( ! empty( $summary['restEnabled'] ) ) {
@@ -494,17 +474,6 @@ class SSC_AI_Tagger {
             'taxonomies'     => __( 'Categories and taxonomies', 'smart-search-chips' ),
             'woo_attributes' => __( 'WooCommerce attributes and SKU', 'smart-search-chips' ),
         );
-    }
-
-    /**
-     * Get a tag style label from its key.
-     *
-     * @param string $key Style key.
-     * @return string
-     */
-    private function get_tag_style_label( $key ) {
-        $styles = self::get_tag_styles();
-        return isset( $styles[ $key ] ) ? $styles[ $key ] : $styles['technical'];
     }
 
     /**

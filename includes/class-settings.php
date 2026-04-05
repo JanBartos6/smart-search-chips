@@ -74,9 +74,6 @@ class SSC_Settings {
         register_setting( 'smart-search-chips', 'ssc_ai_language', array(
             'sanitize_callback' => 'sanitize_text_field',
         ) );
-        register_setting( 'smart-search-chips', 'ssc_ai_tag_style', array(
-            'sanitize_callback' => array( $this, 'sanitize_ai_tag_style' ),
-        ) );
         register_setting( 'smart-search-chips', 'ssc_ai_custom_instruction', array(
             'sanitize_callback' => 'sanitize_textarea_field',
         ) );
@@ -153,7 +150,6 @@ class SSC_Settings {
         if ( ! is_array( $ai_sources ) || empty( $ai_sources ) ) {
             $ai_sources = array( 'title', 'excerpt', 'content' );
         }
-        $ai_tag_style  = get_option( 'ssc_ai_tag_style', 'technical' );
         $ai_max_tags   = max( 0, (int) get_option( 'ssc_ai_max_tags', 8 ) );
         $ai_rest_mode  = get_option( 'ssc_ai_rest_enabled', '1' );
 
@@ -407,21 +403,10 @@ class SSC_Settings {
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th><?php _e( 'Tag Style', 'smart-search-chips' ); ?></th>
-                                        <td>
-                                            <select name="ssc_ai_tag_style" id="ssc-ai-tag-style">
-                                                <?php foreach ( SSC_AI_Tagger::get_tag_styles() as $style_key => $style_label ) : ?>
-                                                    <option value="<?php echo esc_attr( $style_key ); ?>" <?php selected( $ai_tag_style, $style_key ); ?>><?php echo esc_html( $style_label ); ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                            <p class="description"><?php _e( 'Controls how the generated prompt tells the external agent to write tags.', 'smart-search-chips' ); ?></p>
-                                        </td>
-                                    </tr>
-                                    <tr>
                                         <th><?php _e( 'Custom Instruction', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <textarea name="ssc_ai_custom_instruction" id="ssc-ai-custom-instruction" rows="3" class="large-text"><?php echo esc_textarea( get_option( 'ssc_ai_custom_instruction', '' ) ); ?></textarea>
-                                            <p class="description"><?php _e( 'Optional instructions for the external agent, for example: prefer technical specs, ignore brand names, write chips for engineers, or force Czech language output.', 'smart-search-chips' ); ?></p>
+                                            <textarea name="ssc_ai_custom_instruction" id="ssc-ai-custom-instruction" rows="4" class="large-text"><?php echo esc_textarea( get_option( 'ssc_ai_custom_instruction', '' ) ); ?></textarea>
+                                            <p class="description"><?php _e( 'Optional instructions for the external agent, for example: prefer technical specs, ignore brand names, keep tags very short, write for engineers, or force Czech language output.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                 </table>
@@ -765,18 +750,6 @@ class SSC_Settings {
         $value   = array_map( 'sanitize_key', $value );
 
         return array_values( array_intersect( $value, $allowed ) );
-    }
-
-    /**
-     * Sanitize AI tag style.
-     *
-     * @param string $value Raw style.
-     * @return string
-     */
-    public function sanitize_ai_tag_style( $value ) {
-        $value  = sanitize_key( $value );
-        $styles = SSC_AI_Tagger::get_tag_styles();
-        return isset( $styles[ $value ] ) ? $value : 'technical';
     }
 
     /**

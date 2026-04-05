@@ -126,7 +126,6 @@ function ssc_activate() {
         'ssc_ai_rest_enabled'      => '1',
         'ssc_ai_max_tags'          => 8,
         'ssc_ai_language'          => '',
-        'ssc_ai_tag_style'         => 'technical',
         'ssc_ai_custom_instruction'=> '',
     );
 

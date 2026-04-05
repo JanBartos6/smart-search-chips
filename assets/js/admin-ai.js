@@ -63,7 +63,6 @@
         data.append("rest_enabled", $("ssc-ai-rest-enabled") && $("ssc-ai-rest-enabled").checked ? "1" : "0");
         data.append("max_tags", $("ssc-ai-max-tags") ? $("ssc-ai-max-tags").value : "8");
         data.append("language", $("ssc-ai-language") ? $("ssc-ai-language").value : "");
-        data.append("tag_style", $("ssc-ai-tag-style") ? $("ssc-ai-tag-style").value : "technical");
         data.append("custom_instruction", $("ssc-ai-custom-instruction") ? $("ssc-ai-custom-instruction").value : "");
 
         checkedValues("ssc_ai_source_fields[]").forEach(function (field) {
@@ -604,7 +603,6 @@
         html.push("<p><strong>Write format:</strong> " + escapeHtml(summary.writeFormat) + "</p>");
         html.push("<p><strong>Max tags:</strong> " + escapeHtml(summary.maxTagsLabel || String(summary.maxTags)) + "</p>");
         html.push("<p><strong>Language:</strong> " + escapeHtml(summary.languageMode) + "</p>");
-        html.push("<p><strong>Tag style:</strong> " + escapeHtml(summary.tagStyleLabel) + "</p>");
         html.push("<p><strong>REST auth:</strong> " + escapeHtml(summary.restAuth) + "</p>");
 
         if (summary.customReadFields && summary.customReadFields.length) {
@@ -688,7 +686,6 @@
             "#ssc-ai-max-tags",
             "#ssc-ai-language",
             "#ssc-ai-rest-enabled",
-            "#ssc-ai-tag-style",
             "#ssc-ai-custom-instruction",
             'input[name="ssc_ai_target_field"]',
             'input[name="ssc_ai_source_fields[]"]'
