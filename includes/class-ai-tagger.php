@@ -273,7 +273,7 @@ class SSC_AI_Tagger {
             'restEnabled'       => $rest_enabled,
             'routes'            => $routes,
             'restAuth'          => $rest_enabled
-                ? __( 'Use WordPress Application Passwords or another authenticated REST setup controlled by the site owner.', 'smart-search-chips' )
+                ? __( 'Use WordPress Application Passwords or another authenticated WordPress REST setup controlled by the site owner.', 'smart-search-chips' )
                 : __( 'REST write-back disabled. The agent should return tags for manual review instead of updating WordPress directly.', 'smart-search-chips' ),
             'writeFormat'       => $rest_enabled
                 ? sprintf(
@@ -308,7 +308,7 @@ class SSC_AI_Tagger {
         $lines[] = '';
         $lines[] = 'What to do';
         if ( ! empty( $summary['restEnabled'] ) ) {
-            $lines[] = '1. Authenticate to the WordPress REST API using the credentials pasted at the end of this prompt.';
+            $lines[] = '1. Authenticate to the WordPress REST API using the WordPress REST credentials pasted at the end of this prompt.';
             $lines[] = '2. Fetch every selected item from its REST route using context=edit when available.';
             $lines[] = '3. Analyze the entire selected batch together before writing anything. Cluster similar items by shared category, taxonomy, attributes, materials, certifications, compatibility, and naming patterns so you can identify what stands out within each group.';
             $lines[] = '4. Use only facts supported by the fetched data. Do not invent missing specifications.';
@@ -391,12 +391,13 @@ class SSC_AI_Tagger {
 
         if ( ! empty( $summary['restEnabled'] ) ) {
             $lines[] = '';
-            $lines[] = 'Credentials to paste before running the agent';
-            $lines[] = 'Enter your credentials here:';
+            $lines[] = 'WordPress REST credentials to paste before running the agent';
+            $lines[] = 'Enter your WordPress REST credentials here:';
             $lines[] = 'WordPress site URL: ' . home_url( '/' );
             $lines[] = 'WordPress username: <PASTE HERE>';
             $lines[] = 'WordPress Application Password: <PASTE HERE>';
             $lines[] = 'Authentication method: Basic Auth with WordPress Application Passwords';
+            $lines[] = 'Do not use or request OpenAI, Anthropic, Gemini, or other LLM-provider API keys for this task.';
         }
 
         if ( ! empty( $posts ) ) {

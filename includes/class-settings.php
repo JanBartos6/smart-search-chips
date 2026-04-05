@@ -342,8 +342,8 @@ class SSC_Settings {
                         <div class="ssc-settings-card ssc-settings-card--ai">
                             <h2><?php _e( 'AI Prompt Builder', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
-                                <p><?php _e( 'The AI Prompt Builder is part of Pro. It prepares a structured agent prompt that you can paste into Codex, Claude Code, ChatGPT, Gemini, or another external AI tool. The external tool then uses your own WordPress REST API credentials to fetch and write tags.', 'smart-search-chips' ); ?></p>
-                                <p class="description"><?php _e( 'Upgrade to Pro to unlock REST-aware prompt generation, multi-product analysis, custom field targets, and structured agent instructions.', 'smart-search-chips' ); ?></p>
+                                <p><?php _e( 'The AI Prompt Builder is part of Pro. It prepares a structured agent prompt that you can paste into Codex, Claude Code, ChatGPT, Gemini, or another external AI tool. That external tool can then use your own WordPress REST credentials to fetch and write tags.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php _e( 'Upgrade to Pro to unlock REST-aware prompt generation, multi-product analysis, custom field targets, and structured agent instructions. This plugin does not request or store any OpenAI, Anthropic, or Gemini API keys.', 'smart-search-chips' ); ?></p>
                             <?php else : ?>
                                 <table class="form-table">
                                     <tr>
@@ -355,7 +355,7 @@ class SSC_Settings {
                                                 <span><?php _e( 'Allow REST API write-back in generated prompt', 'smart-search-chips' ); ?></span>
                                             </label>
                                             <p class="description"><?php _e( 'Turn this on if you want the external agent to read and write through the WordPress REST API. Turn it off if you only want the prompt to analyze the selected products and return tags for manual review.', 'smart-search-chips' ); ?></p>
-                                            <p class="description"><?php _e( 'When enabled, the prompt assumes you will use WordPress Application Passwords or another REST-compatible authentication method outside this plugin.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php _e( 'When enabled, the prompt assumes you will use WordPress Application Passwords or another REST-compatible WordPress authentication method outside this plugin. The plugin does not ask for or store LLM-provider credentials.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -416,7 +416,7 @@ class SSC_Settings {
                         <div class="ssc-settings-card ssc-settings-card--ai-lab">
                             <h2><?php _e( 'Agent Prompt', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
-                                <p class="description"><?php _e( 'The agent prompt builder becomes available in Pro. It prepares a long-form prompt that tells an external LLM agent to fetch selected items over the WordPress REST API, compare similar products together, and write semicolon-separated tags back into the selected field.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php _e( 'The agent prompt builder becomes available in Pro. It prepares a long-form prompt that tells an external LLM agent to use the WordPress REST API, compare similar products together, and write semicolon-separated tags back into the selected field.', 'smart-search-chips' ); ?></p>
                             <?php else : ?>
                                 <table class="form-table">
                                     <tr>
@@ -460,8 +460,8 @@ class SSC_Settings {
                                             <button type="button" class="button button-primary" id="ssc-ai-build-prompt"><?php _e( 'Generate Agent Prompt', 'smart-search-chips' ); ?></button>
                                             <button type="button" class="button" id="ssc-ai-copy-prompt"><?php _e( 'Copy Prompt', 'smart-search-chips' ); ?></button>
                                             <span id="ssc-ai-build-status" class="ssc-ai-inline-status" aria-live="polite"></span>
-                                            <p class="description"><?php _e( 'The prompt will end with placeholders for your WordPress REST credentials. Paste those credentials into the prompt in your external AI tool, not into this plugin.', 'smart-search-chips' ); ?></p>
-                                            <p class="ssc-ai-warning"><?php _e( 'You remain responsible for the credentials and for what the external AI tool does with them. Review the prompt before use.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php _e( 'If REST write-back is enabled, the prompt will end with placeholders for your WordPress REST credentials. Paste those WordPress credentials into your external AI tool, not into this plugin.', 'smart-search-chips' ); ?></p>
+                                            <p class="ssc-ai-warning"><?php _e( 'You remain responsible for your WordPress REST credentials and for any changes the external AI tool makes through your site. Review the prompt before use. This plugin does not request or store LLM-provider API keys.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                 </table>

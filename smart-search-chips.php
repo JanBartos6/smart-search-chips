@@ -143,7 +143,7 @@ register_activation_hook( __FILE__, 'ssc_activate' );
 function ssc_privacy_policy_content() {
     $content = '<h2>' . __( 'Smart Search Chips', 'smart-search-chips' ) . '</h2>'
         . '<p>' . __( 'This plugin processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this server and are not stored or sent to any third-party service.', 'smart-search-chips' ) . '</p>'
-        . '<p>' . __( 'If an administrator uses the optional AI Prompt Builder, the plugin prepares instructions for an external AI tool. The plugin itself does not send content or credentials to an AI provider, but the site owner may choose to paste selected content and their own REST API credentials into an external service outside this plugin.', 'smart-search-chips' ) . '</p>'
+        . '<p>' . __( 'If an administrator uses the optional AI Prompt Builder, the plugin prepares instructions for an external AI tool. The plugin itself does not send content or credentials to an AI provider and does not request LLM-provider API keys. If the site owner enables REST write-back, they may choose to paste their own WordPress REST credentials into an external service outside this plugin.', 'smart-search-chips' ) . '</p>'
         . '<p>' . __( 'No personal data is collected, stored, or shared by this plugin beyond the site owner\'s own WordPress configuration and any actions they choose to take with external tools.', 'smart-search-chips' ) . '</p>';
 
     wp_add_privacy_policy_content( 'Smart Search Chips', wp_kses_post( $content ) );
