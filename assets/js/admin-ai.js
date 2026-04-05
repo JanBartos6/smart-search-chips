@@ -665,6 +665,7 @@
     document.addEventListener("DOMContentLoaded", function () {
         var buildPromptButton = $("ssc-ai-build-prompt");
         var copyPromptButton = $("ssc-ai-copy-prompt");
+        var copyPromptPanelButton = $("ssc-ai-copy-prompt-panel");
         var browserRefreshButton = $("ssc-ai-browser-refresh");
         var browserSearch = $("ssc-ai-browser-search");
         var browserResults = $("ssc-ai-browser-results");
@@ -785,6 +786,10 @@
 
         if (copyPromptButton) {
             copyPromptButton.addEventListener("click", copyPrompt);
+        }
+
+        if (copyPromptPanelButton) {
+            copyPromptPanelButton.addEventListener("click", copyPrompt);
         }
 
         renderSelection();
