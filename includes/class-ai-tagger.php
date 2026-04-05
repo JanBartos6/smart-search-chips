@@ -431,7 +431,7 @@ class SSC_AI_Tagger {
             if ( $field_name !== '' ) {
                 return sprintf(
                     /* translators: %s: field name */
-                    __( 'Mapped primary field (%s)', 'smart-search-chips' ),
+                    __( 'Custom tag field (%s)', 'smart-search-chips' ),
                     $field_name
                 );
             }

@@ -370,7 +370,7 @@ class SSC_Settings {
                                                 <?php
                                                 printf(
                                                     /* translators: %s: field name */
-                                                    esc_html__( 'Mapped primary tag field (%s)', 'smart-search-chips' ),
+                                                    esc_html__( 'Custom tag field (%s)', 'smart-search-chips' ),
                                                     esc_html( get_option( 'ssc_tag_fields', '' ) ?: __( 'not configured yet', 'smart-search-chips' ) )
                                                 );
                                                 ?>
