@@ -885,7 +885,17 @@ class SSC_Settings {
                 .ssc-analytics-panel th, .ssc-analytics-panel td { padding: 10px 16px; text-align: left; border-top: 1px solid #f0f1f3; font-size: 13px; vertical-align: top; }
                 .ssc-analytics-panel th { color: #50575e; font-weight: 600; background: #fcfcfd; }
                 .ssc-analytics-empty { padding: 16px; color: #646970; font-size: 13px; }
+                .ssc-analytics-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+                .ssc-chart { padding: 16px; }
+                .ssc-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+                .ssc-chart-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; color: #50575e; font-size: 12px; }
+                .ssc-chart-meta span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 999px; margin-right: 6px; vertical-align: -1px; }
+                .ssc-chart-meta .ssc-chart-searches::before { background: #1d4ed8; }
+                .ssc-chart-meta .ssc-chart-clicks::before { background: #d97706; }
+                .ssc-chart-meta .ssc-chart-visitors::before { background: #059669; }
+                .ssc-chart-meta .ssc-chart-zero::before { background: #dc2626; }
                 @media (max-width: 960px) { .ssc-analytics-stats, .ssc-analytics-panels { grid-template-columns: 1fr; } }
+                @media (max-width: 960px) { .ssc-analytics-charts { grid-template-columns: 1fr; } }
             </style>
 
             <form method="get" action="<?php echo esc_url( admin_url( 'options-general.php' ) ); ?>" class="ssc-analytics-toolbar">
@@ -919,6 +929,29 @@ class SSC_Settings {
                     <div class="ssc-analytics-stat">
                         <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['zero_result_search'] ) ); ?></strong>
                         <span><?php _e( 'Zero-Result Searches', 'smart-search-chips' ); ?></span>
+                    </div>
+                </div>
+
+                <div class="ssc-analytics-charts">
+                    <div class="ssc-analytics-panel">
+                        <h3><?php _e( 'Search Activity Over Time', 'smart-search-chips' ); ?></h3>
+                        <div class="ssc-chart">
+                            <?php $this->render_analytics_chart( $analytics['timeseries'], array( 'searches' => '#1d4ed8', 'chip_clicks' => '#d97706' ) ); ?>
+                            <div class="ssc-chart-meta">
+                                <span class="ssc-chart-searches"><?php esc_html_e( 'Searches', 'smart-search-chips' ); ?></span>
+                                <span class="ssc-chart-clicks"><?php esc_html_e( 'Chip Clicks', 'smart-search-chips' ); ?></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ssc-analytics-panel">
+                        <h3><?php _e( 'Visitors And Zero-Result Searches', 'smart-search-chips' ); ?></h3>
+                        <div class="ssc-chart">
+                            <?php $this->render_analytics_chart( $analytics['timeseries'], array( 'unique_visitors' => '#059669', 'zero_results' => '#dc2626' ) ); ?>
+                            <div class="ssc-chart-meta">
+                                <span class="ssc-chart-visitors"><?php esc_html_e( 'Unique Visitors', 'smart-search-chips' ); ?></span>
+                                <span class="ssc-chart-zero"><?php esc_html_e( 'Zero-Result Searches', 'smart-search-chips' ); ?></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -983,6 +1016,83 @@ class SSC_Settings {
         }
 
         echo '</tbody></table>';
+    }
+
+    /**
+     * Render a simple inline SVG line chart for analytics series.
+     *
+     * @param array $rows    Daily time-series rows.
+     * @param array $metrics Metric map of key => color.
+     */
+    private function render_analytics_chart( $rows, $metrics ) {
+        if ( empty( $rows ) ) {
+            echo '<div class="ssc-analytics-empty">' . esc_html__( 'No analytics data yet.', 'smart-search-chips' ) . '</div>';
+            return;
+        }
+
+        $width      = 720;
+        $height     = 220;
+        $left_pad   = 36;
+        $right_pad  = 12;
+        $top_pad    = 16;
+        $bottom_pad = 34;
+        $plot_w     = $width - $left_pad - $right_pad;
+        $plot_h     = $height - $top_pad - $bottom_pad;
+        $point_count= count( $rows );
+        $max_value  = 0;
+
+        foreach ( $rows as $row ) {
+            foreach ( array_keys( $metrics ) as $metric ) {
+                $max_value = max( $max_value, isset( $row[ $metric ] ) ? (int) $row[ $metric ] : 0 );
+            }
+        }
+
+        $max_value = max( 1, $max_value );
+        $grid_vals = array( 0, (int) ceil( $max_value / 2 ), $max_value );
+
+        echo '<svg viewBox="0 0 ' . esc_attr( $width ) . ' ' . esc_attr( $height ) . '" role="img" aria-label="' . esc_attr__( 'Analytics chart', 'smart-search-chips' ) . '">';
+
+        foreach ( $grid_vals as $grid_value ) {
+            $y = $top_pad + $plot_h - ( $grid_value / $max_value ) * $plot_h;
+            echo '<line x1="' . esc_attr( $left_pad ) . '" y1="' . esc_attr( round( $y, 2 ) ) . '" x2="' . esc_attr( $left_pad + $plot_w ) . '" y2="' . esc_attr( round( $y, 2 ) ) . '" stroke="#e6e9ed" stroke-width="1" />';
+            echo '<text x="' . esc_attr( $left_pad - 8 ) . '" y="' . esc_attr( round( $y + 4, 2 ) ) . '" text-anchor="end" font-size="11" fill="#6b7280">' . esc_html( number_format_i18n( $grid_value ) ) . '</text>';
+        }
+
+        foreach ( $rows as $index => $row ) {
+            if ( $point_count === 1 ) {
+                $x = $left_pad + ( $plot_w / 2 );
+            } else {
+                $x = $left_pad + ( $plot_w * $index / ( $point_count - 1 ) );
+            }
+
+            if ( $index === 0 || $index === $point_count - 1 || $index === (int) floor( ( $point_count - 1 ) / 2 ) ) {
+                echo '<text x="' . esc_attr( round( $x, 2 ) ) . '" y="' . esc_attr( $top_pad + $plot_h + 20 ) . '" text-anchor="middle" font-size="11" fill="#6b7280">' . esc_html( $row['label'] ) . '</text>';
+            }
+        }
+
+        foreach ( $metrics as $metric => $color ) {
+            $path = '';
+
+            foreach ( $rows as $index => $row ) {
+                $value = isset( $row[ $metric ] ) ? (int) $row[ $metric ] : 0;
+                $x     = $point_count === 1 ? $left_pad + ( $plot_w / 2 ) : $left_pad + ( $plot_w * $index / ( $point_count - 1 ) );
+                $y     = $top_pad + $plot_h - ( $value / $max_value ) * $plot_h;
+                $path .= ( $index === 0 ? 'M ' : ' L ' ) . round( $x, 2 ) . ' ' . round( $y, 2 );
+            }
+
+            echo '<path d="' . esc_attr( $path ) . '" fill="none" stroke="' . esc_attr( $color ) . '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />';
+
+            foreach ( $rows as $index => $row ) {
+                $value = isset( $row[ $metric ] ) ? (int) $row[ $metric ] : 0;
+                $x     = $point_count === 1 ? $left_pad + ( $plot_w / 2 ) : $left_pad + ( $plot_w * $index / ( $point_count - 1 ) );
+                $y     = $top_pad + $plot_h - ( $value / $max_value ) * $plot_h;
+                echo '<circle cx="' . esc_attr( round( $x, 2 ) ) . '" cy="' . esc_attr( round( $y, 2 ) ) . '" r="3.5" fill="' . esc_attr( $color ) . '">';
+                echo '<title>' . esc_html( $row['label'] . ': ' . $value ) . '</title>';
+                echo '</circle>';
+            }
+        }
+
+        echo '</svg>';
     }
 
     /**

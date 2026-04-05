@@ -213,10 +213,91 @@ class SSC_Analytics {
         return array(
             'range'       => $range,
             'summary'     => $summary,
+            'timeseries'  => self::get_time_series( $range ),
             'top_chips'   => is_array( $top_chips ) ? $top_chips : array(),
             'top_queries' => is_array( $top_queries ) ? $top_queries : array(),
             'zero_queries'=> is_array( $zero_queries ) ? $zero_queries : array(),
         );
+    }
+
+    /**
+     * Build a daily analytics time series for the selected date range.
+     *
+     * @param array $args Range arguments.
+     * @return array
+     */
+    public static function get_time_series( $args = array() ) {
+        global $wpdb;
+
+        self::maybe_install();
+
+        $range      = self::get_date_range( $args );
+        $table_name = self::table_name();
+        $timezone   = wp_timezone();
+        $rows       = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT created_at, event_type, visitor_id, result_count
+                FROM {$table_name}
+                WHERE created_at BETWEEN %s AND %s
+                ORDER BY created_at ASC",
+                $range['from_gmt'],
+                $range['to_gmt']
+            ),
+            ARRAY_A
+        );
+
+        $series       = array();
+        $visitor_sets = array();
+        $period       = new DatePeriod(
+            new DateTimeImmutable( $range['from'] . ' 00:00:00', $timezone ),
+            new DateInterval( 'P1D' ),
+            ( new DateTimeImmutable( $range['to'] . ' 00:00:00', $timezone ) )->modify( '+1 day' )
+        );
+
+        foreach ( $period as $day ) {
+            $key             = $day->format( 'Y-m-d' );
+            $series[ $key ]  = array(
+                'date'            => $key,
+                'label'           => $day->format( 'M j' ),
+                'searches'        => 0,
+                'chip_clicks'     => 0,
+                'zero_results'    => 0,
+                'unique_visitors' => 0,
+            );
+            $visitor_sets[ $key ] = array();
+        }
+
+        foreach ( (array) $rows as $row ) {
+            if ( empty( $row['created_at'] ) ) {
+                continue;
+            }
+
+            $event_at = new DateTimeImmutable( $row['created_at'], new DateTimeZone( 'UTC' ) );
+            $bucket   = $event_at->setTimezone( $timezone )->format( 'Y-m-d' );
+
+            if ( ! isset( $series[ $bucket ] ) ) {
+                continue;
+            }
+
+            if ( $row['event_type'] === 'search' ) {
+                $series[ $bucket ]['searches']++;
+                if ( isset( $row['result_count'] ) && (int) $row['result_count'] === 0 ) {
+                    $series[ $bucket ]['zero_results']++;
+                }
+            } elseif ( $row['event_type'] === 'chip_click' ) {
+                $series[ $bucket ]['chip_clicks']++;
+            }
+
+            if ( ! empty( $row['visitor_id'] ) ) {
+                $visitor_sets[ $bucket ][ $row['visitor_id'] ] = true;
+            }
+        }
+
+        foreach ( $series as $bucket => $point ) {
+            $series[ $bucket ]['unique_visitors'] = count( $visitor_sets[ $bucket ] );
+        }
+
+        return array_values( $series );
     }
 
     /**
