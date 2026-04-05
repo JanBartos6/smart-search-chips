@@ -74,6 +74,9 @@ class SSC_Settings {
         register_setting( 'smart-search-chips', 'ssc_ai_custom_instruction', array(
             'sanitize_callback' => 'sanitize_textarea_field',
         ) );
+        register_setting( 'smart-search-chips', 'ssc_analytics_enabled', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
     }
 
     /**
@@ -146,6 +149,7 @@ class SSC_Settings {
         $ai_max_tags   = max( 0, (int) get_option( 'ssc_ai_max_tags', 8 ) );
         $ai_rest_mode  = get_option( 'ssc_ai_rest_enabled', '1' );
         $ai_target     = $this->sanitize_ai_target_field( get_option( 'ssc_ai_target_field', 'built_in' ) );
+        $analytics_on  = get_option( 'ssc_analytics_enabled', '0' );
 
         ?>
         <div class="wrap">
@@ -311,6 +315,68 @@ class SSC_Settings {
                                 </tr>
                                 <?php endif; ?>
                             </table>
+                        </div>
+
+                        <div class="ssc-settings-card">
+                            <h2><?php _e( 'Analytics', 'smart-search-chips' ); ?></h2>
+                            <?php if ( ! $is_pro ) : ?>
+                                <p><?php _e( 'Analytics is part of Pro. It shows which search chips get clicked, what visitors search for, and which queries return no results.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php _e( 'Upgrade to Pro to enable anonymous search analytics and view the dashboard directly in WordPress.', 'smart-search-chips' ); ?></p>
+                            <?php else : ?>
+                                <table class="form-table">
+                                    <tr>
+                                        <th><?php _e( 'Enable Analytics', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <label>
+                                                <input type="hidden" name="ssc_analytics_enabled" value="0" />
+                                                <input type="checkbox" name="ssc_analytics_enabled" value="1" <?php checked( $analytics_on, '1' ); ?> />
+                                                <?php _e( 'Track anonymous search and chip-click events for admins', 'smart-search-chips' ); ?>
+                                            </label>
+                                            <p class="description"><?php _e( 'Stores aggregate search and chip-click events on this WordPress site. Uses anonymous visitor IDs for unique-visitor counts.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <?php if ( $analytics_on === '1' ) : ?>
+                                    <?php $analytics = SSC_Analytics::get_dashboard_data( 30 ); ?>
+                                    <div class="ssc-analytics-dashboard">
+                                        <div class="ssc-analytics-stats">
+                                            <div class="ssc-analytics-stat">
+                                                <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['total_searches'] ) ); ?></strong>
+                                                <span><?php _e( 'Searches (30 days)', 'smart-search-chips' ); ?></span>
+                                            </div>
+                                            <div class="ssc-analytics-stat">
+                                                <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['chip_clicks'] ) ); ?></strong>
+                                                <span><?php _e( 'Chip Clicks', 'smart-search-chips' ); ?></span>
+                                            </div>
+                                            <div class="ssc-analytics-stat">
+                                                <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['unique_visitors'] ) ); ?></strong>
+                                                <span><?php _e( 'Unique Visitors', 'smart-search-chips' ); ?></span>
+                                            </div>
+                                            <div class="ssc-analytics-stat">
+                                                <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['zero_result_search'] ) ); ?></strong>
+                                                <span><?php _e( 'Zero-Result Searches', 'smart-search-chips' ); ?></span>
+                                            </div>
+                                        </div>
+
+                                        <div class="ssc-analytics-panels">
+                                            <div class="ssc-analytics-panel">
+                                                <h3><?php _e( 'Top Clicked Chips', 'smart-search-chips' ); ?></h3>
+                                                <?php $this->render_analytics_table( $analytics['top_chips'], array( 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'clicks' => __( 'Clicks', 'smart-search-chips' ), 'visitors' => __( 'Visitors', 'smart-search-chips' ) ) ); ?>
+                                            </div>
+                                            <div class="ssc-analytics-panel">
+                                                <h3><?php _e( 'Top Search Queries', 'smart-search-chips' ); ?></h3>
+                                                <?php $this->render_analytics_table( $analytics['top_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'searches' => __( 'Searches', 'smart-search-chips' ), 'avg_results' => __( 'Avg. Results', 'smart-search-chips' ) ) ); ?>
+                                            </div>
+                                            <div class="ssc-analytics-panel">
+                                                <h3><?php _e( 'Zero-Result Queries', 'smart-search-chips' ); ?></h3>
+                                                <?php $this->render_analytics_table( $analytics['zero_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'misses' => __( 'Misses', 'smart-search-chips' ) ) ); ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php else : ?>
+                                    <p class="description"><?php _e( 'Enable analytics and save the page to start collecting anonymous usage data. The dashboard will appear here after events are recorded.', 'smart-search-chips' ); ?></p>
+                                <?php endif; ?>
+                            <?php endif; ?>
                         </div>
 
                         <div class="ssc-settings-card ssc-settings-card--ai">
@@ -528,6 +594,18 @@ class SSC_Settings {
             .ssc-badge--pro { background: #e74c3c; color: #fff; }
             .ssc-badge--free { background: #eee; color: #666; }
             .ssc-range-val { font-family: monospace; font-size: 13px; color: #666; }
+            .ssc-analytics-dashboard { display: grid; gap: 18px; margin-top: 12px; }
+            .ssc-analytics-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+            .ssc-analytics-stat { display: grid; gap: 6px; padding: 14px; border: 1px solid #e3e5e8; border-radius: 12px; background: #fcfcfd; }
+            .ssc-analytics-stat strong { font-size: 22px; line-height: 1.1; color: #1d2327; }
+            .ssc-analytics-stat span { color: #50575e; font-size: 13px; }
+            .ssc-analytics-panels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+            .ssc-analytics-panel { border: 1px solid #e3e5e8; border-radius: 12px; background: #fff; overflow: hidden; }
+            .ssc-analytics-panel h3 { margin: 0; padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #ebecef; background: #f7f8fa; }
+            .ssc-analytics-panel table { width: 100%; border-collapse: collapse; }
+            .ssc-analytics-panel th, .ssc-analytics-panel td { padding: 10px 16px; text-align: left; border-top: 1px solid #f0f1f3; font-size: 13px; vertical-align: top; }
+            .ssc-analytics-panel th { color: #50575e; font-weight: 600; background: #fcfcfd; }
+            .ssc-analytics-empty { padding: 16px; color: #646970; font-size: 13px; }
             .ssc-ai-inline-status { margin-left: 10px; }
             .ssc-ai-panel { border-top: 1px solid #eee; margin-top: 16px; padding-top: 16px; }
             .ssc-ai-panel strong { display: block; margin-bottom: 8px; }
@@ -588,6 +666,7 @@ class SSC_Settings {
                 #ssc-settings-layout { flex-direction: column; }
                 #ssc-settings-right { width: 100%; }
                 #ssc-preview-panel { position: static; }
+                .ssc-analytics-stats, .ssc-analytics-panels { grid-template-columns: 1fr; }
                 .ssc-ai-picker { grid-template-columns: 1fr; }
                 .ssc-ai-browser-results, .ssc-ai-selected-items { max-height: none; }
                 .ssc-ai-term__row, .ssc-ai-term-item { grid-template-columns: 1fr; }
@@ -748,6 +827,43 @@ class SSC_Settings {
         }
 
         return $options;
+    }
+
+    /**
+     * Render a simple analytics table.
+     *
+     * @param array $rows    Table rows.
+     * @param array $columns Column map of key => label.
+     */
+    private function render_analytics_table( $rows, $columns ) {
+        if ( empty( $rows ) ) {
+            echo '<div class="ssc-analytics-empty">' . esc_html__( 'No analytics data yet.', 'smart-search-chips' ) . '</div>';
+            return;
+        }
+
+        echo '<table>';
+        echo '<thead><tr>';
+        foreach ( $columns as $label ) {
+            echo '<th>' . esc_html( $label ) . '</th>';
+        }
+        echo '</tr></thead><tbody>';
+
+        foreach ( $rows as $row ) {
+            echo '<tr>';
+            foreach ( array_keys( $columns ) as $key ) {
+                $value = isset( $row[ $key ] ) ? $row[ $key ] : '';
+                if ( $key === 'avg_results' ) {
+                    $value = number_format_i18n( (float) $value, 1 );
+                } elseif ( is_numeric( $value ) ) {
+                    $value = number_format_i18n( $value );
+                }
+
+                echo '<td>' . esc_html( $value ) . '</td>';
+            }
+            echo '</tr>';
+        }
+
+        echo '</tbody></table>';
     }
 
     /**

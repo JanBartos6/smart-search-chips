@@ -15,11 +15,72 @@
     var config = window.sscConfig || {};
     var debounceTimer = null;
     var DEBOUNCE_MS = 300;
+    var VISITOR_STORAGE_KEY = "ssc_visitor_id";
+
+    function getVisitorId() {
+        var existing = "";
+
+        try {
+            existing = window.localStorage ? window.localStorage.getItem(VISITOR_STORAGE_KEY) : "";
+        } catch (error) {
+            existing = "";
+        }
+
+        if (existing) {
+            return existing;
+        }
+
+        var generated = "ssc-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+        try {
+            if (window.localStorage) {
+                window.localStorage.setItem(VISITOR_STORAGE_KEY, generated);
+            }
+        } catch (error) {
+            // Ignore storage failures and continue with in-memory id for this page.
+        }
+
+        return generated;
+    }
+
+    function analyticsEnabled() {
+        return !!(config.analytics && config.analytics.enabled && config.analytics.nonce);
+    }
+
+    function trackEvent(payload) {
+        if (!analyticsEnabled()) {
+            return;
+        }
+
+        var data = new FormData();
+        data.append("action", "ssc_track_event");
+        data.append("nonce", config.analytics.nonce);
+        data.append("visitor_id", getVisitorId());
+        data.append("event_type", payload.eventType || "");
+        data.append("search_query", payload.searchQuery || "");
+        data.append("chip_label", payload.chipLabel || "");
+        data.append("page_url", window.location.href);
+        data.append("result_count", String(typeof payload.resultCount === "number" ? payload.resultCount : -1));
+        data.append("active_tag_count", String(activeTags.length));
+
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(config.ajaxUrl || "/wp-admin/admin-ajax.php", data);
+            return;
+        }
+
+        fetch(config.ajaxUrl || "/wp-admin/admin-ajax.php", {
+            method: "POST",
+            credentials: "same-origin",
+            body: data
+        }).catch(function () {
+            // Analytics should never interrupt search UX.
+        });
+    }
 
     /**
      * Send search request with active tags.
      */
-    function doSearch(input, resultsContainer) {
+    function doSearch(input, resultsContainer, meta) {
         if (!input || input.value.length < (config.minChars || 2)) {
             if (resultsContainer) resultsContainer.innerHTML = "";
             return;
@@ -45,6 +106,7 @@
         });
 
         var xhr = new XMLHttpRequest();
+        xhr._sscManagedRequest = true;
         xhr.open("POST", config.ajaxUrl || "/wp-admin/admin-ajax.php", true);
         xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
 
@@ -55,6 +117,28 @@
                 }
                 if (xhr.status === 200 && resultsContainer) {
                     resultsContainer.innerHTML = xhr.responseText;
+                }
+
+                if (xhr.status === 200) {
+                    var resultCount = parseInt(xhr.getResponseHeader("X-SSC-Results-Count"), 10);
+                    if (isNaN(resultCount)) {
+                        resultCount = -1;
+                    }
+
+                    trackEvent({
+                        eventType: "search",
+                        searchQuery: input.value,
+                        resultCount: resultCount
+                    });
+
+                    if (meta && meta.trigger === "chip" && meta.chipLabel) {
+                        trackEvent({
+                            eventType: "chip_click",
+                            searchQuery: input.value,
+                            chipLabel: meta.chipLabel,
+                            resultCount: resultCount
+                        });
+                    }
                 }
             }
         };
@@ -68,7 +152,7 @@
     function debouncedSearch(input, resultsContainer) {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(function () {
-            doSearch(input, resultsContainer);
+            doSearch(input, resultsContainer, { trigger: "search" });
         }, DEBOUNCE_MS);
     }
 
@@ -124,7 +208,10 @@
         var results = findResults(chip);
 
         if (input && results) {
-            doSearch(input, results); // immediate, no debounce for chip clicks
+            doSearch(input, results, {
+                trigger: "chip",
+                chipLabel: tag
+            });
         }
     });
 
@@ -135,21 +222,43 @@
     var origSend = XMLHttpRequest.prototype.send;
 
     XMLHttpRequest.prototype.send = function (data) {
-        if (data instanceof FormData && activeTags.length > 0) {
+        if (data instanceof FormData) {
             var hasAction = false;
+            var keyword = "";
             if (data.entries) {
                 for (var pair of data.entries()) {
                     if (pair[0] === "action" && pair[1] === (config.action || "ssc_search")) {
                         hasAction = true;
-                        break;
+                    }
+                    if (pair[0] === "keyword") {
+                        keyword = pair[1];
                     }
                 }
             }
 
             if (hasAction) {
-                activeTags.forEach(function (t) {
-                    data.append("active_tags[]", t);
-                });
+                if (!this._sscManagedRequest) {
+                    activeTags.forEach(function (t) {
+                        data.append("active_tags[]", t);
+                    });
+
+                    this.addEventListener("loadend", function () {
+                        if (this.status !== 200 || !keyword || keyword.length < (config.minChars || 2)) {
+                            return;
+                        }
+
+                        var resultCount = parseInt(this.getResponseHeader("X-SSC-Results-Count"), 10);
+                        if (isNaN(resultCount)) {
+                            resultCount = -1;
+                        }
+
+                        trackEvent({
+                            eventType: "search",
+                            searchQuery: keyword,
+                            resultCount: resultCount
+                        });
+                    }, { once: true });
+                }
             }
         }
 
@@ -192,7 +301,7 @@
             var input = e.target.querySelector('input[type="search"]');
             var results = findResults(input);
             if (input) {
-                doSearch(input, results);
+                doSearch(input, results, { trigger: "submit" });
             }
         }
     });

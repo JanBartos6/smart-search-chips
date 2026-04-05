@@ -74,6 +74,7 @@ class SSC_Search_Handler {
         ) );
 
         if ( ! $query->have_posts() ) {
+            header( 'X-SSC-Results-Count: 0' );
             echo '<p class="ssc-empty">' . esc_html( apply_filters( 'ssc_no_results_text', __( 'No results found.', 'smart-search-chips' ) ) ) . '</p>';
             wp_die();
         }
@@ -115,6 +116,7 @@ class SSC_Search_Handler {
         }
 
         $total = count( $posts_data );
+        header( 'X-SSC-Results-Count: ' . (int) $total );
 
         // Generate chips
         $chips = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_tag_length );

@@ -29,6 +29,7 @@ define( 'SSC_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 require_once SSC_PLUGIN_DIR . 'includes/class-license.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-chip-engine.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-search-handler.php';
+require_once SSC_PLUGIN_DIR . 'includes/class-analytics.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-ai-tagger.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-settings.php';
 require_once SSC_PLUGIN_DIR . 'includes/class-frontend.php';
@@ -49,6 +50,9 @@ function ssc_init() {
 
     $handler = new SSC_Search_Handler( $engine, $settings );
     $handler->init();
+
+    $analytics = new SSC_Analytics();
+    $analytics->init();
 
     $frontend = new SSC_Frontend( $settings );
     $frontend->init();
@@ -120,6 +124,7 @@ function ssc_activate() {
         'ssc_woo_enabled'          => '1',
         'ssc_override_ajax'        => '',
         'ssc_search_results_count' => 50,
+        'ssc_analytics_enabled'    => '0',
         'ssc_ai_custom_read_fields'=> '',
         'ssc_ai_target_field'      => 'built_in',
         'ssc_ai_rest_enabled'      => '1',
@@ -133,6 +138,8 @@ function ssc_activate() {
             add_option( $key, $value );
         }
     }
+
+    SSC_Analytics::create_table();
 }
 register_activation_hook( __FILE__, 'ssc_activate' );
 
@@ -142,6 +149,7 @@ register_activation_hook( __FILE__, 'ssc_activate' );
 function ssc_privacy_policy_content() {
     $content = '<h2>' . __( 'Smart Search Chips', 'smart-search-chips' ) . '</h2>'
         . '<p>' . __( 'This plugin processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this server and are not stored or sent to any third-party service.', 'smart-search-chips' ) . '</p>'
+        . '<p>' . __( 'If the site owner enables the optional analytics feature, the plugin stores anonymous search and chip-click events on this WordPress site so administrators can review popular queries, chip usage, and zero-result searches. This analytics feature is designed for aggregate reporting and does not require LLM-provider credentials.', 'smart-search-chips' ) . '</p>'
         . '<p>' . __( 'If an administrator uses the optional AI Prompt Builder, the plugin prepares instructions for an external AI tool. The plugin itself does not send content or credentials to an AI provider and does not request LLM-provider API keys. If the site owner enables REST write-back, they may choose to paste their own WordPress REST credentials into an external service outside this plugin.', 'smart-search-chips' ) . '</p>'
         . '<p>' . __( 'No personal data is collected, stored, or shared by this plugin beyond the site owner\'s own WordPress configuration and any actions they choose to take with external tools.', 'smart-search-chips' ) . '</p>';
 
