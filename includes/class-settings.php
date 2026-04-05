@@ -444,7 +444,6 @@ class SSC_Settings {
                         <details class="ssc-settings-card ssc-settings-card--collapsible">
                             <summary class="ssc-settings-card__summary">
                                 <span class="ssc-settings-card__summary-title"><?php _e( 'Advanced', 'smart-search-chips' ); ?></span>
-                                <span class="ssc-settings-card__summary-hint"><?php _e( 'Hidden by default', 'smart-search-chips' ); ?></span>
                             </summary>
                             <div class="ssc-settings-card__body">
                                 <p class="description"><?php _e( 'Only change these if you already know your field names or need to integrate with an existing setup.', 'smart-search-chips' ); ?></p>
@@ -522,7 +521,6 @@ class SSC_Settings {
             .ssc-settings-card--collapsible[open] .ssc-settings-card__summary { border-bottom: 1px solid #eee; }
             .ssc-settings-card--collapsible[open] .ssc-settings-card__summary::after { content: "\2212"; }
             .ssc-settings-card__summary-title { color: #1d2327; }
-            .ssc-settings-card__summary-hint { font-size: 12px; font-weight: 500; color: #646970; text-transform: uppercase; letter-spacing: 0.04em; }
             .ssc-settings-card__body { padding: 0 20px 12px; }
             .ssc-settings-card .form-table th { width: 140px; padding: 10px 8px; font-weight: 500; }
             .ssc-settings-card .form-table td { padding: 10px 8px; }
