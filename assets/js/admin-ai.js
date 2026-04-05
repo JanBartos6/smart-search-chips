@@ -53,7 +53,7 @@
         data.append("action", action);
         data.append("nonce", config.nonce || "");
         data.append("custom_read_fields", $("ssc-ai-custom-read-fields") ? $("ssc-ai-custom-read-fields").value : "");
-        data.append("target_field", document.querySelector('input[name="ssc_ai_target_field"]:checked') ? document.querySelector('input[name="ssc_ai_target_field"]:checked').value : "built_in");
+        data.append("target_field", $("ssc-ai-target-field") ? $("ssc-ai-target-field").value : "built_in");
         data.append("rest_enabled", $("ssc-ai-rest-enabled") && $("ssc-ai-rest-enabled").checked ? "1" : "0");
         data.append("max_tags", $("ssc-ai-max-tags") ? $("ssc-ai-max-tags").value : "8");
         data.append("language", $("ssc-ai-language") ? $("ssc-ai-language").value : "");
@@ -592,7 +592,7 @@
         html.push("<p><strong>Write format:</strong> " + escapeHtml(summary.writeFormat) + "</p>");
         html.push("<p><strong>Max tags:</strong> " + escapeHtml(summary.maxTagsLabel || String(summary.maxTags)) + "</p>");
         html.push("<p><strong>Language:</strong> " + escapeHtml(summary.languageMode) + "</p>");
-        html.push("<p><strong>REST auth:</strong> " + escapeHtml(summary.restAuth) + "</p>");
+        html.push("<p><strong>Access mode:</strong> " + escapeHtml(summary.restAuth) + "</p>");
 
         if (summary.customReadFields && summary.customReadFields.length) {
             html.push("<p><strong>Extra custom fields:</strong> " + escapeHtml(summary.customReadFields.join(", ")) + "</p>");
@@ -664,7 +664,6 @@
 
     document.addEventListener("DOMContentLoaded", function () {
         var buildPromptButton = $("ssc-ai-build-prompt");
-        var copyPromptButton = $("ssc-ai-copy-prompt");
         var copyPromptPanelButton = $("ssc-ai-copy-prompt-panel");
         var browserRefreshButton = $("ssc-ai-browser-refresh");
         var browserSearch = $("ssc-ai-browser-search");
@@ -677,7 +676,7 @@
             "#ssc-ai-language",
             "#ssc-ai-rest-enabled",
             "#ssc-ai-custom-instruction",
-            'input[name="ssc_ai_target_field"]'
+            "#ssc-ai-target-field"
         ];
 
         resetSelectors.forEach(function (selector) {
@@ -782,10 +781,6 @@
                     setStatus("ssc-ai-build-status", config.strings && config.strings.promptReady ? config.strings.promptReady : "Prompt ready.", false);
                 }, "ssc-ai-build-status");
             });
-        }
-
-        if (copyPromptButton) {
-            copyPromptButton.addEventListener("click", copyPrompt);
         }
 
         if (copyPromptPanelButton) {

@@ -145,6 +145,7 @@ class SSC_Settings {
         $chip_pad_y    = get_option( 'ssc_chip_padding_y', '4' );
         $ai_max_tags   = max( 0, (int) get_option( 'ssc_ai_max_tags', 8 ) );
         $ai_rest_mode  = get_option( 'ssc_ai_rest_enabled', '1' );
+        $ai_target     = $this->sanitize_ai_target_field( get_option( 'ssc_ai_target_field', 'built_in' ) );
 
         ?>
         <div class="wrap">
@@ -194,30 +195,17 @@ class SSC_Settings {
                                     <th><?php _e( 'Post Types', 'smart-search-chips' ); ?></th>
                                     <td><?php $this->render_post_types(); ?></td>
                                 </tr>
-                                <?php if ( $is_pro ) : ?>
-                                <tr>
-                                    <th><?php _e( 'Primary Tag Field', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <input type="text" name="ssc_tag_fields" value="<?php echo esc_attr( get_option( 'ssc_tag_fields', '' ) ); ?>" class="regular-text" />
-                                        <p class="description"><?php _e( 'Semicolon-separated custom field (e.g. title_info).', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th><?php _e( 'Extra Tag Field', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <input type="text" name="ssc_extra_fields" value="<?php echo esc_attr( get_option( 'ssc_extra_fields', '' ) ); ?>" class="regular-text" />
-                                        <p class="description"><?php _e( 'Comma-separated custom field (e.g. extra_info). Merged with primary.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <?php else : ?>
                                 <tr>
                                     <th><?php _e( 'Tag Source', 'smart-search-chips' ); ?></th>
                                     <td>
-                                        <p><?php _e( 'Built-in "Search Chips Tags" meta box.', 'smart-search-chips' ); ?></p>
-                                        <p class="description"><?php _e( 'Upgrade to Pro to use custom fields (ACF, post meta).', 'smart-search-chips' ); ?></p>
+                                        <p><?php _e( 'Built-in "Search Chips Tags" field (`ssc_tags`) is used by default.', 'smart-search-chips' ); ?></p>
+                                        <?php if ( $is_pro ) : ?>
+                                            <p class="description"><?php _e( 'If you already use your own tag meta field, you can map it in Advanced settings.', 'smart-search-chips' ); ?></p>
+                                        <?php else : ?>
+                                            <p class="description"><?php _e( 'Upgrade to Pro to map an existing custom field instead.', 'smart-search-chips' ); ?></p>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
-                                <?php endif; ?>
                                 <?php if ( class_exists( 'WooCommerce' ) ) : ?>
                                 <tr>
                                     <th><?php _e( 'WooCommerce Auto-Tags', 'smart-search-chips' ); ?></th>
@@ -229,13 +217,6 @@ class SSC_Settings {
                                     </td>
                                 </tr>
                                 <?php endif; ?>
-                                <tr>
-                                    <th><?php _e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <input type="text" name="ssc_override_ajax" value="<?php echo esc_attr( get_option( 'ssc_override_ajax', '' ) ); ?>" class="regular-text" />
-                                        <p class="description"><?php _e( 'Your theme\'s AJAX search action name (e.g. search_processing). Leave empty for built-in.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
                             </table>
                         </div>
 
@@ -332,6 +313,43 @@ class SSC_Settings {
                             </table>
                         </div>
 
+                        <div class="ssc-settings-card">
+                            <h2><?php _e( 'Advanced', 'smart-search-chips' ); ?></h2>
+                            <p class="description"><?php _e( 'Only change these if you already know your field names or need to integrate with an existing setup.', 'smart-search-chips' ); ?></p>
+                            <table class="form-table">
+                                <?php if ( $is_pro ) : ?>
+                                <tr>
+                                    <th><?php _e( 'Custom Tag Field', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <input type="text" name="ssc_tag_fields" value="<?php echo esc_attr( get_option( 'ssc_tag_fields', '' ) ); ?>" class="regular-text" />
+                                        <p class="description"><?php _e( 'Optional existing meta key that already stores your semicolon-separated search tags, for example `title_info`.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><?php _e( 'Extra Tag Field', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <input type="text" name="ssc_extra_fields" value="<?php echo esc_attr( get_option( 'ssc_extra_fields', '' ) ); ?>" class="regular-text" />
+                                        <p class="description"><?php _e( 'Optional extra meta key with comma-separated helper tags. These values are merged with the primary tag source.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <?php else : ?>
+                                <tr>
+                                    <th><?php _e( 'Custom Fields', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <p class="description"><?php _e( 'Pro can map an existing custom tag field if you already maintain labeled products elsewhere.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <?php endif; ?>
+                                <tr>
+                                    <th><?php _e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <input type="text" name="ssc_override_ajax" value="<?php echo esc_attr( get_option( 'ssc_override_ajax', '' ) ); ?>" class="regular-text" />
+                                        <p class="description"><?php _e( 'Advanced integration only. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
                         <div class="ssc-settings-card ssc-settings-card--ai">
                             <h2><?php _e( 'AI Prompt Builder', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
@@ -355,26 +373,19 @@ class SSC_Settings {
                                         <th><?php _e( 'Extra Read Fields', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <input type="text" name="ssc_ai_custom_read_fields" id="ssc-ai-custom-read-fields" value="<?php echo esc_attr( get_option( 'ssc_ai_custom_read_fields', '' ) ); ?>" class="regular-text" />
-                                            <p class="description"><?php _e( 'Optional comma-separated custom fields to include as source context.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php _e( 'Optional comma-separated meta keys the external agent should inspect as extra context if they are available over REST.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th><?php _e( 'Target Field', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <label style="display:block;margin-bottom:6px;">
-                                                <input type="radio" name="ssc_ai_target_field" value="built_in" <?php checked( get_option( 'ssc_ai_target_field', 'built_in' ), 'built_in' ); ?> />
-                                                <?php _e( 'Built-in Search Chips Tags (ssc_tags)', 'smart-search-chips' ); ?>
-                                            </label>
-                                            <label style="display:block;">
-                                                <input type="radio" name="ssc_ai_target_field" value="mapped_primary" <?php checked( get_option( 'ssc_ai_target_field', 'built_in' ), 'mapped_primary' ); ?> <?php disabled( get_option( 'ssc_tag_fields', '' ), '' ); ?> />
-                                                <?php
-                                                printf(
-                                                    /* translators: %s: field name */
-                                                    esc_html__( 'Custom tag field (%s)', 'smart-search-chips' ),
-                                                    esc_html( get_option( 'ssc_tag_fields', '' ) ?: __( 'not configured yet', 'smart-search-chips' ) )
-                                                );
-                                                ?>
-                                            </label>
+                                            <?php $target_options = $this->get_ai_target_field_options(); ?>
+                                            <select name="ssc_ai_target_field" id="ssc-ai-target-field">
+                                                <?php foreach ( $target_options as $value => $label ) : ?>
+                                                    <option value="<?php echo esc_attr( $value ); ?>" <?php selected( $ai_target, $value ); ?>><?php echo esc_html( $label ); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <p class="description"><?php _e( 'By default, generated tags target the built-in `ssc_tags` field. If you already mapped your own custom tag field in Advanced settings, you can select it here instead.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -447,7 +458,6 @@ class SSC_Settings {
                                         <th><?php _e( 'Actions', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <button type="button" class="button button-primary" id="ssc-ai-build-prompt"><?php _e( 'Generate Agent Prompt', 'smart-search-chips' ); ?></button>
-                                            <button type="button" class="button" id="ssc-ai-copy-prompt"><?php _e( 'Copy Prompt', 'smart-search-chips' ); ?></button>
                                             <span id="ssc-ai-build-status" class="ssc-ai-inline-status" aria-live="polite"></span>
                                             <p class="description"><?php _e( 'The generated prompt will always describe the selected batch clearly. If REST write-back is enabled, it will also end with placeholders for your WordPress REST credentials. Paste those WordPress credentials into your external AI tool, not into this plugin.', 'smart-search-chips' ); ?></p>
                                             <p class="ssc-ai-warning"><?php _e( 'You remain responsible for your WordPress REST credentials and for any changes the external AI tool makes through your site. Review the prompt before use. This plugin does not request or store LLM-provider API keys.', 'smart-search-chips' ); ?></p>
@@ -474,7 +484,7 @@ class SSC_Settings {
                     <!-- RIGHT: Sticky Preview -->
                     <div id="ssc-settings-right">
                         <div id="ssc-preview-panel">
-                            <h3><?php _e( 'Live Preview', 'smart-search-chips' ); ?></h3>
+                            <h3><?php _e( 'Style Preview', 'smart-search-chips' ); ?></h3>
                             <div id="ssc-preview-search" style="margin-bottom:12px;">
                                 <input type="text" value="example query" disabled style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;color:#999;" />
                             </div>
@@ -707,13 +717,41 @@ class SSC_Settings {
     }
 
     /**
+     * Return the controlled list of AI target field options.
+     *
+     * @return array
+     */
+    private function get_ai_target_field_options() {
+        $options = array(
+            'built_in' => __( 'Built-in Search Chips Tags (ssc_tags)', 'smart-search-chips' ),
+        );
+
+        $custom_tag_field = trim( (string) get_option( 'ssc_tag_fields', '' ) );
+        if ( $custom_tag_field !== '' ) {
+            $options['mapped_primary'] = sprintf(
+                /* translators: %s: configured custom field name */
+                __( 'Custom tag field (%s)', 'smart-search-chips' ),
+                $custom_tag_field
+            );
+        }
+
+        return $options;
+    }
+
+    /**
      * Sanitize AI target field option.
      *
      * @param string $value Raw target option.
      * @return string
      */
     public function sanitize_ai_target_field( $value ) {
-        return $value === 'mapped_primary' ? 'mapped_primary' : 'built_in';
+        $custom_tag_field = trim( (string) get_option( 'ssc_tag_fields', '' ) );
+
+        if ( $value === 'mapped_primary' && $custom_tag_field !== '' ) {
+            return 'mapped_primary';
+        }
+
+        return 'built_in';
     }
 
     /**
