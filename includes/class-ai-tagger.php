@@ -28,6 +28,7 @@ class SSC_AI_Tagger {
      * Register admin AJAX hooks.
      */
     public function init() {
+        add_action( 'wp_ajax_ssc_ai_browse_items', array( $this, 'ajax_browse_items' ) );
         add_action( 'wp_ajax_ssc_ai_check_rest', array( $this, 'ajax_check_rest' ) );
         add_action( 'wp_ajax_ssc_ai_build_prompt', array( $this, 'ajax_build_prompt' ) );
     }
@@ -44,6 +45,63 @@ class SSC_AI_Tagger {
             'mixed'     => __( 'Balanced mix', 'smart-search-chips' ),
             'minimal'   => __( 'Very short chips', 'smart-search-chips' ),
         );
+    }
+
+    /**
+     * AJAX: browse selectable items for the prompt builder.
+     */
+    public function ajax_browse_items() {
+        $this->assert_admin_request();
+
+        $search    = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
+        $post_type = isset( $_POST['post_type'] ) ? sanitize_key( wp_unslash( $_POST['post_type'] ) ) : 'all';
+        $page      = isset( $_POST['page'] ) ? max( 1, absint( $_POST['page'] ) ) : 1;
+        $per_page  = 12;
+
+        $allowed_post_types = $this->get_allowed_post_types();
+        if ( empty( $allowed_post_types ) ) {
+            wp_send_json_error( array( 'message' => __( 'No selectable post types are configured for the AI prompt builder.', 'smart-search-chips' ) ), 400 );
+        }
+
+        $query_post_types = $allowed_post_types;
+        if ( $post_type !== 'all' ) {
+            if ( ! in_array( $post_type, $allowed_post_types, true ) ) {
+                wp_send_json_error( array( 'message' => __( 'The selected post type filter is not available.', 'smart-search-chips' ) ), 400 );
+            }
+
+            $query_post_types = array( $post_type );
+        }
+
+        $query = new WP_Query( array(
+            'post_type'           => $query_post_types,
+            'post_status'         => array( 'publish', 'draft', 'private' ),
+            'posts_per_page'      => $per_page,
+            'paged'               => $page,
+            'orderby'             => 'date',
+            'order'               => 'DESC',
+            's'                   => $search,
+            'no_found_rows'       => false,
+            'ignore_sticky_posts' => true,
+        ) );
+
+        $items = array();
+        foreach ( $query->posts as $post ) {
+            $items[] = $this->format_browser_item( $post );
+        }
+
+        wp_send_json_success( array(
+            'items'   => $items,
+            'filters' => $this->get_browser_filters( $allowed_post_types, $search ),
+            'pager'   => array(
+                'page'         => $page,
+                'perPage'      => $per_page,
+                'totalItems'   => (int) $query->found_posts,
+                'totalPages'   => max( 1, (int) $query->max_num_pages ),
+                'hasMore'      => $page < (int) $query->max_num_pages,
+                'search'       => $search,
+                'activeFilter' => $post_type,
+            ),
+        ) );
     }
 
     /**
@@ -399,6 +457,128 @@ class SSC_AI_Tagger {
     private function get_tag_style_label( $key ) {
         $styles = self::get_tag_styles();
         return isset( $styles[ $key ] ) ? $styles[ $key ] : $styles['technical'];
+    }
+
+    /**
+     * Return post types enabled for prompt-builder selection.
+     *
+     * @return string[]
+     */
+    private function get_allowed_post_types() {
+        $post_types = get_option( 'ssc_post_types', array( 'post' ) );
+        if ( ! is_array( $post_types ) ) {
+            $post_types = array( $post_types );
+        }
+
+        $post_types = array_values( array_filter( array_map( 'sanitize_key', $post_types ) ) );
+
+        return array_values( array_filter( $post_types, 'post_type_exists' ) );
+    }
+
+    /**
+     * Build browser filter metadata with counts.
+     *
+     * @param string[] $allowed_post_types Allowed post types.
+     * @param string   $search             Current search term.
+     * @return array[]
+     */
+    private function get_browser_filters( $allowed_post_types, $search ) {
+        $filters = array();
+
+        $filters[] = array(
+            'value' => 'all',
+            'label' => __( 'All items', 'smart-search-chips' ),
+            'count' => $this->count_browser_items( $allowed_post_types, $search ),
+        );
+
+        foreach ( $allowed_post_types as $post_type ) {
+            $object    = get_post_type_object( $post_type );
+            $filters[] = array(
+                'value' => $post_type,
+                'label' => $object && ! empty( $object->labels->name ) ? $object->labels->name : $post_type,
+                'count' => $this->count_browser_items( array( $post_type ), $search ),
+            );
+        }
+
+        return $filters;
+    }
+
+    /**
+     * Count matching items for a browser filter.
+     *
+     * @param string[] $post_types Post types.
+     * @param string   $search     Search term.
+     * @return int
+     */
+    private function count_browser_items( $post_types, $search ) {
+        $query = new WP_Query( array(
+            'post_type'           => $post_types,
+            'post_status'         => array( 'publish', 'draft', 'private' ),
+            'posts_per_page'      => 1,
+            'paged'               => 1,
+            'orderby'             => 'date',
+            'order'               => 'DESC',
+            's'                   => $search,
+            'fields'              => 'ids',
+            'no_found_rows'       => false,
+            'ignore_sticky_posts' => true,
+        ) );
+
+        return (int) $query->found_posts;
+    }
+
+    /**
+     * Format a post for the item browser card UI.
+     *
+     * @param WP_Post $post Post object.
+     * @return array
+     */
+    private function format_browser_item( $post ) {
+        $post_type_object = get_post_type_object( $post->post_type );
+        $title            = get_the_title( $post );
+        $status_object    = get_post_status_object( $post->post_status );
+
+        return array(
+            'id'            => (int) $post->ID,
+            'title'         => $title !== '' ? $title : sprintf( __( '(no title) #%d', 'smart-search-chips' ), $post->ID ),
+            'postType'      => $post->post_type,
+            'postTypeLabel' => $post_type_object && ! empty( $post_type_object->labels->singular_name ) ? $post_type_object->labels->singular_name : $post->post_type,
+            'status'        => $post->post_status,
+            'statusLabel'   => $status_object && ! empty( $status_object->label ) ? $status_object->label : $post->post_status,
+            'dateLabel'     => mysql2date( get_option( 'date_format' ), $post->post_date ),
+            'terms'         => $this->get_browser_terms( $post ),
+        );
+    }
+
+    /**
+     * Collect a short list of visible taxonomy terms for the item browser.
+     *
+     * @param WP_Post $post Post object.
+     * @return string[]
+     */
+    private function get_browser_terms( $post ) {
+        $labels     = array();
+        $taxonomies = get_object_taxonomies( $post->post_type, 'objects' );
+
+        foreach ( $taxonomies as $taxonomy ) {
+            if ( empty( $taxonomy->public ) ) {
+                continue;
+            }
+
+            $terms = get_the_terms( $post, $taxonomy->name );
+            if ( is_wp_error( $terms ) || empty( $terms ) ) {
+                continue;
+            }
+
+            foreach ( $terms as $term ) {
+                $labels[ $term->name ] = $term->name;
+                if ( count( $labels ) >= 4 ) {
+                    break 2;
+                }
+            }
+        }
+
+        return array_values( $labels );
     }
 
     /**
