@@ -93,7 +93,7 @@ class SSC_Settings {
             'smart-search-chips-admin-ai',
             SSC_PLUGIN_URL . 'assets/js/admin-ai.js',
             array(),
-            SSC_VERSION,
+            file_exists( SSC_PLUGIN_DIR . 'assets/js/admin-ai.js' ) ? filemtime( SSC_PLUGIN_DIR . 'assets/js/admin-ai.js' ) : SSC_VERSION,
             true
         );
 

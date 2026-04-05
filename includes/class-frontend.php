@@ -30,18 +30,21 @@ class SSC_Frontend {
      * Enqueue frontend assets.
      */
     public function enqueue_assets() {
+        $style_path  = SSC_PLUGIN_DIR . 'assets/css/chips.css';
+        $script_path = SSC_PLUGIN_DIR . 'assets/js/chips.js';
+
         wp_enqueue_style(
             'smart-search-chips',
             SSC_PLUGIN_URL . 'assets/css/chips.css',
             array(),
-            SSC_VERSION
+            file_exists( $style_path ) ? filemtime( $style_path ) : SSC_VERSION
         );
 
         wp_enqueue_script(
             'smart-search-chips',
             SSC_PLUGIN_URL . 'assets/js/chips.js',
             array(),
-            SSC_VERSION,
+            file_exists( $script_path ) ? filemtime( $script_path ) : SSC_VERSION,
             true
         );
 
