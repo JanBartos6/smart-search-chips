@@ -395,7 +395,7 @@ class SSC_Settings {
                                         <th><?php _e( 'Custom Instruction', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <textarea name="ssc_ai_custom_instruction" id="ssc-ai-custom-instruction" rows="4" class="large-text"><?php echo esc_textarea( get_option( 'ssc_ai_custom_instruction', '' ) ); ?></textarea>
-                                            <p class="description"><?php _e( 'Optional instructions for the external agent, for example: prefer technical specs, ignore brand names, keep tags very short, write for engineers, or force Czech language output.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php _e( 'Optional instructions for the external agent, for example: focus on technical differences, ignore brand names, keep tags very short, avoid generic marketing phrases, or use a specific language.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                 </table>
