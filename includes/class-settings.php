@@ -56,12 +56,6 @@ class SSC_Settings {
             register_setting( 'smart-search-chips', $this->prefix . $f );
         }
 
-        register_setting( 'smart-search-chips', 'ssc_ai_provider', array(
-            'sanitize_callback' => array( $this, 'sanitize_ai_provider' ),
-        ) );
-        register_setting( 'smart-search-chips', 'ssc_ai_model', array(
-            'sanitize_callback' => 'sanitize_text_field',
-        ) );
         register_setting( 'smart-search-chips', 'ssc_ai_source_fields', array(
             'sanitize_callback' => array( $this, 'sanitize_ai_source_fields' ),
         ) );
@@ -76,6 +70,9 @@ class SSC_Settings {
         ) );
         register_setting( 'smart-search-chips', 'ssc_ai_language', array(
             'sanitize_callback' => 'sanitize_text_field',
+        ) );
+        register_setting( 'smart-search-chips', 'ssc_ai_tag_style', array(
+            'sanitize_callback' => array( $this, 'sanitize_ai_tag_style' ),
         ) );
         register_setting( 'smart-search-chips', 'ssc_ai_custom_instruction', array(
             'sanitize_callback' => 'sanitize_textarea_field',
@@ -103,19 +100,15 @@ class SSC_Settings {
         wp_localize_script( 'smart-search-chips-admin-ai', 'sscAiAdmin', array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce'   => wp_create_nonce( SSC_AI_Tagger::AJAX_NONCE ),
-            'models'  => SSC_AI_Tagger::get_models(),
             'strings' => array(
                 'working'             => __( 'Working...', 'smart-search-chips' ),
-                'saved'               => __( 'Generated tags saved.', 'smart-search-chips' ),
-                'preview'             => __( 'Preview generated tags', 'smart-search-chips' ),
-                'connectOk'           => __( 'Connection OK.', 'smart-search-chips' ),
-                'selectItem'          => __( 'Choose a post or product first.', 'smart-search-chips' ),
-                'liveModels'          => __( 'Live models loaded from provider.', 'smart-search-chips' ),
-                'fallbackModels'      => __( 'Using fallback models because live discovery is unavailable.', 'smart-search-chips' ),
-                'confirmPreview'      => __( 'Preview request', 'smart-search-chips' ),
-                'confirmGenerate'     => __( 'Generate and save request', 'smart-search-chips' ),
-                'confirmConnection'   => __( 'Connection test request', 'smart-search-chips' ),
-                'confirmationWarning' => __( 'You are responsible for provider-side usage caps, spend limits, and any API charges.', 'smart-search-chips' ),
+                'selectItems'         => __( 'Select at least one product or post first.', 'smart-search-chips' ),
+                'confirmRest'         => __( 'Click "Allow REST API" first so the plugin can verify the selected routes and target field.', 'smart-search-chips' ),
+                'restReady'           => __( 'REST API confirmed for the current selection.', 'smart-search-chips' ),
+                'restFailed'          => __( 'REST API check failed.', 'smart-search-chips' ),
+                'promptReady'         => __( 'Agent prompt generated.', 'smart-search-chips' ),
+                'copied'              => __( 'Copied.', 'smart-search-chips' ),
+                'copyFailed'          => __( 'Copy failed. Copy the snippet manually.', 'smart-search-chips' ),
             ),
         ) );
     }
@@ -138,15 +131,13 @@ class SSC_Settings {
         $chip_font     = get_option( 'ssc_chip_font_size', '13' );
         $chip_pad_x    = get_option( 'ssc_chip_padding_x', '12' );
         $chip_pad_y    = get_option( 'ssc_chip_padding_y', '4' );
-        $ai_provider   = get_option( 'ssc_ai_provider', 'openai' );
-        $ai_model      = get_option( 'ssc_ai_model', 'gpt-5.4-mini' );
         $ai_sources    = get_option( 'ssc_ai_source_fields', array( 'title', 'excerpt', 'content' ) );
-        if ( ! is_array( $ai_sources ) ) {
+        if ( ! is_array( $ai_sources ) || empty( $ai_sources ) ) {
             $ai_sources = array( 'title', 'excerpt', 'content' );
         }
         $ai_posts      = $this->get_ai_lab_posts();
-        $ai_secrets    = $this->get_ai_secret_statuses();
-        $legacy_keys   = $this->has_legacy_ai_keys();
+        $ai_tag_style  = get_option( 'ssc_ai_tag_style', 'technical' );
+        $ai_max_tags   = max( 3, (int) get_option( 'ssc_ai_max_tags', 8 ) );
 
         ?>
         <div class="wrap">
@@ -335,55 +326,19 @@ class SSC_Settings {
                         </div>
 
                         <div class="ssc-settings-card ssc-settings-card--ai">
-                            <h2><?php _e( 'AI Tagging', 'smart-search-chips' ); ?></h2>
+                            <h2><?php _e( 'AI Prompt Builder', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
-                                <p><?php _e( 'AI tagging is part of Pro. It lets you connect OpenAI, Anthropic, or Gemini with your own API key, preview tags for a specific item, estimate cost, and save generated tags into your Search Chips field.', 'smart-search-chips' ); ?></p>
-                                <p class="description"><?php _e( 'Upgrade to Pro to unlock provider setup, cost estimation, and AI tag generation.', 'smart-search-chips' ); ?></p>
+                                <p><?php _e( 'The AI Prompt Builder is part of Pro. It prepares a structured agent prompt that you can paste into Codex, Claude Code, ChatGPT, Gemini, or another external AI tool. The external tool then uses your own WordPress REST API credentials to fetch and write tags.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php _e( 'Upgrade to Pro to unlock REST-aware prompt generation, multi-product analysis, custom field targets, and structured agent instructions.', 'smart-search-chips' ); ?></p>
                             <?php else : ?>
                                 <table class="form-table">
                                     <tr>
-                                        <th><?php _e( 'Provider', 'smart-search-chips' ); ?></th>
+                                        <th><?php _e( 'REST API', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <select name="ssc_ai_provider" id="ssc-ai-provider">
-                                                <?php foreach ( SSC_AI_Tagger::get_providers() as $provider_key => $provider_label ) : ?>
-                                                    <option value="<?php echo esc_attr( $provider_key ); ?>" <?php selected( $ai_provider, $provider_key ); ?>><?php echo esc_html( $provider_label ); ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th><?php _e( 'Model', 'smart-search-chips' ); ?></th>
-                                        <td>
-                                            <select name="ssc_ai_model" id="ssc-ai-model" data-selected="<?php echo esc_attr( $ai_model ); ?>">
-                                                <?php $this->render_ai_model_options( $ai_provider, $ai_model ); ?>
-                                            </select>
-                                            <span id="ssc-ai-model-status" class="ssc-ai-inline-status" aria-live="polite"></span>
-                                            <p class="description"><?php _e( 'The plugin tries to load live models from the selected provider first. If discovery fails, it falls back to a curated list.', 'smart-search-chips' ); ?></p>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th><?php _e( 'Secret Setup', 'smart-search-chips' ); ?></th>
-                                        <td>
-                                            <p><?php _e( 'API keys are never stored in plugin settings. Configure them in wp-config.php or as environment variables on the server.', 'smart-search-chips' ); ?></p>
-                                            <div class="ssc-ai-secret-list">
-                                                <?php foreach ( $ai_secrets as $provider_key => $secret_status ) : ?>
-                                                    <div class="ssc-ai-secret-item">
-                                                        <strong><?php echo esc_html( SSC_AI_Tagger::get_providers()[ $provider_key ] ); ?></strong>:
-                                                        <?php if ( $secret_status['configured'] ) : ?>
-                                                            <span class="ssc-ai-secret-ok"><?php echo esc_html( sprintf( __( 'configured via %1$s (%2$s)', 'smart-search-chips' ), $secret_status['source'], $secret_status['name'] ) ); ?></span>
-                                                        <?php else : ?>
-                                                            <span class="ssc-ai-secret-missing"><?php echo esc_html( sprintf( __( 'missing. Add %1$s or set %2$s.', 'smart-search-chips' ), $secret_status['constant'], $secret_status['env'] ) ); ?></span>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                <?php endforeach; ?>
-                                            </div>
-                                            <pre class="ssc-ai-code-snippet">define( 'SSC_OPENAI_API_KEY', 'your-openai-key' );
-define( 'SSC_ANTHROPIC_API_KEY', 'your-anthropic-key' );
-define( 'SSC_GEMINI_API_KEY', 'your-gemini-key' );</pre>
-                                            <p class="description"><?php _e( 'Environment variables work too. The plugin checks plugin-prefixed constants first, then provider-standard names.', 'smart-search-chips' ); ?></p>
-                                            <?php if ( $legacy_keys ) : ?>
-                                                <p class="ssc-ai-warning"><?php _e( 'Legacy API key options were detected in the database. They are ignored by this version. Move secrets into wp-config.php or environment variables and delete the old options if needed.', 'smart-search-chips' ); ?></p>
-                                            <?php endif; ?>
+                                            <button type="button" class="button button-secondary" id="ssc-ai-allow-rest"><?php _e( 'Allow REST API', 'smart-search-chips' ); ?></button>
+                                            <span id="ssc-ai-rest-status" class="ssc-ai-inline-status" aria-live="polite"></span>
+                                            <p class="description"><?php _e( 'Click this before generating the prompt. The plugin will verify that the selected post types expose REST routes and that the chosen target field can be addressed through REST updates.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php _e( 'The generated prompt assumes you will use WordPress Application Passwords or another REST-compatible authentication method outside this plugin.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -418,28 +373,31 @@ define( 'SSC_GEMINI_API_KEY', 'your-gemini-key' );</pre>
                                     </tr>
                                     <tr>
                                         <th><?php _e( 'Max Tags', 'smart-search-chips' ); ?></th>
-                                        <td><input type="number" name="ssc_ai_max_tags" id="ssc-ai-max-tags" value="<?php echo esc_attr( get_option( 'ssc_ai_max_tags', 8 ) ); ?>" class="small-text" min="3" max="20" /></td>
+                                        <td><input type="number" name="ssc_ai_max_tags" id="ssc-ai-max-tags" value="<?php echo esc_attr( $ai_max_tags ); ?>" class="small-text" min="3" max="20" /></td>
                                     </tr>
                                     <tr>
-                                        <th><?php _e( 'Language', 'smart-search-chips' ); ?></th>
+                                        <th><?php _e( 'Language Override', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <input type="text" name="ssc_ai_language" id="ssc-ai-language" value="<?php echo esc_attr( get_option( 'ssc_ai_language', get_bloginfo( 'language' ) ) ); ?>" class="regular-text" />
-                                            <p class="description"><?php _e( 'Examples: English, Czech, German. Leave the site language if you want tags to match site content language.', 'smart-search-chips' ); ?></p>
+                                            <input type="text" name="ssc_ai_language" id="ssc-ai-language" value="<?php echo esc_attr( get_option( 'ssc_ai_language', '' ) ); ?>" class="regular-text" />
+                                            <p class="description"><?php _e( 'Leave empty to keep chips in the same language as each selected product or post. Use this only if you want the agent prompt to force another language.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php _e( 'Tag Style', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <select name="ssc_ai_tag_style" id="ssc-ai-tag-style">
+                                                <?php foreach ( SSC_AI_Tagger::get_tag_styles() as $style_key => $style_label ) : ?>
+                                                    <option value="<?php echo esc_attr( $style_key ); ?>" <?php selected( $ai_tag_style, $style_key ); ?>><?php echo esc_html( $style_label ); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <p class="description"><?php _e( 'Controls how the generated prompt tells the external agent to write tags.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th><?php _e( 'Custom Instruction', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <textarea name="ssc_ai_custom_instruction" id="ssc-ai-custom-instruction" rows="3" class="large-text"><?php echo esc_textarea( get_option( 'ssc_ai_custom_instruction', '' ) ); ?></textarea>
-                                            <p class="description"><?php _e( 'Optional short instruction, for example: prefer technical specs, avoid brand names, or use Czech labels.', 'smart-search-chips' ); ?></p>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th><?php _e( 'Connection Test', 'smart-search-chips' ); ?></th>
-                                        <td>
-                                            <button type="button" class="button" id="ssc-ai-test-connection"><?php _e( 'Test connection', 'smart-search-chips' ); ?></button>
-                                            <span id="ssc-ai-test-result" class="ssc-ai-inline-status" aria-live="polite"></span>
-                                            <p class="description"><?php _e( 'This sends a tiny request directly from the WordPress server to the selected provider using the configured server-side secret.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php _e( 'Optional instructions for the external agent, for example: prefer technical specs, ignore brand names, write chips for engineers, or force Czech language output.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                 </table>
@@ -447,50 +405,40 @@ define( 'SSC_GEMINI_API_KEY', 'your-gemini-key' );</pre>
                         </div>
 
                         <div class="ssc-settings-card ssc-settings-card--ai-lab">
-                            <h2><?php _e( 'AI Lab', 'smart-search-chips' ); ?></h2>
+                            <h2><?php _e( 'Agent Prompt', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
-                                <p class="description"><?php _e( 'The AI Lab becomes available in Pro. Use it to estimate cost for a selected item, preview generated tags, and save them into the target field.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php _e( 'The agent prompt builder becomes available in Pro. It prepares a long-form prompt that tells an external LLM agent to fetch selected items over the WordPress REST API, compare similar products together, and write semicolon-separated tags back into the selected field.', 'smart-search-chips' ); ?></p>
                             <?php else : ?>
                                 <table class="form-table">
                                     <tr>
-                                        <th><?php _e( 'Item', 'smart-search-chips' ); ?></th>
+                                        <th><?php _e( 'Selected Items', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <select id="ssc-ai-post-id" class="regular-text">
-                                                <option value=""><?php _e( 'Select a post or product', 'smart-search-chips' ); ?></option>
+                                            <select id="ssc-ai-post-ids" class="regular-text" multiple size="10">
                                                 <?php foreach ( $ai_posts as $item ) : ?>
                                                     <option value="<?php echo esc_attr( $item->ID ); ?>"><?php echo esc_html( $item->post_title . ' [' . $item->post_type . ']' ); ?></option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <p class="description"><?php _e( 'Shows recent items from the post types selected above.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php _e( 'Choose all products or posts that should be analyzed together. The prompt will tell the external agent to compare the full batch and identify what stands out within similar groups.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th><?php _e( 'Actions', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <button type="button" class="button" id="ssc-ai-estimate"><?php _e( 'Estimate cost', 'smart-search-chips' ); ?></button>
-                                            <button type="button" class="button" id="ssc-ai-preview"><?php _e( 'Preview tags', 'smart-search-chips' ); ?></button>
-                                            <button type="button" class="button button-primary" id="ssc-ai-generate"><?php _e( 'Generate and save', 'smart-search-chips' ); ?></button>
-                                            <label style="display:block;margin-top:10px;">
-                                                <input type="checkbox" id="ssc-ai-overwrite" value="1" />
-                                                <?php _e( 'Overwrite existing target tags', 'smart-search-chips' ); ?>
-                                            </label>
-                                            <p class="description"><?php _e( 'Every preview, connection test, and save action requires confirmation. Review provider, model, source fields, destination field, and estimated cost before approving the request.', 'smart-search-chips' ); ?></p>
-                                            <p class="ssc-ai-warning"><?php _e( 'You are responsible for provider-side usage caps, spend limits, and any charges incurred on your API account.', 'smart-search-chips' ); ?></p>
+                                            <button type="button" class="button button-primary" id="ssc-ai-build-prompt"><?php _e( 'Generate Agent Prompt', 'smart-search-chips' ); ?></button>
+                                            <button type="button" class="button" id="ssc-ai-copy-prompt"><?php _e( 'Copy Prompt', 'smart-search-chips' ); ?></button>
+                                            <span id="ssc-ai-build-status" class="ssc-ai-inline-status" aria-live="polite"></span>
+                                            <p class="description"><?php _e( 'The prompt will end with placeholders for your WordPress REST credentials. Paste those credentials into the prompt in your external AI tool, not into this plugin.', 'smart-search-chips' ); ?></p>
+                                            <p class="ssc-ai-warning"><?php _e( 'You remain responsible for the credentials and for what the external AI tool does with them. Review the prompt before use.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                 </table>
-                                <div id="ssc-ai-estimate-panel" class="ssc-ai-panel">
-                                    <strong><?php _e( 'Estimate', 'smart-search-chips' ); ?></strong>
-                                    <p class="description"><?php _e( 'Approximate only. Final cost depends on provider tokenization and response length.', 'smart-search-chips' ); ?></p>
-                                    <div id="ssc-ai-estimate-output"><?php _e( 'Select an item to see estimated token usage and cost.', 'smart-search-chips' ); ?></div>
+                                <div id="ssc-ai-rest-panel" class="ssc-ai-panel">
+                                    <strong><?php _e( 'REST Summary', 'smart-search-chips' ); ?></strong>
+                                    <div id="ssc-ai-rest-output"><?php _e( 'Click "Allow REST API" to validate the current selection and target field.', 'smart-search-chips' ); ?></div>
                                 </div>
-                                <div id="ssc-ai-preview-panel" class="ssc-ai-panel">
-                                    <strong><?php _e( 'Preview', 'smart-search-chips' ); ?></strong>
-                                    <div id="ssc-ai-preview-output"><?php _e( 'Previewed tags will appear here.', 'smart-search-chips' ); ?></div>
-                                </div>
-                                <div id="ssc-ai-request-panel" class="ssc-ai-panel">
-                                    <strong><?php _e( 'Technical Summary', 'smart-search-chips' ); ?></strong>
-                                    <div id="ssc-ai-request-output"><?php _e( 'Estimate or preview an item to inspect what will be sent and where generated tags will be written.', 'smart-search-chips' ); ?></div>
+                                <div id="ssc-ai-prompt-panel" class="ssc-ai-panel">
+                                    <strong><?php _e( 'Generated Prompt', 'smart-search-chips' ); ?></strong>
+                                    <textarea id="ssc-ai-prompt-output" class="large-text code" rows="18" readonly><?php echo esc_textarea( __( 'Generate the prompt to see the external-agent instructions here.', 'smart-search-chips' ) ); ?></textarea>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -536,13 +484,9 @@ define( 'SSC_GEMINI_API_KEY', 'your-gemini-key' );</pre>
             .ssc-ai-inline-status { margin-left: 10px; }
             .ssc-ai-panel { border-top: 1px solid #eee; margin-top: 16px; padding-top: 16px; }
             .ssc-ai-panel strong { display: block; margin-bottom: 8px; }
-            .ssc-ai-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-            .ssc-ai-tags span { display: inline-flex; padding: 4px 10px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 999px; }
-            .ssc-ai-secret-list { display: grid; gap: 6px; margin: 8px 0 12px; }
-            .ssc-ai-secret-ok { color: #1d6f42; }
-            .ssc-ai-secret-missing { color: #8a5a00; }
             .ssc-ai-warning { margin-top: 10px; padding: 10px 12px; background: #fff8e5; border-left: 4px solid #dba617; }
-            .ssc-ai-code-snippet { margin: 10px 0; padding: 10px 12px; background: #f6f7f7; border: 1px solid #dcdcde; overflow-x: auto; }
+            #ssc-ai-post-ids { min-height: 220px; }
+            #ssc-ai-prompt-output { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
             .ssc-preview-result { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
             .ssc-preview-result:last-child { border-bottom: none; }
             .ssc-preview-thumb { width: 36px; height: 36px; background: #eee; border-radius: 4px; flex-shrink: 0; }
@@ -687,28 +631,6 @@ define( 'SSC_GEMINI_API_KEY', 'your-gemini-key' );</pre>
     }
 
     /**
-     * Render model options for the selected provider.
-     *
-     * @param string $provider Selected provider.
-     * @param string $selected Selected model.
-     */
-    private function render_ai_model_options( $provider, $selected ) {
-        $models = SSC_AI_Tagger::get_models();
-        if ( empty( $models[ $provider ] ) ) {
-            return;
-        }
-
-        foreach ( $models[ $provider ] as $model ) {
-            printf(
-                '<option value="%s" %s>%s</option>',
-                esc_attr( $model['id'] ),
-                selected( $selected, $model['id'], false ),
-                esc_html( $model['label'] . ' - ' . $model['description'] )
-            );
-        }
-    }
-
-    /**
      * Render AI source field checkboxes.
      *
      * @param array $selected Selected sources.
@@ -718,6 +640,7 @@ define( 'SSC_GEMINI_API_KEY', 'your-gemini-key' );</pre>
             'title'          => __( 'Title', 'smart-search-chips' ),
             'excerpt'        => __( 'Excerpt', 'smart-search-chips' ),
             'content'        => __( 'Content', 'smart-search-chips' ),
+            'taxonomies'     => __( 'Categories and taxonomies', 'smart-search-chips' ),
             'woo_attributes' => __( 'WooCommerce attributes and SKU', 'smart-search-chips' ),
         );
 
@@ -752,69 +675,29 @@ define( 'SSC_GEMINI_API_KEY', 'your-gemini-key' );</pre>
     }
 
     /**
-     * Report current AI secret configuration status per provider.
-     *
-     * @return array
-     */
-    private function get_ai_secret_statuses() {
-        $statuses   = array();
-        $providers  = SSC_AI_Tagger::get_providers();
-        $references = SSC_AI_Tagger::get_secret_references();
-
-        foreach ( $providers as $provider_key => $label ) {
-            $status = SSC_AI_Tagger::get_secret_status( $provider_key );
-            $refs   = isset( $references[ $provider_key ] ) ? $references[ $provider_key ] : array( 'constants' => array(), 'env' => array() );
-
-            $statuses[ $provider_key ] = array(
-                'label'      => $label,
-                'configured' => ! empty( $status['configured'] ),
-                'source'     => isset( $status['source'] ) ? $status['source'] : '',
-                'name'       => isset( $status['name'] ) ? $status['name'] : '',
-                'constant'   => ! empty( $refs['constants'][0] ) ? $refs['constants'][0] : '',
-                'env'        => ! empty( $refs['env'][0] ) ? $refs['env'][0] : '',
-            );
-        }
-
-        return $statuses;
-    }
-
-    /**
-     * Detect ignored legacy key options from earlier builds.
-     *
-     * @return bool
-     */
-    private function has_legacy_ai_keys() {
-        return (bool) (
-            get_option( 'ssc_ai_openai_key', '' ) !== ''
-            || get_option( 'ssc_ai_anthropic_key', '' ) !== ''
-            || get_option( 'ssc_ai_gemini_key', '' ) !== ''
-        );
-    }
-
-    /**
-     * Sanitize AI provider choice.
-     *
-     * @param string $value Provider.
-     * @return string
-     */
-    public function sanitize_ai_provider( $value ) {
-        $value     = sanitize_key( $value );
-        $providers = SSC_AI_Tagger::get_providers();
-        return isset( $providers[ $value ] ) ? $value : 'openai';
-    }
-
-    /**
      * Sanitize selected AI source fields.
      *
      * @param array|string $value Raw selected fields.
      * @return array
      */
     public function sanitize_ai_source_fields( $value ) {
-        $allowed = array( 'title', 'excerpt', 'content', 'woo_attributes' );
+        $allowed = array( 'title', 'excerpt', 'content', 'taxonomies', 'woo_attributes' );
         $value   = is_array( $value ) ? $value : array();
         $value   = array_map( 'sanitize_key', $value );
 
         return array_values( array_intersect( $value, $allowed ) );
+    }
+
+    /**
+     * Sanitize AI tag style.
+     *
+     * @param string $value Raw style.
+     * @return string
+     */
+    public function sanitize_ai_tag_style( $value ) {
+        $value  = sanitize_key( $value );
+        $styles = SSC_AI_Tagger::get_tag_styles();
+        return isset( $styles[ $value ] ) ? $value : 'technical';
     }
 
     /**
