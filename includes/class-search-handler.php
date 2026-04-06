@@ -219,16 +219,16 @@ class SSC_Search_Handler {
             return;
         }
 
-        $color          = $this->settings->get( 'chip_color', '#e74c3c' );
-        $text_color     = $this->settings->get( 'chip_text_color', '#ffffff' );
-        $inactive_color = $this->settings->get( 'chip_inactive_color', '#ffffff' );
-        $inactive_text  = $this->settings->get( 'chip_inactive_text_color', '#333333' );
+        $color          = $this->get_color_setting( 'chip_color', '#e74c3c' );
+        $text_color     = $this->get_color_setting( 'chip_text_color', '#ffffff' );
+        $inactive_color = $this->get_color_setting( 'chip_inactive_color', '#ffffff' );
+        $inactive_text  = $this->get_color_setting( 'chip_inactive_text_color', '#333333' );
 
         // Pro design options
-        $radius    = SSC_License::can_use_advanced_design() ? $this->settings->get( 'chip_radius', '16' ) : '16';
-        $font_size = SSC_License::can_use_advanced_design() ? $this->settings->get( 'chip_font_size', '13' ) : '13';
-        $pad_x     = SSC_License::can_use_advanced_design() ? $this->settings->get( 'chip_padding_x', '12' ) : '12';
-        $pad_y     = SSC_License::can_use_advanced_design() ? $this->settings->get( 'chip_padding_y', '4' ) : '4';
+        $radius    = SSC_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_radius', 16, 0 ) : 16;
+        $font_size = SSC_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_font_size', 13, 8 ) : 13;
+        $pad_x     = SSC_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_x', 12, 0 ) : 12;
+        $pad_y     = SSC_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_y', 4, 0 ) : 4;
 
         echo '<div class="ssc-chips">';
 
@@ -251,6 +251,38 @@ class SSC_Search_Handler {
         }
 
         echo '</div>';
+    }
+
+    /**
+     * Read a numeric setting with a hard fallback for empty/invalid values.
+     *
+     * @param string $key     Setting key without prefix.
+     * @param int    $default Default value.
+     * @param int    $min     Minimum value.
+     * @return int
+     */
+    private function get_numeric_setting( $key, $default, $min = 0 ) {
+        $value = $this->settings->get( $key, '' );
+
+        if ( '' === $value || ! is_numeric( $value ) ) {
+            return (int) $default;
+        }
+
+        return max( (int) $min, (int) $value );
+    }
+
+    /**
+     * Read a color setting with a hard fallback.
+     *
+     * @param string $key     Setting key without prefix.
+     * @param string $default Default color.
+     * @return string
+     */
+    private function get_color_setting( $key, $default ) {
+        $value = $this->settings->get( $key, '' );
+        $value = sanitize_hex_color( $value );
+
+        return $value ? $value : $default;
     }
 
     /**

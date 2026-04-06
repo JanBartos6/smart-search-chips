@@ -54,15 +54,34 @@ class SSC_Settings {
     public function register_settings() {
         // All settings registered flat (no sections — we render manually)
         $fields = array(
-            'post_types', 'tag_fields', 'extra_fields', 'override_ajax',
+            'post_types', 'override_ajax',
             'max_chips', 'max_tag_length',
             'woo_enabled',
-            'chip_color', 'chip_text_color', 'chip_inactive_color', 'chip_inactive_text_color', 'chip_radius', 'chip_font_size', 'chip_padding_x', 'chip_padding_y',
+            'chip_color', 'chip_text_color', 'chip_inactive_color', 'chip_inactive_text_color',
             'max_results', 'search_results_count', 'relevance_threshold',
         );
         foreach ( $fields as $f ) {
             register_setting( 'smart-search-chips', $this->prefix . $f );
         }
+
+        register_setting( 'smart-search-chips', 'ssc_tag_fields', array(
+            'sanitize_callback' => array( $this, 'sanitize_custom_tag_field' ),
+        ) );
+        register_setting( 'smart-search-chips', 'ssc_extra_fields', array(
+            'sanitize_callback' => array( $this, 'sanitize_extra_tag_field' ),
+        ) );
+        register_setting( 'smart-search-chips', 'ssc_chip_radius', array(
+            'sanitize_callback' => array( $this, 'sanitize_chip_radius' ),
+        ) );
+        register_setting( 'smart-search-chips', 'ssc_chip_font_size', array(
+            'sanitize_callback' => array( $this, 'sanitize_chip_font_size' ),
+        ) );
+        register_setting( 'smart-search-chips', 'ssc_chip_padding_x', array(
+            'sanitize_callback' => array( $this, 'sanitize_chip_padding_x' ),
+        ) );
+        register_setting( 'smart-search-chips', 'ssc_chip_padding_y', array(
+            'sanitize_callback' => array( $this, 'sanitize_chip_padding_y' ),
+        ) );
 
         register_setting( 'smart-search-chips', 'ssc_ai_custom_read_fields', array(
             'sanitize_callback' => 'sanitize_text_field',
@@ -150,10 +169,10 @@ class SSC_Settings {
         // Get current values
         $chip_color    = get_option( 'ssc_chip_color', '#e74c3c' );
         $chip_text     = get_option( 'ssc_chip_text_color', '#ffffff' );
-        $chip_radius   = get_option( 'ssc_chip_radius', '16' );
-        $chip_font     = get_option( 'ssc_chip_font_size', '13' );
-        $chip_pad_x    = get_option( 'ssc_chip_padding_x', '12' );
-        $chip_pad_y    = get_option( 'ssc_chip_padding_y', '4' );
+        $chip_radius   = $this->get_numeric_option_value( 'ssc_chip_radius', 16, 0 );
+        $chip_font     = $this->get_numeric_option_value( 'ssc_chip_font_size', 13, 8 );
+        $chip_pad_x    = $this->get_numeric_option_value( 'ssc_chip_padding_x', 12, 0 );
+        $chip_pad_y    = $this->get_numeric_option_value( 'ssc_chip_padding_y', 4, 0 );
         $ai_max_tags   = max( 0, (int) get_option( 'ssc_ai_max_tags', 8 ) );
         $ai_rest_mode  = get_option( 'ssc_ai_rest_enabled', '1' );
         $ai_target     = $this->sanitize_ai_target_field( get_option( 'ssc_ai_target_field', 'built_in' ) );
@@ -162,6 +181,7 @@ class SSC_Settings {
         ?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+            <?php settings_errors( 'smart-search-chips' ); ?>
 
             <?php if ( $is_pro && ! $relevanssi_active ) : ?>
                 <div class="notice notice-info"><p><strong><?php _e( 'Relevanssi not detected.', 'smart-search-chips' ); ?></strong> <?php _e( 'Install Relevanssi (free) for relevance scoring.', 'smart-search-chips' ); ?></p></div>
@@ -1119,5 +1139,145 @@ class SSC_Settings {
      */
     public function sanitize_checkbox( $value ) {
         return ! empty( $value ) ? '1' : '0';
+    }
+
+    /**
+     * Sanitize the mapped custom tag field.
+     *
+     * @param string $value Raw value.
+     * @return string
+     */
+    public function sanitize_custom_tag_field( $value ) {
+        return $this->sanitize_meta_mapping_field( $value, 'tag' );
+    }
+
+    /**
+     * Sanitize the mapped extra tag field.
+     *
+     * @param string $value Raw value.
+     * @return string
+     */
+    public function sanitize_extra_tag_field( $value ) {
+        return $this->sanitize_meta_mapping_field( $value, 'extra' );
+    }
+
+    /**
+     * Sanitize chip radius value.
+     *
+     * @param mixed $value Raw value.
+     * @return int
+     */
+    public function sanitize_chip_radius( $value ) {
+        return $this->sanitize_numeric_setting( $value, 16, 0, 50 );
+    }
+
+    /**
+     * Sanitize chip font size value.
+     *
+     * @param mixed $value Raw value.
+     * @return int
+     */
+    public function sanitize_chip_font_size( $value ) {
+        return $this->sanitize_numeric_setting( $value, 13, 8, 24 );
+    }
+
+    /**
+     * Sanitize chip horizontal padding value.
+     *
+     * @param mixed $value Raw value.
+     * @return int
+     */
+    public function sanitize_chip_padding_x( $value ) {
+        return $this->sanitize_numeric_setting( $value, 12, 0, 40 );
+    }
+
+    /**
+     * Sanitize chip vertical padding value.
+     *
+     * @param mixed $value Raw value.
+     * @return int
+     */
+    public function sanitize_chip_padding_y( $value ) {
+        return $this->sanitize_numeric_setting( $value, 4, 0, 24 );
+    }
+
+    /**
+     * Normalize the numeric design controls for display.
+     *
+     * @param string $option_name Option name.
+     * @param int    $default     Default value.
+     * @param int    $min         Minimum value.
+     * @return int
+     */
+    private function get_numeric_option_value( $option_name, $default, $min = 0 ) {
+        $value = get_option( $option_name, $default );
+
+        if ( '' === $value || ! is_numeric( $value ) ) {
+            return (int) $default;
+        }
+
+        return max( (int) $min, (int) $value );
+    }
+
+    /**
+     * Sanitize a numeric design setting.
+     *
+     * @param mixed $value   Raw value.
+     * @param int   $default Default value.
+     * @param int   $min     Minimum value.
+     * @param int   $max     Maximum value.
+     * @return int
+     */
+    private function sanitize_numeric_setting( $value, $default, $min, $max ) {
+        if ( '' === $value || ! is_numeric( $value ) ) {
+            return (int) $default;
+        }
+
+        $value = (int) $value;
+        $value = max( $min, $value );
+        $value = min( $max, $value );
+
+        return $value;
+    }
+
+    /**
+     * Sanitize an advanced mapped meta key and reject collisions.
+     *
+     * @param string $value Field value.
+     * @param string $role  Mapping role.
+     * @return string
+     */
+    private function sanitize_meta_mapping_field( $value, $role ) {
+        $value = trim( sanitize_key( (string) $value ) );
+
+        if ( '' === $value ) {
+            return '';
+        }
+
+        $posted_primary = isset( $_POST['ssc_tag_fields'] ) ? trim( sanitize_key( wp_unslash( $_POST['ssc_tag_fields'] ) ) ) : trim( (string) get_option( 'ssc_tag_fields', '' ) );
+        $posted_extra   = isset( $_POST['ssc_extra_fields'] ) ? trim( sanitize_key( wp_unslash( $_POST['ssc_extra_fields'] ) ) ) : trim( (string) get_option( 'ssc_extra_fields', '' ) );
+        $other_value    = ( 'tag' === $role ) ? $posted_extra : $posted_primary;
+
+        if ( $value === SSC_Meta_Box::META_KEY ) {
+            add_settings_error(
+                'smart-search-chips',
+                'ssc_reserved_meta_key',
+                __( 'The built-in field key `ssc_tags` is reserved by Smart Search Chips. Choose a different custom field key.', 'smart-search-chips' ),
+                'error'
+            );
+            return '';
+        }
+
+        if ( $value === $other_value ) {
+            add_settings_error(
+                'smart-search-chips',
+                'ssc_duplicate_meta_key',
+                __( 'Custom Tag Field and Extra Tag Field must be different meta keys.', 'smart-search-chips' ),
+                'error'
+            );
+            return '';
+        }
+
+        return $value;
     }
 }
