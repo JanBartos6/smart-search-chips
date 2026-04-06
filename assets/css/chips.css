@@ -17,6 +17,28 @@
     padding: 8px 0;
 }
 
+.ssc-loop-filters {
+    margin: 0 0 1.5rem;
+}
+
+.ssc-loop-filters__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.ssc-loop-filters__title {
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.ssc-loop-filters__clear {
+    font-size: 0.875rem;
+    text-decoration: none;
+}
+
 .ssc-chip {
     display: inline-flex;
     align-items: center;
@@ -28,6 +50,7 @@
     white-space: nowrap;
     transition: background 0.15s, color 0.15s;
     font-family: inherit;
+    text-decoration: none;
 }
 
 .ssc-chip:hover {

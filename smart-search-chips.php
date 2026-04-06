@@ -54,7 +54,7 @@ function ssc_init() {
     $analytics = new SSC_Analytics();
     $analytics->init();
 
-    $frontend = new SSC_Frontend( $settings );
+    $frontend = new SSC_Frontend( $settings, $engine );
     $frontend->init();
 
     $ai_tagger = new SSC_AI_Tagger( $settings );
