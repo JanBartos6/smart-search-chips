@@ -11,9 +11,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SSC_License {
 
-    /** @var string Option keys */
-    const LICENSE_KEY_OPTION    = 'ssc_license_key';
-    const LICENSE_STATUS_OPTION = 'ssc_license_status';
+    /** @var string Legacy manual license option keys kept for cleanup */
+    const LEGACY_LICENSE_KEY_OPTION    = 'ssc_license_key';
+    const LEGACY_LICENSE_STATUS_OPTION = 'ssc_license_status';
+
+    /**
+     * Return the Freemius instance when available.
+     *
+     * @return Freemius_Abstract|null
+     */
+    public static function freemius() {
+        if ( ! function_exists( 'ssc_fs' ) ) {
+            return null;
+        }
+
+        return ssc_fs();
+    }
+
+    /**
+     * Check whether the SDK is available.
+     *
+     * @return bool
+     */
+    public static function is_sdk_ready() {
+        return null !== self::freemius();
+    }
 
     /**
      * Check if Pro features are active.
@@ -21,8 +43,114 @@ class SSC_License {
      * @return bool
      */
     public static function is_pro() {
-        $status = get_option( self::LICENSE_STATUS_OPTION, 'free' );
-        return $status === 'valid';
+        $freemius = self::freemius();
+
+        return $freemius ? (bool) $freemius->can_use_premium_code() : false;
+    }
+
+    /**
+     * Check if the current site is connected to Freemius.
+     *
+     * @return bool
+     */
+    public static function is_registered() {
+        $freemius = self::freemius();
+
+        return $freemius ? (bool) $freemius->is_registered() : false;
+    }
+
+    /**
+     * Check if the current site is in trial.
+     *
+     * @return bool
+     */
+    public static function is_trial() {
+        $freemius = self::freemius();
+
+        return $freemius && method_exists( $freemius, 'is_trial' ) ? (bool) $freemius->is_trial() : false;
+    }
+
+    /**
+     * Check if there is an upgrade path configured.
+     *
+     * @return bool
+     */
+    public static function has_paid_plan() {
+        $freemius = self::freemius();
+
+        return $freemius ? (bool) $freemius->has_paid_plan() : false;
+    }
+
+    /**
+     * Return the Freemius upgrade URL when available.
+     *
+     * @return string
+     */
+    public static function get_upgrade_url() {
+        $freemius = self::freemius();
+
+        return $freemius && self::has_paid_plan() ? $freemius->get_upgrade_url() : '';
+    }
+
+    /**
+     * Return the Freemius account URL when available.
+     *
+     * @return string
+     */
+    public static function get_account_url() {
+        $freemius = self::freemius();
+
+        return $freemius && self::is_registered() ? $freemius->get_account_url() : '';
+    }
+
+    /**
+     * Return a short status label for the settings screen.
+     *
+     * @return string
+     */
+    public static function get_status_label() {
+        if ( ! self::is_sdk_ready() ) {
+            return __( 'Freemius SDK missing', 'smart-search-chips' );
+        }
+
+        if ( self::is_trial() ) {
+            return __( 'Trial active', 'smart-search-chips' );
+        }
+
+        if ( self::is_pro() ) {
+            return __( 'Pro active', 'smart-search-chips' );
+        }
+
+        if ( self::is_registered() ) {
+            return __( 'Free connected', 'smart-search-chips' );
+        }
+
+        return __( 'Free', 'smart-search-chips' );
+    }
+
+    /**
+     * Return descriptive text for the settings screen.
+     *
+     * @return string
+     */
+    public static function get_status_description() {
+        if ( ! self::is_sdk_ready() ) {
+            return __( 'The Freemius SDK was not found in vendor/freemius, so license activation and paid upgrades are currently unavailable.', 'smart-search-chips' );
+        }
+
+        if ( self::is_trial() ) {
+            return __( 'This site is using a Pro trial through Freemius. All paid features are currently unlocked.', 'smart-search-chips' );
+        }
+
+        if ( self::is_pro() ) {
+            return __( 'This site can use Pro features through Freemius, including custom field mapping, advanced design controls, analytics, and the AI prompt builder.', 'smart-search-chips' );
+        }
+
+        if ( self::is_registered() ) {
+            return __( 'This site is connected to Freemius on the free tier. Upgrade from here when you want to unlock Pro features.', 'smart-search-chips' );
+        }
+
+        return __( 'This site is running the free tier. Connect or upgrade through Freemius to unlock Pro features.', 'smart-search-chips' );
     }
 
     /**
@@ -65,83 +193,6 @@ class SSC_License {
      * Initialize license hooks.
      */
     public function init() {
-        add_action( 'admin_init', array( $this, 'register_settings' ) );
-    }
-
-    /**
-     * Register license settings.
-     */
-    public function register_settings() {
-        add_settings_section( 'ssc_license', __( 'License', 'smart-search-chips' ), array( $this, 'render_license_section' ), 'smart-search-chips' );
-
-        register_setting( 'smart-search-chips', self::LICENSE_KEY_OPTION, array(
-            'sanitize_callback' => array( $this, 'validate_license' ),
-        ) );
-
-        add_settings_field(
-            self::LICENSE_KEY_OPTION,
-            __( 'License Key', 'smart-search-chips' ),
-            array( $this, 'render_license_field' ),
-            'smart-search-chips',
-            'ssc_license'
-        );
-    }
-
-    /**
-     * Render license section description.
-     */
-    public function render_license_section() {
-        if ( self::is_pro() ) {
-            echo '<div class="notice notice-success inline"><p><strong>' . esc_html__( 'Pro license active.', 'smart-search-chips' ) . '</strong> ' . esc_html__( 'All features unlocked.', 'smart-search-chips' ) . '</p></div>';
-        } else {
-            echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Free version — up to 5 chips, built-in tag field. Upgrade to Pro for custom field mapping, unlimited chips, Relevanssi integration, and advanced design options.', 'smart-search-chips' ) . '</p></div>';
-        }
-    }
-
-    /**
-     * Render license key field.
-     */
-    public function render_license_field() {
-        $key    = get_option( self::LICENSE_KEY_OPTION, '' );
-        $status = get_option( self::LICENSE_STATUS_OPTION, 'free' );
-
-        printf(
-            '<input type="text" name="%s" value="%s" class="regular-text" placeholder="%s" />',
-            esc_attr( self::LICENSE_KEY_OPTION ),
-            esc_attr( $key ),
-            esc_attr__( 'Enter your Pro license key', 'smart-search-chips' )
-        );
-
-        if ( $key && $status === 'valid' ) {
-            echo ' <span style="color:green;">&#10003; ' . esc_html__( 'Active', 'smart-search-chips' ) . '</span>';
-        } elseif ( $key && $status !== 'valid' ) {
-            echo ' <span style="color:red;">&#10007; ' . esc_html__( 'Invalid', 'smart-search-chips' ) . '</span>';
-        }
-
-        echo '<p class="description">' . esc_html__( 'Enter your license key to unlock Pro features.', 'smart-search-chips' ) . '</p>';
-    }
-
-    /**
-     * Validate license key on save.
-     *
-     * @param string $key License key.
-     * @return string Sanitized key.
-     */
-    public function validate_license( $key ) {
-        $key = sanitize_text_field( $key );
-
-        if ( empty( $key ) ) {
-            update_option( self::LICENSE_STATUS_OPTION, 'free' );
-            return $key;
-        }
-
-        // TODO: Replace with actual license server validation (Stripe/Lemon Squeezy/Freemius API)
-        if ( preg_match( '/^SSC-PRO-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/', $key ) ) {
-            update_option( self::LICENSE_STATUS_OPTION, 'valid' );
-        } else {
-            update_option( self::LICENSE_STATUS_OPTION, 'invalid' );
-        }
-
-        return $key;
+        // Freemius manages activation, upgrades, and account state.
     }
 }

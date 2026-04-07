@@ -31,6 +31,13 @@ $options = array(
     'ssc_search_results_count',
     'ssc_license_key',
     'ssc_license_status',
+    'ssc_analytics_enabled',
+    'ssc_ai_custom_read_fields',
+    'ssc_ai_target_field',
+    'ssc_ai_rest_enabled',
+    'ssc_ai_max_tags',
+    'ssc_ai_language',
+    'ssc_ai_custom_instruction',
 );
 
 foreach ( $options as $option ) {

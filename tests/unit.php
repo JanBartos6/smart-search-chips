@@ -85,6 +85,21 @@ function ssc_test_chip_engine_active_tag_survives() {
     ssc_assert_same( 'Nonexistent Tag', $chips['nonexistent tag']['label'], 'active tags should preserve their original label in the chip output' );
 }
 
+function ssc_test_chip_engine_active_tags_are_ordered_first() {
+    $engine = new SSC_Chip_Engine();
+    $posts  = array(
+        array( 'tags' => array( 'Shared', 'Alpha', 'Outdoor' ), 'tags_lower' => array( 'shared', 'alpha', 'outdoor' ) ),
+        array( 'tags' => array( 'Shared', 'Alpha', 'Indoor' ), 'tags_lower' => array( 'shared', 'alpha', 'indoor' ) ),
+        array( 'tags' => array( 'Shared', 'Beta', 'Outdoor' ), 'tags_lower' => array( 'shared', 'beta', 'outdoor' ) ),
+        array( 'tags' => array( 'Shared', 'Beta', 'Indoor' ), 'tags_lower' => array( 'shared', 'beta', 'indoor' ) ),
+    );
+
+    $chips = $engine->generate_chips( $posts, array( 'Outdoor' ), 8, 40 );
+    $keys  = array_keys( $chips );
+
+    ssc_assert_same( 'outdoor', $keys[0], 'active chips should be ordered before inactive chips' );
+}
+
 function ssc_test_chip_engine_filter_by_tags() {
     $engine = new SSC_Chip_Engine();
     $posts  = array(
@@ -193,6 +208,7 @@ function ssc_test_ai_prompt_rest_mode() {
 ssc_test_chip_engine_extract_tags();
 ssc_test_chip_engine_generate_chips();
 ssc_test_chip_engine_active_tag_survives();
+ssc_test_chip_engine_active_tags_are_ordered_first();
 ssc_test_chip_engine_filter_by_tags();
 ssc_test_settings_numeric_sanitizers();
 ssc_test_settings_reserved_custom_field_rejected();

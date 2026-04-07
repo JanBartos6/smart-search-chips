@@ -2,3 +2,5 @@
 node_modules/
 vendor/
 *.log
+playwright-report/
+test-results/

@@ -197,26 +197,25 @@ class SSC_Settings {
                         <!-- License -->
                         <div class="ssc-settings-card">
                             <h2><?php _e( 'License', 'smart-search-chips' ); ?></h2>
-                            <?php
-                            $key    = get_option( SSC_License::LICENSE_KEY_OPTION, '' );
-                            $status = get_option( SSC_License::LICENSE_STATUS_OPTION, 'free' );
-                            ?>
                             <?php if ( $is_pro ) : ?>
                                 <div class="ssc-badge ssc-badge--pro">Pro</div>
                             <?php else : ?>
                                 <div class="ssc-badge ssc-badge--free">Free</div>
                             <?php endif; ?>
-                            <table class="form-table"><tr>
-                                <th><?php _e( 'License Key', 'smart-search-chips' ); ?></th>
-                                <td>
-                                    <input type="text" name="ssc_license_key" value="<?php echo esc_attr( $key ); ?>" class="regular-text" placeholder="SSC-PRO-XXXX-XXXX-XXXX" />
-                                    <?php if ( $key && $status === 'valid' ) : ?>
-                                        <span style="color:green;">&#10003; <?php _e( 'Active', 'smart-search-chips' ); ?></span>
-                                    <?php elseif ( $key ) : ?>
-                                        <span style="color:red;">&#10007; <?php _e( 'Invalid', 'smart-search-chips' ); ?></span>
+                            <p><strong><?php echo esc_html( SSC_License::get_status_label() ); ?></strong></p>
+                            <p class="description"><?php echo esc_html( SSC_License::get_status_description() ); ?></p>
+                            <?php if ( SSC_License::is_sdk_ready() ) : ?>
+                                <p>
+                                    <?php if ( ! $is_pro && SSC_License::get_upgrade_url() ) : ?>
+                                        <a class="button button-primary" href="<?php echo esc_url( SSC_License::get_upgrade_url() ); ?>"><?php _e( 'Upgrade to Pro', 'smart-search-chips' ); ?></a>
                                     <?php endif; ?>
-                                </td>
-                            </tr></table>
+                                    <?php if ( SSC_License::get_account_url() ) : ?>
+                                        <a class="button button-secondary" href="<?php echo esc_url( SSC_License::get_account_url() ); ?>"><?php _e( 'Manage License', 'smart-search-chips' ); ?></a>
+                                    <?php endif; ?>
+                                </p>
+                            <?php else : ?>
+                                <p class="description"><?php _e( 'Install the Freemius SDK in `vendor/freemius` to enable activation and billing on this screen.', 'smart-search-chips' ); ?></p>
+                            <?php endif; ?>
                         </div>
 
                         <!-- Search Settings -->

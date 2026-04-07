@@ -193,9 +193,19 @@
     document.addEventListener("click", function (e) {
         var chip = e.target.closest(".ssc-chip");
         if (!chip) return;
-        e.preventDefault();
 
         var tag = chip.getAttribute("data-tag");
+        var input = findInput(chip);
+        var results = findResults(chip);
+
+        // Archive/search-result chips are normal links and should keep
+        // the browser's native navigation/history behavior.
+        if (!input || !results) {
+            return;
+        }
+
+        e.preventDefault();
+
         var idx = activeTags.indexOf(tag);
 
         if (idx > -1) {
@@ -204,15 +214,10 @@
             activeTags.push(tag);
         }
 
-        var input = findInput(chip);
-        var results = findResults(chip);
-
-        if (input && results) {
-            doSearch(input, results, {
-                trigger: "chip",
-                chipLabel: tag
-            });
-        }
+        doSearch(input, results, {
+            trigger: "chip",
+            chipLabel: tag
+        });
     });
 
     /**

@@ -82,7 +82,27 @@ class SSC_Chip_Engine {
             }
         }
 
-        return $chips;
+        if ( empty( $active_tags ) ) {
+            return $chips;
+        }
+
+        // Keep active chips visible first while preserving the existing
+        // ranking order inside the active and inactive groups.
+        $ordered = array();
+
+        foreach ( $chips as $key => $chip ) {
+            if ( in_array( $key, array_map( 'mb_strtolower', $active_tags ), true ) ) {
+                $ordered[ $key ] = $chip;
+            }
+        }
+
+        foreach ( $chips as $key => $chip ) {
+            if ( ! isset( $ordered[ $key ] ) ) {
+                $ordered[ $key ] = $chip;
+            }
+        }
+
+        return $ordered;
     }
 
     /**

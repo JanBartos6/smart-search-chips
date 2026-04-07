@@ -5,12 +5,40 @@ BASE_URL="${SSC_TEST_BASE_URL:-http://localhost:8080}"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
+if command -v rg >/dev/null 2>&1 && rg --version >/dev/null 2>&1; then
+  SSC_SEARCH_CMD="rg"
+else
+  SSC_SEARCH_CMD="grep"
+fi
+
+has_match() {
+  local pattern="$1"
+  local file="$2"
+
+  if [[ "$SSC_SEARCH_CMD" == "rg" ]]; then
+    rg -q --fixed-strings "$pattern" "$file"
+  else
+    grep -F -q -- "$pattern" "$file"
+  fi
+}
+
+count_fixed_matches() {
+  local pattern="$1"
+  local file="$2"
+
+  if [[ "$SSC_SEARCH_CMD" == "rg" ]]; then
+    rg -o --fixed-strings "$pattern" "$file" | wc -l | tr -d ' '
+  else
+    grep -F -o -- "$pattern" "$file" | wc -l | tr -d ' '
+  fi
+}
+
 require_match() {
   local file="$1"
   local pattern="$2"
   local message="$3"
 
-  if ! rg -q --fixed-strings "$pattern" "$file"; then
+  if ! has_match "$pattern" "$file"; then
     echo "FAIL: $message" >&2
     echo "Missing pattern: $pattern" >&2
     exit 1
@@ -20,7 +48,7 @@ require_match() {
 count_matches() {
   local file="$1"
   local pattern="$2"
-  rg -o --fixed-strings "$pattern" "$file" | wc -l | tr -d ' '
+  count_fixed_matches "$pattern" "$file"
 }
 
 curl -fsS "$BASE_URL/search/" > "$TMP_DIR/search-page.html"
