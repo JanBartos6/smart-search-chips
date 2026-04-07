@@ -55,6 +55,7 @@
         var data = new FormData();
         data.append("action", "ssc_track_event");
         data.append("nonce", config.analytics.nonce);
+        data.append("ssc_lang", config.lang || "");
         data.append("visitor_id", getVisitorId());
         data.append("event_type", payload.eventType || "");
         data.append("search_query", payload.searchQuery || "");
@@ -62,6 +63,14 @@
         data.append("page_url", window.location.href);
         data.append("result_count", String(typeof payload.resultCount === "number" ? payload.resultCount : -1));
         data.append("active_tag_count", String(activeTags.length));
+
+        if (Array.isArray(payload.chipLabels)) {
+            payload.chipLabels.forEach(function (label) {
+                if (label) {
+                    data.append("chip_labels[]", label);
+                }
+            });
+        }
 
         if (navigator.sendBeacon) {
             navigator.sendBeacon(config.ajaxUrl || "/wp-admin/admin-ajax.php", data);
@@ -74,6 +83,51 @@
             body: data
         }).catch(function () {
             // Analytics should never interrupt search UX.
+        });
+    }
+
+    function getQueryParam(name) {
+        try {
+            var params = new URLSearchParams(window.location.search);
+            return params.get(name) || "";
+        } catch (error) {
+            return "";
+        }
+    }
+
+    function getCurrentSearchQuery() {
+        var shortcodeInput = document.querySelector(".ssc-search__input");
+        if (shortcodeInput && shortcodeInput.value) {
+            return shortcodeInput.value;
+        }
+
+        return getQueryParam("s");
+    }
+
+    function getArchiveResultCount() {
+        var posts = document.querySelectorAll("main .wp-block-query.alignfull .wp-block-post-template > li.wp-block-post");
+        if (posts.length) {
+            return posts.length;
+        }
+
+        var wooProducts = document.querySelectorAll("main ul.products > li.product");
+        if (wooProducts.length) {
+            return wooProducts.length;
+        }
+
+        return -1;
+    }
+
+    function trackChipImpressions(labels, context) {
+        if (!labels || !labels.length) {
+            return;
+        }
+
+        trackEvent({
+            eventType: "chip_impression",
+            searchQuery: context && context.searchQuery ? context.searchQuery : "",
+            resultCount: context && typeof context.resultCount === "number" ? context.resultCount : -1,
+            chipLabels: labels
         });
     }
 
@@ -96,6 +150,7 @@
         formData.append("keyword", input.value);
         formData.append("post_type", config.postType || "post");
         formData.append("f-form--submitted", "true");
+        formData.append("ssc_lang", config.lang || "");
 
         if (config.nonce) {
             formData.append("ssc_nonce", config.nonce);
@@ -130,6 +185,20 @@
                         searchQuery: input.value,
                         resultCount: resultCount
                     });
+
+                    if (resultsContainer) {
+                        var visibleChips = Array.prototype.map.call(
+                            resultsContainer.querySelectorAll(".ssc-chips .ssc-chip[data-tag]"),
+                            function (chipNode) {
+                                return chipNode.getAttribute("data-tag") || "";
+                            }
+                        ).filter(Boolean);
+
+                        trackChipImpressions(visibleChips, {
+                            searchQuery: input.value,
+                            resultCount: resultCount
+                        });
+                    }
 
                     if (meta && meta.trigger === "chip" && meta.chipLabel) {
                         trackEvent({
@@ -201,6 +270,14 @@
         // Archive/search-result chips are normal links and should keep
         // the browser's native navigation/history behavior.
         if (!input || !results) {
+            if (chip.tagName === "A") {
+                trackEvent({
+                    eventType: "chip_click",
+                    searchQuery: getCurrentSearchQuery(),
+                    chipLabel: tag,
+                    resultCount: getArchiveResultCount()
+                });
+            }
             return;
         }
 
@@ -243,6 +320,10 @@
 
             if (hasAction) {
                 if (!this._sscManagedRequest) {
+                    if (config.lang && !data.has("ssc_lang")) {
+                        data.append("ssc_lang", config.lang);
+                    }
+
                     activeTags.forEach(function (t) {
                         data.append("active_tags[]", t);
                     });
@@ -309,5 +390,19 @@
                 doSearch(input, results, { trigger: "submit" });
             }
         }
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        var archiveChipLabels = Array.prototype.map.call(
+            document.querySelectorAll(".ssc-loop-filters .ssc-chip[data-tag]"),
+            function (chipNode) {
+                return chipNode.getAttribute("data-tag") || "";
+            }
+        ).filter(Boolean);
+
+        trackChipImpressions(archiveChipLabels, {
+            searchQuery: getCurrentSearchQuery(),
+            resultCount: getArchiveResultCount()
+        });
     });
 })();

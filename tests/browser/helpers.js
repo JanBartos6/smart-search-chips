@@ -25,6 +25,12 @@ async function gotoPluginAccount(page) {
   });
 }
 
+async function gotoAnalyticsPage(page) {
+  await page.goto("/wp-admin/options-general.php?page=smart-search-chips-analytics", {
+    waitUntil: "domcontentloaded",
+  });
+}
+
 async function readBodyText(page) {
   try {
     return await page.locator("body").innerText();
@@ -151,13 +157,34 @@ async function countArchiveResults(page) {
   return page.locator("main .wp-block-query.alignfull .wp-block-post-template > li.wp-block-post").count();
 }
 
+async function ensureAnalyticsEnabled(page) {
+  await gotoPluginSettings(page);
+
+  const checkbox = page.getByRole("checkbox", { name: /Track anonymous search/i });
+  if (!await checkbox.count()) {
+    return false;
+  }
+
+  if (!await checkbox.isChecked()) {
+    await checkbox.check();
+    await Promise.all([
+      page.waitForLoadState("networkidle"),
+      page.getByRole("button", { name: "Save Changes" }).click(),
+    ]);
+  }
+
+  return true;
+}
+
 module.exports = {
   escapedChipRegexp,
   loginAsAdmin,
   gotoPluginSettings,
   gotoPluginAccount,
+  gotoAnalyticsPage,
   activateProLicense,
   deactivateProLicense,
   countAjaxResults,
-  countArchiveResults
+  countArchiveResults,
+  ensureAnalyticsEnabled
 };

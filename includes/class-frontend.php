@@ -78,6 +78,7 @@ class SSC_Frontend {
             'minChars'   => 2,
             'postType'   => implode( ',', (array) $this->settings->get( 'post_types', array( 'post' ) ) ),
             'nonce'      => wp_create_nonce( 'ssc_search_nonce' ),
+            'lang'       => SSC_Language::current_language(),
             'analytics'  => array(
                 'enabled' => SSC_Analytics::is_enabled(),
                 'nonce'   => wp_create_nonce( 'ssc_analytics_nonce' ),

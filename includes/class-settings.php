@@ -365,9 +365,9 @@ class SSC_Settings {
                                             <label>
                                                 <input type="hidden" name="ssc_analytics_enabled" value="0" />
                                                 <input type="checkbox" name="ssc_analytics_enabled" value="1" <?php checked( $analytics_on, '1' ); ?> />
-                                                <?php _e( 'Track anonymous search and chip-click events for admins', 'smart-search-chips' ); ?>
+                                                <?php _e( 'Track anonymous search, chip-click, and chip-impression events for admins', 'smart-search-chips' ); ?>
                                             </label>
-                                            <p class="description"><?php _e( 'Stores aggregate search and chip-click events on this WordPress site. Uses anonymous visitor IDs for unique-visitor counts.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php _e( 'Stores aggregate search and chip interaction events on this WordPress site. Uses anonymous visitor IDs for unique-visitor counts.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                 </table>
@@ -387,11 +387,15 @@ class SSC_Settings {
                                                 <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['unique_visitors'] ) ); ?></strong>
                                                 <span><?php _e( 'Unique Visitors', 'smart-search-chips' ); ?></span>
                                             </div>
-                                            <div class="ssc-analytics-stat">
-                                                <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['zero_result_search'] ) ); ?></strong>
-                                                <span><?php _e( 'Zero-Result Searches', 'smart-search-chips' ); ?></span>
-                                            </div>
+                                        <div class="ssc-analytics-stat">
+                                            <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['zero_result_search'] ) ); ?></strong>
+                                            <span><?php _e( 'Zero-Result Searches', 'smart-search-chips' ); ?></span>
                                         </div>
+                                        <div class="ssc-analytics-stat">
+                                            <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['search_to_click_rate'], 1 ) . '%' ); ?></strong>
+                                            <span><?php _e( 'Search To Click Rate', 'smart-search-chips' ); ?></span>
+                                        </div>
+                                    </div>
                                         <p class="description"><?php printf( esc_html__( 'Current overview: %1$s to %2$s. Open the dedicated analytics page for date filters, detailed tables, and CSV export.', 'smart-search-chips' ), esc_html( $analytics['range']['from'] ), esc_html( $analytics['range']['to'] ) ); ?></p>
                                         <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-analytics' ) ); ?>"><?php _e( 'Open Detailed Analytics', 'smart-search-chips' ); ?></a></p>
                                     </div>
@@ -559,13 +563,22 @@ class SSC_Settings {
                                         </td>
                                     </tr>
                                     <?php endif; ?>
+                                    <?php if ( $is_pro ) : ?>
                                     <tr>
                                         <th><?php _e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <input type="text" name="ssc_override_ajax" value="<?php echo esc_attr( get_option( 'ssc_override_ajax', '' ) ); ?>" class="regular-text" />
-                                            <p class="description"><?php _e( 'Advanced integration only. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php _e( 'Pro advanced integration only. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
+                                    <?php else : ?>
+                                    <tr>
+                                        <th><?php _e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <p class="description"><?php _e( 'Pro can hook into an existing theme AJAX action when you need to piggyback on a custom live-search implementation. Standard shortcode AJAX search and loop chips still work in Free.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <?php endif; ?>
                                 </table>
                             </div>
                         </details>
@@ -961,11 +974,12 @@ class SSC_Settings {
                 .ssc-analytics-toolbar label { display: grid; gap: 6px; font-weight: 600; }
                 .ssc-analytics-toolbar input[type="date"] { min-width: 180px; }
                 .ssc-analytics-dashboard { display: grid; gap: 18px; margin-top: 12px; }
-                .ssc-analytics-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+                .ssc-analytics-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
                 .ssc-analytics-stat { display: grid; gap: 6px; padding: 14px; border: 1px solid #e3e5e8; border-radius: 12px; background: #fcfcfd; }
                 .ssc-analytics-stat strong { font-size: 22px; line-height: 1.1; color: #1d2327; }
                 .ssc-analytics-stat span { color: #50575e; font-size: 13px; }
                 .ssc-analytics-panels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+                .ssc-analytics-panels--quad { grid-template-columns: repeat(4, minmax(0, 1fr)); }
                 .ssc-analytics-panel { border: 1px solid #e3e5e8; border-radius: 12px; background: #fff; overflow: hidden; }
                 .ssc-analytics-panel h3 { margin: 0; padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #ebecef; background: #f7f8fa; }
                 .ssc-analytics-panel table { width: 100%; border-collapse: collapse; }
@@ -981,7 +995,8 @@ class SSC_Settings {
                 .ssc-chart-meta .ssc-chart-clicks::before { background: #d97706; }
                 .ssc-chart-meta .ssc-chart-visitors::before { background: #059669; }
                 .ssc-chart-meta .ssc-chart-zero::before { background: #dc2626; }
-                @media (max-width: 960px) { .ssc-analytics-stats, .ssc-analytics-panels { grid-template-columns: 1fr; } }
+                @media (max-width: 1200px) { .ssc-analytics-stats, .ssc-analytics-panels, .ssc-analytics-panels--quad { grid-template-columns: 1fr 1fr; } }
+                @media (max-width: 960px) { .ssc-analytics-stats, .ssc-analytics-panels, .ssc-analytics-panels--quad { grid-template-columns: 1fr; } }
                 @media (max-width: 960px) { .ssc-analytics-charts { grid-template-columns: 1fr; } }
             </style>
 
@@ -1017,6 +1032,10 @@ class SSC_Settings {
                         <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['zero_result_search'] ) ); ?></strong>
                         <span><?php _e( 'Zero-Result Searches', 'smart-search-chips' ); ?></span>
                     </div>
+                    <div class="ssc-analytics-stat">
+                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['search_to_click_rate'], 1 ) . '%' ); ?></strong>
+                        <span><?php _e( 'Search To Click Rate', 'smart-search-chips' ); ?></span>
+                    </div>
                 </div>
 
                 <div class="ssc-analytics-charts">
@@ -1042,24 +1061,28 @@ class SSC_Settings {
                     </div>
                 </div>
 
-                <div class="ssc-analytics-panels">
+                <div class="ssc-analytics-panels ssc-analytics-panels--quad">
                     <div class="ssc-analytics-panel">
                         <h3><?php _e( 'Top Clicked Chips', 'smart-search-chips' ); ?></h3>
                         <?php $this->render_analytics_table( $analytics['top_chips'], array( 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'clicks' => __( 'Clicks', 'smart-search-chips' ), 'visitors' => __( 'Visitors', 'smart-search-chips' ) ) ); ?>
                     </div>
                     <div class="ssc-analytics-panel">
-                        <h3><?php _e( 'Top Search Queries', 'smart-search-chips' ); ?></h3>
-                        <?php $this->render_analytics_table( $analytics['top_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'searches' => __( 'Searches', 'smart-search-chips' ), 'avg_results' => __( 'Avg. Results', 'smart-search-chips' ) ) ); ?>
+                        <h3><?php _e( 'Top Chips By Click-Through Rate', 'smart-search-chips' ); ?></h3>
+                        <?php $this->render_analytics_table( $analytics['top_chip_ctr'], array( 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'impressions' => __( 'Impressions', 'smart-search-chips' ), 'clicks' => __( 'Clicks', 'smart-search-chips' ), 'click_through_rate' => __( 'CTR', 'smart-search-chips' ) ) ); ?>
                     </div>
                     <div class="ssc-analytics-panel">
-                        <h3><?php _e( 'Zero-Result Queries', 'smart-search-chips' ); ?></h3>
-                        <?php $this->render_analytics_table( $analytics['zero_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'misses' => __( 'Misses', 'smart-search-chips' ) ) ); ?>
+                        <h3><?php _e( 'Top Search Queries', 'smart-search-chips' ); ?></h3>
+                        <?php $this->render_analytics_table( $analytics['top_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'searches' => __( 'Searches', 'smart-search-chips' ), 'chip_clicks' => __( 'Chip Clicks', 'smart-search-chips' ), 'click_rate' => __( 'Click Rate', 'smart-search-chips' ), 'avg_results' => __( 'Avg. Results', 'smart-search-chips' ) ) ); ?>
+                    </div>
+                    <div class="ssc-analytics-panel">
+                        <h3><?php _e( 'Top Zero-Result Queries Over Time', 'smart-search-chips' ); ?></h3>
+                        <?php $this->render_analytics_table( $analytics['zero_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'misses' => __( 'Misses', 'smart-search-chips' ), 'first_seen' => __( 'First Seen', 'smart-search-chips' ), 'last_seen' => __( 'Last Seen', 'smart-search-chips' ) ) ); ?>
                     </div>
                 </div>
 
                 <div class="ssc-analytics-panel">
                     <h3><?php _e( 'Recent Events', 'smart-search-chips' ); ?></h3>
-                    <?php $this->render_analytics_table( $events, array( 'created_at' => __( 'Date', 'smart-search-chips' ), 'event_type' => __( 'Event', 'smart-search-chips' ), 'search_query' => __( 'Query', 'smart-search-chips' ), 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'result_count' => __( 'Results', 'smart-search-chips' ) ) ); ?>
+                    <?php $this->render_analytics_table( $events, array( 'created_at' => __( 'Date', 'smart-search-chips' ), 'event_type' => __( 'Event', 'smart-search-chips' ), 'language_code' => __( 'Lang', 'smart-search-chips' ), 'search_query' => __( 'Query', 'smart-search-chips' ), 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'result_count' => __( 'Results', 'smart-search-chips' ) ) ); ?>
                 </div>
             </div>
         </div>
@@ -1091,7 +1114,9 @@ class SSC_Settings {
                 $value = isset( $row[ $key ] ) ? $row[ $key ] : '';
                 if ( $key === 'avg_results' ) {
                     $value = number_format_i18n( (float) $value, 1 );
-                } elseif ( $key === 'created_at' && $value ) {
+                } elseif ( in_array( $key, array( 'click_rate', 'click_through_rate', 'search_to_click_rate' ), true ) ) {
+                    $value = number_format_i18n( (float) $value, 1 ) . '%';
+                } elseif ( in_array( $key, array( 'created_at', 'first_seen', 'last_seen' ), true ) && $value ) {
                     $value = get_date_from_gmt( $value, 'Y-m-d H:i' );
                 } elseif ( is_numeric( $value ) ) {
                     $value = number_format_i18n( $value );

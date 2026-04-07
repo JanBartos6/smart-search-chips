@@ -190,6 +190,15 @@ class SSC_License {
     }
 
     /**
+     * Check if advanced AJAX override integration is available.
+     *
+     * @return bool
+     */
+    public static function can_use_ajax_override() {
+        return self::is_pro();
+    }
+
+    /**
      * Initialize license hooks.
      */
     public function init() {

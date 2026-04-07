@@ -31,18 +31,22 @@ function ssc_assert_contains( $needle, $haystack, $message ) {
 }
 
 function ssc_reset_test_state() {
-    global $ssc_test_options, $ssc_test_settings_errors;
+    global $ssc_test_options, $ssc_test_settings_errors, $ssc_test_filters, $ssc_test_actions, $ssc_test_polylang_language;
 
     $ssc_test_options         = array();
     $ssc_test_settings_errors = array();
+    $ssc_test_filters         = array();
+    $ssc_test_actions         = array();
+    $ssc_test_polylang_language = '';
     $_POST                    = array();
+    $_REQUEST                 = array();
 }
 
 function ssc_invoke_private( $object, $method_name, array $args = array() ) {
     $reflection = new ReflectionMethod( $object, $method_name );
     $reflection->setAccessible( true );
 
-    return $reflection->invokeArgs( $object, $args );
+    return $reflection->invokeArgs( is_object( $object ) ? $object : null, $args );
 }
 
 function ssc_test_chip_engine_extract_tags() {
@@ -205,6 +209,62 @@ function ssc_test_ai_prompt_rest_mode() {
     ssc_assert_contains( 'REST route: http://example.test/wp-json/wp/v2/product/22', $prompt, 'REST-mode prompt should include the selected item route' );
 }
 
+function ssc_test_language_request_prefers_explicit_request_value() {
+    ssc_reset_test_state();
+
+    $_REQUEST['ssc_lang'] = 'cs';
+
+    ssc_assert_same( 'cs', SSC_Language::request_language(), 'request_language should prefer the explicit request language when present' );
+}
+
+function ssc_test_language_detects_polylang_slug() {
+    global $ssc_test_polylang_language;
+
+    ssc_reset_test_state();
+    $ssc_test_polylang_language = 'de';
+
+    ssc_assert_same( 'de', SSC_Language::current_language(), 'current_language should use the active Polylang language slug' );
+}
+
+function ssc_test_language_applies_wpml_query_args() {
+    global $ssc_test_filters, $ssc_test_actions;
+
+    ssc_reset_test_state();
+    $ssc_test_filters['wpml_current_language'] = 'fr';
+    $ssc_test_filters['wpml_switch_language']  = true;
+
+    $args = SSC_Language::apply_query_language( array( 'post_type' => 'post' ) );
+    SSC_Language::switch_ajax_language( 'fr' );
+
+    ssc_assert_same( 'fr', $args['lang'], 'apply_query_language should attach the current WPML language slug' );
+    ssc_assert_same( false, $args['suppress_filters'], 'apply_query_language should keep WPML query filters enabled' );
+    ssc_assert_same( 'wpml_switch_language', $ssc_test_actions[0]['hook'], 'switch_ajax_language should trigger the WPML language switch action' );
+    ssc_assert_same( 'fr', $ssc_test_actions[0]['value'], 'switch_ajax_language should switch to the requested language' );
+}
+
+function ssc_test_analytics_sanitizes_chip_impression_labels() {
+    $labels = ssc_invoke_private( 'SSC_Analytics', 'sanitize_chip_labels', array( array( ' spring handle ', 'spring handle', '', 'IP67' ) ) );
+
+    ssc_assert_same( array( 'spring handle', 'IP67' ), $labels, 'sanitize_chip_labels should trim, deduplicate, and discard empty impression labels' );
+}
+
+function ssc_test_analytics_appends_ctr_percentages() {
+    $rows = ssc_invoke_private( 'SSC_Analytics', 'append_percentage_to_rows', array(
+        array(
+            array(
+                'chip_label'  => 'spring handle',
+                'clicks'      => 3,
+                'impressions' => 12,
+            ),
+        ),
+        'clicks',
+        'impressions',
+        'click_through_rate',
+    ) );
+
+    ssc_assert_same( 25.0, $rows[0]['click_through_rate'], 'append_percentage_to_rows should compute percentage metrics with one decimal place' );
+}
+
 ssc_test_chip_engine_extract_tags();
 ssc_test_chip_engine_generate_chips();
 ssc_test_chip_engine_active_tag_survives();
@@ -215,6 +275,11 @@ ssc_test_settings_reserved_custom_field_rejected();
 ssc_test_settings_duplicate_field_rejected();
 ssc_test_ai_prompt_manual_mode();
 ssc_test_ai_prompt_rest_mode();
+ssc_test_language_request_prefers_explicit_request_value();
+ssc_test_language_detects_polylang_slug();
+ssc_test_language_applies_wpml_query_args();
+ssc_test_analytics_sanitizes_chip_impression_labels();
+ssc_test_analytics_appends_ctr_percentages();
 
 if ( $ssc_test_failures > 0 ) {
     fwrite( STDERR, "\n{$ssc_test_failures} unit test(s) failed.\n" );

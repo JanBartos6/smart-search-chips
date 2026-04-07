@@ -15,7 +15,7 @@ class SSC_Analytics {
     const DB_VERSION_OPTION = 'ssc_analytics_db_version';
 
     /** @var string Current analytics schema version */
-    const DB_VERSION = '1.0';
+    const DB_VERSION = '1.1';
 
     /**
      * Register analytics hooks.
@@ -53,6 +53,7 @@ class SSC_Analytics {
             visitor_id varchar(64) NOT NULL,
             user_id bigint(20) unsigned DEFAULT NULL,
             event_type varchar(32) NOT NULL,
+            language_code varchar(32) DEFAULT '',
             search_query varchar(191) DEFAULT '',
             chip_label varchar(191) DEFAULT '',
             page_url varchar(255) DEFAULT '',
@@ -60,6 +61,7 @@ class SSC_Analytics {
             active_tag_count int(11) DEFAULT NULL,
             PRIMARY KEY  (id),
             KEY event_type_created_at (event_type, created_at),
+            KEY language_created_at (language_code, created_at),
             KEY chip_label_created_at (chip_label(100), created_at),
             KEY search_query_created_at (search_query(100), created_at),
             KEY visitor_created_at (visitor_id, created_at)
@@ -123,7 +125,7 @@ class SSC_Analytics {
         }
 
         $event_type = isset( $_POST['event_type'] ) ? sanitize_key( wp_unslash( $_POST['event_type'] ) ) : '';
-        if ( ! in_array( $event_type, array( 'search', 'chip_click' ), true ) ) {
+        if ( ! in_array( $event_type, array( 'search', 'chip_click', 'chip_impression' ), true ) ) {
             wp_send_json_error( array( 'message' => __( 'Unsupported analytics event type.', 'smart-search-chips' ) ), 400 );
         }
 
@@ -137,8 +139,13 @@ class SSC_Analytics {
         $page_url         = isset( $_POST['page_url'] ) ? esc_url_raw( wp_unslash( $_POST['page_url'] ) ) : '';
         $result_count     = isset( $_POST['result_count'] ) ? intval( $_POST['result_count'] ) : null;
         $active_tag_count = isset( $_POST['active_tag_count'] ) ? max( 0, intval( $_POST['active_tag_count'] ) ) : null;
+        $language_code    = SSC_Language::request_language();
+        $chip_labels      = self::sanitize_chip_labels( isset( $_POST['chip_labels'] ) ? wp_unslash( $_POST['chip_labels'] ) : array() );
 
         if ( $event_type === 'search' && strlen( $search_query ) < 2 ) {
+            wp_send_json_success( array( 'tracked' => false ) );
+        }
+        if ( $event_type === 'chip_impression' && empty( $chip_labels ) ) {
             wp_send_json_success( array( 'tracked' => false ) );
         }
 
@@ -147,23 +154,38 @@ class SSC_Analytics {
 
         global $wpdb;
 
-        $wpdb->insert(
-            self::table_name(),
-            array(
-                'created_at'       => current_time( 'mysql', true ),
-                'visitor_id'       => substr( $visitor_id, 0, 64 ),
-                'user_id'          => $user_id,
-                'event_type'       => $event_type,
-                'search_query'     => substr( $search_query, 0, 191 ),
-                'chip_label'       => substr( $chip_label, 0, 191 ),
-                'page_url'         => substr( $page_url, 0, 255 ),
-                'result_count'     => $result_count,
-                'active_tag_count' => $active_tag_count,
-            ),
-            array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d' )
+        $timestamp = current_time( 'mysql', true );
+        $base_row  = array(
+            'created_at'       => $timestamp,
+            'visitor_id'       => substr( $visitor_id, 0, 64 ),
+            'user_id'          => $user_id,
+            'event_type'       => $event_type,
+            'language_code'    => substr( $language_code, 0, 32 ),
+            'search_query'     => substr( $search_query, 0, 191 ),
+            'chip_label'       => substr( $chip_label, 0, 191 ),
+            'page_url'         => substr( $page_url, 0, 255 ),
+            'result_count'     => $result_count,
+            'active_tag_count' => $active_tag_count,
         );
+        $formats   = array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d' );
+        $tracked   = 0;
 
-        wp_send_json_success( array( 'tracked' => true ) );
+        if ( 'chip_impression' === $event_type ) {
+            foreach ( $chip_labels as $impression_label ) {
+                $row               = $base_row;
+                $row['chip_label'] = substr( $impression_label, 0, 191 );
+
+                if ( false !== $wpdb->insert( self::table_name(), $row, $formats ) ) {
+                    $tracked++;
+                }
+            }
+        } else {
+            if ( false !== $wpdb->insert( self::table_name(), $base_row, $formats ) ) {
+                $tracked = 1;
+            }
+        }
+
+        wp_send_json_success( array( 'tracked' => $tracked > 0, 'tracked_count' => $tracked ) );
     }
 
     /**
@@ -188,6 +210,17 @@ class SSC_Analytics {
             'zero_result_search' => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND created_at BETWEEN %s AND %s AND result_count = 0", 'search', $from_gmt, $to_gmt ) ),
             'chip_clicks'        => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND created_at BETWEEN %s AND %s", 'chip_click', $from_gmt, $to_gmt ) ),
         );
+        $summary['search_linked_clicks'] = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*)
+                FROM {$table_name}
+                WHERE event_type = %s AND created_at BETWEEN %s AND %s AND search_query <> ''",
+                'chip_click',
+                $from_gmt,
+                $to_gmt
+            )
+        );
+        $summary['search_to_click_rate'] = self::calculate_percentage( $summary['search_linked_clicks'], $summary['total_searches'] );
 
         $top_chips = $wpdb->get_results(
             $wpdb->prepare(
@@ -206,26 +239,34 @@ class SSC_Analytics {
 
         $top_queries = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT search_query, COUNT(*) AS searches, AVG(COALESCE(result_count, 0)) AS avg_results
+                "SELECT search_query,
+                    SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS searches,
+                    SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS chip_clicks,
+                    AVG(CASE WHEN event_type = %s THEN COALESCE(result_count, 0) ELSE NULL END) AS avg_results
                 FROM {$table_name}
-                WHERE event_type = %s AND created_at BETWEEN %s AND %s AND search_query <> ''
+                WHERE event_type IN (%s, %s) AND created_at BETWEEN %s AND %s AND search_query <> ''
                 GROUP BY search_query
                 ORDER BY searches DESC
                 LIMIT 10",
                 'search',
+                'chip_click',
+                'search',
+                'search',
+                'chip_click',
                 $from_gmt,
                 $to_gmt
             ),
             ARRAY_A
         );
+        $top_queries = self::append_percentage_to_rows( $top_queries, 'chip_clicks', 'searches', 'click_rate' );
 
         $zero_queries = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT search_query, COUNT(*) AS misses
+                "SELECT search_query, COUNT(*) AS misses, MIN(created_at) AS first_seen, MAX(created_at) AS last_seen
                 FROM {$table_name}
                 WHERE event_type = %s AND created_at BETWEEN %s AND %s AND result_count = 0 AND search_query <> ''
                 GROUP BY search_query
-                ORDER BY misses DESC
+                ORDER BY misses DESC, last_seen DESC
                 LIMIT 10",
                 'search',
                 $from_gmt,
@@ -233,14 +274,16 @@ class SSC_Analytics {
             ),
             ARRAY_A
         );
+        $top_chip_ctr = self::get_top_chip_ctr_rows( $range );
 
         return array(
-            'range'       => $range,
-            'summary'     => $summary,
-            'timeseries'  => self::get_time_series( $range ),
-            'top_chips'   => is_array( $top_chips ) ? $top_chips : array(),
-            'top_queries' => is_array( $top_queries ) ? $top_queries : array(),
-            'zero_queries'=> is_array( $zero_queries ) ? $zero_queries : array(),
+            'range'         => $range,
+            'summary'       => $summary,
+            'timeseries'    => self::get_time_series( $range ),
+            'top_chips'     => is_array( $top_chips ) ? $top_chips : array(),
+            'top_chip_ctr'  => $top_chip_ctr,
+            'top_queries'   => is_array( $top_queries ) ? $top_queries : array(),
+            'zero_queries'  => is_array( $zero_queries ) ? $zero_queries : array(),
         );
     }
 
@@ -342,7 +385,7 @@ class SSC_Analytics {
         if ( $limit > 0 ) {
             $results = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT created_at, event_type, search_query, chip_label, result_count, active_tag_count, page_url, visitor_id
+                    "SELECT created_at, event_type, language_code, search_query, chip_label, result_count, active_tag_count, page_url, visitor_id
                     FROM {$table_name}
                     WHERE created_at BETWEEN %s AND %s
                     ORDER BY created_at DESC
@@ -356,7 +399,7 @@ class SSC_Analytics {
         } else {
             $results = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT created_at, event_type, search_query, chip_label, result_count, active_tag_count, page_url, visitor_id
+                    "SELECT created_at, event_type, language_code, search_query, chip_label, result_count, active_tag_count, page_url, visitor_id
                     FROM {$table_name}
                     WHERE created_at BETWEEN %s AND %s
                     ORDER BY created_at DESC",
@@ -397,12 +440,13 @@ class SSC_Analytics {
         header( 'Content-Disposition: attachment; filename=ssc-analytics-' . $range['from'] . '-to-' . $range['to'] . '.csv' );
 
         $out = fopen( 'php://output', 'w' );
-        fputcsv( $out, array( 'created_at_utc', 'event_type', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'page_url', 'visitor_id' ) );
+        fputcsv( $out, array( 'created_at_utc', 'event_type', 'language_code', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'page_url', 'visitor_id' ) );
 
         foreach ( $events as $event ) {
             fputcsv( $out, array(
                 $event['created_at'],
                 $event['event_type'],
+                $event['language_code'],
                 $event['search_query'],
                 $event['chip_label'],
                 $event['result_count'],
@@ -465,5 +509,105 @@ class SSC_Analytics {
         $value = sanitize_text_field( (string) $value );
 
         return preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ? $value : '';
+    }
+
+    /**
+     * Sanitize a chip label array for impression tracking.
+     *
+     * @param mixed $raw_labels Raw request value.
+     * @return array
+     */
+    private static function sanitize_chip_labels( $raw_labels ) {
+        $labels = is_array( $raw_labels ) ? $raw_labels : array();
+        $clean  = array();
+
+        foreach ( $labels as $label ) {
+            $label = sanitize_text_field( (string) $label );
+            if ( '' === $label || in_array( $label, $clean, true ) ) {
+                continue;
+            }
+
+            $clean[] = $label;
+        }
+
+        return array_slice( $clean, 0, 20 );
+    }
+
+    /**
+     * Calculate a percentage with one decimal place.
+     *
+     * @param int|float $numerator   Numerator.
+     * @param int|float $denominator Denominator.
+     * @return float
+     */
+    private static function calculate_percentage( $numerator, $denominator ) {
+        if ( (float) $denominator <= 0 ) {
+            return 0.0;
+        }
+
+        return round( ( (float) $numerator / (float) $denominator ) * 100, 1 );
+    }
+
+    /**
+     * Append a percentage field to aggregated analytics rows.
+     *
+     * @param array  $rows            Rows to enrich.
+     * @param string $numerator_key   Numerator field.
+     * @param string $denominator_key Denominator field.
+     * @param string $target_key      Output field.
+     * @return array
+     */
+    private static function append_percentage_to_rows( $rows, $numerator_key, $denominator_key, $target_key ) {
+        if ( ! is_array( $rows ) ) {
+            return array();
+        }
+
+        foreach ( $rows as &$row ) {
+            $numerator          = isset( $row[ $numerator_key ] ) ? (float) $row[ $numerator_key ] : 0;
+            $denominator        = isset( $row[ $denominator_key ] ) ? (float) $row[ $denominator_key ] : 0;
+            $row[ $target_key ] = self::calculate_percentage( $numerator, $denominator );
+        }
+        unset( $row );
+
+        return $rows;
+    }
+
+    /**
+     * Return the top chips ranked by click-through rate.
+     *
+     * @param array $range Date range.
+     * @return array
+     */
+    private static function get_top_chip_ctr_rows( $range ) {
+        global $wpdb;
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT chip_label,
+                    SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS impressions,
+                    SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS clicks,
+                    COUNT(DISTINCT CASE WHEN event_type = %s THEN visitor_id ELSE NULL END) AS click_visitors
+                FROM " . self::table_name() . "
+                WHERE event_type IN (%s, %s)
+                    AND created_at BETWEEN %s AND %s
+                    AND chip_label <> ''
+                GROUP BY chip_label
+                HAVING impressions > 0
+                ORDER BY ( SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) / SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) ) DESC, clicks DESC
+                LIMIT 10",
+                'chip_impression',
+                'chip_click',
+                'chip_click',
+                'chip_impression',
+                'chip_click',
+                $range['from_gmt'],
+                $range['to_gmt'],
+                'chip_click',
+                'chip_impression'
+            ),
+            ARRAY_A
+        );
+
+        return self::append_percentage_to_rows( is_array( $rows ) ? $rows : array(), 'clicks', 'impressions', 'click_through_rate' );
     }
 }

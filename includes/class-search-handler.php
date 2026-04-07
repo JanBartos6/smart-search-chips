@@ -26,9 +26,9 @@ class SSC_Search_Handler {
      * Register AJAX hooks.
      */
     public function init() {
-        // Override existing AJAX action (free + pro)
+        // Override existing AJAX action (Pro only)
         $ajax_action = $this->settings->get( 'override_ajax' );
-        if ( ! empty( $ajax_action ) ) {
+        if ( SSC_License::can_use_ajax_override() && ! empty( $ajax_action ) ) {
             add_action( 'wp_ajax_' . $ajax_action, array( $this, 'handle_search' ), 0 );
             add_action( 'wp_ajax_nopriv_' . $ajax_action, array( $this, 'handle_search' ), 0 );
         }
@@ -54,6 +54,9 @@ class SSC_Search_Handler {
             wp_die();
         }
 
+        $language = SSC_Language::request_language();
+        SSC_Language::switch_ajax_language( $language );
+
         $post_types     = $this->settings->get( 'post_types', array( 'post' ) );
         $max_results    = (int) $this->settings->get( 'search_results_count', 50 );
         $threshold_pct  = (float) $this->settings->get( 'relevance_threshold', 0.3 );
@@ -67,11 +70,13 @@ class SSC_Search_Handler {
         );
 
         // Run search query (Relevanssi hooks in automatically if active)
-        $query = new WP_Query( array(
+        $query_args = array(
             's'              => $keyword,
             'post_type'      => $post_types,
             'posts_per_page' => $max_results,
-        ) );
+        );
+
+        $query = new WP_Query( SSC_Language::apply_query_language( $query_args, $language ) );
 
         if ( ! $query->have_posts() ) {
             header( 'X-SSC-Results-Count: 0' );
