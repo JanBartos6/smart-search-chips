@@ -80,6 +80,30 @@ class SSC_Analytics {
     }
 
     /**
+     * Remove all stored analytics events while keeping the table structure.
+     *
+     * @return void
+     */
+    public static function clear_events() {
+        global $wpdb;
+
+        $table_name = self::table_name();
+        $wpdb->query( "DELETE FROM {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+    }
+
+    /**
+     * Drop the analytics table entirely.
+     *
+     * @return void
+     */
+    public static function drop_table() {
+        global $wpdb;
+
+        $table_name = self::table_name();
+        $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+    }
+
+    /**
      * Whether analytics is enabled for tracking and dashboard reporting.
      *
      * @return bool

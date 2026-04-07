@@ -17,6 +17,7 @@ class SSC_Settings {
     public function init() {
         add_action( 'admin_menu', array( $this, 'add_menu_page' ) );
         add_action( 'admin_init', array( $this, 'register_settings' ) );
+        add_action( 'admin_post_ssc_delete_plugin_data_now', array( $this, 'handle_delete_data_now' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
         add_filter( 'plugin_action_links_' . SSC_PLUGIN_BASENAME, array( $this, 'add_settings_link' ) );
     }
@@ -104,6 +105,9 @@ class SSC_Settings {
         register_setting( 'smart-search-chips', 'ssc_analytics_enabled', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
+        register_setting( 'smart-search-chips', 'ssc_delete_data_on_uninstall', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
     }
 
     /**
@@ -177,11 +181,15 @@ class SSC_Settings {
         $ai_rest_mode  = get_option( 'ssc_ai_rest_enabled', '1' );
         $ai_target     = $this->sanitize_ai_target_field( get_option( 'ssc_ai_target_field', 'built_in' ) );
         $analytics_on  = get_option( 'ssc_analytics_enabled', '0' );
+        $delete_on_uninstall = get_option( 'ssc_delete_data_on_uninstall', '0' );
 
         ?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
             <?php settings_errors( 'smart-search-chips' ); ?>
+            <?php if ( isset( $_GET['ssc_data_deleted'] ) && $_GET['ssc_data_deleted'] === '1' ) : ?>
+                <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Smart Search Chips data was deleted. Settings have been reset, built-in chip meta was removed, and analytics events were cleared.', 'smart-search-chips' ); ?></p></div>
+            <?php endif; ?>
 
             <?php if ( $is_pro && ! $relevanssi_active ) : ?>
                 <div class="notice notice-info"><p><strong><?php _e( 'Relevanssi not detected.', 'smart-search-chips' ); ?></strong> <?php _e( 'Install Relevanssi (free) for relevance scoring.', 'smart-search-chips' ); ?></p></div>
@@ -562,6 +570,35 @@ class SSC_Settings {
                             </div>
                         </details>
 
+                        <div class="ssc-settings-card ssc-settings-card--danger">
+                            <h2><?php _e( 'Data Cleanup', 'smart-search-chips' ); ?></h2>
+                            <table class="form-table">
+                                <tr>
+                                    <th><?php _e( 'Delete on Uninstall', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <label>
+                                            <input type="hidden" name="ssc_delete_data_on_uninstall" value="0" />
+                                            <input type="checkbox" name="ssc_delete_data_on_uninstall" value="1" <?php checked( $delete_on_uninstall, '1' ); ?> />
+                                            <?php _e( 'Delete all plugin data when the plugin is uninstalled', 'smart-search-chips' ); ?>
+                                        </label>
+                                        <p class="description"><?php _e( 'By default, uninstall keeps your settings and analytics data. Turn this on only if you want uninstall to remove built-in `ssc_tags` meta, plugin settings, and the analytics table.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><?php _e( 'Delete Data Now', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <p class="description"><?php _e( 'Use this if you want to wipe Smart Search Chips data without uninstalling the plugin. Export analytics CSV first if you want to keep a copy.', 'smart-search-chips' ); ?></p>
+                                        <button
+                                            type="submit"
+                                            form="ssc-delete-data-form"
+                                            class="button button-secondary"
+                                            onclick="return confirm('<?php echo esc_js( __( 'Delete Smart Search Chips settings, built-in chip meta, and stored analytics events now? This cannot be undone.', 'smart-search-chips' ) ); ?>');"
+                                        ><?php _e( 'Delete All Plugin Data Now', 'smart-search-chips' ); ?></button>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
                         <?php submit_button(); ?>
                     </div>
 
@@ -584,6 +621,10 @@ class SSC_Settings {
                     </div>
                 </div>
             </form>
+            <form id="ssc-delete-data-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                <input type="hidden" name="action" value="ssc_delete_plugin_data_now" />
+                <?php wp_nonce_field( 'ssc_delete_plugin_data_now' ); ?>
+            </form>
         </div>
 
         <style>
@@ -594,6 +635,7 @@ class SSC_Settings {
             #ssc-preview-panel h3 { margin: 0 0 12px; font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
             .ssc-settings-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 0 20px 12px; margin-bottom: 16px; }
             .ssc-settings-card h2 { font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+            .ssc-settings-card--danger { border-color: #f0c2c2; }
             .ssc-settings-card--collapsible { padding: 0; overflow: hidden; }
             .ssc-settings-card__summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; cursor: pointer; list-style: none; font-size: 16px; font-weight: 600; }
             .ssc-settings-card__summary::-webkit-details-marker { display: none; }
@@ -798,6 +840,32 @@ class SSC_Settings {
         })();
         </script>
         <?php
+    }
+
+    /**
+     * Handle the manual data deletion action.
+     *
+     * @return void
+     */
+    public function handle_delete_data_now() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have permission to delete plugin data.', 'smart-search-chips' ) );
+        }
+
+        check_admin_referer( 'ssc_delete_plugin_data_now' );
+
+        ssc_delete_plugin_data( false );
+
+        wp_safe_redirect(
+            add_query_arg(
+                array(
+                    'page'             => 'smart-search-chips',
+                    'ssc_data_deleted' => '1',
+                ),
+                admin_url( 'options-general.php' )
+            )
+        );
+        exit;
     }
 
     // ─── Helper renderers ────────────────────────────────────────────

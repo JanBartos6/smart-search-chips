@@ -9,6 +9,12 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
     exit;
 }
 
+if ( get_option( 'ssc_delete_data_on_uninstall', '0' ) !== '1' ) {
+    return;
+}
+
+global $wpdb;
+
 // Remove all plugin options
 $options = array(
     'ssc_post_types',
@@ -38,13 +44,20 @@ $options = array(
     'ssc_ai_max_tags',
     'ssc_ai_language',
     'ssc_ai_custom_instruction',
+    'ssc_delete_data_on_uninstall',
+    'ssc_analytics_db_version',
 );
 
 foreach ( $options as $option ) {
     delete_option( $option );
 }
 
-// Optionally remove all ssc_tags post meta
-// Uncomment the following if you want to clean up post meta on uninstall:
-// global $wpdb;
-// $wpdb->delete( $wpdb->postmeta, array( 'meta_key' => 'ssc_tags' ) );
+$wpdb->query(
+    $wpdb->prepare(
+        "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s",
+        'ssc_tags'
+    )
+);
+
+$table_name = $wpdb->prefix . 'ssc_events';
+$wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared

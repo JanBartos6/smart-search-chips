@@ -207,6 +207,7 @@ if ( function_exists( 'ssc_fs' ) ) {
             'ssc_ai_max_tags'             => 8,
             'ssc_ai_language'             => '',
             'ssc_ai_custom_instruction'   => '',
+            'ssc_delete_data_on_uninstall'=> '0',
         );
 
         foreach ( $defaults as $key => $value ) {
@@ -218,6 +219,72 @@ if ( function_exists( 'ssc_fs' ) ) {
         SSC_Analytics::create_table();
     }
     register_activation_hook( __FILE__, 'ssc_activate' );
+
+    /**
+     * Return the list of plugin option keys owned by Smart Search Chips.
+     *
+     * @return array
+     */
+    function ssc_get_option_keys() {
+        return array(
+            'ssc_post_types',
+            'ssc_tag_fields',
+            'ssc_extra_fields',
+            'ssc_max_chips',
+            'ssc_max_results',
+            'ssc_relevance_threshold',
+            'ssc_max_tag_length',
+            'ssc_chip_color',
+            'ssc_chip_text_color',
+            'ssc_chip_inactive_color',
+            'ssc_chip_inactive_text_color',
+            'ssc_chip_radius',
+            'ssc_chip_font_size',
+            'ssc_chip_padding_x',
+            'ssc_chip_padding_y',
+            'ssc_woo_enabled',
+            'ssc_override_ajax',
+            'ssc_search_results_count',
+            'ssc_license_key',
+            'ssc_license_status',
+            'ssc_analytics_enabled',
+            'ssc_ai_custom_read_fields',
+            'ssc_ai_target_field',
+            'ssc_ai_rest_enabled',
+            'ssc_ai_max_tags',
+            'ssc_ai_language',
+            'ssc_ai_custom_instruction',
+            'ssc_delete_data_on_uninstall',
+        );
+    }
+
+    /**
+     * Delete plugin-owned data while the plugin is still installed.
+     *
+     * @param bool $drop_analytics_table Whether to drop the analytics table entirely.
+     * @return void
+     */
+    function ssc_delete_plugin_data( $drop_analytics_table = false ) {
+        global $wpdb;
+
+        foreach ( ssc_get_option_keys() as $option ) {
+            delete_option( $option );
+        }
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s",
+                'ssc_tags'
+            )
+        );
+
+        if ( $drop_analytics_table ) {
+            SSC_Analytics::drop_table();
+            delete_option( SSC_Analytics::DB_VERSION_OPTION );
+        } else {
+            SSC_Analytics::clear_events();
+        }
+    }
 
     /**
      * Privacy Policy suggested content
