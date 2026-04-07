@@ -10,14 +10,35 @@ const licenseKey = process.env.SSC_TEST_LICENSE_KEY || "";
 
 test.describe.configure({ mode: "serial" });
 
+test("Freemius deactivation yields a clear outcome", async ({ page }) => {
+  test.skip(!licenseKey, "Set SSC_TEST_LICENSE_KEY to run the Freemius license-cycle test.");
+  test.setTimeout(180000);
+
+  await loginAsAdmin(page);
+  await activateProLicense(page, licenseKey);
+
+  const result = await deactivateProLicense(page);
+
+  expect(["deactivated", "timeout"]).toContain(result.outcome);
+
+  if (result.outcome === "timeout") {
+    expect(result.settingsState).toBe("pro");
+    expect(result.accountText).toMatch(/CurlException|cURL error 28|Connection timed out|timed out/i);
+  } else {
+    expect(result.settingsState).toBe("free");
+    await expect(page.getByText("This site is running the free tier.")).toBeVisible();
+    await expect(page.getByText("Upgrade to Pro")).toBeVisible();
+  }
+});
+
 test("Freemius free-to-pro-to-free cycle toggles the gated UI", async ({ page, baseURL }) => {
   test.skip(!licenseKey, "Set SSC_TEST_LICENSE_KEY to run the Freemius license-cycle test.");
-  test.fail(true, "Freemius license deactivation still times out from the local Docker site.");
   test.setTimeout(180000);
 
   await loginAsAdmin(page);
 
-  await deactivateProLicense(page);
+  const initialResult = await deactivateProLicense(page);
+  expect(initialResult.outcome, `Initial Freemius deactivation did not return the site to free tier. Outcome: ${initialResult.outcome}. Account text: ${initialResult.accountText}`).toBe("deactivated");
   await expect(page.getByText("This site is running the free tier.")).toBeVisible();
   await expect(page.getByText("Upgrade to Pro")).toBeVisible();
   await expect(page.getByText("Upgrade to Pro for border radius, font size, and padding controls.")).toBeVisible();
@@ -31,7 +52,8 @@ test("Freemius free-to-pro-to-free cycle toggles the gated UI", async ({ page, b
   await expect(page.getByRole("checkbox", { name: /Track anonymous search and chip-click events/i })).toBeVisible();
   await expect(page.getByText("Allow REST API write-back in generated prompt")).toBeVisible();
 
-  await deactivateProLicense(page);
+  const finalResult = await deactivateProLicense(page);
+  expect(finalResult.outcome, `Final Freemius deactivation did not return the site to free tier. Outcome: ${finalResult.outcome}. Account text: ${finalResult.accountText}`).toBe("deactivated");
   await expect(page.getByText("This site is running the free tier.")).toBeVisible();
   await expect(page.getByText("Upgrade to Pro")).toBeVisible();
   await expect(page.getByText("Border Radius")).toHaveCount(0);

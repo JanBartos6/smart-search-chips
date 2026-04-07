@@ -25,6 +25,14 @@ async function gotoPluginAccount(page) {
   });
 }
 
+async function readBodyText(page) {
+  try {
+    return await page.locator("body").innerText();
+  } catch (error) {
+    return "";
+  }
+}
+
 async function reactivatePlugin(page) {
   await page.goto("/wp-admin/plugins.php", { waitUntil: "networkidle" });
 
@@ -40,6 +48,22 @@ async function reactivatePlugin(page) {
 
 async function activateProLicense(page, licenseKey) {
   await reactivatePlugin(page);
+
+  const settingsText = await readBodyText(page);
+  if (settingsText.includes("Pro active")) {
+    return;
+  }
+
+  const licenseField = page.locator("#fs_license_key");
+  if (!await licenseField.count()) {
+    await gotoPluginSettings(page);
+
+    const postSettingsText = await readBodyText(page);
+    if (postSettingsText.includes("Pro active")) {
+      return;
+    }
+  }
+
   await page.click("#fs_license_key");
   await page.type("#fs_license_key", licenseKey, { delay: 20 });
   await page.getByText("No - do NOT send me security").click();
@@ -61,14 +85,62 @@ async function activateProLicense(page, licenseKey) {
 }
 
 async function deactivateProLicense(page) {
-  page.on("dialog", async (dialog) => {
+  page.once("dialog", async (dialog) => {
     await dialog.accept();
   });
 
   await gotoPluginAccount(page);
-  await page.getByText("Deactivate License").click({ noWaitAfter: true });
-  await page.waitForTimeout(12000);
+  const deactivateButton = page.getByText("Deactivate License");
+
+  if (!await deactivateButton.count()) {
+    await gotoPluginSettings(page);
+    return {
+      outcome: "deactivated",
+      settingsState: "free",
+      accountText: "",
+    };
+  }
+
+  await deactivateButton.click({ noWaitAfter: true });
+
+  const timeoutPattern = /(CurlException|cURL error 28|Connection timed out|timed out)/i;
+  let accountText = "";
+  const deadline = Date.now() + 25000;
+
+  while (Date.now() < deadline) {
+    accountText = await readBodyText(page);
+
+    if (timeoutPattern.test(accountText)) {
+      break;
+    }
+
+    await page.waitForTimeout(1000);
+  }
+
   await gotoPluginSettings(page);
+
+  const settingsText = await readBodyText(page);
+  let settingsState = "unknown";
+
+  if (settingsText.includes("This site is running the free tier.")) {
+    settingsState = "free";
+  } else if (settingsText.includes("Pro active")) {
+    settingsState = "pro";
+  }
+
+  let outcome = "unknown";
+
+  if (settingsState === "free") {
+    outcome = "deactivated";
+  } else if (timeoutPattern.test(accountText)) {
+    outcome = "timeout";
+  }
+
+  return {
+    outcome,
+    settingsState,
+    accountText: accountText.replace(/\s+/g, " ").trim(),
+  };
 }
 
 async function countAjaxResults(page) {

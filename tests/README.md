@@ -11,6 +11,7 @@ Files:
 - `tests/browser/*.spec.js`
   Runs Playwright browser tests against the local site for live search, chip interaction, and search-results navigation behavior.
   The paid-license cycle test also needs `SSC_TEST_LICENSE_KEY` set in the environment.
+  When that key is set, the suite includes a Freemius deactivation diagnostic that accepts either a clean downgrade to free or the current local timeout signature.
 - `tests/run-all.sh`
   Runs both suites in sequence.
 
