@@ -70,11 +70,9 @@ class SSC_Frontend {
         );
 
         // Pass settings to JS
-        $ajax_action = $this->settings->get( 'override_ajax' );
-
         wp_localize_script( 'smart-search-chips', 'sscConfig', array(
             'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
-            'action'     => ! empty( $ajax_action ) ? $ajax_action : 'ssc_search',
+            'action'     => $this->get_ajax_action_name(),
             'minChars'   => 2,
             'postType'   => implode( ',', (array) $this->settings->get( 'post_types', array( 'post' ) ) ),
             'nonce'      => wp_create_nonce( 'ssc_search_nonce' ),
@@ -84,6 +82,25 @@ class SSC_Frontend {
                 'nonce'   => wp_create_nonce( 'ssc_analytics_nonce' ),
             ),
         ) );
+    }
+
+    /**
+     * Resolve the AJAX action name that the frontend should call.
+     *
+     * Free sites should always use the built-in handler even if an old Pro-only
+     * override setting is still stored after a downgrade.
+     *
+     * @return string
+     */
+    private function get_ajax_action_name() {
+        if ( SSC_License::can_use_ajax_override() ) {
+            $ajax_action = $this->settings->get( 'override_ajax' );
+            if ( ! empty( $ajax_action ) ) {
+                return $ajax_action;
+            }
+        }
+
+        return 'ssc_search';
     }
 
     /**

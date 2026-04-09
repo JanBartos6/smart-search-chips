@@ -7,6 +7,7 @@ $ssc_test_settings_errors = array();
 $ssc_test_filters         = array();
 $ssc_test_actions         = array();
 $ssc_test_polylang_language = '';
+$ssc_test_freemius        = null;
 
 if ( ! function_exists( '__' ) ) {
     function __( $text, $domain = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
@@ -78,6 +79,14 @@ if ( ! function_exists( 'pll_current_language' ) ) {
     }
 }
 
+if ( ! function_exists( 'ssc_fs' ) ) {
+    function ssc_fs() {
+        global $ssc_test_freemius;
+
+        return $ssc_test_freemius;
+    }
+}
+
 if ( ! function_exists( 'get_option' ) ) {
     function get_option( $name, $default = false ) {
         global $ssc_test_options;
@@ -122,12 +131,22 @@ if ( ! function_exists( 'absint' ) ) {
     }
 }
 
+require_once dirname( __DIR__ ) . '/includes/class-license.php';
 require_once dirname( __DIR__ ) . '/includes/class-meta-box.php';
 require_once dirname( __DIR__ ) . '/includes/class-language.php';
 require_once dirname( __DIR__ ) . '/includes/class-chip-engine.php';
 require_once dirname( __DIR__ ) . '/includes/class-settings.php';
+require_once dirname( __DIR__ ) . '/includes/class-frontend.php';
 require_once dirname( __DIR__ ) . '/includes/class-ai-tagger.php';
 require_once dirname( __DIR__ ) . '/includes/class-analytics.php';
+
+class SSC_Test_Freemius {
+    public $premium = false;
+
+    public function can_use_premium_code() {
+        return (bool) $this->premium;
+    }
+}
 
 class SSC_Test_Settings extends SSC_Settings {
     private $values;

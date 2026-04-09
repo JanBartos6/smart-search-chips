@@ -31,13 +31,14 @@ function ssc_assert_contains( $needle, $haystack, $message ) {
 }
 
 function ssc_reset_test_state() {
-    global $ssc_test_options, $ssc_test_settings_errors, $ssc_test_filters, $ssc_test_actions, $ssc_test_polylang_language;
+    global $ssc_test_options, $ssc_test_settings_errors, $ssc_test_filters, $ssc_test_actions, $ssc_test_polylang_language, $ssc_test_freemius;
 
     $ssc_test_options         = array();
     $ssc_test_settings_errors = array();
     $ssc_test_filters         = array();
     $ssc_test_actions         = array();
     $ssc_test_polylang_language = '';
+    $ssc_test_freemius        = null;
     $_POST                    = array();
     $_REQUEST                 = array();
 }
@@ -265,6 +266,21 @@ function ssc_test_analytics_appends_ctr_percentages() {
     ssc_assert_same( 25.0, $rows[0]['click_through_rate'], 'append_percentage_to_rows should compute percentage metrics with one decimal place' );
 }
 
+function ssc_test_frontend_uses_default_ajax_action_after_free_downgrade() {
+    $frontend = new SSC_Frontend(
+        new SSC_Test_Settings(
+            array(
+                'override_ajax' => 'search_processing',
+            )
+        ),
+        new SSC_Chip_Engine()
+    );
+
+    $action = ssc_invoke_private( $frontend, 'get_ajax_action_name' );
+
+    ssc_assert_same( 'ssc_search', $action, 'frontend should fall back to the built-in AJAX action when a Pro override remains stored on the free tier' );
+}
+
 ssc_test_chip_engine_extract_tags();
 ssc_test_chip_engine_generate_chips();
 ssc_test_chip_engine_active_tag_survives();
@@ -280,6 +296,7 @@ ssc_test_language_detects_polylang_slug();
 ssc_test_language_applies_wpml_query_args();
 ssc_test_analytics_sanitizes_chip_impression_labels();
 ssc_test_analytics_appends_ctr_percentages();
+ssc_test_frontend_uses_default_ajax_action_after_free_downgrade();
 
 if ( $ssc_test_failures > 0 ) {
     fwrite( STDERR, "\n{$ssc_test_failures} unit test(s) failed.\n" );
