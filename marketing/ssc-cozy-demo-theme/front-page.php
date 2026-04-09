@@ -205,7 +205,7 @@ $mugs_url  = $mugs_term ? get_category_link( $mugs_term ) : home_url( '/category
     </section>
 
     <!-- ========== PRO: Visual feature showcase ========== -->
-    <section class="ssc-pro-section" data-reveal>
+    <section id="pro" class="ssc-pro-section" data-reveal>
         <div class="ssc-shell">
             <div class="ssc-pro-section__header">
                 <span class="ssc-kicker"><?php esc_html_e( 'Go further with Pro', 'ssc-cozy-demo' ); ?></span>

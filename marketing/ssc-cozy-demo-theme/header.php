@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             <nav class="ssc-nav" aria-label="<?php esc_attr_e( 'Primary navigation', 'ssc-cozy-demo' ); ?>">
                 <a href="<?php echo esc_url( home_url( '/' ) ); ?>"><?php esc_html_e( 'Home', 'ssc-cozy-demo' ); ?></a>
                 <a href="<?php echo esc_url( home_url( '/search/' ) ); ?>"><?php esc_html_e( 'Live Demo', 'ssc-cozy-demo' ); ?></a>
-                <a href="<?php echo esc_url( home_url( '/?s=tea' ) ); ?>"><?php esc_html_e( 'Search Results', 'ssc-cozy-demo' ); ?></a>
+                <a href="<?php echo esc_url( home_url( '/#pro' ) ); ?>"><?php esc_html_e( 'Pro', 'ssc-cozy-demo' ); ?></a>
             </nav>
         </div>
     </header>
