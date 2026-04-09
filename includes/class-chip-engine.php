@@ -190,29 +190,29 @@ class SSC_Chip_Engine {
     }
 
     /**
-     * Extract and deduplicate tags from custom fields.
+     * Extract and deduplicate tags from field values.
      *
-     * @param string $semicolon_field Semicolon-separated field value (primary tags).
-     * @param string $comma_field     Comma-separated field value (extra tags).
+     * The built-in `ssc_tags` field is stored as a comma-delimited string, while
+     * some external sources are semicolon-delimited. Accept both separators from
+     * either field so the parser stays resilient across Free/Pro sources.
+     *
+     * @param string $semicolon_field Primary field value.
+     * @param string $comma_field     Extra field value.
      * @return array ['tags' => array, 'tags_lower' => array]
      */
     public function extract_tags( $semicolon_field = '', $comma_field = '' ) {
-        $all_raw = '';
-
-        if ( $semicolon_field ) {
-            $all_raw .= $semicolon_field;
-        }
-
-        if ( $comma_field ) {
-            $parts    = array_map( 'trim', explode( ',', $comma_field ) );
-            $all_raw .= '; ' . implode( '; ', $parts );
-        }
+        $raw_values = array_filter( array( $semicolon_field, $comma_field ), function( $value ) {
+            return '' !== trim( (string) $value );
+        } );
 
         $tags = array();
-        foreach ( explode( ';', $all_raw ) as $t ) {
-            $t = trim( $t );
-            if ( $t && ! in_array( mb_strtolower( $t ), array_map( 'mb_strtolower', $tags ), true ) ) {
-                $tags[] = $t;
+        foreach ( $raw_values as $raw_value ) {
+            $parts = preg_split( '/[;,]/', (string) $raw_value );
+            foreach ( $parts as $t ) {
+                $t = trim( $t );
+                if ( $t && ! in_array( mb_strtolower( $t ), array_map( 'mb_strtolower', $tags ), true ) ) {
+                    $tags[] = $t;
+                }
             }
         }
 

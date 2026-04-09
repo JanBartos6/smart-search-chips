@@ -6,8 +6,11 @@ $ssc_test_options         = array();
 $ssc_test_settings_errors = array();
 $ssc_test_filters         = array();
 $ssc_test_actions         = array();
+$ssc_test_added_actions   = array();
+$ssc_test_added_filters   = array();
 $ssc_test_polylang_language = '';
 $ssc_test_freemius        = null;
+$ssc_test_is_block_theme  = false;
 
 if ( ! function_exists( '__' ) ) {
     function __( $text, $domain = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
@@ -71,6 +74,28 @@ if ( ! function_exists( 'do_action' ) ) {
     }
 }
 
+if ( ! function_exists( 'add_action' ) ) {
+    function add_action( $hook_name, $callback, $priority = 10, $accepted_args = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $ssc_test_added_actions;
+
+        $ssc_test_added_actions[] = array(
+            'hook'     => $hook_name,
+            'callback' => $callback,
+        );
+    }
+}
+
+if ( ! function_exists( 'add_filter' ) ) {
+    function add_filter( $hook_name, $callback, $priority = 10, $accepted_args = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $ssc_test_added_filters;
+
+        $ssc_test_added_filters[] = array(
+            'hook'     => $hook_name,
+            'callback' => $callback,
+        );
+    }
+}
+
 if ( ! function_exists( 'pll_current_language' ) ) {
     function pll_current_language( $type = 'slug' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         global $ssc_test_polylang_language;
@@ -115,6 +140,14 @@ if ( ! function_exists( 'home_url' ) ) {
     }
 }
 
+if ( ! function_exists( 'wp_is_block_theme' ) ) {
+    function wp_is_block_theme() {
+        global $ssc_test_is_block_theme;
+
+        return (bool) $ssc_test_is_block_theme;
+    }
+}
+
 if ( ! function_exists( 'get_the_title' ) ) {
     function get_the_title( $post ) {
         if ( is_object( $post ) && isset( $post->post_title ) ) {
@@ -137,6 +170,7 @@ require_once dirname( __DIR__ ) . '/includes/class-language.php';
 require_once dirname( __DIR__ ) . '/includes/class-chip-engine.php';
 require_once dirname( __DIR__ ) . '/includes/class-settings.php';
 require_once dirname( __DIR__ ) . '/includes/class-frontend.php';
+require_once dirname( __DIR__ ) . '/includes/class-search-handler.php';
 require_once dirname( __DIR__ ) . '/includes/class-ai-tagger.php';
 require_once dirname( __DIR__ ) . '/includes/class-analytics.php';
 

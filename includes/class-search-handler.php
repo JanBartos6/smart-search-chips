@@ -48,7 +48,7 @@ class SSC_Search_Handler {
         }
 
         $keyword     = isset( $_POST['keyword'] ) ? sanitize_text_field( $_POST['keyword'] ) : '';
-        $active_tags = isset( $_POST['active_tags'] ) ? array_map( 'sanitize_text_field', $_POST['active_tags'] ) : array();
+        $active_tags = $this->normalize_active_tags( isset( $_POST['active_tags'] ) ? wp_unslash( $_POST['active_tags'] ) : array() );
 
         if ( empty( $keyword ) || strlen( $keyword ) < 2 ) {
             wp_die();
@@ -134,6 +134,39 @@ class SSC_Search_Handler {
         $this->render_results( $posts_data, $display_count );
 
         wp_die();
+    }
+
+    /**
+     * Normalize requested active tags into a clean array.
+     *
+     * Accepts the native array shape from FormData as well as defensive
+     * fallbacks for malformed scalar or JSON-encoded payloads.
+     *
+     * @param mixed $raw_tags Raw request value.
+     * @return array
+     */
+    private function normalize_active_tags( $raw_tags ) {
+        if ( is_string( $raw_tags ) ) {
+            $decoded = json_decode( $raw_tags, true );
+            if ( is_array( $decoded ) ) {
+                $raw_tags = $decoded;
+            } elseif ( '' === trim( $raw_tags ) ) {
+                $raw_tags = array();
+            } else {
+                $raw_tags = array( $raw_tags );
+            }
+        }
+
+        if ( ! is_array( $raw_tags ) ) {
+            return array();
+        }
+
+        $tags = array_map( 'sanitize_text_field', $raw_tags );
+        $tags = array_filter( $tags, function( $tag ) {
+            return '' !== $tag;
+        } );
+
+        return array_values( array_unique( $tags ) );
     }
 
     /**

@@ -31,14 +31,17 @@ function ssc_assert_contains( $needle, $haystack, $message ) {
 }
 
 function ssc_reset_test_state() {
-    global $ssc_test_options, $ssc_test_settings_errors, $ssc_test_filters, $ssc_test_actions, $ssc_test_polylang_language, $ssc_test_freemius;
+    global $ssc_test_options, $ssc_test_settings_errors, $ssc_test_filters, $ssc_test_actions, $ssc_test_polylang_language, $ssc_test_freemius, $ssc_test_added_actions, $ssc_test_added_filters, $ssc_test_is_block_theme;
 
     $ssc_test_options         = array();
     $ssc_test_settings_errors = array();
     $ssc_test_filters         = array();
     $ssc_test_actions         = array();
+    $ssc_test_added_actions   = array();
+    $ssc_test_added_filters   = array();
     $ssc_test_polylang_language = '';
     $ssc_test_freemius        = null;
+    $ssc_test_is_block_theme  = false;
     $_POST                    = array();
     $_REQUEST                 = array();
 }
@@ -58,6 +61,17 @@ function ssc_test_chip_engine_extract_tags() {
         array( 'Steel', 'IP65', 'Outdoor', 'CE' ),
         $tags['tags'],
         'extract_tags should merge primary and extra tags while deduplicating case-insensitively'
+    );
+}
+
+function ssc_test_chip_engine_extract_tags_supports_comma_delimited_primary_field() {
+    $engine = new SSC_Chip_Engine();
+    $tags   = $engine->extract_tags( 'spring handle, stainless steel, spring handle', '' );
+
+    ssc_assert_same(
+        array( 'spring handle', 'stainless steel' ),
+        $tags['tags'],
+        'extract_tags should split comma-delimited primary field values used by the built-in ssc_tags field'
     );
 }
 
@@ -281,7 +295,36 @@ function ssc_test_frontend_uses_default_ajax_action_after_free_downgrade() {
     ssc_assert_same( 'ssc_search', $action, 'frontend should fall back to the built-in AJAX action when a Pro override remains stored on the free tier' );
 }
 
+function ssc_test_search_handler_normalizes_scalar_active_tags() {
+    $handler = new SSC_Search_Handler( new SSC_Chip_Engine(), new SSC_Test_Settings() );
+
+    $tags = ssc_invoke_private( $handler, 'normalize_active_tags', array( '["spring handle","spring handle",""]' ) );
+
+    ssc_assert_same(
+        array( 'spring handle' ),
+        $tags,
+        'search handler should safely normalize JSON-encoded or malformed scalar active tag payloads'
+    );
+}
+
+function ssc_test_frontend_registers_loop_fallback_for_block_themes() {
+    global $ssc_test_added_actions, $ssc_test_added_filters, $ssc_test_is_block_theme;
+
+    ssc_reset_test_state();
+    $ssc_test_is_block_theme = true;
+
+    $frontend = new SSC_Frontend( new SSC_Test_Settings(), new SSC_Chip_Engine() );
+    $frontend->init();
+
+    $action_hooks = array_column( $ssc_test_added_actions, 'hook' );
+    $filter_hooks = array_column( $ssc_test_added_filters, 'hook' );
+
+    ssc_assert_true( in_array( 'loop_start', $action_hooks, true ), 'frontend should always register the loop_start archive-chip fallback' );
+    ssc_assert_true( in_array( 'render_block', $filter_hooks, true ), 'frontend should still register block-theme query injection on block themes' );
+}
+
 ssc_test_chip_engine_extract_tags();
+ssc_test_chip_engine_extract_tags_supports_comma_delimited_primary_field();
 ssc_test_chip_engine_generate_chips();
 ssc_test_chip_engine_active_tag_survives();
 ssc_test_chip_engine_active_tags_are_ordered_first();
@@ -297,6 +340,8 @@ ssc_test_language_applies_wpml_query_args();
 ssc_test_analytics_sanitizes_chip_impression_labels();
 ssc_test_analytics_appends_ctr_percentages();
 ssc_test_frontend_uses_default_ajax_action_after_free_downgrade();
+ssc_test_search_handler_normalizes_scalar_active_tags();
+ssc_test_frontend_registers_loop_fallback_for_block_themes();
 
 if ( $ssc_test_failures > 0 ) {
     fwrite( STDERR, "\n{$ssc_test_failures} unit test(s) failed.\n" );

@@ -35,11 +35,10 @@ class SSC_Frontend {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_shortcode( 'ssc_search', array( $this, 'render_search_form' ) );
         add_filter( 'the_posts', array( $this, 'filter_archive_posts' ), 10, 2 );
+        add_action( 'loop_start', array( $this, 'render_archive_chips_before_loop' ) );
 
         if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
             add_filter( 'render_block', array( $this, 'inject_archive_chips_into_query_block' ), 10, 2 );
-        } else {
-            add_action( 'loop_start', array( $this, 'render_archive_chips_before_loop' ) );
         }
 
         if ( class_exists( 'WooCommerce' ) ) {
