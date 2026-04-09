@@ -47,13 +47,16 @@ $featured_query = new WP_Query(
                 <p class="ssc-hero-card__copy">
                     <?php esc_html_e( 'Moss & Clay is a deliberately coherent demo shop for teaware and serving pieces. It exists so you can see Smart Search Chips working in a believable catalog where overlap by material, ritual, and use actually matters.', 'ssc-cozy-demo' ); ?>
                 </p>
-                <div class="ssc-hero-card__search">
+                <p class="ssc-hero-card__hint">
+                    <?php esc_html_e( 'The demo starts with a real tea search so the chips are visible immediately. Use the buttons below to swap the query.', 'ssc-cozy-demo' ); ?>
+                </p>
+                <div class="ssc-hero-card__search" data-demo-autoload="tea">
                     <?php echo do_shortcode( '[ssc_search placeholder="Search mug, matcha, stoneware, or serving"]' ); ?>
                 </div>
                 <div class="ssc-demo-pill-row">
-                    <button class="ssc-demo-pill" type="button" data-demo-query="mug"><?php esc_html_e( 'Try "mug"', 'ssc-cozy-demo' ); ?></button>
                     <button class="ssc-demo-pill" type="button" data-demo-query="tea"><?php esc_html_e( 'Try "tea"', 'ssc-cozy-demo' ); ?></button>
-                    <button class="ssc-demo-pill" type="button" data-demo-query="serving"><?php esc_html_e( 'Try "serving"', 'ssc-cozy-demo' ); ?></button>
+                    <button class="ssc-demo-pill" type="button" data-demo-query="stoneware"><?php esc_html_e( 'Try "stoneware"', 'ssc-cozy-demo' ); ?></button>
+                    <button class="ssc-demo-pill" type="button" data-demo-query="hosting"><?php esc_html_e( 'Try "hosting"', 'ssc-cozy-demo' ); ?></button>
                 </div>
             </aside>
         </div>

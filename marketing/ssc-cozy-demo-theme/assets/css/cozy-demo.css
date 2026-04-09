@@ -326,6 +326,13 @@ p {
     color: var(--ssc-ink-soft);
 }
 
+.ssc-hero-card__hint {
+    margin: 0 0 18px;
+    color: var(--ssc-accent-deep);
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
 .ssc-hero-card__search {
     margin-top: 22px;
 }

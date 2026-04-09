@@ -15,10 +15,10 @@ get_header();
                     <?php esc_html_e( 'This page shows the shortcode-based live search flow. Start with a broad term and then let the generated chips narrow the result set without a page reload.', 'ssc-cozy-demo' ); ?>
                 </p>
                 <div class="ssc-demo-pill-row ssc-demo-pill-row--links">
-                    <button class="ssc-demo-pill" type="button" data-demo-query="mug"><?php esc_html_e( 'mug', 'ssc-cozy-demo' ); ?></button>
                     <button class="ssc-demo-pill" type="button" data-demo-query="tea"><?php esc_html_e( 'tea', 'ssc-cozy-demo' ); ?></button>
                     <button class="ssc-demo-pill" type="button" data-demo-query="stoneware"><?php esc_html_e( 'stoneware', 'ssc-cozy-demo' ); ?></button>
-                    <button class="ssc-demo-pill" type="button" data-demo-query="giftable"><?php esc_html_e( 'giftable', 'ssc-cozy-demo' ); ?></button>
+                    <button class="ssc-demo-pill" type="button" data-demo-query="hosting"><?php esc_html_e( 'hosting', 'ssc-cozy-demo' ); ?></button>
+                    <button class="ssc-demo-pill" type="button" data-demo-query="coffee ritual"><?php esc_html_e( 'coffee ritual', 'ssc-cozy-demo' ); ?></button>
                 </div>
             </div>
             <aside class="ssc-card ssc-side-note">
@@ -57,4 +57,3 @@ get_header();
 </main>
 <?php
 get_footer();
-
