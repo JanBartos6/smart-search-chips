@@ -9,10 +9,10 @@ get_header();
     <section class="ssc-page-hero" data-reveal>
         <div class="ssc-shell ssc-page-hero__grid">
             <div>
-                <span class="ssc-kicker"><?php esc_html_e( 'Live AJAX demo', 'ssc-cozy-demo' ); ?></span>
+                <span class="ssc-kicker"><?php esc_html_e( 'Live search demo', 'ssc-cozy-demo' ); ?></span>
                 <h1><?php esc_html_e( 'Search like a customer who only knows the feeling they are after.', 'ssc-cozy-demo' ); ?></h1>
                 <p class="ssc-page-hero__lede">
-                    <?php esc_html_e( 'This page shows the shortcode-based live search flow. Start with a broad term and then let the generated chips narrow the result set without a page reload.', 'ssc-cozy-demo' ); ?>
+                    <?php esc_html_e( 'Start with a broad term and let the generated chips narrow the result set immediately, without forcing people into a heavier filter interface.', 'ssc-cozy-demo' ); ?>
                 </p>
                 <div class="ssc-demo-pill-row ssc-demo-pill-row--links">
                     <button class="ssc-demo-pill" type="button" data-demo-query="tea"><?php esc_html_e( 'tea', 'ssc-cozy-demo' ); ?></button>

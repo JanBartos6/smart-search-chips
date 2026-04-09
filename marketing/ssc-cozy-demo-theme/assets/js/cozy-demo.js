@@ -1,4 +1,28 @@
 document.addEventListener("DOMContentLoaded", function () {
+    function setActiveFeature(target) {
+        if (!target) {
+            return;
+        }
+
+        document.querySelectorAll("[data-feature-target]").forEach(function (button) {
+            var isActive = button.getAttribute("data-feature-target") === target;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+
+        document.querySelectorAll("[data-feature-panel]").forEach(function (panel) {
+            var isActive = panel.getAttribute("data-feature-panel") === target;
+            panel.classList.toggle("is-active", isActive);
+
+            if (isActive) {
+                panel.removeAttribute("hidden");
+                return;
+            }
+
+            panel.setAttribute("hidden", "hidden");
+        });
+    }
+
     function submitDemoQuery(input, query) {
         if (!input) {
             return;
@@ -64,4 +88,10 @@ document.addEventListener("DOMContentLoaded", function () {
             }, 120);
         }
     }
+
+    document.querySelectorAll("[data-feature-target]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            setActiveFeature(button.getAttribute("data-feature-target"));
+        });
+    });
 });
