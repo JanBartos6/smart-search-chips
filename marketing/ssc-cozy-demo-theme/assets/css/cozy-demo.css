@@ -236,6 +236,35 @@ p {
     color: var(--ssc-ink);
 }
 
+.ssc-hero-points,
+.ssc-checklist {
+    display: grid;
+    gap: 12px;
+    margin: 26px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ssc-hero-points li,
+.ssc-checklist li {
+    position: relative;
+    padding-left: 22px;
+    color: var(--ssc-ink-soft);
+}
+
+.ssc-hero-points li::before,
+.ssc-checklist li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.62em;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--ssc-accent);
+    box-shadow: 0 0 0 6px rgba(201, 124, 96, 0.12);
+}
+
 .ssc-stat-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -369,6 +398,33 @@ p {
 .ssc-stack-card p,
 .ssc-collection-card p {
     color: var(--ssc-ink-soft);
+}
+
+.ssc-comparison-card {
+    border-color: rgba(37, 48, 45, 0.08);
+}
+
+.ssc-comparison-card .ssc-checklist {
+    margin-top: 14px;
+}
+
+.ssc-comparison-card--muted {
+    background: rgba(255, 255, 255, 0.62);
+}
+
+.ssc-comparison-card--accent {
+    background: linear-gradient(180deg, rgba(255, 250, 246, 0.95) 0%, rgba(255, 244, 238, 0.92) 100%);
+    border-color: rgba(201, 124, 96, 0.22);
+}
+
+.ssc-comparison-card--accent .ssc-checklist li,
+.ssc-comparison-card--muted .ssc-checklist li {
+    color: var(--ssc-ink-soft);
+}
+
+.ssc-checklist--muted li::before {
+    background: rgba(37, 48, 45, 0.45);
+    box-shadow: 0 0 0 6px rgba(37, 48, 45, 0.07);
 }
 
 .ssc-showcase__grid {
