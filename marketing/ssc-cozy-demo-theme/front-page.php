@@ -204,6 +204,105 @@ $mugs_url  = $mugs_term ? get_category_link( $mugs_term ) : home_url( '/category
         </div>
     </section>
 
+    <!-- ========== PRO: Visual feature showcase ========== -->
+    <section class="ssc-pro-section" data-reveal>
+        <div class="ssc-shell">
+            <div class="ssc-pro-section__header">
+                <span class="ssc-kicker"><?php esc_html_e( 'Go further with Pro', 'ssc-cozy-demo' ); ?></span>
+                <h2><?php esc_html_e( 'See what visitors search. Shape what they find.', 'ssc-cozy-demo' ); ?></h2>
+            </div>
+
+            <!-- Analytics visual -->
+            <div class="ssc-pro-showcase" data-reveal>
+                <div class="ssc-pro-showcase__copy">
+                    <div class="ssc-pro-showcase__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M4 22V10l5-3 5 3v12M14 22V14l5-3 5 3v8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <h3><?php esc_html_e( 'Analytics dashboard', 'ssc-cozy-demo' ); ?></h3>
+                    <p><?php esc_html_e( 'See which searches lead to clicks, which chips get used most, and which queries return nothing.', 'ssc-cozy-demo' ); ?></p>
+                </div>
+                <div class="ssc-pro-showcase__visual">
+                    <div class="ssc-ui-panel ssc-ui-panel--pro">
+                        <div class="ssc-ui-kpi-grid">
+                            <div class="ssc-mini-stat"><strong>62%</strong><span><?php esc_html_e( 'Search to click', 'ssc-cozy-demo' ); ?></span></div>
+                            <div class="ssc-mini-stat"><strong>tea</strong><span><?php esc_html_e( 'Top query', 'ssc-cozy-demo' ); ?></span></div>
+                            <div class="ssc-mini-stat"><strong>3</strong><span><?php esc_html_e( 'Zero-result trends', 'ssc-cozy-demo' ); ?></span></div>
+                        </div>
+                        <div class="ssc-ui-analytics-list">
+                            <span><?php esc_html_e( 'Chip CTR: stoneware 28% | tea ritual 22% | hosting 18%', 'ssc-cozy-demo' ); ?></span>
+                            <span><?php esc_html_e( 'Top zero-result: "ceramic diffuser" - consider adding', 'ssc-cozy-demo' ); ?></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Design controls visual -->
+            <div class="ssc-pro-showcase ssc-pro-showcase--reverse" data-reveal>
+                <div class="ssc-pro-showcase__copy">
+                    <div class="ssc-pro-showcase__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M14 8v6l4 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <h3><?php esc_html_e( 'Design controls', 'ssc-cozy-demo' ); ?></h3>
+                    <p><?php esc_html_e( 'Custom colors, border radius, spacing, and typography so chips match your brand perfectly.', 'ssc-cozy-demo' ); ?></p>
+                </div>
+                <div class="ssc-pro-showcase__visual">
+                    <div class="ssc-ui-panel ssc-ui-panel--pro">
+                        <div class="ssc-ui-section-title"><?php esc_html_e( 'Chip appearance', 'ssc-cozy-demo' ); ?></div>
+                        <div class="ssc-design-demo">
+                            <div class="ssc-design-demo__row">
+                                <span class="ssc-design-chip ssc-design-chip--round"><?php esc_html_e( 'stoneware', 'ssc-cozy-demo' ); ?></span>
+                                <span class="ssc-design-chip ssc-design-chip--square"><?php esc_html_e( 'stoneware', 'ssc-cozy-demo' ); ?></span>
+                                <span class="ssc-design-chip ssc-design-chip--outline"><?php esc_html_e( 'stoneware', 'ssc-cozy-demo' ); ?></span>
+                                <span class="ssc-design-chip ssc-design-chip--filled"><?php esc_html_e( 'stoneware', 'ssc-cozy-demo' ); ?></span>
+                            </div>
+                        </div>
+                        <div class="ssc-admin-row">
+                            <span class="ssc-admin-label"><?php esc_html_e( 'Settings', 'ssc-cozy-demo' ); ?></span>
+                            <div class="ssc-admin-sidebar">
+                                <span><?php esc_html_e( 'Border radius', 'ssc-cozy-demo' ); ?></span>
+                                <span><?php esc_html_e( 'Colors', 'ssc-cozy-demo' ); ?></span>
+                                <span><?php esc_html_e( 'Spacing', 'ssc-cozy-demo' ); ?></span>
+                                <span><?php esc_html_e( 'Font', 'ssc-cozy-demo' ); ?></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Remaining Pro features grid -->
+            <div class="ssc-pro-extras" data-reveal>
+                <div class="ssc-pro-feature" data-reveal>
+                    <div class="ssc-pro-feature__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M7 14h14M14 7v14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="4" y="4" width="20" height="20" rx="4" stroke="currentColor" stroke-width="1.8"/></svg>
+                    </div>
+                    <h3><?php esc_html_e( 'Custom field mapping', 'ssc-cozy-demo' ); ?></h3>
+                    <p><?php esc_html_e( 'Pull chip data from any custom field, ACF group, or WooCommerce attribute.', 'ssc-cozy-demo' ); ?></p>
+                </div>
+                <div class="ssc-pro-feature" data-reveal>
+                    <div class="ssc-pro-feature__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M6 20l4-8 4 5 4-10 4 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <h3><?php esc_html_e( 'Relevanssi integration', 'ssc-cozy-demo' ); ?></h3>
+                    <p><?php esc_html_e( 'Already use Relevanssi? Pro hooks into it directly for better relevance.', 'ssc-cozy-demo' ); ?></p>
+                </div>
+                <div class="ssc-pro-feature" data-reveal>
+                    <div class="ssc-pro-feature__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M8 6h12a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2z" stroke="currentColor" stroke-width="1.8"/><path d="M10 12l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <h3><?php esc_html_e( 'AI prompt builder', 'ssc-cozy-demo' ); ?></h3>
+                    <p><?php esc_html_e( 'Generate chip suggestions for your content using AI. Less time tagging.', 'ssc-cozy-demo' ); ?></p>
+                </div>
+                <div class="ssc-pro-feature" data-reveal>
+                    <div class="ssc-pro-feature__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 6v16M6 14h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    </div>
+                    <h3><?php esc_html_e( 'Higher chip limits', 'ssc-cozy-demo' ); ?></h3>
+                    <p><?php esc_html_e( 'Free shows up to 5 chips. Pro lifts that limit entirely.', 'ssc-cozy-demo' ); ?></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ========== ADMIN: Visual of the editor ========== -->
     <section class="ssc-admin-preview" data-reveal>
         <div class="ssc-shell ssc-admin-preview__grid">
@@ -240,76 +339,6 @@ $mugs_url  = $mugs_term ? get_category_link( $mugs_term ) : home_url( '/category
                             <span><?php esc_html_e( 'Woo attributes', 'ssc-cozy-demo' ); ?></span>
                             <span class="ssc-admin-sidebar__pro"><?php esc_html_e( 'Custom field mapping', 'ssc-cozy-demo' ); ?></span>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ========== PRO: Feature highlight ========== -->
-    <section class="ssc-pro-section" data-reveal>
-        <div class="ssc-shell">
-            <div class="ssc-pro-section__header">
-                <span class="ssc-kicker"><?php esc_html_e( 'Go further with Pro', 'ssc-cozy-demo' ); ?></span>
-                <h2><?php esc_html_e( 'See what visitors search. Shape what they find.', 'ssc-cozy-demo' ); ?></h2>
-                <p><?php esc_html_e( 'Pro gives you analytics, design control, and smarter data mapping.', 'ssc-cozy-demo' ); ?></p>
-            </div>
-
-            <div class="ssc-pro-features">
-                <div class="ssc-pro-feature" data-reveal>
-                    <div class="ssc-pro-feature__icon">
-                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M4 22V10l5-3 5 3v12M14 22V14l5-3 5 3v8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </div>
-                    <h3><?php esc_html_e( 'Analytics dashboard', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'See top searches, chip click-through rates, and zero-result trends right in WordPress.', 'ssc-cozy-demo' ); ?></p>
-                </div>
-                <div class="ssc-pro-feature" data-reveal>
-                    <div class="ssc-pro-feature__icon">
-                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="10" stroke="currentColor" stroke-width="1.8"/><path d="M14 8v6l4 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </div>
-                    <h3><?php esc_html_e( 'Advanced design controls', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'Custom colors, radius, spacing, and typography. Make chips match your brand.', 'ssc-cozy-demo' ); ?></p>
-                </div>
-                <div class="ssc-pro-feature" data-reveal>
-                    <div class="ssc-pro-feature__icon">
-                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M7 14h14M14 7v14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="4" y="4" width="20" height="20" rx="4" stroke="currentColor" stroke-width="1.8"/></svg>
-                    </div>
-                    <h3><?php esc_html_e( 'Custom field mapping', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'Pull chip data from any custom field, ACF group, or WooCommerce attribute.', 'ssc-cozy-demo' ); ?></p>
-                </div>
-                <div class="ssc-pro-feature" data-reveal>
-                    <div class="ssc-pro-feature__icon">
-                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M6 20l4-8 4 5 4-10 4 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </div>
-                    <h3><?php esc_html_e( 'Relevanssi integration', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'Already use Relevanssi? Smart Search Chips Pro hooks into it directly for better relevance.', 'ssc-cozy-demo' ); ?></p>
-                </div>
-                <div class="ssc-pro-feature" data-reveal>
-                    <div class="ssc-pro-feature__icon">
-                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M8 6h12a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2z" stroke="currentColor" stroke-width="1.8"/><path d="M10 12l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </div>
-                    <h3><?php esc_html_e( 'AI prompt builder', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'Generate chip suggestions for your content using AI. Spend less time tagging.', 'ssc-cozy-demo' ); ?></p>
-                </div>
-                <div class="ssc-pro-feature" data-reveal>
-                    <div class="ssc-pro-feature__icon">
-                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 6v16M6 14h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                    </div>
-                    <h3><?php esc_html_e( 'Higher chip limits', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'Free shows up to 5 chips. Pro lifts that limit so your content can be as specific as needed.', 'ssc-cozy-demo' ); ?></p>
-                </div>
-            </div>
-
-            <div class="ssc-pro-dashboard" data-reveal>
-                <div class="ssc-ui-panel ssc-ui-panel--pro">
-                    <div class="ssc-ui-kpi-grid">
-                        <div class="ssc-mini-stat"><strong>62%</strong><span><?php esc_html_e( 'Search to click', 'ssc-cozy-demo' ); ?></span></div>
-                        <div class="ssc-mini-stat"><strong>tea</strong><span><?php esc_html_e( 'Top query', 'ssc-cozy-demo' ); ?></span></div>
-                        <div class="ssc-mini-stat"><strong>3</strong><span><?php esc_html_e( 'Zero-result trends', 'ssc-cozy-demo' ); ?></span></div>
-                    </div>
-                    <div class="ssc-ui-analytics-list">
-                        <span><?php esc_html_e( 'Chip CTR: stoneware 28% | tea ritual 22% | hosting 18%', 'ssc-cozy-demo' ); ?></span>
-                        <span><?php esc_html_e( 'Top zero-result: "ceramic diffuser" - consider adding to catalog', 'ssc-cozy-demo' ); ?></span>
                     </div>
                 </div>
             </div>
