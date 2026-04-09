@@ -7,6 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <head>
     <meta charset="<?php bloginfo( 'charset' ); ?>" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="<?php echo esc_url( get_theme_file_uri( 'assets/favicon.svg' ) ); ?>" type="image/svg+xml">
     <?php wp_head(); ?>
 </head>
 <body <?php body_class(); ?>>
@@ -18,7 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <span class="ssc-brand__mark">S</span>
                 <span class="ssc-brand__text">
                     <strong>Smart Search Chips</strong>
-                    <small>Cozy Demo Site</small>
                 </span>
             </a>
             <nav class="ssc-nav" aria-label="<?php esc_attr_e( 'Primary navigation', 'ssc-cozy-demo' ); ?>">
