@@ -21,34 +21,31 @@ $featured_query = new WP_Query(
                 <span class="ssc-kicker"><?php esc_html_e( 'Dynamic filter chips for WordPress', 'ssc-cozy-demo' ); ?></span>
                 <h1><?php esc_html_e( 'Add smart, result-driven filter chips to search results, AJAX search, and archive pages.', 'ssc-cozy-demo' ); ?></h1>
                 <p class="ssc-hero__lede">
-                    <?php esc_html_e( 'Smart Search Chips turns flat WordPress search into a guided refinement flow. Instead of dumping people into a dead-end results page, it surfaces useful next-step filters from the results they are already looking at.', 'ssc-cozy-demo' ); ?>
+                    <?php esc_html_e( 'Search stays light, but becomes much more useful. Chips are generated from the current results so visitors can narrow instantly instead of starting over.', 'ssc-cozy-demo' ); ?>
                 </p>
                 <div class="ssc-button-row">
                     <a class="ssc-button ssc-button--solid" href="<?php echo esc_url( home_url( '/search/' ) ); ?>"><?php esc_html_e( 'Try the live demo', 'ssc-cozy-demo' ); ?></a>
                     <a class="ssc-button ssc-button--ghost" href="<?php echo esc_url( home_url( '/?s=tea' ) ); ?>"><?php esc_html_e( 'See search-results mode', 'ssc-cozy-demo' ); ?></a>
                 </div>
-                <ul class="ssc-hero-points">
-                    <li><?php esc_html_e( 'Generates chips from the current result set, not from a generic static facet list.', 'ssc-cozy-demo' ); ?></li>
-                    <li><?php esc_html_e( 'Works on live shortcode search, full search-results pages, and archive-style browsing.', 'ssc-cozy-demo' ); ?></li>
-                    <li><?php esc_html_e( 'Supports built-in tags, custom fields, WooCommerce setups, and Relevanssi-powered search.', 'ssc-cozy-demo' ); ?></li>
-                    <li><?php esc_html_e( 'Pro adds design controls, analytics, AI-assisted tagging workflows, and deeper integration options.', 'ssc-cozy-demo' ); ?></li>
-                </ul>
+                <div class="ssc-proof-pills">
+                    <span class="ssc-soft-chip"><?php esc_html_e( 'Live AJAX search', 'ssc-cozy-demo' ); ?></span>
+                    <span class="ssc-soft-chip"><?php esc_html_e( 'Search results pages', 'ssc-cozy-demo' ); ?></span>
+                    <span class="ssc-soft-chip"><?php esc_html_e( 'Archive refinement', 'ssc-cozy-demo' ); ?></span>
+                    <span class="ssc-soft-chip"><?php esc_html_e( 'WooCommerce + custom fields', 'ssc-cozy-demo' ); ?></span>
+                </div>
                 <ul class="ssc-stat-row">
-                    <li><strong><?php esc_html_e( 'Contextual', 'ssc-cozy-demo' ); ?></strong><span><?php esc_html_e( 'Chips react to what actually matched, so the refinement options stay relevant.', 'ssc-cozy-demo' ); ?></span></li>
-                    <li><strong><?php esc_html_e( 'Lightweight UX', 'ssc-cozy-demo' ); ?></strong><span><?php esc_html_e( 'You get a gentler discovery flow than a full sidebar of heavy faceted controls.', 'ssc-cozy-demo' ); ?></span></li>
-                    <li><strong><?php esc_html_e( 'Commercial-ready', 'ssc-cozy-demo' ); ?></strong><span><?php esc_html_e( 'Free core flow, Pro gating, analytics, design tools, and hosted billing support are already in place.', 'ssc-cozy-demo' ); ?></span></li>
+                    <li><strong><?php esc_html_e( 'Generated from results', 'ssc-cozy-demo' ); ?></strong><span><?php esc_html_e( 'Not a static filter wall.', 'ssc-cozy-demo' ); ?></span></li>
+                    <li><strong><?php esc_html_e( 'Click to narrow', 'ssc-cozy-demo' ); ?></strong><span><?php esc_html_e( 'Less reformulating, less dead-end search.', 'ssc-cozy-demo' ); ?></span></li>
+                    <li><strong><?php esc_html_e( 'Free + Pro', 'ssc-cozy-demo' ); ?></strong><span><?php esc_html_e( 'Core flow now, deeper control later.', 'ssc-cozy-demo' ); ?></span></li>
                 </ul>
             </div>
             <aside class="ssc-hero-card" data-reveal>
                 <div class="ssc-hero-card__header">
                     <span class="ssc-card-label"><?php esc_html_e( 'Live product proof', 'ssc-cozy-demo' ); ?></span>
-                    <strong><?php esc_html_e( 'This site demonstrates the plugin, not just the mood.', 'ssc-cozy-demo' ); ?></strong>
+                    <strong><?php esc_html_e( 'Preloaded so the chips are visible immediately.', 'ssc-cozy-demo' ); ?></strong>
                 </div>
-                <p class="ssc-hero-card__copy">
-                    <?php esc_html_e( 'Moss & Clay is a deliberately coherent demo shop for teaware and serving pieces. It exists so you can see Smart Search Chips working in a believable catalog where overlap by material, ritual, and use actually matters.', 'ssc-cozy-demo' ); ?>
-                </p>
                 <p class="ssc-hero-card__hint">
-                    <?php esc_html_e( 'The demo starts with a real tea search so the chips are visible immediately. Use the buttons below to swap the query.', 'ssc-cozy-demo' ); ?>
+                    <?php esc_html_e( 'Switch between chip-rich queries and watch the demo search recompose itself.', 'ssc-cozy-demo' ); ?>
                 </p>
                 <div class="ssc-hero-card__search" data-demo-autoload="tea">
                     <?php echo do_shortcode( '[ssc_search placeholder="Search mug, matcha, stoneware, or serving"]' ); ?>
@@ -65,21 +62,51 @@ $featured_query = new WP_Query(
     <section class="ssc-section" data-reveal>
         <div class="ssc-shell">
             <div class="ssc-section-heading">
-                <span class="ssc-kicker"><?php esc_html_e( 'What the plugin actually adds', 'ssc-cozy-demo' ); ?></span>
-                <h2><?php esc_html_e( 'Smart Search Chips changes the shape of search, not just the styling around it.', 'ssc-cozy-demo' ); ?></h2>
+                <span class="ssc-kicker"><?php esc_html_e( 'Proof by showing', 'ssc-cozy-demo' ); ?></span>
+                <h2><?php esc_html_e( 'Three product views that sell the plugin faster than a paragraph does.', 'ssc-cozy-demo' ); ?></h2>
             </div>
-            <div class="ssc-feature-grid">
-                <article class="ssc-card ssc-feature-card">
-                    <h3><?php esc_html_e( 'Context-aware refinement', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'The chips are generated from the current result set, so the next filters feel relevant instead of generic.', 'ssc-cozy-demo' ); ?></p>
+            <div class="ssc-proof-grid">
+                <article class="ssc-card ssc-proof-card">
+                    <span class="ssc-card-label"><?php esc_html_e( 'Live AJAX', 'ssc-cozy-demo' ); ?></span>
+                    <h3><?php esc_html_e( 'Type, reveal chips, keep narrowing.', 'ssc-cozy-demo' ); ?></h3>
+                    <div class="ssc-ui-panel">
+                        <div class="ssc-ui-searchbar">tea</div>
+                        <div class="ssc-ui-chiprow">
+                            <span>stoneware</span>
+                            <span>tea ritual</span>
+                            <span>hosting</span>
+                        </div>
+                        <div class="ssc-ui-results">
+                            <span><?php esc_html_e( 'Linen Tea Canister', 'ssc-cozy-demo' ); ?></span>
+                            <span><?php esc_html_e( 'Cedar Teapot', 'ssc-cozy-demo' ); ?></span>
+                            <span><?php esc_html_e( 'Moss Matcha Bowl', 'ssc-cozy-demo' ); ?></span>
+                        </div>
+                    </div>
                 </article>
-                <article class="ssc-card ssc-feature-card">
-                    <h3><?php esc_html_e( 'One plugin, multiple flows', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'Use it on live AJAX search, shortcode search pages, search-results templates, and archive browsing without rebuilding your site around a giant filter interface.', 'ssc-cozy-demo' ); ?></p>
+                <article class="ssc-card ssc-proof-card">
+                    <span class="ssc-card-label"><?php esc_html_e( 'Results pages', 'ssc-cozy-demo' ); ?></span>
+                    <h3><?php esc_html_e( 'Active chips stay visible and shareable.', 'ssc-cozy-demo' ); ?></h3>
+                    <div class="ssc-ui-panel">
+                        <div class="ssc-ui-chiprow ssc-ui-chiprow--active">
+                            <span>stoneware</span>
+                            <span>tea ritual</span>
+                            <span class="is-active">hosting</span>
+                        </div>
+                        <div class="ssc-ui-meta"><?php esc_html_e( 'Filtered URL + browser history', 'ssc-cozy-demo' ); ?></div>
+                        <div class="ssc-ui-results">
+                            <span><?php esc_html_e( 'Ember Tasting Cups', 'ssc-cozy-demo' ); ?></span>
+                            <span><?php esc_html_e( 'Cedar Teapot', 'ssc-cozy-demo' ); ?></span>
+                        </div>
+                    </div>
                 </article>
-                <article class="ssc-card ssc-feature-card">
-                    <h3><?php esc_html_e( 'Better discovery, less friction', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'Visitors get clickable next steps instead of a blank search dead-end, which makes discovery feel guided and noticeably calmer.', 'ssc-cozy-demo' ); ?></p>
+                <article class="ssc-card ssc-proof-card">
+                    <span class="ssc-card-label"><?php esc_html_e( 'Pro insights', 'ssc-cozy-demo' ); ?></span>
+                    <h3><?php esc_html_e( 'See what people search, click, and miss.', 'ssc-cozy-demo' ); ?></h3>
+                    <div class="ssc-ui-panel ssc-ui-panel--stats">
+                        <div class="ssc-mini-stat"><strong>62%</strong><span><?php esc_html_e( 'Search to click', 'ssc-cozy-demo' ); ?></span></div>
+                        <div class="ssc-mini-stat"><strong>tea</strong><span><?php esc_html_e( 'Top query', 'ssc-cozy-demo' ); ?></span></div>
+                        <div class="ssc-mini-stat"><strong>0-result</strong><span><?php esc_html_e( 'Trend tracking', 'ssc-cozy-demo' ); ?></span></div>
+                    </div>
                 </article>
             </div>
         </div>
@@ -89,34 +116,34 @@ $featured_query = new WP_Query(
         <div class="ssc-shell ssc-showcase__grid">
             <div class="ssc-showcase__copy">
                 <span class="ssc-kicker"><?php esc_html_e( 'Before and after', 'ssc-cozy-demo' ); ?></span>
-                <h2><?php esc_html_e( 'Default WordPress search gives you a list. Smart Search Chips gives you a next step.', 'ssc-cozy-demo' ); ?></h2>
-                <p>
-                    <?php esc_html_e( 'That added value is the whole point. Instead of forcing users to reformulate searches from scratch, the plugin exposes clickable refinements directly from what already matched.', 'ssc-cozy-demo' ); ?>
-                </p>
-                <div class="ssc-example-links">
-                    <a href="<?php echo esc_url( home_url( '/search/' ) ); ?>"><?php esc_html_e( 'Test the live AJAX search flow', 'ssc-cozy-demo' ); ?></a>
-                    <a href="<?php echo esc_url( home_url( '/?s=tea' ) ); ?>"><?php esc_html_e( 'Test the full results-page flow', 'ssc-cozy-demo' ); ?></a>
-                    <a href="<?php echo esc_url( home_url( '/catalog/' ) ); ?>"><?php esc_html_e( 'See the full demo catalog behind both flows', 'ssc-cozy-demo' ); ?></a>
-                </div>
+                <h2><?php esc_html_e( 'Without the plugin: a list. With the plugin: a path.', 'ssc-cozy-demo' ); ?></h2>
             </div>
             <div class="ssc-stack">
                 <article class="ssc-card ssc-stack-card ssc-comparison-card ssc-comparison-card--muted">
                     <span class="ssc-card-label"><?php esc_html_e( 'Without it', 'ssc-cozy-demo' ); ?></span>
-                    <h3><?php esc_html_e( 'Static search results with no guided refinement.', 'ssc-cozy-demo' ); ?></h3>
-                    <ul class="ssc-checklist ssc-checklist--muted">
-                        <li><?php esc_html_e( 'Users hit a result list and must guess the next query themselves.', 'ssc-cozy-demo' ); ?></li>
-                        <li><?php esc_html_e( 'No lightweight way to narrow by the patterns inside the results they already see.', 'ssc-cozy-demo' ); ?></li>
-                        <li><?php esc_html_e( 'Search feels functional, but not especially helpful.', 'ssc-cozy-demo' ); ?></li>
-                    </ul>
+                    <h3><?php esc_html_e( 'Static results, no next move.', 'ssc-cozy-demo' ); ?></h3>
+                    <div class="ssc-ui-panel ssc-ui-panel--muted">
+                        <div class="ssc-ui-results">
+                            <span><?php esc_html_e( 'Tea result 1', 'ssc-cozy-demo' ); ?></span>
+                            <span><?php esc_html_e( 'Tea result 2', 'ssc-cozy-demo' ); ?></span>
+                            <span><?php esc_html_e( 'Tea result 3', 'ssc-cozy-demo' ); ?></span>
+                        </div>
+                    </div>
                 </article>
                 <article class="ssc-card ssc-stack-card ssc-comparison-card ssc-comparison-card--accent">
                     <span class="ssc-card-label"><?php esc_html_e( 'With Smart Search Chips', 'ssc-cozy-demo' ); ?></span>
-                    <h3><?php esc_html_e( 'Search becomes a guided narrowing experience.', 'ssc-cozy-demo' ); ?></h3>
-                    <ul class="ssc-checklist">
-                        <li><?php esc_html_e( 'The plugin suggests useful filters from the current results automatically.', 'ssc-cozy-demo' ); ?></li>
-                        <li><?php esc_html_e( 'Visitors can click their way toward the right subset instead of starting over.', 'ssc-cozy-demo' ); ?></li>
-                        <li><?php esc_html_e( 'Archive pages, live AJAX search, and search-results templates all feel more intentional.', 'ssc-cozy-demo' ); ?></li>
-                    </ul>
+                    <h3><?php esc_html_e( 'Guided narrowing from the same result set.', 'ssc-cozy-demo' ); ?></h3>
+                    <div class="ssc-ui-panel">
+                        <div class="ssc-ui-chiprow ssc-ui-chiprow--active">
+                            <span>stoneware</span>
+                            <span>hosting</span>
+                            <span class="is-active">tea ritual</span>
+                        </div>
+                        <div class="ssc-ui-results">
+                            <span><?php esc_html_e( 'Moss Matcha Bowl', 'ssc-cozy-demo' ); ?></span>
+                            <span><?php esc_html_e( 'Cedar Teapot', 'ssc-cozy-demo' ); ?></span>
+                        </div>
+                    </div>
                 </article>
             </div>
         </div>
@@ -126,20 +153,24 @@ $featured_query = new WP_Query(
         <div class="ssc-shell">
             <div class="ssc-section-heading">
                 <span class="ssc-kicker"><?php esc_html_e( 'Where it fits best', 'ssc-cozy-demo' ); ?></span>
-                <h2><?php esc_html_e( 'Especially useful when content overlaps and the default search experience is too blunt.', 'ssc-cozy-demo' ); ?></h2>
+                <h2><?php esc_html_e( 'Best on catalogs and content sets with meaningful overlap.', 'ssc-cozy-demo' ); ?></h2>
             </div>
-            <div class="ssc-feature-grid">
-                <article class="ssc-card ssc-feature-card">
+            <div class="ssc-fit-grid">
+                <article class="ssc-card ssc-fit-card">
                     <h3><?php esc_html_e( 'Boutique ecommerce', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'Small and mid-sized shops with overlapping materials, styles, rituals, or use cases benefit immediately because visitors can narrow softly instead of drilling through menus.', 'ssc-cozy-demo' ); ?></p>
+                    <p><?php esc_html_e( 'Materials, styles, rituals, use cases.', 'ssc-cozy-demo' ); ?></p>
                 </article>
-                <article class="ssc-card ssc-feature-card">
+                <article class="ssc-card ssc-fit-card">
                     <h3><?php esc_html_e( 'Technical catalogs', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'The same chip logic works on component-heavy or industrial catalogs too, where people search broadly and then need fast ways to narrow by function or compatibility.', 'ssc-cozy-demo' ); ?></p>
+                    <p><?php esc_html_e( 'Function, compatibility, component families.', 'ssc-cozy-demo' ); ?></p>
                 </article>
-                <article class="ssc-card ssc-feature-card">
+                <article class="ssc-card ssc-fit-card">
                     <h3><?php esc_html_e( 'Content libraries and resource hubs', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'If your site has posts, case studies, or guides that cluster around recurring themes, Smart Search Chips can make search feel much more discoverable without a complex taxonomy UI.', 'ssc-cozy-demo' ); ?></p>
+                    <p><?php esc_html_e( 'Themes, topics, recurring problem spaces.', 'ssc-cozy-demo' ); ?></p>
+                </article>
+                <article class="ssc-card ssc-fit-card">
+                    <h3><?php esc_html_e( 'Existing AJAX search themes', 'ssc-cozy-demo' ); ?></h3>
+                    <p><?php esc_html_e( 'A lighter upgrade without rebuilding the whole search UI.', 'ssc-cozy-demo' ); ?></p>
                 </article>
             </div>
         </div>
