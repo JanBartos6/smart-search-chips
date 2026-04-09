@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 revealObserver.unobserve(entry.target);
             });
         }, {
-            threshold: 0.16
+            threshold: 0.12
         });
 
         revealTargets.forEach(function (target) {
@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll("[data-demo-query]").forEach(function (button) {
         button.addEventListener("click", function () {
             var query = button.getAttribute("data-demo-query");
-            var card = button.closest(".ssc-landing-stage, .ssc-hero-card, .ssc-page-hero, .ssc-live-demo-shell");
+            var card = button.closest(".ssc-hero-full__demo, .ssc-landing-stage, .ssc-hero-card, .ssc-page-hero, .ssc-live-demo-shell");
             var input = card ? card.querySelector(".ssc-search__input") : document.querySelector(".ssc-search__input");
 
             submitDemoQuery(input, query);
