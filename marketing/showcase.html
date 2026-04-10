@@ -342,16 +342,23 @@ h2 {
     var styles = ['ghost', 'warm', 'sage'];
     var chips = [];
 
-    // Scatter chips everywhere — they're transparent enough to not compete
-    for (var i = 0; i < 22; i++) {
+    // Scatter chips with center-avoidance bias — more chips, denser at edges
+    function biasedRandom() {
+        // Push values away from 0.5 (center) toward edges
+        var r = Math.random();
+        if (r < 0.5) return r * r * 2;          // clusters toward 0
+        return 1 - (1 - r) * (1 - r) * 2;       // clusters toward 1
+    }
+
+    for (var i = 0; i < 36; i++) {
         var chip = document.createElement('div');
         chip.className = 'ambient-chip ambient-chip--' + styles[i % 3];
         chip.textContent = chipLabels[i % chipLabels.length];
 
-        var x = 3 + Math.random() * 90;
-        var y = 3 + Math.random() * 90;
-        var dur = 14 + Math.random() * 18;
-        var delay = Math.random() * 8;
+        var x = 2 + biasedRandom() * 92;
+        var y = 2 + biasedRandom() * 92;
+        var dur = 12 + Math.random() * 20;
+        var delay = Math.random() * 10;
 
         chip.style.left = x + '%';
         chip.style.top = y + '%';
@@ -359,7 +366,7 @@ h2 {
         chip.style.animationDelay = '-' + delay + 's';
 
         ambientEl.appendChild(chip);
-        chips.push({ el: chip, delay: delay * 200 });
+        chips.push({ el: chip, delay: delay * 150 });
     }
 
     // Fade in ambient chips staggered
