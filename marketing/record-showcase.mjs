@@ -17,8 +17,8 @@ const context = await browser.newContext({
 const page = await context.newPage();
 await page.goto(`file://${showcasePath.replace(/\\/g, '/')}`);
 
-// Wait for all 8 slides to finish (total ~40s, add buffer)
-await page.waitForTimeout(48000);
+// Wait for all 7 slides to finish (~19s total, add buffer)
+await page.waitForTimeout(24000);
 
 await context.close();
 await browser.close();
