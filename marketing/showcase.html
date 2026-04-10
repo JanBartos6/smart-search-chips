@@ -50,19 +50,19 @@ body {
 }
 .ambient-chip.visible { opacity: 1; }
 .ambient-chip--ghost {
-    background: rgba(255,255,255,0.5);
-    border: 1px solid rgba(53,68,62,0.06);
-    color: rgba(37,48,45,0.3);
+    background: rgba(255,255,255,0.35);
+    border: 1px solid rgba(53,68,62,0.04);
+    color: rgba(37,48,45,0.18);
 }
 .ambient-chip--warm {
-    background: rgba(201,124,96,0.08);
-    border: 1px solid rgba(201,124,96,0.12);
-    color: rgba(175,99,71,0.35);
+    background: rgba(201,124,96,0.06);
+    border: 1px solid rgba(201,124,96,0.08);
+    color: rgba(175,99,71,0.2);
 }
 .ambient-chip--sage {
-    background: rgba(159,180,160,0.1);
-    border: 1px solid rgba(159,180,160,0.15);
-    color: rgba(74,100,80,0.3);
+    background: rgba(159,180,160,0.07);
+    border: 1px solid rgba(159,180,160,0.1);
+    color: rgba(74,100,80,0.18);
 }
 
 /* Slides */
@@ -114,12 +114,12 @@ h2 {
     color: var(--ink-soft);
     text-align: center;
     max-width: 42ch;
-    margin-top: 24px;
+    margin-top: 6px;
     line-height: 1.6;
 }
 .kicker {
     display: inline-block;
-    margin-bottom: 18px;
+    margin-bottom: 8px;
     color: var(--accent-deep);
     font-size: 0.78rem;
     font-weight: 800;
@@ -132,21 +132,21 @@ h2 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 80px;
-    height: 80px;
-    border-radius: 24px;
+    width: 72px;
+    height: 72px;
+    border-radius: 22px;
     background: linear-gradient(145deg, var(--accent), #d89b84);
     color: #fffaf6;
     font-family: "Fraunces", Georgia, serif;
-    font-size: 2.6rem;
+    font-size: 2.4rem;
     font-weight: 600;
     box-shadow: 0 24px 56px rgba(175,99,71,0.28);
-    margin-bottom: 36px;
+    margin-bottom: 14px;
 }
 
 /* Mockup */
 .mockup {
-    margin-top: 48px;
+    margin-top: 16px;
     padding: 32px;
     border: 1px solid rgba(53,68,62,0.08);
     border-radius: 32px;
@@ -209,9 +209,9 @@ h2 {
 .pill-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 14px;
+    gap: 12px;
     justify-content: center;
-    margin-top: 40px;
+    margin-top: 12px;
 }
 .pill {
     display: inline-flex;
@@ -239,7 +239,7 @@ h2 {
 
 /* CTA link */
 .cta-url {
-    margin-top: 28px;
+    margin-top: 10px;
     color: var(--accent-deep);
     font-weight: 700;
     font-size: 1.15rem;
@@ -332,7 +332,7 @@ h2 {
 
 <script>
 (function() {
-    // Ambient floating chips
+    // Ambient floating chips — placed ONLY in edge zones (not center)
     var ambientEl = document.getElementById('ambient');
     var chipLabels = [
         'stoneware', 'tea ritual', 'hosting', 'giftable', 'matte glaze',
@@ -342,15 +342,16 @@ h2 {
     var styles = ['ghost', 'warm', 'sage'];
     var chips = [];
 
-    for (var i = 0; i < 18; i++) {
+    // Scatter chips everywhere — they're transparent enough to not compete
+    for (var i = 0; i < 22; i++) {
         var chip = document.createElement('div');
         chip.className = 'ambient-chip ambient-chip--' + styles[i % 3];
         chip.textContent = chipLabels[i % chipLabels.length];
 
-        var x = Math.random() * 90 + 5;
-        var y = Math.random() * 85 + 5;
-        var dur = 12 + Math.random() * 20;
-        var delay = Math.random() * 4;
+        var x = 3 + Math.random() * 90;
+        var y = 3 + Math.random() * 90;
+        var dur = 14 + Math.random() * 18;
+        var delay = Math.random() * 8;
 
         chip.style.left = x + '%';
         chip.style.top = y + '%';
@@ -358,23 +359,35 @@ h2 {
         chip.style.animationDelay = '-' + delay + 's';
 
         ambientEl.appendChild(chip);
-        chips.push({ el: chip, delay: delay * 300 });
+        chips.push({ el: chip, delay: delay * 200 });
     }
 
     // Fade in ambient chips staggered
     chips.forEach(function(c) {
-        setTimeout(function() { c.el.classList.add('visible'); }, 400 + c.delay);
+        setTimeout(function() { c.el.classList.add('visible'); }, 300 + c.delay);
     });
 
-    // Add drift keyframes
+    // Add drift keyframes — keep movement subtle so they don't drift into center
     var styleSheet = document.createElement('style');
-    styleSheet.textContent = '@keyframes drift { 0%,100% { transform: translate(0,0) rotate(0deg); } 25% { transform: translate(12px,-18px) rotate(1deg); } 50% { transform: translate(-8px,-10px) rotate(-0.5deg); } 75% { transform: translate(6px,14px) rotate(0.8deg); } }';
+    styleSheet.textContent = '@keyframes drift { 0%,100% { transform: translate(0,0) rotate(0deg); } 25% { transform: translate(8px,-10px) rotate(0.5deg); } 50% { transform: translate(-6px,-6px) rotate(-0.3deg); } 75% { transform: translate(4px,8px) rotate(0.4deg); } }';
     document.head.appendChild(styleSheet);
 
-    // Slide autoplay
+    // Slide autoplay with adaptive timing
     var slides = document.querySelectorAll('.slide');
     var current = 0;
     var total = slides.length;
+
+    function getAdaptiveDuration(slide) {
+        // Base from data attribute
+        var base = parseInt(slide.getAttribute('data-duration')) || 2500;
+        // Count text length as a factor
+        var text = slide.textContent.trim();
+        var words = text.split(/\s+/).length;
+        // ~200ms per word, minimum 1.8s, capped by data-duration
+        var readTime = Math.max(1800, words * 200);
+        // Use the larger of base or read time
+        return Math.max(base, readTime);
+    }
 
     function show(index) {
         slides.forEach(function(s, i) {
@@ -388,12 +401,11 @@ h2 {
         if (current >= total - 1) return;
         current++;
         show(current);
-        var duration = parseInt(slides[current].getAttribute('data-duration')) || 2500;
-        setTimeout(next, duration);
+        setTimeout(next, getAdaptiveDuration(slides[current]));
     }
 
     show(0);
-    setTimeout(next, parseInt(slides[0].getAttribute('data-duration')) || 2500);
+    setTimeout(next, getAdaptiveDuration(slides[0]));
 })();
 </script>
 </body>
