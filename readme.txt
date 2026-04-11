@@ -79,9 +79,9 @@ Yes. Set "Post Types" to include "product" and use WooCommerce product attribute
 
 == Screenshots ==
 
-1. Search with dynamic filter chips
-2. Admin settings page
-3. Chips adapt after filtering
+1. Search for "tea" and filter chips appear automatically
+2. Click a chip to narrow results instantly
+3. The Smart Search Chips demo homepage
 
 == Changelog ==
 
