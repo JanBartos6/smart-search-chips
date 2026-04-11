@@ -785,13 +785,15 @@ class SSC_Analytics {
     private static function get_top_chip_ctr_rows( $range ) {
         global $wpdb;
 
+        $table = self::table_name();
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $table is from $wpdb->prefix, not user input.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT chip_label,
                     SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS impressions,
                     SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS clicks,
                     COUNT(DISTINCT CASE WHEN event_type = %s THEN visitor_id ELSE NULL END) AS click_visitors
-                FROM " . self::table_name() . " /* phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from \$wpdb->prefix */
+                FROM {$table}
                 WHERE event_type IN (%s, %s)
                     AND created_at BETWEEN %s AND %s
                     AND chip_label <> ''
