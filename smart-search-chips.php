@@ -82,8 +82,35 @@ if ( function_exists( 'ssc_fs' ) ) {
         $ssc_fs = ssc_fs();
 
         if ( $ssc_fs ) {
+            $ssc_fs->add_action( 'after_uninstall', 'ssc_fs_uninstall_cleanup' );
             do_action( 'ssc_fs_loaded' );
         }
+    }
+
+    /**
+     * Clean up all plugin data on Freemius uninstall.
+     */
+    function ssc_fs_uninstall_cleanup() {
+        if ( get_option( 'ssc_delete_data_on_uninstall', '0' ) !== '1' ) {
+            return;
+        }
+
+        global $wpdb;
+
+        $options = ssc_get_option_keys();
+        foreach ( $options as $option ) {
+            delete_option( $option );
+        }
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s",
+                'ssc_tags'
+            )
+        );
+
+        $table_name = $wpdb->prefix . 'ssc_events';
+        $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
     }
 
     define( 'SSC_VERSION', '1.0.0' );
