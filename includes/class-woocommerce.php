@@ -163,17 +163,18 @@ class SSC_WooCommerce {
      * Show admin notice after bulk action.
      */
     public function bulk_action_notice() {
-        if ( ! empty( $_REQUEST['ssc_tags_generated'] ) ) {
-            $count = intval( $_REQUEST['ssc_tags_generated'] );
+        if ( ! empty( $_REQUEST['ssc_tags_generated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display after redirect.
+            $count = (int) $_REQUEST['ssc_tags_generated']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             printf(
                 '<div class="notice notice-success is-dismissible"><p>' .
-                _n(
+                /* translators: %d: number of products tagged */
+                esc_html( _n(
                     'Search Chips tags generated for %d product.',
                     'Search Chips tags generated for %d products.',
                     $count,
                     'smart-search-chips'
-                ) . '</p></div>',
-                $count
+                ) ) . '</p></div>',
+                (int) $count
             );
         }
     }

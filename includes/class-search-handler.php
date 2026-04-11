@@ -44,7 +44,7 @@ class SSC_Search_Handler {
     public function handle_search() {
         // Nonce verification (optional — skip if overriding a theme handler that doesn't use nonces)
         if ( isset( $_POST['ssc_nonce'] ) && ! wp_verify_nonce( wp_unslash( $_POST['ssc_nonce'] ), 'ssc_search_nonce' ) ) {
-            wp_die( __( 'Security check failed.', 'smart-search-chips' ) );
+            wp_die( esc_html__( 'Security check failed.', 'smart-search-chips' ) );
         }
 
         $keyword     = isset( $_POST['keyword'] ) ? sanitize_text_field( wp_unslash( $_POST['keyword'] ) ) : '';
@@ -280,11 +280,11 @@ class SSC_Search_Handler {
                 '<button type="button" class="ssc-chip%s" data-tag="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;">%s (%d)</button>',
                 $is_active ? ' ssc-chip--active' : '',
                 esc_attr( $chip['label'] ),
-                $bg, $fg, $border,
+                esc_attr( $bg ), esc_attr( $fg ), esc_attr( $border ),
                 esc_attr( $radius ), esc_attr( $font_size ),
                 esc_attr( $pad_y ), esc_attr( $pad_x ),
                 esc_html( $chip['label'] ),
-                $chip['count']
+                (int) $chip['count']
             );
         }
 
@@ -357,7 +357,7 @@ class SSC_Search_Handler {
             echo '<a href="' . esc_url( $post['url'] ) . '">';
 
             if ( $post['thumbnail'] ) {
-                echo '<figure class="ssc-result__image">' . $post['thumbnail'] . '</figure>';
+                echo '<figure class="ssc-result__image">' . wp_kses_post( $post['thumbnail'] ) . '</figure>';
             }
 
             echo '<span class="ssc-result__title">' . esc_html( $post['title'] ) . '</span>';

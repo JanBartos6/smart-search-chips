@@ -294,7 +294,7 @@ class SSC_Analytics {
         );
         $top_queries = self::append_percentage_to_rows( $top_queries, 'chip_clicks', 'searches', 'click_rate' );
 
-        $zero_queries = $wpdb->get_results(
+        $zero_queries = $wpdb->get_results( // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from $wpdb->prefix.
             $wpdb->prepare(
                 "SELECT search_query, COUNT(*) AS misses, MIN(created_at) AS first_seen, MAX(created_at) AS last_seen
                 FROM {$table_name}
@@ -495,7 +495,7 @@ class SSC_Analytics {
             );
         }
 
-        fclose( $out );
+        fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- streaming CSV to php://output.
         exit;
     }
 

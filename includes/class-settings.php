@@ -62,7 +62,9 @@ class SSC_Settings {
             'max_results', 'search_results_count', 'relevance_threshold',
         );
         foreach ( $fields as $f ) {
-            register_setting( 'smart-search-chips', $this->prefix . $f );
+            register_setting( 'smart-search-chips', $this->prefix . $f, array(
+                'sanitize_callback' => 'sanitize_text_field',
+            ) );
         }
 
         register_setting( 'smart-search-chips', 'ssc_tag_fields', array(
@@ -140,7 +142,9 @@ class SSC_Settings {
                 'searchPlaceholder'   => __( 'Filter categories or products...', 'smart-search-chips' ),
                 'selectionEmptyShort' => __( 'No items selected yet.', 'smart-search-chips' ),
                 'selectionEmpty'      => __( 'No items selected yet. Build a batch on the left and the selected items will stay pinned here.', 'smart-search-chips' ),
+                /* translators: %d: number of selected items */
                 'selectionCount'      => __( '%d items selected', 'smart-search-chips' ),
+                /* translators: %1$d: number of taxonomies, %2$d: number of visible categories */
                 'browseSummary'       => __( '%1$d taxonomies · %2$d visible categories', 'smart-search-chips' ),
                 'browseEmpty'         => __( 'No categories matched the current filter.', 'smart-search-chips' ),
                 'itemsEmpty'          => __( 'No items were found in this category.', 'smart-search-chips' ),
@@ -266,7 +270,7 @@ class SSC_Settings {
                                 <tr>
                                     <th><?php esc_html_e( 'Max Chips', 'smart-search-chips' ); ?></th>
                                     <td>
-                                        <input type="number" name="ssc_max_chips" value="<?php echo esc_attr( min( (int) get_option( 'ssc_max_chips', '5' ), SSC_License::max_chips() ) ); ?>" class="small-text" min="1" max="<?php echo SSC_License::max_chips(); ?>" />
+                                        <input type="number" name="ssc_max_chips" value="<?php echo esc_attr( min( (int) get_option( 'ssc_max_chips', '5' ), SSC_License::max_chips() ) ); ?>" class="small-text" min="1" max="<?php echo (int) SSC_License::max_chips(); ?>" />
                                         <?php if ( ! $is_pro ) : ?>
                                             <span class="description"><?php esc_html_e( 'Free: max 5', 'smart-search-chips' ); ?></span>
                                         <?php endif; ?>
@@ -396,7 +400,10 @@ class SSC_Settings {
                                             <span><?php esc_html_e( 'Search To Click Rate', 'smart-search-chips' ); ?></span>
                                         </div>
                                     </div>
-                                        <p class="description"><?php printf( esc_html__( 'Current overview: %1$s to %2$s. Open the dedicated analytics page for date filters, detailed tables, and CSV export.', 'smart-search-chips' ), esc_html( $analytics['range']['from'] ), esc_html( $analytics['range']['to'] ) ); ?></p>
+                                        <p class="description"><?php
+                                            /* translators: %1$s: start date, %2$s: end date */
+                                            printf( esc_html__( 'Current overview: %1$s to %2$s. Open the dedicated analytics page for date filters, detailed tables, and CSV export.', 'smart-search-chips' ), esc_html( $analytics['range']['from'] ), esc_html( $analytics['range']['to'] ) );
+                                        ?></p>
                                         <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-analytics' ) ); ?>"><?php esc_html_e( 'Open Detailed Analytics', 'smart-search-chips' ); ?></a></p>
                                     </div>
                                 <?php else : ?>

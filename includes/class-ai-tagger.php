@@ -624,6 +624,7 @@ class SSC_AI_Tagger {
 
         return array(
             'id'            => (int) $post->ID,
+            /* translators: %d: post ID */
             'title'         => $title !== '' ? $title : sprintf( __( '(no title) #%d', 'smart-search-chips' ), $post->ID ),
             'postType'      => $post->post_type,
             'postTypeLabel' => $post_type_object && ! empty( $post_type_object->labels->singular_name ) ? $post_type_object->labels->singular_name : $post->post_type,
