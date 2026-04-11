@@ -638,6 +638,11 @@ class SSC_Settings {
                 <input type="hidden" name="action" value="ssc_delete_plugin_data_now" />
                 <?php wp_nonce_field( 'ssc_delete_plugin_data_now' ); ?>
             </form>
+
+            <p class="ssc-feedback-link">
+                <?php esc_html_e( 'Questions, bugs, or ideas?', 'smart-search-chips' ); ?>
+                <a href="mailto:[redacted]?subject=Smart%20Search%20Chips%20Feedback"><?php esc_html_e( 'Send feedback', 'smart-search-chips' ); ?> &rarr;</a>
+            </p>
         </div>
 
         <style>
@@ -662,6 +667,9 @@ class SSC_Settings {
             .ssc-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
             .ssc-badge--pro { background: #e74c3c; color: #fff; }
             .ssc-badge--free { background: #eee; color: #666; }
+            .ssc-feedback-link { margin-top: 24px; padding-top: 16px; border-top: 1px solid #eee; color: #888; font-size: 13px; }
+            .ssc-feedback-link a { color: #2271b1; text-decoration: none; font-weight: 500; }
+            .ssc-feedback-link a:hover { text-decoration: underline; }
             .ssc-range-val { font-family: monospace; font-size: 13px; color: #666; }
             .ssc-analytics-dashboard { display: grid; gap: 18px; margin-top: 12px; }
             .ssc-analytics-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
