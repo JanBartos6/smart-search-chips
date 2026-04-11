@@ -11,6 +11,9 @@ $ssc_test_added_filters   = array();
 $ssc_test_polylang_language = '';
 $ssc_test_freemius        = null;
 $ssc_test_is_block_theme  = false;
+$ssc_test_current_user_can = array();
+$ssc_test_current_user_calls = array();
+$ssc_test_transients      = array();
 
 if ( ! function_exists( '__' ) ) {
     function __( $text, $domain = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
@@ -34,6 +37,12 @@ if ( ! function_exists( 'sanitize_key' ) ) {
     function sanitize_key( $key ) {
         $key = strtolower( (string) $key );
         return preg_replace( '/[^a-z0-9_\-]/', '', $key );
+    }
+}
+
+if ( ! function_exists( 'wp_json_encode' ) ) {
+    function wp_json_encode( $value ) {
+        return json_encode( $value );
     }
 }
 
@@ -161,6 +170,61 @@ if ( ! function_exists( 'get_the_title' ) ) {
 if ( ! function_exists( 'absint' ) ) {
     function absint( $value ) {
         return abs( (int) $value );
+    }
+}
+
+if ( ! function_exists( 'current_user_can' ) ) {
+    function current_user_can( $capability ) {
+        global $ssc_test_current_user_can, $ssc_test_current_user_calls;
+
+        $args = func_get_args();
+        array_shift( $args );
+
+        $ssc_test_current_user_calls[] = array(
+            'capability' => $capability,
+            'args'       => $args,
+        );
+
+        $specific_key = $capability;
+        if ( ! empty( $args ) ) {
+            $specific_key .= '|' . implode( ':', array_map( 'strval', $args ) );
+        }
+
+        if ( array_key_exists( $specific_key, $ssc_test_current_user_can ) ) {
+            return (bool) $ssc_test_current_user_can[ $specific_key ];
+        }
+
+        if ( array_key_exists( $capability, $ssc_test_current_user_can ) ) {
+            return (bool) $ssc_test_current_user_can[ $capability ];
+        }
+
+        return false;
+    }
+}
+
+if ( ! function_exists( 'get_transient' ) ) {
+    function get_transient( $key ) {
+        global $ssc_test_transients;
+
+        return array_key_exists( $key, $ssc_test_transients ) ? $ssc_test_transients[ $key ] : false;
+    }
+}
+
+if ( ! function_exists( 'set_transient' ) ) {
+    function set_transient( $key, $value, $expiration ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $ssc_test_transients;
+
+        $ssc_test_transients[ $key ] = $value;
+        return true;
+    }
+}
+
+if ( ! function_exists( 'delete_transient' ) ) {
+    function delete_transient( $key ) {
+        global $ssc_test_transients;
+
+        unset( $ssc_test_transients[ $key ] );
+        return true;
     }
 }
 

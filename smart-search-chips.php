@@ -169,7 +169,7 @@ if ( function_exists( 'ssc_fs' ) ) {
                             'show_in_rest'  => true,
                             'single'        => true,
                             'type'          => 'string',
-                            'auth_callback' => function () { return current_user_can( 'edit_posts' ); },
+                            'auth_callback' => 'ssc_can_edit_post_meta',
                         )
                     );
                 }

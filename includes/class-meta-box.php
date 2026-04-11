@@ -9,6 +9,35 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+if ( ! function_exists( 'ssc_can_edit_post_meta' ) ) {
+    /**
+     * Restrict REST-exposed Search Chips meta to users who can edit the specific post.
+     *
+     * WordPress calls registered meta auth callbacks with the same arguments as the
+     * underlying auth_*_meta_* filter, so we only allow access when a concrete post
+     * ID is provided and the current user can edit that object.
+     *
+     * @param bool|null $allowed Existing decision.
+     * @param string    $meta_key Meta key being checked.
+     * @param int       $post_id Post ID being edited.
+     * @param int       $user_id User ID when WordPress provides one.
+     * @return bool
+     */
+    function ssc_can_edit_post_meta( $allowed, $meta_key, $post_id, $user_id = 0 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        $post_id = absint( $post_id );
+
+        if ( $post_id <= 0 ) {
+            return false;
+        }
+
+        if ( function_exists( 'user_can' ) && $user_id > 0 ) {
+            return user_can( $user_id, 'edit_post', $post_id );
+        }
+
+        return current_user_can( 'edit_post', $post_id );
+    }
+}
+
 class SSC_Meta_Box {
 
     /** @var string The built-in meta key */
@@ -38,7 +67,7 @@ class SSC_Meta_Box {
                 'show_in_rest'  => true,
                 'single'        => true,
                 'type'          => 'string',
-                'auth_callback' => function () { return current_user_can( 'edit_posts' ); },
+                'auth_callback' => 'ssc_can_edit_post_meta',
             ) );
         }
     }

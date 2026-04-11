@@ -17,6 +17,18 @@ class SSC_Analytics {
     /** @var string Current analytics schema version */
     const DB_VERSION = '1.1';
 
+    /** @var int Max analytics requests allowed per fingerprint in the rolling window */
+    const RATE_LIMIT_MAX_REQUESTS = 120;
+
+    /** @var int Rolling analytics rate-limit window in seconds */
+    const RATE_LIMIT_WINDOW = 60;
+
+    /** @var int Short dedupe window for identical search/click events */
+    const EVENT_REPLAY_WINDOW = 15;
+
+    /** @var int Longer dedupe window for chip impression batches */
+    const IMPRESSION_REPLAY_WINDOW = 60;
+
     /**
      * Register analytics hooks.
      */
@@ -129,7 +141,7 @@ class SSC_Analytics {
             wp_send_json_error( array( 'message' => __( 'Unsupported analytics event type.', 'smart-search-chips' ) ), 400 );
         }
 
-        $visitor_id = isset( $_POST['visitor_id'] ) ? sanitize_text_field( wp_unslash( $_POST['visitor_id'] ) ) : '';
+        $visitor_id = isset( $_POST['visitor_id'] ) ? self::sanitize_visitor_id( wp_unslash( $_POST['visitor_id'] ) ) : '';
         if ( $visitor_id === '' ) {
             $visitor_id = wp_generate_uuid4();
         }
@@ -147,6 +159,28 @@ class SSC_Analytics {
         }
         if ( $event_type === 'chip_impression' && empty( $chip_labels ) ) {
             wp_send_json_success( array( 'tracked' => false ) );
+        }
+
+        $tracking_decision = self::guard_tracking_request(
+            array(
+                'visitor_id'       => $visitor_id,
+                'event_type'       => $event_type,
+                'language_code'    => $language_code,
+                'search_query'     => $search_query,
+                'chip_label'       => $chip_label,
+                'page_url'         => $page_url,
+                'active_tag_count' => $active_tag_count,
+                'chip_labels'      => $chip_labels,
+            )
+        );
+
+        if ( 'track' !== $tracking_decision ) {
+            wp_send_json_success(
+                array(
+                    'tracked' => false,
+                    'reason'  => $tracking_decision,
+                )
+            );
         }
 
         $user_id = get_current_user_id();
@@ -443,17 +477,22 @@ class SSC_Analytics {
         fputcsv( $out, array( 'created_at_utc', 'event_type', 'language_code', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'page_url', 'visitor_id' ) );
 
         foreach ( $events as $event ) {
-            fputcsv( $out, array(
-                $event['created_at'],
-                $event['event_type'],
-                $event['language_code'],
-                $event['search_query'],
-                $event['chip_label'],
-                $event['result_count'],
-                $event['active_tag_count'],
-                $event['page_url'],
-                $event['visitor_id'],
-            ) );
+            fputcsv(
+                $out,
+                self::escape_csv_row(
+                    array(
+                        $event['created_at'],
+                        $event['event_type'],
+                        $event['language_code'],
+                        $event['search_query'],
+                        $event['chip_label'],
+                        $event['result_count'],
+                        $event['active_tag_count'],
+                        $event['page_url'],
+                        $event['visitor_id'],
+                    )
+                )
+            );
         }
 
         fclose( $out );
@@ -531,6 +570,171 @@ class SSC_Analytics {
         }
 
         return array_slice( $clean, 0, 20 );
+    }
+
+    /**
+     * Sanitize a visitor identifier used for anonymous analytics correlation.
+     *
+     * @param mixed $value Raw visitor ID.
+     * @return string
+     */
+    private static function sanitize_visitor_id( $value ) {
+        $value = sanitize_text_field( (string) $value );
+        $value = preg_replace( '/[^A-Za-z0-9_-]/', '', $value );
+
+        return substr( (string) $value, 0, 64 );
+    }
+
+    /**
+     * Decide whether a tracking request should be recorded.
+     *
+     * @param array $payload Normalized event data.
+     * @return string One of track, duplicate, or rate_limited.
+     */
+    private static function guard_tracking_request( $payload ) {
+        $subject = self::get_rate_limit_subject( isset( $payload['visitor_id'] ) ? (string) $payload['visitor_id'] : '' );
+
+        if ( self::is_rate_limited( $subject ) ) {
+            return 'rate_limited';
+        }
+
+        $ttl = 'chip_impression' === ( $payload['event_type'] ?? '' ) ? self::IMPRESSION_REPLAY_WINDOW : self::EVENT_REPLAY_WINDOW;
+
+        if ( ! self::reserve_event_fingerprint( self::build_event_fingerprint( $payload ), $ttl ) ) {
+            return 'duplicate';
+        }
+
+        return 'track';
+    }
+
+    /**
+     * Build a stable subject key for analytics rate limiting.
+     *
+     * @param string $visitor_id Visitor identifier from the browser.
+     * @return string
+     */
+    private static function get_rate_limit_subject( $visitor_id ) {
+        $remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+
+        if ( '' !== $remote_addr ) {
+            return 'ip:' . hash( 'sha256', $remote_addr );
+        }
+
+        return '' !== $visitor_id ? 'visitor:' . $visitor_id : '';
+    }
+
+    /**
+     * Enforce a lightweight per-client rate limit on the public analytics endpoint.
+     *
+     * @param string $subject Rate-limit subject key.
+     * @return bool
+     */
+    private static function is_rate_limited( $subject ) {
+        if ( '' === $subject || ! function_exists( 'get_transient' ) || ! function_exists( 'set_transient' ) ) {
+            return false;
+        }
+
+        $transient_key = 'ssc_rate_' . md5( $subject );
+        $count         = (int) get_transient( $transient_key );
+
+        if ( $count >= self::RATE_LIMIT_MAX_REQUESTS ) {
+            return true;
+        }
+
+        set_transient( $transient_key, $count + 1, self::RATE_LIMIT_WINDOW );
+
+        return false;
+    }
+
+    /**
+     * Build a short-lived replay fingerprint for analytics events.
+     *
+     * @param array $payload Normalized event data.
+     * @return string
+     */
+    private static function build_event_fingerprint( $payload ) {
+        $fingerprint = array(
+            'visitor_id'       => isset( $payload['visitor_id'] ) ? (string) $payload['visitor_id'] : '',
+            'event_type'       => isset( $payload['event_type'] ) ? (string) $payload['event_type'] : '',
+            'language_code'    => isset( $payload['language_code'] ) ? (string) $payload['language_code'] : '',
+            'search_query'     => isset( $payload['search_query'] ) ? (string) $payload['search_query'] : '',
+            'chip_label'       => isset( $payload['chip_label'] ) ? (string) $payload['chip_label'] : '',
+            'page_url'         => isset( $payload['page_url'] ) ? (string) $payload['page_url'] : '',
+            'active_tag_count' => isset( $payload['active_tag_count'] ) ? (int) $payload['active_tag_count'] : 0,
+            'chip_labels'      => isset( $payload['chip_labels'] ) && is_array( $payload['chip_labels'] ) ? array_values( $payload['chip_labels'] ) : array(),
+        );
+
+        return hash( 'sha256', wp_json_encode( $fingerprint ) );
+    }
+
+    /**
+     * Reserve an analytics fingerprint so immediate replays are ignored.
+     *
+     * @param string $fingerprint Event fingerprint.
+     * @param int    $ttl         Replay window in seconds.
+     * @return bool
+     */
+    private static function reserve_event_fingerprint( $fingerprint, $ttl ) {
+        if ( '' === $fingerprint || ! function_exists( 'get_transient' ) || ! function_exists( 'set_transient' ) ) {
+            return true;
+        }
+
+        $transient_key = 'ssc_evt_' . substr( $fingerprint, 0, 32 );
+
+        if ( false !== get_transient( $transient_key ) ) {
+            return false;
+        }
+
+        set_transient( $transient_key, 1, max( 1, (int) $ttl ) );
+
+        return true;
+    }
+
+    /**
+     * Escape a single CSV export value so spreadsheet apps do not treat it as a formula.
+     *
+     * @param mixed $value Raw export value.
+     * @return string
+     */
+    private static function escape_csv_value( $value ) {
+        if ( null === $value ) {
+            return '';
+        }
+
+        if ( is_bool( $value ) ) {
+            return $value ? '1' : '0';
+        }
+
+        if ( ! is_scalar( $value ) ) {
+            $value = wp_json_encode( $value );
+        }
+
+        $value = (string) $value;
+
+        if ( preg_match( '/^[\t\r]/', $value ) || preg_match( '/^\s*[=\+\-@]/', $value ) ) {
+            return "'" . $value;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Escape all CSV cells in a single row before export.
+     *
+     * @param array $row Raw CSV row.
+     * @return array
+     */
+    private static function escape_csv_row( $row ) {
+        if ( ! is_array( $row ) ) {
+            return array();
+        }
+
+        foreach ( $row as &$value ) {
+            $value = self::escape_csv_value( $value );
+        }
+        unset( $value );
+
+        return $row;
     }
 
     /**

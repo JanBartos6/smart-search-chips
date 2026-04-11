@@ -31,7 +31,7 @@ function ssc_assert_contains( $needle, $haystack, $message ) {
 }
 
 function ssc_reset_test_state() {
-    global $ssc_test_options, $ssc_test_settings_errors, $ssc_test_filters, $ssc_test_actions, $ssc_test_polylang_language, $ssc_test_freemius, $ssc_test_added_actions, $ssc_test_added_filters, $ssc_test_is_block_theme;
+    global $ssc_test_options, $ssc_test_settings_errors, $ssc_test_filters, $ssc_test_actions, $ssc_test_polylang_language, $ssc_test_freemius, $ssc_test_added_actions, $ssc_test_added_filters, $ssc_test_is_block_theme, $ssc_test_current_user_can, $ssc_test_current_user_calls, $ssc_test_transients;
 
     $ssc_test_options         = array();
     $ssc_test_settings_errors = array();
@@ -42,8 +42,12 @@ function ssc_reset_test_state() {
     $ssc_test_polylang_language = '';
     $ssc_test_freemius        = null;
     $ssc_test_is_block_theme  = false;
+    $ssc_test_current_user_can   = array();
+    $ssc_test_current_user_calls = array();
+    $ssc_test_transients         = array();
     $_POST                    = array();
     $_REQUEST                 = array();
+    $_SERVER                  = array();
 }
 
 function ssc_invoke_private( $object, $method_name, array $args = array() ) {
@@ -280,6 +284,50 @@ function ssc_test_analytics_appends_ctr_percentages() {
     ssc_assert_same( 25.0, $rows[0]['click_through_rate'], 'append_percentage_to_rows should compute percentage metrics with one decimal place' );
 }
 
+function ssc_test_analytics_escape_csv_value_neutralizes_spreadsheet_formulas() {
+    $escaped_formula = ssc_invoke_private( 'SSC_Analytics', 'escape_csv_value', array( '=SUM(1,1)' ) );
+    $escaped_spaced  = ssc_invoke_private( 'SSC_Analytics', 'escape_csv_value', array( '  @calc' ) );
+    $safe_value      = ssc_invoke_private( 'SSC_Analytics', 'escape_csv_value', array( 'stoneware' ) );
+
+    ssc_assert_same( "'=SUM(1,1)", $escaped_formula, 'escape_csv_value should prefix formula-like cells with a quote' );
+    ssc_assert_same( "'  @calc", $escaped_spaced, 'escape_csv_value should also neutralize formula prefixes after whitespace' );
+    ssc_assert_same( 'stoneware', $safe_value, 'escape_csv_value should leave normal strings untouched' );
+}
+
+function ssc_test_analytics_guard_tracking_rejects_immediate_replays() {
+    ssc_reset_test_state();
+
+    $_SERVER['REMOTE_ADDR'] = '203.0.113.10';
+    $payload                = array(
+        'visitor_id'       => 'ssc-demo-visitor',
+        'event_type'       => 'search',
+        'language_code'    => 'en',
+        'search_query'     => 'tea',
+        'chip_label'       => '',
+        'page_url'         => 'https://example.test/search/',
+        'active_tag_count' => 0,
+        'chip_labels'      => array(),
+    );
+
+    $first  = ssc_invoke_private( 'SSC_Analytics', 'guard_tracking_request', array( $payload ) );
+    $second = ssc_invoke_private( 'SSC_Analytics', 'guard_tracking_request', array( $payload ) );
+
+    ssc_assert_same( 'track', $first, 'guard_tracking_request should allow the first analytics event through' );
+    ssc_assert_same( 'duplicate', $second, 'guard_tracking_request should reject immediate duplicate analytics events' );
+}
+
+function ssc_test_meta_auth_callback_requires_edit_post_capability() {
+    global $ssc_test_current_user_can, $ssc_test_current_user_calls;
+
+    ssc_reset_test_state();
+    $ssc_test_current_user_can['edit_post|42'] = true;
+
+    ssc_assert_true( ssc_can_edit_post_meta( false, 'ssc_tags', 42 ), 'ssc_can_edit_post_meta should allow access when the current user can edit the specific post' );
+    ssc_assert_same( 'edit_post', $ssc_test_current_user_calls[0]['capability'], 'ssc_can_edit_post_meta should check the post-specific edit capability' );
+    ssc_assert_same( array( 42 ), $ssc_test_current_user_calls[0]['args'], 'ssc_can_edit_post_meta should pass the exact post ID to current_user_can' );
+    ssc_assert_true( ! ssc_can_edit_post_meta( false, 'ssc_tags', 0 ), 'ssc_can_edit_post_meta should reject requests that do not target a concrete post object' );
+}
+
 function ssc_test_frontend_uses_default_ajax_action_after_free_downgrade() {
     $frontend = new SSC_Frontend(
         new SSC_Test_Settings(
@@ -339,6 +387,9 @@ ssc_test_language_detects_polylang_slug();
 ssc_test_language_applies_wpml_query_args();
 ssc_test_analytics_sanitizes_chip_impression_labels();
 ssc_test_analytics_appends_ctr_percentages();
+ssc_test_analytics_escape_csv_value_neutralizes_spreadsheet_formulas();
+ssc_test_analytics_guard_tracking_rejects_immediate_replays();
+ssc_test_meta_auth_callback_requires_edit_post_capability();
 ssc_test_frontend_uses_default_ajax_action_after_free_downgrade();
 ssc_test_search_handler_normalizes_scalar_active_tags();
 ssc_test_frontend_registers_loop_fallback_for_block_themes();
