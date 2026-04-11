@@ -36,13 +36,21 @@ done < "$SCRIPT_DIR/.distignore"
 # Copy plugin files using tar (portable — works without rsync)
 tar -cf - -C "$SCRIPT_DIR" $EXCLUDES --exclude=build . | tar -xf - -C "$DIST_DIR"
 
-# Create zip (use zip if available, fall back to PowerShell on Windows)
+# Create zip (use zip if available, fall back to Python for correct path separators)
 cd "$BUILD_DIR"
 if command -v zip &>/dev/null; then
     zip -qr "$ZIP_FILE" "$PLUGIN_SLUG/"
 else
-    WIN_BUILD_DIR="$(cd "$BUILD_DIR" && pwd -W 2>/dev/null || cygpath -w "$BUILD_DIR" 2>/dev/null || echo "$BUILD_DIR")"
-    powershell -Command "Compress-Archive -Path '${WIN_BUILD_DIR}\\${PLUGIN_SLUG}' -DestinationPath '${WIN_BUILD_DIR}\\${PLUGIN_SLUG}.zip' -Force"
+    python -c "
+import zipfile, os
+zf = zipfile.ZipFile('$PLUGIN_SLUG.zip', 'w', zipfile.ZIP_DEFLATED)
+for root, dirs, files in os.walk('$PLUGIN_SLUG'):
+    for f in files:
+        fp = os.path.join(root, f)
+        arc = fp.replace(os.sep, '/')
+        zf.write(fp, arc)
+zf.close()
+"
 fi
 
 echo "Done: $ZIP_FILE"
