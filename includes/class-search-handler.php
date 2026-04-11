@@ -43,11 +43,11 @@ class SSC_Search_Handler {
      */
     public function handle_search() {
         // Nonce verification (optional — skip if overriding a theme handler that doesn't use nonces)
-        if ( isset( $_POST['ssc_nonce'] ) && ! wp_verify_nonce( $_POST['ssc_nonce'], 'ssc_search_nonce' ) ) {
+        if ( isset( $_POST['ssc_nonce'] ) && ! wp_verify_nonce( wp_unslash( $_POST['ssc_nonce'] ), 'ssc_search_nonce' ) ) {
             wp_die( __( 'Security check failed.', 'smart-search-chips' ) );
         }
 
-        $keyword     = isset( $_POST['keyword'] ) ? sanitize_text_field( $_POST['keyword'] ) : '';
+        $keyword     = isset( $_POST['keyword'] ) ? sanitize_text_field( wp_unslash( $_POST['keyword'] ) ) : '';
         $active_tags = $this->normalize_active_tags( isset( $_POST['active_tags'] ) ? wp_unslash( $_POST['active_tags'] ) : array() );
 
         if ( empty( $keyword ) || strlen( $keyword ) < 2 ) {

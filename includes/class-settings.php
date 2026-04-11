@@ -192,7 +192,7 @@ class SSC_Settings {
             <?php endif; ?>
 
             <?php if ( $is_pro && ! $relevanssi_active ) : ?>
-                <div class="notice notice-info"><p><strong><?php _e( 'Relevanssi not detected.', 'smart-search-chips' ); ?></strong> <?php _e( 'Install Relevanssi (free) for relevance scoring.', 'smart-search-chips' ); ?></p></div>
+                <div class="notice notice-info"><p><strong><?php esc_html_e( 'Relevanssi not detected.', 'smart-search-chips' ); ?></strong> <?php esc_html_e( 'Install Relevanssi (free) for relevance scoring.', 'smart-search-chips' ); ?></p></div>
             <?php endif; ?>
 
             <form method="post" action="options.php">
@@ -204,7 +204,7 @@ class SSC_Settings {
 
                         <!-- License -->
                         <div class="ssc-settings-card">
-                            <h2><?php _e( 'License', 'smart-search-chips' ); ?></h2>
+                            <h2><?php esc_html_e( 'License', 'smart-search-chips' ); ?></h2>
                             <?php if ( $is_pro ) : ?>
                                 <div class="ssc-badge ssc-badge--pro">Pro</div>
                             <?php else : ?>
@@ -215,43 +215,43 @@ class SSC_Settings {
                             <?php if ( SSC_License::is_sdk_ready() ) : ?>
                                 <p>
                                     <?php if ( ! $is_pro && SSC_License::get_upgrade_url() ) : ?>
-                                        <a class="button button-primary" href="<?php echo esc_url( SSC_License::get_upgrade_url() ); ?>"><?php _e( 'Upgrade to Pro', 'smart-search-chips' ); ?></a>
+                                        <a class="button button-primary" href="<?php echo esc_url( SSC_License::get_upgrade_url() ); ?>"><?php esc_html_e( 'Upgrade to Pro', 'smart-search-chips' ); ?></a>
                                     <?php endif; ?>
                                     <?php if ( SSC_License::get_account_url() ) : ?>
-                                        <a class="button button-secondary" href="<?php echo esc_url( SSC_License::get_account_url() ); ?>"><?php _e( 'Manage License', 'smart-search-chips' ); ?></a>
+                                        <a class="button button-secondary" href="<?php echo esc_url( SSC_License::get_account_url() ); ?>"><?php esc_html_e( 'Manage License', 'smart-search-chips' ); ?></a>
                                     <?php endif; ?>
                                 </p>
                             <?php else : ?>
-                                <p class="description"><?php _e( 'Install the Freemius SDK in `vendor/freemius` to enable activation and billing on this screen.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'Install the Freemius SDK in `vendor/freemius` to enable activation and billing on this screen.', 'smart-search-chips' ); ?></p>
                             <?php endif; ?>
                         </div>
 
                         <!-- Search Settings -->
                         <div class="ssc-settings-card">
-                            <h2><?php _e( 'Search', 'smart-search-chips' ); ?></h2>
+                            <h2><?php esc_html_e( 'Search', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr>
-                                    <th><?php _e( 'Post Types', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Post Types', 'smart-search-chips' ); ?></th>
                                     <td><?php $this->render_post_types(); ?></td>
                                 </tr>
                                 <tr>
-                                    <th><?php _e( 'Tag Source', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Tag Source', 'smart-search-chips' ); ?></th>
                                     <td>
-                                        <p><?php _e( 'Built-in "Search Chips Tags" field (`ssc_tags`) is used by default.', 'smart-search-chips' ); ?></p>
+                                        <p><?php esc_html_e( 'Built-in "Search Chips Tags" field (`ssc_tags`) is used by default.', 'smart-search-chips' ); ?></p>
                                         <?php if ( $is_pro ) : ?>
-                                            <p class="description"><?php _e( 'If you already use your own tag meta field, you can map it in Advanced settings.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'If you already use your own tag meta field, you can map it in Advanced settings.', 'smart-search-chips' ); ?></p>
                                         <?php else : ?>
-                                            <p class="description"><?php _e( 'Upgrade to Pro to map an existing custom field instead.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Upgrade to Pro to map an existing custom field instead.', 'smart-search-chips' ); ?></p>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
                                 <?php if ( class_exists( 'WooCommerce' ) ) : ?>
                                 <tr>
-                                    <th><?php _e( 'WooCommerce Auto-Tags', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'WooCommerce Auto-Tags', 'smart-search-chips' ); ?></th>
                                     <td>
                                         <label>
                                             <input type="checkbox" name="ssc_woo_enabled" value="1" <?php checked( get_option( 'ssc_woo_enabled', '1' ), '1' ); ?> />
-                                            <?php _e( 'Auto-populate tags from product attributes, categories, and SKU', 'smart-search-chips' ); ?>
+                                            <?php esc_html_e( 'Auto-populate tags from product attributes, categories, and SKU', 'smart-search-chips' ); ?>
                                         </label>
                                     </td>
                                 </tr>
@@ -261,19 +261,19 @@ class SSC_Settings {
 
                         <!-- Chip Settings -->
                         <div class="ssc-settings-card">
-                            <h2><?php _e( 'Chips', 'smart-search-chips' ); ?></h2>
+                            <h2><?php esc_html_e( 'Chips', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr>
-                                    <th><?php _e( 'Max Chips', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Max Chips', 'smart-search-chips' ); ?></th>
                                     <td>
                                         <input type="number" name="ssc_max_chips" value="<?php echo esc_attr( min( (int) get_option( 'ssc_max_chips', '5' ), SSC_License::max_chips() ) ); ?>" class="small-text" min="1" max="<?php echo SSC_License::max_chips(); ?>" />
                                         <?php if ( ! $is_pro ) : ?>
-                                            <span class="description"><?php _e( 'Free: max 5', 'smart-search-chips' ); ?></span>
+                                            <span class="description"><?php esc_html_e( 'Free: max 5', 'smart-search-chips' ); ?></span>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th><?php _e( 'Max Tag Length', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Max Tag Length', 'smart-search-chips' ); ?></th>
                                     <td><input type="number" name="ssc_max_tag_length" value="<?php echo esc_attr( get_option( 'ssc_max_tag_length', '40' ) ); ?>" class="small-text" min="5" /></td>
                                 </tr>
                             </table>
@@ -281,44 +281,44 @@ class SSC_Settings {
 
                         <!-- Design -->
                         <div class="ssc-settings-card">
-                            <h2><?php _e( 'Design', 'smart-search-chips' ); ?></h2>
+                            <h2><?php esc_html_e( 'Design', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr>
-                                    <th><?php _e( 'Active Color', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Active Color', 'smart-search-chips' ); ?></th>
                                     <td><input type="color" name="ssc_chip_color" value="<?php echo esc_attr( $chip_color ); ?>" /></td>
                                 </tr>
                                 <tr>
-                                    <th><?php _e( 'Active Text', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Active Text', 'smart-search-chips' ); ?></th>
                                     <td><input type="color" name="ssc_chip_text_color" value="<?php echo esc_attr( $chip_text ); ?>" /></td>
                                 </tr>
                                 <tr>
-                                    <th><?php _e( 'Inactive Color', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Inactive Color', 'smart-search-chips' ); ?></th>
                                     <td><input type="color" name="ssc_chip_inactive_color" value="<?php echo esc_attr( get_option( 'ssc_chip_inactive_color', '#ffffff' ) ); ?>" /></td>
                                 </tr>
                                 <tr>
-                                    <th><?php _e( 'Inactive Text', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Inactive Text', 'smart-search-chips' ); ?></th>
                                     <td><input type="color" name="ssc_chip_inactive_text_color" value="<?php echo esc_attr( get_option( 'ssc_chip_inactive_text_color', '#333333' ) ); ?>" /></td>
                                 </tr>
                                 <?php if ( $is_pro ) : ?>
                                 <tr>
-                                    <th><?php _e( 'Border Radius', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Border Radius', 'smart-search-chips' ); ?></th>
                                     <td><input type="number" name="ssc_chip_radius" value="<?php echo esc_attr( $chip_radius ); ?>" class="small-text" min="0" max="50" placeholder="16" /> px</td>
                                 </tr>
                                 <tr>
-                                    <th><?php _e( 'Font Size', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Font Size', 'smart-search-chips' ); ?></th>
                                     <td><input type="number" name="ssc_chip_font_size" value="<?php echo esc_attr( $chip_font ); ?>" class="small-text" min="8" max="24" placeholder="13" /> px</td>
                                 </tr>
                                 <tr>
-                                    <th><?php _e( 'Padding H', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Padding H', 'smart-search-chips' ); ?></th>
                                     <td><input type="number" name="ssc_chip_padding_x" value="<?php echo esc_attr( $chip_pad_x ); ?>" class="small-text" min="0" max="40" placeholder="12" /> px</td>
                                 </tr>
                                 <tr>
-                                    <th><?php _e( 'Padding V', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Padding V', 'smart-search-chips' ); ?></th>
                                     <td><input type="number" name="ssc_chip_padding_y" value="<?php echo esc_attr( $chip_pad_y ); ?>" class="small-text" min="0" max="24" placeholder="4" /> px</td>
                                 </tr>
                                 <?php else : ?>
                                 <tr>
-                                    <td colspan="2"><p class="description"><?php _e( 'Upgrade to Pro for border radius, font size, and padding controls.', 'smart-search-chips' ); ?></p></td>
+                                    <td colspan="2"><p class="description"><?php esc_html_e( 'Upgrade to Pro for border radius, font size, and padding controls.', 'smart-search-chips' ); ?></p></td>
                                 </tr>
                                 <?php endif; ?>
                             </table>
@@ -326,26 +326,26 @@ class SSC_Settings {
 
                         <!-- Results -->
                         <div class="ssc-settings-card">
-                            <h2><?php _e( 'Results', 'smart-search-chips' ); ?></h2>
+                            <h2><?php esc_html_e( 'Results', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr>
-                                    <th><?php _e( 'Results Shown', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Results Shown', 'smart-search-chips' ); ?></th>
                                     <td><input type="number" name="ssc_max_results" value="<?php echo esc_attr( get_option( 'ssc_max_results', '10' ) ); ?>" class="small-text" min="1" /></td>
                                 </tr>
                                 <tr>
-                                    <th><?php _e( 'Results to Analyze', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Results to Analyze', 'smart-search-chips' ); ?></th>
                                     <td>
                                         <input type="number" name="ssc_search_results_count" value="<?php echo esc_attr( get_option( 'ssc_search_results_count', '50' ) ); ?>" class="small-text" min="5" />
-                                        <p class="description"><?php _e( 'More = better chips, slower. Recommended: 50.', 'smart-search-chips' ); ?></p>
+                                        <p class="description"><?php esc_html_e( 'More = better chips, slower. Recommended: 50.', 'smart-search-chips' ); ?></p>
                                     </td>
                                 </tr>
                                 <?php if ( $is_pro ) : ?>
                                 <tr>
-                                    <th><?php _e( 'Relevance Threshold', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Relevance Threshold', 'smart-search-chips' ); ?></th>
                                     <td>
                                         <input type="range" name="ssc_relevance_threshold" value="<?php echo esc_attr( get_option( 'ssc_relevance_threshold', '0.3' ) ); ?>" min="0" max="1" step="0.05" />
                                         <span class="ssc-range-val"><?php echo esc_html( get_option( 'ssc_relevance_threshold', '0.3' ) ); ?></span>
-                                        <p class="description"><?php _e( 'Requires Relevanssi. 0 = all results, 1 = exact matches only.', 'smart-search-chips' ); ?></p>
+                                        <p class="description"><?php esc_html_e( 'Requires Relevanssi. 0 = all results, 1 = exact matches only.', 'smart-search-chips' ); ?></p>
                                     </td>
                                 </tr>
                                 <?php endif; ?>
@@ -353,21 +353,21 @@ class SSC_Settings {
                         </div>
 
                         <div class="ssc-settings-card">
-                            <h2><?php _e( 'Analytics', 'smart-search-chips' ); ?></h2>
+                            <h2><?php esc_html_e( 'Analytics', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
-                                <p><?php _e( 'Analytics is part of Pro. It shows which search chips get clicked, what visitors search for, and which queries return no results.', 'smart-search-chips' ); ?></p>
-                                <p class="description"><?php _e( 'Upgrade to Pro to enable anonymous search analytics and view the dashboard directly in WordPress.', 'smart-search-chips' ); ?></p>
+                                <p><?php esc_html_e( 'Analytics is part of Pro. It shows which search chips get clicked, what visitors search for, and which queries return no results.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'Upgrade to Pro to enable anonymous search analytics and view the dashboard directly in WordPress.', 'smart-search-chips' ); ?></p>
                             <?php else : ?>
                                 <table class="form-table">
                                     <tr>
-                                        <th><?php _e( 'Enable Analytics', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Enable Analytics', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <label>
                                                 <input type="hidden" name="ssc_analytics_enabled" value="0" />
                                                 <input type="checkbox" name="ssc_analytics_enabled" value="1" <?php checked( $analytics_on, '1' ); ?> />
-                                                <?php _e( 'Track anonymous search, chip-click, and chip-impression events for admins', 'smart-search-chips' ); ?>
+                                                <?php esc_html_e( 'Track anonymous search, chip-click, and chip-impression events for admins', 'smart-search-chips' ); ?>
                                             </label>
-                                            <p class="description"><?php _e( 'Stores aggregate search and chip interaction events on this WordPress site. Uses anonymous visitor IDs for unique-visitor counts.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Stores aggregate search and chip interaction events on this WordPress site. Uses anonymous visitor IDs for unique-visitor counts.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                 </table>
@@ -377,62 +377,62 @@ class SSC_Settings {
                                         <div class="ssc-analytics-stats">
                                             <div class="ssc-analytics-stat">
                                                 <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['total_searches'] ) ); ?></strong>
-                                                <span><?php _e( 'Searches', 'smart-search-chips' ); ?></span>
+                                                <span><?php esc_html_e( 'Searches', 'smart-search-chips' ); ?></span>
                                             </div>
                                             <div class="ssc-analytics-stat">
                                                 <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['chip_clicks'] ) ); ?></strong>
-                                                <span><?php _e( 'Chip Clicks', 'smart-search-chips' ); ?></span>
+                                                <span><?php esc_html_e( 'Chip Clicks', 'smart-search-chips' ); ?></span>
                                             </div>
                                             <div class="ssc-analytics-stat">
                                                 <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['unique_visitors'] ) ); ?></strong>
-                                                <span><?php _e( 'Unique Visitors', 'smart-search-chips' ); ?></span>
+                                                <span><?php esc_html_e( 'Unique Visitors', 'smart-search-chips' ); ?></span>
                                             </div>
                                         <div class="ssc-analytics-stat">
                                             <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['zero_result_search'] ) ); ?></strong>
-                                            <span><?php _e( 'Zero-Result Searches', 'smart-search-chips' ); ?></span>
+                                            <span><?php esc_html_e( 'Zero-Result Searches', 'smart-search-chips' ); ?></span>
                                         </div>
                                         <div class="ssc-analytics-stat">
                                             <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['search_to_click_rate'], 1 ) . '%' ); ?></strong>
-                                            <span><?php _e( 'Search To Click Rate', 'smart-search-chips' ); ?></span>
+                                            <span><?php esc_html_e( 'Search To Click Rate', 'smart-search-chips' ); ?></span>
                                         </div>
                                     </div>
                                         <p class="description"><?php printf( esc_html__( 'Current overview: %1$s to %2$s. Open the dedicated analytics page for date filters, detailed tables, and CSV export.', 'smart-search-chips' ), esc_html( $analytics['range']['from'] ), esc_html( $analytics['range']['to'] ) ); ?></p>
-                                        <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-analytics' ) ); ?>"><?php _e( 'Open Detailed Analytics', 'smart-search-chips' ); ?></a></p>
+                                        <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-analytics' ) ); ?>"><?php esc_html_e( 'Open Detailed Analytics', 'smart-search-chips' ); ?></a></p>
                                     </div>
                                 <?php else : ?>
-                                    <p class="description"><?php _e( 'Enable analytics and save the page to start collecting anonymous usage data. The dashboard will appear here after events are recorded.', 'smart-search-chips' ); ?></p>
+                                    <p class="description"><?php esc_html_e( 'Enable analytics and save the page to start collecting anonymous usage data. The dashboard will appear here after events are recorded.', 'smart-search-chips' ); ?></p>
                                 <?php endif; ?>
                             <?php endif; ?>
                         </div>
 
                         <div class="ssc-settings-card ssc-settings-card--ai">
-                            <h2><?php _e( 'AI Prompt Builder', 'smart-search-chips' ); ?></h2>
+                            <h2><?php esc_html_e( 'AI Prompt Builder', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
-                                <p><?php _e( 'The AI Prompt Builder is part of Pro. It prepares a structured agent prompt that you can paste into Codex, Claude Code, ChatGPT, Gemini, or another external AI tool. That external tool can then use your own WordPress REST credentials to fetch and write tags.', 'smart-search-chips' ); ?></p>
-                                <p class="description"><?php _e( 'Upgrade to Pro to unlock REST-aware prompt generation, multi-product analysis, custom field targets, and structured agent instructions. This plugin does not request or store any OpenAI, Anthropic, or Gemini API keys.', 'smart-search-chips' ); ?></p>
+                                <p><?php esc_html_e( 'The AI Prompt Builder is part of Pro. It prepares a structured agent prompt that you can paste into Codex, Claude Code, ChatGPT, Gemini, or another external AI tool. That external tool can then use your own WordPress REST credentials to fetch and write tags.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'Upgrade to Pro to unlock REST-aware prompt generation, multi-product analysis, custom field targets, and structured agent instructions. This plugin does not request or store any OpenAI, Anthropic, or Gemini API keys.', 'smart-search-chips' ); ?></p>
                             <?php else : ?>
                                 <table class="form-table">
                                     <tr>
-                                        <th><?php _e( 'REST API', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'REST API', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <label class="ssc-ai-toggle">
                                                 <input type="hidden" name="ssc_ai_rest_enabled" value="0" />
                                                 <input type="checkbox" name="ssc_ai_rest_enabled" id="ssc-ai-rest-enabled" value="1" <?php checked( $ai_rest_mode, '1' ); ?> />
-                                                <span><?php _e( 'Allow REST API write-back in generated prompt', 'smart-search-chips' ); ?></span>
+                                                <span><?php esc_html_e( 'Allow REST API write-back in generated prompt', 'smart-search-chips' ); ?></span>
                                             </label>
-                                            <p class="description"><?php _e( 'Turn this on if you want the external agent to read and write through the WordPress REST API. Turn it off if you only want the prompt to analyze the selected products and return tags for manual review.', 'smart-search-chips' ); ?></p>
-                                            <p class="description"><?php _e( 'When enabled, the prompt assumes you will use WordPress Application Passwords or another REST-compatible WordPress authentication method outside this plugin. The plugin does not ask for or store LLM-provider credentials.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Turn this on if you want the external agent to read and write through the WordPress REST API. Turn it off if you only want the prompt to analyze the selected products and return tags for manual review.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'When enabled, the prompt assumes you will use WordPress Application Passwords or another REST-compatible WordPress authentication method outside this plugin. The plugin does not ask for or store LLM-provider credentials.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th><?php _e( 'Extra Read Fields', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Extra Read Fields', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <input type="text" name="ssc_ai_custom_read_fields" id="ssc-ai-custom-read-fields" value="<?php echo esc_attr( get_option( 'ssc_ai_custom_read_fields', '' ) ); ?>" class="regular-text" />
-                                            <p class="description"><?php _e( 'Optional comma-separated meta keys the external agent should inspect as extra context if they are available over REST.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Optional comma-separated meta keys the external agent should inspect as extra context if they are available over REST.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th><?php _e( 'Target Field', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Target Field', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <?php $target_options = $this->get_ai_target_field_options(); ?>
                                             <select name="ssc_ai_target_field" id="ssc-ai-target-field">
@@ -440,28 +440,28 @@ class SSC_Settings {
                                                     <option value="<?php echo esc_attr( $value ); ?>" <?php selected( $ai_target, $value ); ?>><?php echo esc_html( $label ); ?></option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <p class="description"><?php _e( 'By default, generated tags target the built-in `ssc_tags` field. If you already mapped your own custom tag field in Advanced settings, you can select it here instead.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'By default, generated tags target the built-in `ssc_tags` field. If you already mapped your own custom tag field in Advanced settings, you can select it here instead.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th><?php _e( 'Max Tags', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Max Tags', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <input type="number" name="ssc_ai_max_tags" id="ssc-ai-max-tags" value="<?php echo esc_attr( $ai_max_tags ); ?>" class="small-text" min="0" step="1" />
-                                            <p class="description"><?php _e( 'Set to 0 for no limit. Any positive number caps the number of generated tags per item.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Set to 0 for no limit. Any positive number caps the number of generated tags per item.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th><?php _e( 'Language Override', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Language Override', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <input type="text" name="ssc_ai_language" id="ssc-ai-language" value="<?php echo esc_attr( get_option( 'ssc_ai_language', '' ) ); ?>" class="regular-text" />
-                                            <p class="description"><?php _e( 'Leave empty to keep chips in the same language as each selected product or post. Use this only if you want the agent prompt to force another language.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Leave empty to keep chips in the same language as each selected product or post. Use this only if you want the agent prompt to force another language.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th><?php _e( 'Custom Instruction', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Custom Instruction', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <textarea name="ssc_ai_custom_instruction" id="ssc-ai-custom-instruction" rows="4" class="large-text"><?php echo esc_textarea( get_option( 'ssc_ai_custom_instruction', '' ) ); ?></textarea>
-                                            <p class="description"><?php _e( 'Optional instructions for the external agent, for example: focus on technical differences, ignore brand names, keep tags very short, avoid generic marketing phrases, or use a specific language.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Optional instructions for the external agent, for example: focus on technical differences, ignore brand names, keep tags very short, avoid generic marketing phrases, or use a specific language.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                 </table>
@@ -469,65 +469,65 @@ class SSC_Settings {
                         </div>
 
                         <div class="ssc-settings-card ssc-settings-card--ai-lab">
-                            <h2><?php _e( 'Agent Prompt', 'smart-search-chips' ); ?></h2>
+                            <h2><?php esc_html_e( 'Agent Prompt', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
-                                <p class="description"><?php _e( 'The agent prompt builder becomes available in Pro. It prepares a long-form prompt that tells an external LLM agent to compare similar products together and, when enabled, write semicolon-separated tags back through the WordPress REST API.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'The agent prompt builder becomes available in Pro. It prepares a long-form prompt that tells an external LLM agent to compare similar products together and, when enabled, write semicolon-separated tags back through the WordPress REST API.', 'smart-search-chips' ); ?></p>
                             <?php else : ?>
                                 <table class="form-table">
                                     <tr>
-                                        <th><?php _e( 'Selected Items', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Selected Items', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <div class="ssc-ai-picker">
                                                 <div class="ssc-ai-picker__browser">
                                                     <div class="ssc-ai-browser-toolbar">
-                                                        <label class="screen-reader-text" for="ssc-ai-browser-search"><?php _e( 'Filter categories', 'smart-search-chips' ); ?></label>
+                                                        <label class="screen-reader-text" for="ssc-ai-browser-search"><?php esc_html_e( 'Filter categories', 'smart-search-chips' ); ?></label>
                                                         <input type="search" id="ssc-ai-browser-search" class="regular-text" placeholder="<?php echo esc_attr__( 'Filter categories or products...', 'smart-search-chips' ); ?>" />
-                                                        <button type="button" class="button" id="ssc-ai-browser-refresh"><?php _e( 'Refresh', 'smart-search-chips' ); ?></button>
+                                                        <button type="button" class="button" id="ssc-ai-browser-refresh"><?php esc_html_e( 'Refresh', 'smart-search-chips' ); ?></button>
                                                     </div>
                                                     <div class="ssc-ai-browser-meta">
-                                                        <strong id="ssc-ai-browser-summary"><?php _e( 'Loading categories...', 'smart-search-chips' ); ?></strong>
-                                                        <span class="description"><?php _e( 'Start from taxonomy groups like product categories. Expand a category to inspect its products, or add the whole category to the batch in one click.', 'smart-search-chips' ); ?></span>
+                                                        <strong id="ssc-ai-browser-summary"><?php esc_html_e( 'Loading categories...', 'smart-search-chips' ); ?></strong>
+                                                        <span class="description"><?php esc_html_e( 'Start from taxonomy groups like product categories. Expand a category to inspect its products, or add the whole category to the batch in one click.', 'smart-search-chips' ); ?></span>
                                                     </div>
                                                     <div id="ssc-ai-browser-results" class="ssc-ai-browser-results ssc-ai-browser-results--terms" aria-live="polite">
-                                                        <div class="ssc-ai-browser-empty"><?php _e( 'Loading categories...', 'smart-search-chips' ); ?></div>
+                                                        <div class="ssc-ai-browser-empty"><?php esc_html_e( 'Loading categories...', 'smart-search-chips' ); ?></div>
                                                     </div>
                                                 </div>
                                                 <div class="ssc-ai-picker__selection">
                                                     <div class="ssc-ai-selection-header">
                                                         <div>
-                                                            <strong><?php _e( 'Analysis Batch', 'smart-search-chips' ); ?></strong>
-                                                            <p class="description"><?php _e( 'These are the items that will be sent into one prompt together. Keep similar products in one batch so the external agent can spot what actually differentiates them.', 'smart-search-chips' ); ?></p>
+                                                            <strong><?php esc_html_e( 'Analysis Batch', 'smart-search-chips' ); ?></strong>
+                                                            <p class="description"><?php esc_html_e( 'These are the items that will be sent into one prompt together. Keep similar products in one batch so the external agent can spot what actually differentiates them.', 'smart-search-chips' ); ?></p>
                                                         </div>
-                                                        <button type="button" class="button-link-delete" id="ssc-ai-clear-selection"><?php _e( 'Clear all', 'smart-search-chips' ); ?></button>
+                                                        <button type="button" class="button-link-delete" id="ssc-ai-clear-selection"><?php esc_html_e( 'Clear all', 'smart-search-chips' ); ?></button>
                                                     </div>
-                                                    <div id="ssc-ai-selection-summary" class="ssc-ai-selection-summary"><?php _e( 'No items selected yet.', 'smart-search-chips' ); ?></div>
+                                                    <div id="ssc-ai-selection-summary" class="ssc-ai-selection-summary"><?php esc_html_e( 'No items selected yet.', 'smart-search-chips' ); ?></div>
                                                     <div id="ssc-ai-selected-items" class="ssc-ai-selected-items">
-                                                        <div class="ssc-ai-browser-empty"><?php _e( 'No items selected yet. Build a batch on the left and the selected items will stay pinned here.', 'smart-search-chips' ); ?></div>
+                                                        <div class="ssc-ai-browser-empty"><?php esc_html_e( 'No items selected yet. Build a batch on the left and the selected items will stay pinned here.', 'smart-search-chips' ); ?></div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <p class="description"><?php _e( 'Build the batch from categories first, then inspect individual products only where needed. This avoids endless paginated product lists and fits large catalogs much better.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Build the batch from categories first, then inspect individual products only where needed. This avoids endless paginated product lists and fits large catalogs much better.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th><?php _e( 'Actions', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Actions', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <button type="button" class="button button-primary" id="ssc-ai-build-prompt"><?php _e( 'Generate Agent Prompt', 'smart-search-chips' ); ?></button>
+                                            <button type="button" class="button button-primary" id="ssc-ai-build-prompt"><?php esc_html_e( 'Generate Agent Prompt', 'smart-search-chips' ); ?></button>
                                             <span id="ssc-ai-build-status" class="ssc-ai-inline-status" aria-live="polite"></span>
-                                            <p class="description"><?php _e( 'The generated prompt will always describe the selected batch clearly. If REST write-back is enabled, it will also end with placeholders for your WordPress REST credentials. Paste those WordPress credentials into your external AI tool, not into this plugin.', 'smart-search-chips' ); ?></p>
-                                            <p class="ssc-ai-warning"><?php _e( 'You remain responsible for your WordPress REST credentials and for any changes the external AI tool makes through your site. Review the prompt before use. This plugin does not request or store LLM-provider API keys.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'The generated prompt will always describe the selected batch clearly. If REST write-back is enabled, it will also end with placeholders for your WordPress REST credentials. Paste those WordPress credentials into your external AI tool, not into this plugin.', 'smart-search-chips' ); ?></p>
+                                            <p class="ssc-ai-warning"><?php esc_html_e( 'You remain responsible for your WordPress REST credentials and for any changes the external AI tool makes through your site. Review the prompt before use. This plugin does not request or store LLM-provider API keys.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                 </table>
                                 <div id="ssc-ai-rest-panel" class="ssc-ai-panel">
-                                    <strong><?php _e( 'Run Summary', 'smart-search-chips' ); ?></strong>
-                                    <div id="ssc-ai-rest-output"><?php _e( 'Generate the prompt to inspect the current batch, write mode, and output target.', 'smart-search-chips' ); ?></div>
+                                    <strong><?php esc_html_e( 'Run Summary', 'smart-search-chips' ); ?></strong>
+                                    <div id="ssc-ai-rest-output"><?php esc_html_e( 'Generate the prompt to inspect the current batch, write mode, and output target.', 'smart-search-chips' ); ?></div>
                                 </div>
                                 <div id="ssc-ai-prompt-panel" class="ssc-ai-panel">
-                                    <strong><?php _e( 'Generated Prompt', 'smart-search-chips' ); ?></strong>
+                                    <strong><?php esc_html_e( 'Generated Prompt', 'smart-search-chips' ); ?></strong>
                                     <textarea id="ssc-ai-prompt-output" class="large-text code" rows="18" readonly><?php echo esc_textarea( __( 'Generate the prompt to see the external-agent instructions here.', 'smart-search-chips' ) ); ?></textarea>
                                     <p style="margin-top:10px;">
-                                        <button type="button" class="button button-secondary" id="ssc-ai-copy-prompt-panel"><?php _e( 'Copy Prompt', 'smart-search-chips' ); ?></button>
+                                        <button type="button" class="button button-secondary" id="ssc-ai-copy-prompt-panel"><?php esc_html_e( 'Copy Prompt', 'smart-search-chips' ); ?></button>
                                     </p>
                                 </div>
                             <?php endif; ?>
@@ -535,47 +535,47 @@ class SSC_Settings {
 
                         <details class="ssc-settings-card ssc-settings-card--collapsible">
                             <summary class="ssc-settings-card__summary">
-                                <span class="ssc-settings-card__summary-title"><?php _e( 'Advanced', 'smart-search-chips' ); ?></span>
+                                <span class="ssc-settings-card__summary-title"><?php esc_html_e( 'Advanced', 'smart-search-chips' ); ?></span>
                             </summary>
                             <div class="ssc-settings-card__body">
-                                <p class="description"><?php _e( 'Only change these if you already know your field names or need to integrate with an existing setup.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'Only change these if you already know your field names or need to integrate with an existing setup.', 'smart-search-chips' ); ?></p>
                                 <table class="form-table">
                                     <?php if ( $is_pro ) : ?>
                                     <tr>
-                                        <th><?php _e( 'Custom Tag Field', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Custom Tag Field', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <input type="text" name="ssc_tag_fields" value="<?php echo esc_attr( get_option( 'ssc_tag_fields', '' ) ); ?>" class="regular-text" />
-                                            <p class="description"><?php _e( 'Optional existing meta key that already stores your semicolon-separated search tags, for example `title_info`.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Optional existing meta key that already stores your semicolon-separated search tags, for example `title_info`.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th><?php _e( 'Extra Tag Field', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Extra Tag Field', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <input type="text" name="ssc_extra_fields" value="<?php echo esc_attr( get_option( 'ssc_extra_fields', '' ) ); ?>" class="regular-text" />
-                                            <p class="description"><?php _e( 'Optional extra meta key with comma-separated helper tags. These values are merged with the primary tag source.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Optional extra meta key with comma-separated helper tags. These values are merged with the primary tag source.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <?php else : ?>
                                     <tr>
-                                        <th><?php _e( 'Custom Fields', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Custom Fields', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <p class="description"><?php _e( 'Pro can map an existing custom tag field if you already maintain labeled products elsewhere.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Pro can map an existing custom tag field if you already maintain labeled products elsewhere.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <?php endif; ?>
                                     <?php if ( $is_pro ) : ?>
                                     <tr>
-                                        <th><?php _e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <input type="text" name="ssc_override_ajax" value="<?php echo esc_attr( get_option( 'ssc_override_ajax', '' ) ); ?>" class="regular-text" />
-                                            <p class="description"><?php _e( 'Pro advanced integration only. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Pro advanced integration only. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <?php else : ?>
                                     <tr>
-                                        <th><?php _e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
+                                        <th><?php esc_html_e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <p class="description"><?php _e( 'Pro can hook into an existing theme AJAX action when you need to piggyback on a custom live-search implementation. Standard shortcode AJAX search and loop chips still work in Free.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Pro can hook into an existing theme AJAX action when you need to piggyback on a custom live-search implementation. Standard shortcode AJAX search and loop chips still work in Free.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <?php endif; ?>
@@ -584,29 +584,29 @@ class SSC_Settings {
                         </details>
 
                         <div class="ssc-settings-card ssc-settings-card--danger">
-                            <h2><?php _e( 'Data Cleanup', 'smart-search-chips' ); ?></h2>
+                            <h2><?php esc_html_e( 'Data Cleanup', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr>
-                                    <th><?php _e( 'Delete on Uninstall', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Delete on Uninstall', 'smart-search-chips' ); ?></th>
                                     <td>
                                         <label>
                                             <input type="hidden" name="ssc_delete_data_on_uninstall" value="0" />
                                             <input type="checkbox" name="ssc_delete_data_on_uninstall" value="1" <?php checked( $delete_on_uninstall, '1' ); ?> />
-                                            <?php _e( 'Delete all plugin data when the plugin is uninstalled', 'smart-search-chips' ); ?>
+                                            <?php esc_html_e( 'Delete all plugin data when the plugin is uninstalled', 'smart-search-chips' ); ?>
                                         </label>
-                                        <p class="description"><?php _e( 'By default, uninstall keeps your settings and analytics data. Turn this on only if you want uninstall to remove built-in `ssc_tags` meta, plugin settings, and the analytics table.', 'smart-search-chips' ); ?></p>
+                                        <p class="description"><?php esc_html_e( 'By default, uninstall keeps your settings and analytics data. Turn this on only if you want uninstall to remove built-in `ssc_tags` meta, plugin settings, and the analytics table.', 'smart-search-chips' ); ?></p>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th><?php _e( 'Delete Data Now', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Delete Data Now', 'smart-search-chips' ); ?></th>
                                     <td>
-                                        <p class="description"><?php _e( 'Use this if you want to wipe Smart Search Chips data without uninstalling the plugin. Export analytics CSV first if you want to keep a copy.', 'smart-search-chips' ); ?></p>
+                                        <p class="description"><?php esc_html_e( 'Use this if you want to wipe Smart Search Chips data without uninstalling the plugin. Export analytics CSV first if you want to keep a copy.', 'smart-search-chips' ); ?></p>
                                         <button
                                             type="submit"
                                             form="ssc-delete-data-form"
                                             class="button button-secondary"
                                             onclick="return confirm('<?php echo esc_js( __( 'Delete Smart Search Chips settings, built-in chip meta, and stored analytics events now? This cannot be undone.', 'smart-search-chips' ) ); ?>');"
-                                        ><?php _e( 'Delete All Plugin Data Now', 'smart-search-chips' ); ?></button>
+                                        ><?php esc_html_e( 'Delete All Plugin Data Now', 'smart-search-chips' ); ?></button>
                                     </td>
                                 </tr>
                             </table>
@@ -618,7 +618,7 @@ class SSC_Settings {
                     <!-- RIGHT: Sticky Preview -->
                     <div id="ssc-settings-right">
                         <div id="ssc-preview-panel">
-                            <h3><?php _e( 'Style Preview', 'smart-search-chips' ); ?></h3>
+                            <h3><?php esc_html_e( 'Style Preview', 'smart-search-chips' ); ?></h3>
                             <div id="ssc-preview-search" style="margin-bottom:12px;">
                                 <input type="text" value="example query" disabled style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;color:#999;" />
                             </div>
@@ -1018,29 +1018,29 @@ class SSC_Settings {
                 <div class="ssc-analytics-stats">
                     <div class="ssc-analytics-stat">
                         <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['total_searches'] ) ); ?></strong>
-                        <span><?php _e( 'Searches', 'smart-search-chips' ); ?></span>
+                        <span><?php esc_html_e( 'Searches', 'smart-search-chips' ); ?></span>
                     </div>
                     <div class="ssc-analytics-stat">
                         <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['chip_clicks'] ) ); ?></strong>
-                        <span><?php _e( 'Chip Clicks', 'smart-search-chips' ); ?></span>
+                        <span><?php esc_html_e( 'Chip Clicks', 'smart-search-chips' ); ?></span>
                     </div>
                     <div class="ssc-analytics-stat">
                         <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['unique_visitors'] ) ); ?></strong>
-                        <span><?php _e( 'Unique Visitors', 'smart-search-chips' ); ?></span>
+                        <span><?php esc_html_e( 'Unique Visitors', 'smart-search-chips' ); ?></span>
                     </div>
                     <div class="ssc-analytics-stat">
                         <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['zero_result_search'] ) ); ?></strong>
-                        <span><?php _e( 'Zero-Result Searches', 'smart-search-chips' ); ?></span>
+                        <span><?php esc_html_e( 'Zero-Result Searches', 'smart-search-chips' ); ?></span>
                     </div>
                     <div class="ssc-analytics-stat">
                         <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['search_to_click_rate'], 1 ) . '%' ); ?></strong>
-                        <span><?php _e( 'Search To Click Rate', 'smart-search-chips' ); ?></span>
+                        <span><?php esc_html_e( 'Search To Click Rate', 'smart-search-chips' ); ?></span>
                     </div>
                 </div>
 
                 <div class="ssc-analytics-charts">
                     <div class="ssc-analytics-panel">
-                        <h3><?php _e( 'Search Activity Over Time', 'smart-search-chips' ); ?></h3>
+                        <h3><?php esc_html_e( 'Search Activity Over Time', 'smart-search-chips' ); ?></h3>
                         <div class="ssc-chart">
                             <?php $this->render_analytics_chart( $analytics['timeseries'], array( 'searches' => '#1d4ed8', 'chip_clicks' => '#d97706' ) ); ?>
                             <div class="ssc-chart-meta">
@@ -1050,7 +1050,7 @@ class SSC_Settings {
                         </div>
                     </div>
                     <div class="ssc-analytics-panel">
-                        <h3><?php _e( 'Visitors And Zero-Result Searches', 'smart-search-chips' ); ?></h3>
+                        <h3><?php esc_html_e( 'Visitors And Zero-Result Searches', 'smart-search-chips' ); ?></h3>
                         <div class="ssc-chart">
                             <?php $this->render_analytics_chart( $analytics['timeseries'], array( 'unique_visitors' => '#059669', 'zero_results' => '#dc2626' ) ); ?>
                             <div class="ssc-chart-meta">
@@ -1063,25 +1063,25 @@ class SSC_Settings {
 
                 <div class="ssc-analytics-panels ssc-analytics-panels--quad">
                     <div class="ssc-analytics-panel">
-                        <h3><?php _e( 'Top Clicked Chips', 'smart-search-chips' ); ?></h3>
+                        <h3><?php esc_html_e( 'Top Clicked Chips', 'smart-search-chips' ); ?></h3>
                         <?php $this->render_analytics_table( $analytics['top_chips'], array( 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'clicks' => __( 'Clicks', 'smart-search-chips' ), 'visitors' => __( 'Visitors', 'smart-search-chips' ) ) ); ?>
                     </div>
                     <div class="ssc-analytics-panel">
-                        <h3><?php _e( 'Top Chips By Click-Through Rate', 'smart-search-chips' ); ?></h3>
+                        <h3><?php esc_html_e( 'Top Chips By Click-Through Rate', 'smart-search-chips' ); ?></h3>
                         <?php $this->render_analytics_table( $analytics['top_chip_ctr'], array( 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'impressions' => __( 'Impressions', 'smart-search-chips' ), 'clicks' => __( 'Clicks', 'smart-search-chips' ), 'click_through_rate' => __( 'CTR', 'smart-search-chips' ) ) ); ?>
                     </div>
                     <div class="ssc-analytics-panel">
-                        <h3><?php _e( 'Top Search Queries', 'smart-search-chips' ); ?></h3>
+                        <h3><?php esc_html_e( 'Top Search Queries', 'smart-search-chips' ); ?></h3>
                         <?php $this->render_analytics_table( $analytics['top_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'searches' => __( 'Searches', 'smart-search-chips' ), 'chip_clicks' => __( 'Chip Clicks', 'smart-search-chips' ), 'click_rate' => __( 'Click Rate', 'smart-search-chips' ), 'avg_results' => __( 'Avg. Results', 'smart-search-chips' ) ) ); ?>
                     </div>
                     <div class="ssc-analytics-panel">
-                        <h3><?php _e( 'Top Zero-Result Queries Over Time', 'smart-search-chips' ); ?></h3>
+                        <h3><?php esc_html_e( 'Top Zero-Result Queries Over Time', 'smart-search-chips' ); ?></h3>
                         <?php $this->render_analytics_table( $analytics['zero_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'misses' => __( 'Misses', 'smart-search-chips' ), 'first_seen' => __( 'First Seen', 'smart-search-chips' ), 'last_seen' => __( 'Last Seen', 'smart-search-chips' ) ) ); ?>
                     </div>
                 </div>
 
                 <div class="ssc-analytics-panel">
-                    <h3><?php _e( 'Recent Events', 'smart-search-chips' ); ?></h3>
+                    <h3><?php esc_html_e( 'Recent Events', 'smart-search-chips' ); ?></h3>
                     <?php $this->render_analytics_table( $events, array( 'created_at' => __( 'Date', 'smart-search-chips' ), 'event_type' => __( 'Event', 'smart-search-chips' ), 'language_code' => __( 'Lang', 'smart-search-chips' ), 'search_query' => __( 'Query', 'smart-search-chips' ), 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'result_count' => __( 'Results', 'smart-search-chips' ) ) ); ?>
                 </div>
             </div>

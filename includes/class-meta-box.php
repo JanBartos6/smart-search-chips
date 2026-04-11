@@ -172,7 +172,7 @@ class SSC_Meta_Box {
             return;
         }
 
-        if ( ! wp_verify_nonce( $_POST['ssc_tags_nonce_field'], 'ssc_tags_nonce' ) ) {
+        if ( ! wp_verify_nonce( wp_unslash( $_POST['ssc_tags_nonce_field'] ), 'ssc_tags_nonce' ) ) {
             return;
         }
 
@@ -185,7 +185,7 @@ class SSC_Meta_Box {
         }
 
         if ( isset( $_POST['ssc_tags'] ) ) {
-            $value = sanitize_text_field( $_POST['ssc_tags'] );
+            $value = sanitize_text_field( wp_unslash( $_POST['ssc_tags'] ) );
             update_post_meta( $post_id, self::META_KEY, $value );
         }
     }

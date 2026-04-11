@@ -143,6 +143,10 @@ class SSC_WooCommerce {
             return $redirect_to;
         }
 
+        if ( ! current_user_can( 'edit_posts' ) ) {
+            return $redirect_to;
+        }
+
         $count = 0;
         foreach ( $post_ids as $post_id ) {
             $tags = $this->extract_product_tags( $post_id );
