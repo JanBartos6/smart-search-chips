@@ -791,7 +791,7 @@ class SSC_Analytics {
                     SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS impressions,
                     SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS clicks,
                     COUNT(DISTINCT CASE WHEN event_type = %s THEN visitor_id ELSE NULL END) AS click_visitors
-                FROM " . self::table_name() . "
+                FROM " . self::table_name() . " /* phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from \$wpdb->prefix */
                 WHERE event_type IN (%s, %s)
                     AND created_at BETWEEN %s AND %s
                     AND chip_label <> ''
