@@ -8,7 +8,7 @@
 (function () {
     "use strict";
 
-    var config = window.sscAiAdmin || {};
+    var config = window.sschpAiAdmin || {};
     var browserState = {
         collections: [],
         search: "",
@@ -134,7 +134,7 @@
         }
 
         var data = new FormData();
-        data.append("action", "ssc_ai_browse_terms");
+        data.append("action", "sschp_ai_browse_terms");
         data.append("nonce", config.nonce || "");
 
         fetch(config.ajaxUrl, {
@@ -183,7 +183,7 @@
         renderCollections();
 
         var data = new FormData();
-        data.append("action", "ssc_ai_load_term_items");
+        data.append("action", "sschp_ai_load_term_items");
         data.append("nonce", config.nonce || "");
         data.append("taxonomy", taxonomy);
         data.append("term_id", String(termId));
@@ -775,7 +775,7 @@
 
         if (buildPromptButton) {
             buildPromptButton.addEventListener("click", function () {
-                request("ssc_ai_build_prompt", buildPromptButton, function (data) {
+                request("sschp_ai_build_prompt", buildPromptButton, function (data) {
                     renderRestSummary(data.summary);
                     renderPrompt(data.prompt);
                     setStatus("ssc-ai-build-status", config.strings && config.strings.promptReady ? config.strings.promptReady : "Prompt ready.", false);

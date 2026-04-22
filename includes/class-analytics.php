@@ -9,10 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class SSC_Analytics {
+class SSCHP_Analytics {
 
     /** @var string Database version option */
-    const DB_VERSION_OPTION = 'ssc_analytics_db_version';
+    const DB_VERSION_OPTION = 'sschp_analytics_db_version';
 
     /** @var string Current analytics schema version */
     const DB_VERSION = '1.1';
@@ -34,9 +34,9 @@ class SSC_Analytics {
      */
     public function init() {
         add_action( 'init', array( __CLASS__, 'maybe_install' ) );
-        add_action( 'wp_ajax_ssc_track_event', array( $this, 'ajax_track_event' ) );
-        add_action( 'wp_ajax_nopriv_ssc_track_event', array( $this, 'ajax_track_event' ) );
-        add_action( 'admin_post_ssc_export_analytics', array( $this, 'handle_export' ) );
+        add_action( 'wp_ajax_sschp_track_event', array( $this, 'ajax_track_event' ) );
+        add_action( 'wp_ajax_nopriv_sschp_track_event', array( $this, 'ajax_track_event' ) );
+        add_action( 'admin_post_sschp_export_analytics', array( $this, 'handle_export' ) );
     }
 
     /**
@@ -90,7 +90,7 @@ class SSC_Analytics {
      */
     public static function table_name() {
         global $wpdb;
-        return $wpdb->prefix . 'ssc_events';
+        return $wpdb->prefix . 'sschp_events';
     }
 
     /**
@@ -123,14 +123,14 @@ class SSC_Analytics {
      * @return bool
      */
     public static function is_enabled() {
-        return SSC_License::is_pro() && get_option( 'ssc_analytics_enabled', '0' ) === '1';
+        return SSCHP_License::is_pro() && get_option( 'sschp_analytics_enabled', '0' ) === '1';
     }
 
     /**
      * Track a frontend analytics event.
      */
     public function ajax_track_event() {
-        check_ajax_referer( 'ssc_analytics_nonce', 'nonce' );
+        check_ajax_referer( 'sschp_analytics_nonce', 'nonce' );
 
         if ( ! self::is_enabled() ) {
             wp_send_json_success( array( 'tracked' => false ) );
@@ -151,7 +151,7 @@ class SSC_Analytics {
         $page_url         = isset( $_POST['page_url'] ) ? esc_url_raw( wp_unslash( $_POST['page_url'] ) ) : '';
         $result_count     = isset( $_POST['result_count'] ) ? intval( $_POST['result_count'] ) : null;
         $active_tag_count = isset( $_POST['active_tag_count'] ) ? max( 0, intval( $_POST['active_tag_count'] ) ) : null;
-        $language_code    = SSC_Language::request_language();
+        $language_code    = SSCHP_Language::request_language();
         $chip_labels      = self::sanitize_chip_labels( isset( $_POST['chip_labels'] ) ? wp_unslash( $_POST['chip_labels'] ) : array() );
 
         if ( $event_type === 'search' && strlen( $search_query ) < 2 ) {
@@ -455,7 +455,7 @@ class SSC_Analytics {
             wp_die( esc_html__( 'You do not have permission to export analytics.', 'smart-search-chips' ) );
         }
 
-        check_admin_referer( 'ssc_export_analytics' );
+        check_admin_referer( 'sschp_export_analytics' );
 
         if ( ! self::is_enabled() ) {
             wp_die( esc_html__( 'Analytics is not enabled.', 'smart-search-chips' ) );
@@ -634,7 +634,7 @@ class SSC_Analytics {
             return false;
         }
 
-        $transient_key = 'ssc_rate_' . md5( $subject );
+        $transient_key = 'sschp_rate_' . md5( $subject );
         $count         = (int) get_transient( $transient_key );
 
         if ( $count >= self::RATE_LIMIT_MAX_REQUESTS ) {
@@ -679,7 +679,7 @@ class SSC_Analytics {
             return true;
         }
 
-        $transient_key = 'ssc_evt_' . substr( $fingerprint, 0, 32 );
+        $transient_key = 'sschp_evt_' . substr( $fingerprint, 0, 32 );
 
         if ( false !== get_transient( $transient_key ) ) {
             return false;

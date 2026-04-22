@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class SSC_Language {
+class SSCHP_Language {
 
     /**
      * Get the active frontend language slug when available.
@@ -45,7 +45,7 @@ class SSC_Language {
      */
     public static function request_language() {
         $candidates = array(
-            isset( $_REQUEST['ssc_lang'] ) ? wp_unslash( $_REQUEST['ssc_lang'] ) : '',
+            isset( $_REQUEST['sschp_lang'] ) ? wp_unslash( $_REQUEST['sschp_lang'] ) : '',
             isset( $_REQUEST['lang'] ) ? wp_unslash( $_REQUEST['lang'] ) : '',
         );
 

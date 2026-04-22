@@ -9,11 +9,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class SSC_License {
+class SSCHP_License {
 
     /** @var string Legacy manual license option keys kept for cleanup */
-    const LEGACY_LICENSE_KEY_OPTION    = 'ssc_license_key';
-    const LEGACY_LICENSE_STATUS_OPTION = 'ssc_license_status';
+    const LEGACY_LICENSE_KEY_OPTION    = 'sschp_license_key';
+    const LEGACY_LICENSE_STATUS_OPTION = 'sschp_license_status';
 
     /**
      * Return the Freemius instance when available.
@@ -21,11 +21,11 @@ class SSC_License {
      * @return Freemius_Abstract|null
      */
     public static function freemius() {
-        if ( ! function_exists( 'ssc_fs' ) ) {
+        if ( ! function_exists( 'sschp_fs' ) ) {
             return null;
         }
 
-        return ssc_fs();
+        return sschp_fs();
     }
 
     /**

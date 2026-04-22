@@ -9,18 +9,18 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class SSC_AI_Tagger {
+class SSCHP_AI_Tagger {
 
-    /** @var SSC_Settings */
+    /** @var SSCHP_Settings */
     private $settings;
 
     /** @var string */
-    const AJAX_NONCE = 'ssc_ai_tagging_nonce';
+    const AJAX_NONCE = 'sschp_ai_tagging_nonce';
 
     /**
-     * @param SSC_Settings $settings Settings helper.
+     * @param SSCHP_Settings $settings Settings helper.
      */
-    public function __construct( SSC_Settings $settings ) {
+    public function __construct( SSCHP_Settings $settings ) {
         $this->settings = $settings;
     }
 
@@ -28,9 +28,9 @@ class SSC_AI_Tagger {
      * Register admin AJAX hooks.
      */
     public function init() {
-        add_action( 'wp_ajax_ssc_ai_browse_terms', array( $this, 'ajax_browse_terms' ) );
-        add_action( 'wp_ajax_ssc_ai_load_term_items', array( $this, 'ajax_load_term_items' ) );
-        add_action( 'wp_ajax_ssc_ai_build_prompt', array( $this, 'ajax_build_prompt' ) );
+        add_action( 'wp_ajax_sschp_ai_browse_terms', array( $this, 'ajax_browse_terms' ) );
+        add_action( 'wp_ajax_sschp_ai_load_term_items', array( $this, 'ajax_load_term_items' ) );
+        add_action( 'wp_ajax_sschp_ai_build_prompt', array( $this, 'ajax_build_prompt' ) );
     }
 
     /**
@@ -166,7 +166,7 @@ class SSC_AI_Tagger {
      */
     private function get_selected_posts( $post_ids ) {
         if ( empty( $post_ids ) ) {
-            return new WP_Error( 'ssc_ai_missing_posts', __( 'Select at least one product or post for the prompt.', 'smart-search-chips' ) );
+            return new WP_Error( 'sschp_ai_missing_posts', __( 'Select at least one product or post for the prompt.', 'smart-search-chips' ) );
         }
 
         $posts = array();
@@ -181,7 +181,7 @@ class SSC_AI_Tagger {
         }
 
         if ( empty( $posts ) ) {
-            return new WP_Error( 'ssc_ai_invalid_posts', __( 'The selected items could not be loaded.', 'smart-search-chips' ) );
+            return new WP_Error( 'sschp_ai_invalid_posts', __( 'The selected items could not be loaded.', 'smart-search-chips' ) );
         }
 
         return $posts;
@@ -200,7 +200,7 @@ class SSC_AI_Tagger {
 
         $target_meta_key = $this->get_target_meta_key( $config );
         if ( $target_meta_key === '' ) {
-            return new WP_Error( 'ssc_ai_missing_target', __( 'Configure a valid target field before generating the prompt.', 'smart-search-chips' ) );
+            return new WP_Error( 'sschp_ai_missing_target', __( 'Configure a valid target field before generating the prompt.', 'smart-search-chips' ) );
         }
 
         if ( $rest_enabled ) {
@@ -208,7 +208,7 @@ class SSC_AI_Tagger {
                 $post_type_object = get_post_type_object( $post->post_type );
                 if ( ! $post_type_object || empty( $post_type_object->show_in_rest ) ) {
                     return new WP_Error(
-                        'ssc_ai_rest_unavailable',
+                        'sschp_ai_rest_unavailable',
                         sprintf(
                             /* translators: %s: post type */
                             __( 'The post type "%s" is not exposed in the WordPress REST API.', 'smart-search-chips' ),
@@ -221,7 +221,7 @@ class SSC_AI_Tagger {
                     $registered_meta = get_registered_meta_keys( 'post', $post->post_type );
                     if ( ! isset( $registered_meta[ $target_meta_key ] ) ) {
                         return new WP_Error(
-                            'ssc_ai_meta_not_rest_ready',
+                            'sschp_ai_meta_not_rest_ready',
                             sprintf(
                                 /* translators: 1: meta key, 2: post type */
                                 __( 'The target field "%1$s" is not registered for REST updates on post type "%2$s".', 'smart-search-chips' ),
@@ -406,7 +406,7 @@ class SSC_AI_Tagger {
 
         check_ajax_referer( self::AJAX_NONCE, 'nonce' );
 
-        if ( ! SSC_License::is_pro() ) {
+        if ( ! SSCHP_License::is_pro() ) {
             wp_send_json_error( array( 'message' => __( 'The AI prompt builder is available in Pro.', 'smart-search-chips' ) ), 403 );
         }
     }
@@ -425,7 +425,7 @@ class SSC_AI_Tagger {
             }
         }
 
-        return SSC_Meta_Box::META_KEY;
+        return SSCHP_Meta_Box::META_KEY;
     }
 
     /**
@@ -455,7 +455,7 @@ class SSC_AI_Tagger {
      * @return string[]
      */
     private function get_allowed_post_types() {
-        $post_types = get_option( 'ssc_post_types', array( 'post' ) );
+        $post_types = get_option( 'sschp_post_types', array( 'post' ) );
         if ( ! is_array( $post_types ) ) {
             $post_types = array( $post_types );
         }

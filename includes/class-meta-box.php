@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-if ( ! function_exists( 'ssc_can_edit_post_meta' ) ) {
+if ( ! function_exists( 'sschp_can_edit_post_meta' ) ) {
     /**
      * Restrict REST-exposed Search Chips meta to users who can edit the specific post.
      *
@@ -23,7 +23,7 @@ if ( ! function_exists( 'ssc_can_edit_post_meta' ) ) {
      * @param int       $user_id User ID when WordPress provides one.
      * @return bool
      */
-    function ssc_can_edit_post_meta( $allowed, $meta_key, $post_id, $user_id = 0 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+    function sschp_can_edit_post_meta( $allowed, $meta_key, $post_id, $user_id = 0 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         $post_id = absint( $post_id );
 
         if ( $post_id <= 0 ) {
@@ -38,10 +38,10 @@ if ( ! function_exists( 'ssc_can_edit_post_meta' ) ) {
     }
 }
 
-class SSC_Meta_Box {
+class SSCHP_Meta_Box {
 
     /** @var string The built-in meta key */
-    const META_KEY = 'ssc_tags';
+    const META_KEY = 'sschp_tags';
 
     /**
      * Initialize meta box hooks.
@@ -57,7 +57,7 @@ class SSC_Meta_Box {
      * Register the meta key for REST API.
      */
     public function register_meta() {
-        $post_types = get_option( 'ssc_post_types', array( 'post' ) );
+        $post_types = get_option( 'sschp_post_types', array( 'post' ) );
         if ( ! is_array( $post_types ) ) {
             $post_types = array( $post_types );
         }
@@ -67,7 +67,7 @@ class SSC_Meta_Box {
                 'show_in_rest'  => true,
                 'single'        => true,
                 'type'          => 'string',
-                'auth_callback' => 'ssc_can_edit_post_meta',
+                'auth_callback' => 'sschp_can_edit_post_meta',
             ) );
         }
     }
@@ -76,14 +76,14 @@ class SSC_Meta_Box {
      * Register the meta box on configured post types.
      */
     public function register_meta_box() {
-        $post_types = get_option( 'ssc_post_types', array( 'post' ) );
+        $post_types = get_option( 'sschp_post_types', array( 'post' ) );
         if ( ! is_array( $post_types ) ) {
             $post_types = array( $post_types );
         }
 
         foreach ( $post_types as $pt ) {
             add_meta_box(
-                'ssc_tags_meta_box',
+                'sschp_tags_meta_box',
                 __( 'Search Chips Tags', 'smart-search-chips' ),
                 array( $this, 'render_meta_box' ),
                 $pt,
@@ -99,7 +99,7 @@ class SSC_Meta_Box {
      * @param WP_Post $post Current post.
      */
     public function render_meta_box( $post ) {
-        wp_nonce_field( 'ssc_tags_nonce', 'ssc_tags_nonce_field' );
+        wp_nonce_field( 'sschp_tags_nonce', 'sschp_tags_nonce_field' );
 
         $value = get_post_meta( $post->ID, self::META_KEY, true );
         $tags  = $value ? array_filter( array_map( 'trim', explode( ';', $value ) ) ) : array();
@@ -124,7 +124,7 @@ class SSC_Meta_Box {
                 </button>
             </div>
             <input type="hidden"
-                   name="ssc_tags"
+                   name="sschp_tags"
                    id="ssc-tags-hidden"
                    value="<?php echo esc_attr( $value ); ?>" />
             <p class="description">
@@ -132,62 +132,6 @@ class SSC_Meta_Box {
             </p>
         </div>
 
-        <script>
-        (function() {
-            var container = document.getElementById('ssc-tags-container');
-            var input = document.getElementById('ssc-tag-input');
-            var hidden = document.getElementById('ssc-tags-hidden');
-            var addBtn = document.getElementById('ssc-add-tag');
-
-            function updateHidden() {
-                var tags = [];
-                container.querySelectorAll('.ssc-meta-box__tag').forEach(function(el) {
-                    var btn = el.querySelector('.ssc-meta-box__remove');
-                    if (btn) tags.push(btn.getAttribute('data-tag'));
-                });
-                hidden.value = tags.join('; ');
-            }
-
-            function addTag(text) {
-                text = text.trim();
-                if (!text) return;
-
-                // Check duplicate
-                var existing = hidden.value.split(';').map(function(t) { return t.trim().toLowerCase(); });
-                if (existing.indexOf(text.toLowerCase()) > -1) return;
-
-                var span = document.createElement('span');
-                span.className = 'ssc-meta-box__tag';
-                span.textContent = text + ' ';
-                var btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'ssc-meta-box__remove';
-                btn.setAttribute('data-tag', text);
-                btn.textContent = '\u00d7';
-                span.appendChild(btn);
-                container.appendChild(span);
-                updateHidden();
-                input.value = '';
-                input.focus();
-            }
-
-            addBtn.addEventListener('click', function() { addTag(input.value); });
-
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTag(input.value);
-                }
-            });
-
-            container.addEventListener('click', function(e) {
-                if (e.target.classList.contains('ssc-meta-box__remove')) {
-                    e.target.parentElement.remove();
-                    updateHidden();
-                }
-            });
-        })();
-        </script>
         <?php
     }
 
@@ -197,11 +141,11 @@ class SSC_Meta_Box {
      * @param int $post_id Post ID.
      */
     public function save_meta_box( $post_id ) {
-        if ( ! isset( $_POST['ssc_tags_nonce_field'] ) ) {
+        if ( ! isset( $_POST['sschp_tags_nonce_field'] ) ) {
             return;
         }
 
-        if ( ! wp_verify_nonce( wp_unslash( $_POST['ssc_tags_nonce_field'] ), 'ssc_tags_nonce' ) ) {
+        if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['sschp_tags_nonce_field'] ) ), 'sschp_tags_nonce' ) ) {
             return;
         }
 
@@ -213,8 +157,8 @@ class SSC_Meta_Box {
             return;
         }
 
-        if ( isset( $_POST['ssc_tags'] ) ) {
-            $value = sanitize_text_field( wp_unslash( $_POST['ssc_tags'] ) );
+        if ( isset( $_POST['sschp_tags'] ) ) {
+            $value = sanitize_text_field( wp_unslash( $_POST['sschp_tags'] ) );
             update_post_meta( $post_id, self::META_KEY, $value );
         }
     }
@@ -227,13 +171,19 @@ class SSC_Meta_Box {
             return;
         }
 
-        wp_add_inline_style( 'wp-admin', '
-            .ssc-meta-box__tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
-            .ssc-meta-box__tag { display: inline-flex; align-items: center; gap: 2px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 12px; padding: 2px 8px; font-size: 12px; }
-            .ssc-meta-box__remove { background: none; border: none; cursor: pointer; font-size: 14px; color: #a00; padding: 0 2px; line-height: 1; }
-            .ssc-meta-box__remove:hover { color: #d00; }
-            .ssc-meta-box__input-row { display: flex; gap: 4px; margin-bottom: 8px; }
-            .ssc-meta-box__input-row input { flex: 1; }
-        ' );
+        wp_enqueue_style(
+            'ssc-meta-box',
+            SSCHP_PLUGIN_URL . 'assets/css/meta-box.css',
+            array(),
+            SSCHP_VERSION
+        );
+
+        wp_enqueue_script(
+            'ssc-meta-box',
+            SSCHP_PLUGIN_URL . 'assets/js/meta-box.js',
+            array(),
+            SSCHP_VERSION,
+            true
+        );
     }
 }

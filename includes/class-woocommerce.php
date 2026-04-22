@@ -9,18 +9,18 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class SSC_WooCommerce {
+class SSCHP_WooCommerce {
 
     /**
      * Initialize WooCommerce hooks.
      */
     public function init() {
         // Only load if WooCommerce is active and feature is enabled
-        if ( ! class_exists( 'WooCommerce' ) || get_option( 'ssc_woo_enabled', '1' ) !== '1' ) {
+        if ( ! class_exists( 'WooCommerce' ) || get_option( 'sschp_woo_enabled', '1' ) !== '1' ) {
             return;
         }
 
-        // Auto-populate ssc_tags when a product is saved
+        // Auto-populate sschp_tags when a product is saved
         add_action( 'save_post_product', array( $this, 'auto_populate_tags' ), 20, 2 );
 
         // Add bulk action to generate tags for all products
@@ -30,7 +30,7 @@ class SSC_WooCommerce {
     }
 
     /**
-     * Auto-populate ssc_tags from WooCommerce product attributes on save.
+     * Auto-populate sschp_tags from WooCommerce product attributes on save.
      *
      * @param int     $post_id Post ID.
      * @param WP_Post $post    Post object.
@@ -45,7 +45,7 @@ class SSC_WooCommerce {
         }
 
         // Don't overwrite manually entered tags
-        $existing = get_post_meta( $post_id, SSC_Meta_Box::META_KEY, true );
+        $existing = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true );
         if ( ! empty( $existing ) ) {
             return;
         }
@@ -53,7 +53,7 @@ class SSC_WooCommerce {
         $tags = $this->extract_product_tags( $post_id );
 
         if ( ! empty( $tags ) ) {
-            update_post_meta( $post_id, SSC_Meta_Box::META_KEY, implode( '; ', $tags ) );
+            update_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, implode( '; ', $tags ) );
         }
     }
 
@@ -116,7 +116,7 @@ class SSC_WooCommerce {
         // Deduplicate
         $tags = array_unique( array_filter( array_map( 'trim', $tags ) ) );
 
-        return apply_filters( 'ssc_woocommerce_tags', $tags, $product_id, $product );
+        return apply_filters( 'sschp_woocommerce_tags', $tags, $product_id, $product );
     }
 
     /**
@@ -126,7 +126,7 @@ class SSC_WooCommerce {
      * @return array
      */
     public function add_bulk_action( $actions ) {
-        $actions['ssc_generate_tags'] = __( 'Generate Search Chips Tags', 'smart-search-chips' );
+        $actions['sschp_generate_tags'] = __( 'Generate Search Chips Tags', 'smart-search-chips' );
         return $actions;
     }
 
@@ -139,7 +139,7 @@ class SSC_WooCommerce {
      * @return string
      */
     public function handle_bulk_action( $redirect_to, $action, $post_ids ) {
-        if ( $action !== 'ssc_generate_tags' ) {
+        if ( $action !== 'sschp_generate_tags' ) {
             return $redirect_to;
         }
 
@@ -151,20 +151,20 @@ class SSC_WooCommerce {
         foreach ( $post_ids as $post_id ) {
             $tags = $this->extract_product_tags( $post_id );
             if ( ! empty( $tags ) ) {
-                update_post_meta( $post_id, SSC_Meta_Box::META_KEY, implode( '; ', $tags ) );
+                update_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, implode( '; ', $tags ) );
                 $count++;
             }
         }
 
-        return add_query_arg( 'ssc_tags_generated', $count, $redirect_to );
+        return add_query_arg( 'sschp_tags_generated', $count, $redirect_to );
     }
 
     /**
      * Show admin notice after bulk action.
      */
     public function bulk_action_notice() {
-        if ( ! empty( $_REQUEST['ssc_tags_generated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display after redirect.
-            $count = (int) $_REQUEST['ssc_tags_generated']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ( ! empty( $_REQUEST['sschp_tags_generated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display after redirect.
+            $count = (int) $_REQUEST['sschp_tags_generated']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             printf(
                 '<div class="notice notice-success is-dismissible"><p>' .
                 /* translators: %d: number of products tagged */

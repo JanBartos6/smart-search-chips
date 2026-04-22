@@ -1,5 +1,5 @@
 === Smart Search Chips ===
-Contributors: janbartos
+Contributors: honzdev
 Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9

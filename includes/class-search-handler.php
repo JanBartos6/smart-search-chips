@@ -9,15 +9,15 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class SSC_Search_Handler {
+class SSCHP_Search_Handler {
 
-    /** @var SSC_Chip_Engine */
+    /** @var SSCHP_Chip_Engine */
     private $engine;
 
-    /** @var SSC_Settings */
+    /** @var SSCHP_Settings */
     private $settings;
 
-    public function __construct( SSC_Chip_Engine $engine, SSC_Settings $settings ) {
+    public function __construct( SSCHP_Chip_Engine $engine, SSCHP_Settings $settings ) {
         $this->engine   = $engine;
         $this->settings = $settings;
     }
@@ -28,14 +28,14 @@ class SSC_Search_Handler {
     public function init() {
         // Override existing AJAX action (Pro only)
         $ajax_action = $this->settings->get( 'override_ajax' );
-        if ( SSC_License::can_use_ajax_override() && ! empty( $ajax_action ) ) {
+        if ( SSCHP_License::can_use_ajax_override() && ! empty( $ajax_action ) ) {
             add_action( 'wp_ajax_' . $ajax_action, array( $this, 'handle_search' ), 0 );
             add_action( 'wp_ajax_nopriv_' . $ajax_action, array( $this, 'handle_search' ), 0 );
         }
 
         // Always register our own action
-        add_action( 'wp_ajax_ssc_search', array( $this, 'handle_search' ) );
-        add_action( 'wp_ajax_nopriv_ssc_search', array( $this, 'handle_search' ) );
+        add_action( 'wp_ajax_sschp_search', array( $this, 'handle_search' ) );
+        add_action( 'wp_ajax_nopriv_sschp_search', array( $this, 'handle_search' ) );
     }
 
     /**
@@ -43,7 +43,7 @@ class SSC_Search_Handler {
      */
     public function handle_search() {
         // Nonce verification (optional — skip if overriding a theme handler that doesn't use nonces)
-        if ( isset( $_POST['ssc_nonce'] ) && ! wp_verify_nonce( wp_unslash( $_POST['ssc_nonce'] ), 'ssc_search_nonce' ) ) {
+        if ( isset( $_POST['sschp_nonce'] ) && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['sschp_nonce'] ) ), 'sschp_search_nonce' ) ) {
             wp_die( esc_html__( 'Security check failed.', 'smart-search-chips' ) );
         }
 
@@ -54,8 +54,8 @@ class SSC_Search_Handler {
             wp_die();
         }
 
-        $language = SSC_Language::request_language();
-        SSC_Language::switch_ajax_language( $language );
+        $language = SSCHP_Language::request_language();
+        SSCHP_Language::switch_ajax_language( $language );
 
         $post_types     = $this->settings->get( 'post_types', array( 'post' ) );
         $max_results    = (int) $this->settings->get( 'search_results_count', 50 );
@@ -66,7 +66,7 @@ class SSC_Search_Handler {
         // Enforce free version limits
         $max_chips = min(
             (int) $this->settings->get( 'max_chips', 8 ),
-            SSC_License::max_chips()
+            SSCHP_License::max_chips()
         );
 
         // Run search query (Relevanssi hooks in automatically if active)
@@ -76,11 +76,11 @@ class SSC_Search_Handler {
             'posts_per_page' => $max_results,
         );
 
-        $query = new WP_Query( SSC_Language::apply_query_language( $query_args, $language ) );
+        $query = new WP_Query( SSCHP_Language::apply_query_language( $query_args, $language ) );
 
         if ( ! $query->have_posts() ) {
             header( 'X-SSC-Results-Count: 0' );
-            echo '<p class="ssc-empty">' . esc_html( apply_filters( 'ssc_no_results_text', __( 'No results found.', 'smart-search-chips' ) ) ) . '</p>';
+            echo '<p class="ssc-empty">' . esc_html( apply_filters( 'sschp_no_results_text', __( 'No results found.', 'smart-search-chips' ) ) ) . '</p>';
             wp_die();
         }
 
@@ -102,7 +102,7 @@ class SSC_Search_Handler {
         wp_reset_postdata();
 
         // Filter by relevance threshold (Pro + Relevanssi only)
-        if ( SSC_License::can_use_relevanssi() && $top_score > 0 ) {
+        if ( SSCHP_License::can_use_relevanssi() && $top_score > 0 ) {
             $threshold      = $top_score * $threshold_pct;
             $relevant_posts = array_filter( $scored_posts, function( $p ) use ( $threshold ) {
                 return $p['score'] >= $threshold;
@@ -127,7 +127,7 @@ class SSC_Search_Handler {
         $chips = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_tag_length );
 
         // Allow themes/plugins to modify chips
-        $chips = apply_filters( 'ssc_chips', $chips, $posts_data, $active_tags );
+        $chips = apply_filters( 'sschp_chips', $chips, $posts_data, $active_tags );
 
         // Render
         $this->render_chips( $chips, $active_tags );
@@ -182,7 +182,7 @@ class SSC_Search_Handler {
             $pid = $rp['post']->ID;
 
             // Get tags from appropriate source
-            if ( SSC_License::can_use_custom_fields() ) {
+            if ( SSCHP_License::can_use_custom_fields() ) {
                 // Pro: use configured custom fields when present, otherwise keep
                 // the built-in fallback so sites do not lose chips just because
                 // Pro is active before field mapping is configured.
@@ -194,15 +194,15 @@ class SSC_Search_Handler {
                     $extra   = $this->get_field_value( $pid, $extra_field );
 
                     if ( '' === $primary && '' === $extra && empty( $tag_field ) ) {
-                        $primary = get_post_meta( $pid, SSC_Meta_Box::META_KEY, true ) ?: '';
+                        $primary = get_post_meta( $pid, SSCHP_Meta_Box::META_KEY, true ) ?: '';
                     }
                 } else {
-                    $primary = get_post_meta( $pid, SSC_Meta_Box::META_KEY, true ) ?: '';
+                    $primary = get_post_meta( $pid, SSCHP_Meta_Box::META_KEY, true ) ?: '';
                     $extra   = '';
                 }
             } else {
-                // Free: use built-in ssc_tags field only
-                $primary = get_post_meta( $pid, SSC_Meta_Box::META_KEY, true ) ?: '';
+                // Free: use built-in sschp_tags field only
+                $primary = get_post_meta( $pid, SSCHP_Meta_Box::META_KEY, true ) ?: '';
                 $extra   = '';
             }
 
@@ -212,7 +212,7 @@ class SSC_Search_Handler {
                 'id'         => $pid,
                 'url'        => get_permalink( $pid ),
                 'title'      => get_the_title( $pid ),
-                'thumbnail'  => get_the_post_thumbnail( $pid, apply_filters( 'ssc_thumbnail_size', 'thumbnail' ) ),
+                'thumbnail'  => get_the_post_thumbnail( $pid, apply_filters( 'sschp_thumbnail_size', 'thumbnail' ) ),
                 'tags'       => $tag_data['tags'],
                 'tags_lower' => $tag_data['tags_lower'],
             );
@@ -263,10 +263,10 @@ class SSC_Search_Handler {
         $inactive_text  = $this->get_color_setting( 'chip_inactive_text_color', '#333333' );
 
         // Pro design options
-        $radius    = SSC_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_radius', 16, 0 ) : 16;
-        $font_size = SSC_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_font_size', 13, 8 ) : 13;
-        $pad_x     = SSC_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_x', 12, 0 ) : 12;
-        $pad_y     = SSC_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_y', 4, 0 ) : 4;
+        $radius    = SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_radius', 16, 0 ) : 16;
+        $font_size = SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_font_size', 13, 8 ) : 13;
+        $pad_x     = SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_x', 12, 0 ) : 12;
+        $pad_y     = SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_y', 4, 0 ) : 4;
 
         echo '<div class="ssc-chips">';
 
@@ -331,7 +331,7 @@ class SSC_Search_Handler {
      */
     private function render_results( $posts_data, $max = 10 ) {
         if ( empty( $posts_data ) ) {
-            echo '<p class="ssc-empty">' . esc_html( apply_filters( 'ssc_no_filter_results_text', __( 'No results match the selected filters.', 'smart-search-chips' ) ) ) . '</p>';
+            echo '<p class="ssc-empty">' . esc_html( apply_filters( 'sschp_no_filter_results_text', __( 'No results match the selected filters.', 'smart-search-chips' ) ) ) . '</p>';
             return;
         }
 
@@ -339,7 +339,7 @@ class SSC_Search_Handler {
         $template = locate_template( 'smart-search-chips/results.php' );
 
         if ( $template ) {
-            $ssc_posts = array_slice( $posts_data, 0, $max );
+            $sschp_posts = array_slice( $posts_data, 0, $max );
             include $template;
             return;
         }

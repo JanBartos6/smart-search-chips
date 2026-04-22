@@ -9,17 +9,17 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class SSC_Settings {
+class SSCHP_Settings {
 
     /** @var string Options prefix */
-    private $prefix = 'ssc_';
+    private $prefix = 'sschp_';
 
     public function init() {
         add_action( 'admin_menu', array( $this, 'add_menu_page' ) );
         add_action( 'admin_init', array( $this, 'register_settings' ) );
-        add_action( 'admin_post_ssc_delete_plugin_data_now', array( $this, 'handle_delete_data_now' ) );
+        add_action( 'admin_post_sschp_delete_plugin_data_now', array( $this, 'handle_delete_data_now' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
-        add_filter( 'plugin_action_links_' . SSC_PLUGIN_BASENAME, array( $this, 'add_settings_link' ) );
+        add_filter( 'plugin_action_links_' . SSCHP_PLUGIN_BASENAME, array( $this, 'add_settings_link' ) );
     }
 
     public function get( $key, $default = '' ) {
@@ -67,47 +67,47 @@ class SSC_Settings {
             ) );
         }
 
-        register_setting( 'smart-search-chips', 'ssc_tag_fields', array(
+        register_setting( 'smart-search-chips', 'sschp_tag_fields', array(
             'sanitize_callback' => array( $this, 'sanitize_custom_tag_field' ),
         ) );
-        register_setting( 'smart-search-chips', 'ssc_extra_fields', array(
+        register_setting( 'smart-search-chips', 'sschp_extra_fields', array(
             'sanitize_callback' => array( $this, 'sanitize_extra_tag_field' ),
         ) );
-        register_setting( 'smart-search-chips', 'ssc_chip_radius', array(
+        register_setting( 'smart-search-chips', 'sschp_chip_radius', array(
             'sanitize_callback' => array( $this, 'sanitize_chip_radius' ),
         ) );
-        register_setting( 'smart-search-chips', 'ssc_chip_font_size', array(
+        register_setting( 'smart-search-chips', 'sschp_chip_font_size', array(
             'sanitize_callback' => array( $this, 'sanitize_chip_font_size' ),
         ) );
-        register_setting( 'smart-search-chips', 'ssc_chip_padding_x', array(
+        register_setting( 'smart-search-chips', 'sschp_chip_padding_x', array(
             'sanitize_callback' => array( $this, 'sanitize_chip_padding_x' ),
         ) );
-        register_setting( 'smart-search-chips', 'ssc_chip_padding_y', array(
+        register_setting( 'smart-search-chips', 'sschp_chip_padding_y', array(
             'sanitize_callback' => array( $this, 'sanitize_chip_padding_y' ),
         ) );
 
-        register_setting( 'smart-search-chips', 'ssc_ai_custom_read_fields', array(
+        register_setting( 'smart-search-chips', 'sschp_ai_custom_read_fields', array(
             'sanitize_callback' => 'sanitize_text_field',
         ) );
-        register_setting( 'smart-search-chips', 'ssc_ai_target_field', array(
+        register_setting( 'smart-search-chips', 'sschp_ai_target_field', array(
             'sanitize_callback' => array( $this, 'sanitize_ai_target_field' ),
         ) );
-        register_setting( 'smart-search-chips', 'ssc_ai_rest_enabled', array(
+        register_setting( 'smart-search-chips', 'sschp_ai_rest_enabled', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
-        register_setting( 'smart-search-chips', 'ssc_ai_max_tags', array(
+        register_setting( 'smart-search-chips', 'sschp_ai_max_tags', array(
             'sanitize_callback' => 'absint',
         ) );
-        register_setting( 'smart-search-chips', 'ssc_ai_language', array(
+        register_setting( 'smart-search-chips', 'sschp_ai_language', array(
             'sanitize_callback' => 'sanitize_text_field',
         ) );
-        register_setting( 'smart-search-chips', 'ssc_ai_custom_instruction', array(
+        register_setting( 'smart-search-chips', 'sschp_ai_custom_instruction', array(
             'sanitize_callback' => 'sanitize_textarea_field',
         ) );
-        register_setting( 'smart-search-chips', 'ssc_analytics_enabled', array(
+        register_setting( 'smart-search-chips', 'sschp_analytics_enabled', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
-        register_setting( 'smart-search-chips', 'ssc_delete_data_on_uninstall', array(
+        register_setting( 'smart-search-chips', 'sschp_delete_data_on_uninstall', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
     }
@@ -118,21 +118,53 @@ class SSC_Settings {
      * @param string $hook_suffix Current admin page hook.
      */
     public function enqueue_admin_assets( $hook_suffix ) {
-        if ( $hook_suffix !== 'settings_page_smart-search-chips' ) {
+        $is_settings  = ( $hook_suffix === 'settings_page_smart-search-chips' );
+        $is_analytics = ( $hook_suffix === 'settings_page_smart-search-chips-analytics' );
+
+        if ( ! $is_settings && ! $is_analytics ) {
+            return;
+        }
+
+        if ( $is_settings ) {
+            wp_enqueue_style(
+                'smart-search-chips-settings',
+                SSCHP_PLUGIN_URL . 'assets/css/settings.css',
+                array(),
+                SSCHP_VERSION
+            );
+            wp_enqueue_script(
+                'smart-search-chips-settings',
+                SSCHP_PLUGIN_URL . 'assets/js/settings.js',
+                array(),
+                SSCHP_VERSION,
+                true
+            );
+        }
+
+        if ( $is_analytics ) {
+            wp_enqueue_style(
+                'smart-search-chips-analytics',
+                SSCHP_PLUGIN_URL . 'assets/css/analytics.css',
+                array(),
+                SSCHP_VERSION
+            );
+        }
+
+        if ( ! $is_settings ) {
             return;
         }
 
         wp_enqueue_script(
             'smart-search-chips-admin-ai',
-            SSC_PLUGIN_URL . 'assets/js/admin-ai.js',
+            SSCHP_PLUGIN_URL . 'assets/js/admin-ai.js',
             array(),
-            file_exists( SSC_PLUGIN_DIR . 'assets/js/admin-ai.js' ) ? filemtime( SSC_PLUGIN_DIR . 'assets/js/admin-ai.js' ) : SSC_VERSION,
+            file_exists( SSCHP_PLUGIN_DIR . 'assets/js/admin-ai.js' ) ? filemtime( SSCHP_PLUGIN_DIR . 'assets/js/admin-ai.js' ) : SSCHP_VERSION,
             true
         );
 
-        wp_localize_script( 'smart-search-chips-admin-ai', 'sscAiAdmin', array(
+        wp_localize_script( 'smart-search-chips-admin-ai', 'sschpAiAdmin', array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-            'nonce'   => wp_create_nonce( SSC_AI_Tagger::AJAX_NONCE ),
+            'nonce'   => wp_create_nonce( SSCHP_AI_Tagger::AJAX_NONCE ),
             'strings' => array(
                 'working'             => __( 'Working...', 'smart-search-chips' ),
                 'loadingTerms'        => __( 'Loading categories...', 'smart-search-chips' ),
@@ -171,27 +203,27 @@ class SSC_Settings {
             return;
         }
 
-        $is_pro = SSC_License::is_pro();
+        $is_pro = SSCHP_License::is_pro();
         $relevanssi_active = function_exists( 'relevanssi_do_query' );
 
         // Get current values
-        $chip_color    = get_option( 'ssc_chip_color', '#e74c3c' );
-        $chip_text     = get_option( 'ssc_chip_text_color', '#ffffff' );
-        $chip_radius   = $this->get_numeric_option_value( 'ssc_chip_radius', 16, 0 );
-        $chip_font     = $this->get_numeric_option_value( 'ssc_chip_font_size', 13, 8 );
-        $chip_pad_x    = $this->get_numeric_option_value( 'ssc_chip_padding_x', 12, 0 );
-        $chip_pad_y    = $this->get_numeric_option_value( 'ssc_chip_padding_y', 4, 0 );
-        $ai_max_tags   = max( 0, (int) get_option( 'ssc_ai_max_tags', 8 ) );
-        $ai_rest_mode  = get_option( 'ssc_ai_rest_enabled', '1' );
-        $ai_target     = $this->sanitize_ai_target_field( get_option( 'ssc_ai_target_field', 'built_in' ) );
-        $analytics_on  = get_option( 'ssc_analytics_enabled', '0' );
-        $delete_on_uninstall = get_option( 'ssc_delete_data_on_uninstall', '0' );
+        $chip_color    = get_option( 'sschp_chip_color', '#e74c3c' );
+        $chip_text     = get_option( 'sschp_chip_text_color', '#ffffff' );
+        $chip_radius   = $this->get_numeric_option_value( 'sschp_chip_radius', 16, 0 );
+        $chip_font     = $this->get_numeric_option_value( 'sschp_chip_font_size', 13, 8 );
+        $chip_pad_x    = $this->get_numeric_option_value( 'sschp_chip_padding_x', 12, 0 );
+        $chip_pad_y    = $this->get_numeric_option_value( 'sschp_chip_padding_y', 4, 0 );
+        $ai_max_tags   = max( 0, (int) get_option( 'sschp_ai_max_tags', 8 ) );
+        $ai_rest_mode  = get_option( 'sschp_ai_rest_enabled', '1' );
+        $ai_target     = $this->sanitize_ai_target_field( get_option( 'sschp_ai_target_field', 'built_in' ) );
+        $analytics_on  = get_option( 'sschp_analytics_enabled', '0' );
+        $delete_on_uninstall = get_option( 'sschp_delete_data_on_uninstall', '0' );
 
         ?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
             <?php settings_errors( 'smart-search-chips' ); ?>
-            <?php if ( isset( $_GET['ssc_data_deleted'] ) && $_GET['ssc_data_deleted'] === '1' ) : ?>
+            <?php if ( isset( $_GET['sschp_data_deleted'] ) && $_GET['sschp_data_deleted'] === '1' ) : ?>
                 <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Smart Search Chips data was deleted. Settings have been reset, built-in chip meta was removed, and analytics events were cleared.', 'smart-search-chips' ); ?></p></div>
             <?php endif; ?>
 
@@ -214,15 +246,15 @@ class SSC_Settings {
                             <?php else : ?>
                                 <div class="ssc-badge ssc-badge--free">Free</div>
                             <?php endif; ?>
-                            <p><strong><?php echo esc_html( SSC_License::get_status_label() ); ?></strong></p>
-                            <p class="description"><?php echo esc_html( SSC_License::get_status_description() ); ?></p>
-                            <?php if ( SSC_License::is_sdk_ready() ) : ?>
+                            <p><strong><?php echo esc_html( SSCHP_License::get_status_label() ); ?></strong></p>
+                            <p class="description"><?php echo esc_html( SSCHP_License::get_status_description() ); ?></p>
+                            <?php if ( SSCHP_License::is_sdk_ready() ) : ?>
                                 <p>
-                                    <?php if ( ! $is_pro && SSC_License::get_upgrade_url() ) : ?>
-                                        <a class="button button-primary" href="<?php echo esc_url( SSC_License::get_upgrade_url() ); ?>"><?php esc_html_e( 'Upgrade to Pro', 'smart-search-chips' ); ?></a>
+                                    <?php if ( ! $is_pro && SSCHP_License::get_upgrade_url() ) : ?>
+                                        <a class="button button-primary" href="<?php echo esc_url( SSCHP_License::get_upgrade_url() ); ?>"><?php esc_html_e( 'Upgrade to Pro', 'smart-search-chips' ); ?></a>
                                     <?php endif; ?>
-                                    <?php if ( SSC_License::get_account_url() ) : ?>
-                                        <a class="button button-secondary" href="<?php echo esc_url( SSC_License::get_account_url() ); ?>"><?php esc_html_e( 'Manage License', 'smart-search-chips' ); ?></a>
+                                    <?php if ( SSCHP_License::get_account_url() ) : ?>
+                                        <a class="button button-secondary" href="<?php echo esc_url( SSCHP_License::get_account_url() ); ?>"><?php esc_html_e( 'Manage License', 'smart-search-chips' ); ?></a>
                                     <?php endif; ?>
                                 </p>
                             <?php else : ?>
@@ -241,7 +273,7 @@ class SSC_Settings {
                                 <tr>
                                     <th><?php esc_html_e( 'Tag Source', 'smart-search-chips' ); ?></th>
                                     <td>
-                                        <p><?php esc_html_e( 'Built-in "Search Chips Tags" field (`ssc_tags`) is used by default.', 'smart-search-chips' ); ?></p>
+                                        <p><?php esc_html_e( 'Built-in "Search Chips Tags" field (`sschp_tags`) is used by default.', 'smart-search-chips' ); ?></p>
                                         <?php if ( $is_pro ) : ?>
                                             <p class="description"><?php esc_html_e( 'If you already use your own tag meta field, you can map it in Advanced settings.', 'smart-search-chips' ); ?></p>
                                         <?php else : ?>
@@ -254,7 +286,7 @@ class SSC_Settings {
                                     <th><?php esc_html_e( 'WooCommerce Auto-Tags', 'smart-search-chips' ); ?></th>
                                     <td>
                                         <label>
-                                            <input type="checkbox" name="ssc_woo_enabled" value="1" <?php checked( get_option( 'ssc_woo_enabled', '1' ), '1' ); ?> />
+                                            <input type="checkbox" name="sschp_woo_enabled" value="1" <?php checked( get_option( 'sschp_woo_enabled', '1' ), '1' ); ?> />
                                             <?php esc_html_e( 'Auto-populate tags from product attributes, categories, and SKU', 'smart-search-chips' ); ?>
                                         </label>
                                     </td>
@@ -270,7 +302,7 @@ class SSC_Settings {
                                 <tr>
                                     <th><?php esc_html_e( 'Max Chips', 'smart-search-chips' ); ?></th>
                                     <td>
-                                        <input type="number" name="ssc_max_chips" value="<?php echo esc_attr( min( (int) get_option( 'ssc_max_chips', '5' ), SSC_License::max_chips() ) ); ?>" class="small-text" min="1" max="<?php echo (int) SSC_License::max_chips(); ?>" />
+                                        <input type="number" name="sschp_max_chips" value="<?php echo esc_attr( min( (int) get_option( 'sschp_max_chips', '5' ), SSCHP_License::max_chips() ) ); ?>" class="small-text" min="1" max="<?php echo (int) SSCHP_License::max_chips(); ?>" />
                                         <?php if ( ! $is_pro ) : ?>
                                             <span class="description"><?php esc_html_e( 'Free: max 5', 'smart-search-chips' ); ?></span>
                                         <?php endif; ?>
@@ -278,7 +310,7 @@ class SSC_Settings {
                                 </tr>
                                 <tr>
                                     <th><?php esc_html_e( 'Max Tag Length', 'smart-search-chips' ); ?></th>
-                                    <td><input type="number" name="ssc_max_tag_length" value="<?php echo esc_attr( get_option( 'ssc_max_tag_length', '40' ) ); ?>" class="small-text" min="5" /></td>
+                                    <td><input type="number" name="sschp_max_tag_length" value="<?php echo esc_attr( get_option( 'sschp_max_tag_length', '40' ) ); ?>" class="small-text" min="5" /></td>
                                 </tr>
                             </table>
                         </div>
@@ -289,36 +321,36 @@ class SSC_Settings {
                             <table class="form-table">
                                 <tr>
                                     <th><?php esc_html_e( 'Active Color', 'smart-search-chips' ); ?></th>
-                                    <td><input type="color" name="ssc_chip_color" value="<?php echo esc_attr( $chip_color ); ?>" /></td>
+                                    <td><input type="color" name="sschp_chip_color" value="<?php echo esc_attr( $chip_color ); ?>" /></td>
                                 </tr>
                                 <tr>
                                     <th><?php esc_html_e( 'Active Text', 'smart-search-chips' ); ?></th>
-                                    <td><input type="color" name="ssc_chip_text_color" value="<?php echo esc_attr( $chip_text ); ?>" /></td>
+                                    <td><input type="color" name="sschp_chip_text_color" value="<?php echo esc_attr( $chip_text ); ?>" /></td>
                                 </tr>
                                 <tr>
                                     <th><?php esc_html_e( 'Inactive Color', 'smart-search-chips' ); ?></th>
-                                    <td><input type="color" name="ssc_chip_inactive_color" value="<?php echo esc_attr( get_option( 'ssc_chip_inactive_color', '#ffffff' ) ); ?>" /></td>
+                                    <td><input type="color" name="sschp_chip_inactive_color" value="<?php echo esc_attr( get_option( 'sschp_chip_inactive_color', '#ffffff' ) ); ?>" /></td>
                                 </tr>
                                 <tr>
                                     <th><?php esc_html_e( 'Inactive Text', 'smart-search-chips' ); ?></th>
-                                    <td><input type="color" name="ssc_chip_inactive_text_color" value="<?php echo esc_attr( get_option( 'ssc_chip_inactive_text_color', '#333333' ) ); ?>" /></td>
+                                    <td><input type="color" name="sschp_chip_inactive_text_color" value="<?php echo esc_attr( get_option( 'sschp_chip_inactive_text_color', '#333333' ) ); ?>" /></td>
                                 </tr>
                                 <?php if ( $is_pro ) : ?>
                                 <tr>
                                     <th><?php esc_html_e( 'Border Radius', 'smart-search-chips' ); ?></th>
-                                    <td><input type="number" name="ssc_chip_radius" value="<?php echo esc_attr( $chip_radius ); ?>" class="small-text" min="0" max="50" placeholder="16" /> px</td>
+                                    <td><input type="number" name="sschp_chip_radius" value="<?php echo esc_attr( $chip_radius ); ?>" class="small-text" min="0" max="50" placeholder="16" /> px</td>
                                 </tr>
                                 <tr>
                                     <th><?php esc_html_e( 'Font Size', 'smart-search-chips' ); ?></th>
-                                    <td><input type="number" name="ssc_chip_font_size" value="<?php echo esc_attr( $chip_font ); ?>" class="small-text" min="8" max="24" placeholder="13" /> px</td>
+                                    <td><input type="number" name="sschp_chip_font_size" value="<?php echo esc_attr( $chip_font ); ?>" class="small-text" min="8" max="24" placeholder="13" /> px</td>
                                 </tr>
                                 <tr>
                                     <th><?php esc_html_e( 'Padding H', 'smart-search-chips' ); ?></th>
-                                    <td><input type="number" name="ssc_chip_padding_x" value="<?php echo esc_attr( $chip_pad_x ); ?>" class="small-text" min="0" max="40" placeholder="12" /> px</td>
+                                    <td><input type="number" name="sschp_chip_padding_x" value="<?php echo esc_attr( $chip_pad_x ); ?>" class="small-text" min="0" max="40" placeholder="12" /> px</td>
                                 </tr>
                                 <tr>
                                     <th><?php esc_html_e( 'Padding V', 'smart-search-chips' ); ?></th>
-                                    <td><input type="number" name="ssc_chip_padding_y" value="<?php echo esc_attr( $chip_pad_y ); ?>" class="small-text" min="0" max="24" placeholder="4" /> px</td>
+                                    <td><input type="number" name="sschp_chip_padding_y" value="<?php echo esc_attr( $chip_pad_y ); ?>" class="small-text" min="0" max="24" placeholder="4" /> px</td>
                                 </tr>
                                 <?php else : ?>
                                 <tr>
@@ -334,12 +366,12 @@ class SSC_Settings {
                             <table class="form-table">
                                 <tr>
                                     <th><?php esc_html_e( 'Results Shown', 'smart-search-chips' ); ?></th>
-                                    <td><input type="number" name="ssc_max_results" value="<?php echo esc_attr( get_option( 'ssc_max_results', '10' ) ); ?>" class="small-text" min="1" /></td>
+                                    <td><input type="number" name="sschp_max_results" value="<?php echo esc_attr( get_option( 'sschp_max_results', '10' ) ); ?>" class="small-text" min="1" /></td>
                                 </tr>
                                 <tr>
                                     <th><?php esc_html_e( 'Results to Analyze', 'smart-search-chips' ); ?></th>
                                     <td>
-                                        <input type="number" name="ssc_search_results_count" value="<?php echo esc_attr( get_option( 'ssc_search_results_count', '50' ) ); ?>" class="small-text" min="5" />
+                                        <input type="number" name="sschp_search_results_count" value="<?php echo esc_attr( get_option( 'sschp_search_results_count', '50' ) ); ?>" class="small-text" min="5" />
                                         <p class="description"><?php esc_html_e( 'More = better chips, slower. Recommended: 50.', 'smart-search-chips' ); ?></p>
                                     </td>
                                 </tr>
@@ -347,8 +379,8 @@ class SSC_Settings {
                                 <tr>
                                     <th><?php esc_html_e( 'Relevance Threshold', 'smart-search-chips' ); ?></th>
                                     <td>
-                                        <input type="range" name="ssc_relevance_threshold" value="<?php echo esc_attr( get_option( 'ssc_relevance_threshold', '0.3' ) ); ?>" min="0" max="1" step="0.05" />
-                                        <span class="ssc-range-val"><?php echo esc_html( get_option( 'ssc_relevance_threshold', '0.3' ) ); ?></span>
+                                        <input type="range" name="sschp_relevance_threshold" value="<?php echo esc_attr( get_option( 'sschp_relevance_threshold', '0.3' ) ); ?>" min="0" max="1" step="0.05" />
+                                        <span class="ssc-range-val"><?php echo esc_html( get_option( 'sschp_relevance_threshold', '0.3' ) ); ?></span>
                                         <p class="description"><?php esc_html_e( 'Requires Relevanssi. 0 = all results, 1 = exact matches only.', 'smart-search-chips' ); ?></p>
                                     </td>
                                 </tr>
@@ -367,8 +399,8 @@ class SSC_Settings {
                                         <th><?php esc_html_e( 'Enable Analytics', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <label>
-                                                <input type="hidden" name="ssc_analytics_enabled" value="0" />
-                                                <input type="checkbox" name="ssc_analytics_enabled" value="1" <?php checked( $analytics_on, '1' ); ?> />
+                                                <input type="hidden" name="sschp_analytics_enabled" value="0" />
+                                                <input type="checkbox" name="sschp_analytics_enabled" value="1" <?php checked( $analytics_on, '1' ); ?> />
                                                 <?php esc_html_e( 'Track anonymous search, chip-click, and chip-impression events for admins', 'smart-search-chips' ); ?>
                                             </label>
                                             <p class="description"><?php esc_html_e( 'Stores aggregate search and chip interaction events on this WordPress site. Uses anonymous visitor IDs for unique-visitor counts.', 'smart-search-chips' ); ?></p>
@@ -376,7 +408,7 @@ class SSC_Settings {
                                     </tr>
                                 </table>
                                 <?php if ( $analytics_on === '1' ) : ?>
-                                    <?php $analytics = SSC_Analytics::get_dashboard_data(); ?>
+                                    <?php $analytics = SSCHP_Analytics::get_dashboard_data(); ?>
                                     <div class="ssc-analytics-dashboard">
                                         <div class="ssc-analytics-stats">
                                             <div class="ssc-analytics-stat">
@@ -423,8 +455,8 @@ class SSC_Settings {
                                         <th><?php esc_html_e( 'REST API', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <label class="ssc-ai-toggle">
-                                                <input type="hidden" name="ssc_ai_rest_enabled" value="0" />
-                                                <input type="checkbox" name="ssc_ai_rest_enabled" id="ssc-ai-rest-enabled" value="1" <?php checked( $ai_rest_mode, '1' ); ?> />
+                                                <input type="hidden" name="sschp_ai_rest_enabled" value="0" />
+                                                <input type="checkbox" name="sschp_ai_rest_enabled" id="ssc-ai-rest-enabled" value="1" <?php checked( $ai_rest_mode, '1' ); ?> />
                                                 <span><?php esc_html_e( 'Allow REST API write-back in generated prompt', 'smart-search-chips' ); ?></span>
                                             </label>
                                             <p class="description"><?php esc_html_e( 'Turn this on if you want the external agent to read and write through the WordPress REST API. Turn it off if you only want the prompt to analyze the selected products and return tags for manual review.', 'smart-search-chips' ); ?></p>
@@ -434,7 +466,7 @@ class SSC_Settings {
                                     <tr>
                                         <th><?php esc_html_e( 'Extra Read Fields', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <input type="text" name="ssc_ai_custom_read_fields" id="ssc-ai-custom-read-fields" value="<?php echo esc_attr( get_option( 'ssc_ai_custom_read_fields', '' ) ); ?>" class="regular-text" />
+                                            <input type="text" name="sschp_ai_custom_read_fields" id="ssc-ai-custom-read-fields" value="<?php echo esc_attr( get_option( 'sschp_ai_custom_read_fields', '' ) ); ?>" class="regular-text" />
                                             <p class="description"><?php esc_html_e( 'Optional comma-separated meta keys the external agent should inspect as extra context if they are available over REST.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
@@ -442,32 +474,32 @@ class SSC_Settings {
                                         <th><?php esc_html_e( 'Target Field', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <?php $target_options = $this->get_ai_target_field_options(); ?>
-                                            <select name="ssc_ai_target_field" id="ssc-ai-target-field">
+                                            <select name="sschp_ai_target_field" id="ssc-ai-target-field">
                                                 <?php foreach ( $target_options as $value => $label ) : ?>
                                                     <option value="<?php echo esc_attr( $value ); ?>" <?php selected( $ai_target, $value ); ?>><?php echo esc_html( $label ); ?></option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <p class="description"><?php esc_html_e( 'By default, generated tags target the built-in `ssc_tags` field. If you already mapped your own custom tag field in Advanced settings, you can select it here instead.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'By default, generated tags target the built-in `sschp_tags` field. If you already mapped your own custom tag field in Advanced settings, you can select it here instead.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th><?php esc_html_e( 'Max Tags', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <input type="number" name="ssc_ai_max_tags" id="ssc-ai-max-tags" value="<?php echo esc_attr( $ai_max_tags ); ?>" class="small-text" min="0" step="1" />
+                                            <input type="number" name="sschp_ai_max_tags" id="ssc-ai-max-tags" value="<?php echo esc_attr( $ai_max_tags ); ?>" class="small-text" min="0" step="1" />
                                             <p class="description"><?php esc_html_e( 'Set to 0 for no limit. Any positive number caps the number of generated tags per item.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th><?php esc_html_e( 'Language Override', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <input type="text" name="ssc_ai_language" id="ssc-ai-language" value="<?php echo esc_attr( get_option( 'ssc_ai_language', '' ) ); ?>" class="regular-text" />
+                                            <input type="text" name="sschp_ai_language" id="ssc-ai-language" value="<?php echo esc_attr( get_option( 'sschp_ai_language', '' ) ); ?>" class="regular-text" />
                                             <p class="description"><?php esc_html_e( 'Leave empty to keep chips in the same language as each selected product or post. Use this only if you want the agent prompt to force another language.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th><?php esc_html_e( 'Custom Instruction', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <textarea name="ssc_ai_custom_instruction" id="ssc-ai-custom-instruction" rows="4" class="large-text"><?php echo esc_textarea( get_option( 'ssc_ai_custom_instruction', '' ) ); ?></textarea>
+                                            <textarea name="sschp_ai_custom_instruction" id="ssc-ai-custom-instruction" rows="4" class="large-text"><?php echo esc_textarea( get_option( 'sschp_ai_custom_instruction', '' ) ); ?></textarea>
                                             <p class="description"><?php esc_html_e( 'Optional instructions for the external agent, for example: focus on technical differences, ignore brand names, keep tags very short, avoid generic marketing phrases, or use a specific language.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
@@ -551,14 +583,14 @@ class SSC_Settings {
                                     <tr>
                                         <th><?php esc_html_e( 'Custom Tag Field', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <input type="text" name="ssc_tag_fields" value="<?php echo esc_attr( get_option( 'ssc_tag_fields', '' ) ); ?>" class="regular-text" />
+                                            <input type="text" name="sschp_tag_fields" value="<?php echo esc_attr( get_option( 'sschp_tag_fields', '' ) ); ?>" class="regular-text" />
                                             <p class="description"><?php esc_html_e( 'Optional existing meta key that already stores your semicolon-separated search tags, for example `title_info`.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th><?php esc_html_e( 'Extra Tag Field', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <input type="text" name="ssc_extra_fields" value="<?php echo esc_attr( get_option( 'ssc_extra_fields', '' ) ); ?>" class="regular-text" />
+                                            <input type="text" name="sschp_extra_fields" value="<?php echo esc_attr( get_option( 'sschp_extra_fields', '' ) ); ?>" class="regular-text" />
                                             <p class="description"><?php esc_html_e( 'Optional extra meta key with comma-separated helper tags. These values are merged with the primary tag source.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
@@ -574,7 +606,7 @@ class SSC_Settings {
                                     <tr>
                                         <th><?php esc_html_e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <input type="text" name="ssc_override_ajax" value="<?php echo esc_attr( get_option( 'ssc_override_ajax', '' ) ); ?>" class="regular-text" />
+                                            <input type="text" name="sschp_override_ajax" value="<?php echo esc_attr( get_option( 'sschp_override_ajax', '' ) ); ?>" class="regular-text" />
                                             <p class="description"><?php esc_html_e( 'Pro advanced integration only. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
@@ -597,11 +629,11 @@ class SSC_Settings {
                                     <th><?php esc_html_e( 'Delete on Uninstall', 'smart-search-chips' ); ?></th>
                                     <td>
                                         <label>
-                                            <input type="hidden" name="ssc_delete_data_on_uninstall" value="0" />
-                                            <input type="checkbox" name="ssc_delete_data_on_uninstall" value="1" <?php checked( $delete_on_uninstall, '1' ); ?> />
+                                            <input type="hidden" name="sschp_delete_data_on_uninstall" value="0" />
+                                            <input type="checkbox" name="sschp_delete_data_on_uninstall" value="1" <?php checked( $delete_on_uninstall, '1' ); ?> />
                                             <?php esc_html_e( 'Delete all plugin data when the plugin is uninstalled', 'smart-search-chips' ); ?>
                                         </label>
-                                        <p class="description"><?php esc_html_e( 'By default, uninstall keeps your settings and analytics data. Turn this on only if you want uninstall to remove built-in `ssc_tags` meta, plugin settings, and the analytics table.', 'smart-search-chips' ); ?></p>
+                                        <p class="description"><?php esc_html_e( 'By default, uninstall keeps your settings and analytics data. Turn this on only if you want uninstall to remove built-in `sschp_tags` meta, plugin settings, and the analytics table.', 'smart-search-chips' ); ?></p>
                                     </td>
                                 </tr>
                                 <tr>
@@ -642,8 +674,8 @@ class SSC_Settings {
                 </div>
             </form>
             <form id="ssc-delete-data-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-                <input type="hidden" name="action" value="ssc_delete_plugin_data_now" />
-                <?php wp_nonce_field( 'ssc_delete_plugin_data_now' ); ?>
+                <input type="hidden" name="action" value="sschp_delete_plugin_data_now" />
+                <?php wp_nonce_field( 'sschp_delete_plugin_data_now' ); ?>
             </form>
 
             <p class="ssc-feedback-link">
@@ -651,222 +683,6 @@ class SSC_Settings {
                 <a href="mailto:[redacted]?subject=Smart%20Search%20Chips%20Feedback"><?php esc_html_e( 'Send feedback', 'smart-search-chips' ); ?> &rarr;</a>
             </p>
         </div>
-
-        <style>
-            #ssc-settings-layout { display: flex; gap: 24px; align-items: flex-start; margin-top: 16px; }
-            #ssc-settings-left { flex: 1; min-width: 0; }
-            #ssc-settings-right { width: 320px; flex-shrink: 0; }
-            #ssc-preview-panel { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-            #ssc-preview-panel h3 { margin: 0 0 12px; font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-            .ssc-settings-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 0 20px 12px; margin-bottom: 16px; }
-            .ssc-settings-card h2 { font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-            .ssc-settings-card--danger { border-color: #f0c2c2; }
-            .ssc-settings-card--collapsible { padding: 0; overflow: hidden; }
-            .ssc-settings-card__summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; cursor: pointer; list-style: none; font-size: 16px; font-weight: 600; }
-            .ssc-settings-card__summary::-webkit-details-marker { display: none; }
-            .ssc-settings-card__summary::after { content: "+"; font-size: 18px; line-height: 1; color: #50575e; }
-            .ssc-settings-card--collapsible[open] .ssc-settings-card__summary { border-bottom: 1px solid #eee; }
-            .ssc-settings-card--collapsible[open] .ssc-settings-card__summary::after { content: "\2212"; }
-            .ssc-settings-card__summary-title { color: #1d2327; }
-            .ssc-settings-card__body { padding: 0 20px 12px; }
-            .ssc-settings-card .form-table th { width: 140px; padding: 10px 8px; font-weight: 500; }
-            .ssc-settings-card .form-table td { padding: 10px 8px; }
-            .ssc-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-            .ssc-badge--pro { background: #e74c3c; color: #fff; }
-            .ssc-badge--free { background: #eee; color: #666; }
-            .ssc-feedback-link { margin-top: 24px; padding-top: 16px; border-top: 1px solid #eee; color: #888; font-size: 13px; }
-            .ssc-feedback-link a { color: #2271b1; text-decoration: none; font-weight: 500; }
-            .ssc-feedback-link a:hover { text-decoration: underline; }
-            .ssc-range-val { font-family: monospace; font-size: 13px; color: #666; }
-            .ssc-analytics-dashboard { display: grid; gap: 18px; margin-top: 12px; }
-            .ssc-analytics-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-            .ssc-analytics-stat { display: grid; gap: 6px; padding: 14px; border: 1px solid #e3e5e8; border-radius: 12px; background: #fcfcfd; }
-            .ssc-analytics-stat strong { font-size: 22px; line-height: 1.1; color: #1d2327; }
-            .ssc-analytics-stat span { color: #50575e; font-size: 13px; }
-            .ssc-analytics-panels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-            .ssc-analytics-panel { border: 1px solid #e3e5e8; border-radius: 12px; background: #fff; overflow: hidden; }
-            .ssc-analytics-panel h3 { margin: 0; padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #ebecef; background: #f7f8fa; }
-            .ssc-analytics-panel table { width: 100%; border-collapse: collapse; }
-            .ssc-analytics-panel th, .ssc-analytics-panel td { padding: 10px 16px; text-align: left; border-top: 1px solid #f0f1f3; font-size: 13px; vertical-align: top; }
-            .ssc-analytics-panel th { color: #50575e; font-weight: 600; background: #fcfcfd; }
-            .ssc-analytics-empty { padding: 16px; color: #646970; font-size: 13px; }
-            .ssc-ai-inline-status { margin-left: 10px; }
-            .ssc-ai-panel { border-top: 1px solid #eee; margin-top: 16px; padding-top: 16px; }
-            .ssc-ai-panel strong { display: block; margin-bottom: 8px; }
-            .ssc-ai-warning { margin-top: 10px; padding: 10px 12px; background: #fff8e5; border-left: 4px solid #dba617; }
-            .ssc-ai-toggle { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; }
-            #ssc-ai-prompt-output { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-            .ssc-ai-picker { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr); gap: 18px; }
-            .ssc-ai-picker__browser, .ssc-ai-picker__selection { border: 1px solid #dcdcde; border-radius: 12px; background: #fcfcfd; overflow: hidden; }
-            .ssc-ai-browser-toolbar { display: flex; gap: 10px; align-items: center; padding: 14px; border-bottom: 1px solid #ebecef; background: linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%); }
-            .ssc-ai-browser-toolbar input[type="search"] { flex: 1; min-width: 0; }
-            .ssc-ai-browser-meta { display: grid; gap: 4px; padding: 12px 14px; }
-            .ssc-ai-browser-results { display: grid; gap: 10px; padding: 0 14px 14px; max-height: 520px; overflow: auto; }
-            .ssc-ai-browser-results--terms { align-content: start; }
-            .ssc-ai-taxonomy { border: 1px solid #e3e5e8; border-radius: 12px; background: #fff; overflow: hidden; }
-            .ssc-ai-taxonomy__header { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 14px; background: #f7f8fa; border-bottom: 1px solid #ebecef; }
-            .ssc-ai-taxonomy__header strong { margin: 0; }
-            .ssc-ai-taxonomy__terms { display: grid; gap: 0; }
-            .ssc-ai-term { border-top: 1px solid #f0f1f3; }
-            .ssc-ai-term:first-child { border-top: 0; }
-            .ssc-ai-term.is-hidden { display: none; }
-            .ssc-ai-term__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; }
-            .ssc-ai-term__main { display: flex; align-items: center; gap: 10px; min-width: 0; }
-            .ssc-ai-term__toggle { width: 32px; height: 32px; border: 1px solid #d0d7df; border-radius: 999px; background: #fff; cursor: pointer; flex-shrink: 0; }
-            .ssc-ai-term__toggle[disabled] { opacity: 0.5; cursor: default; }
-            .ssc-ai-term__title { min-width: 0; }
-            .ssc-ai-term__name { font-weight: 600; color: #1d2327; }
-            .ssc-ai-term__actions { display: flex; gap: 8px; align-items: center; }
-            .ssc-ai-term__children { display: grid; gap: 0; }
-            .ssc-ai-term__items { display: none; padding: 0 14px 14px 56px; }
-            .ssc-ai-term.is-expanded > .ssc-ai-term__items { display: block; }
-            .ssc-ai-term-items { display: grid; gap: 8px; margin-top: 8px; }
-            .ssc-ai-term-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid #ececec; border-radius: 10px; background: #fcfcfd; }
-            .ssc-ai-term-item__title { margin: 0 0 4px; font-size: 13px; line-height: 1.4; }
-            .ssc-ai-term-item__meta { display: flex; flex-wrap: wrap; gap: 6px; }
-            .ssc-ai-browser-card { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr) auto; align-items: start; padding: 14px; border: 1px solid #e3e5e8; border-radius: 12px; background: #fff; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02); }
-            .ssc-ai-browser-card.is-selected { border-color: #135e96; background: #f4f9ff; }
-            .ssc-ai-browser-card__title { margin: 0 0 6px; font-size: 14px; line-height: 1.4; }
-            .ssc-ai-browser-card__meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-            .ssc-ai-browser-card__terms { display: flex; flex-wrap: wrap; gap: 6px; }
-            .ssc-ai-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; background: #eff2f6; color: #1d2327; font-size: 12px; line-height: 1.2; }
-            .ssc-ai-badge--soft { background: #f7efe3; color: #8a5a12; }
-            .ssc-ai-badge--active { background: #dbeafe; color: #0b4f83; }
-            .ssc-ai-browser-empty { padding: 24px 18px; border: 1px dashed #ccd0d4; border-radius: 12px; background: #fff; color: #50575e; text-align: center; }
-            .ssc-ai-selection-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: 14px 14px 10px; border-bottom: 1px solid #ebecef; background: linear-gradient(180deg, #fffaf1 0%, #fff 100%); }
-            .ssc-ai-selection-header p { margin: 6px 0 0; }
-            .ssc-ai-selection-summary { padding: 12px 14px 0; font-size: 13px; color: #50575e; }
-            .ssc-ai-selected-items { display: grid; gap: 12px; padding: 12px 14px 14px; max-height: 520px; overflow: auto; }
-            .ssc-ai-selection-group { display: grid; gap: 8px; }
-            .ssc-ai-selection-group__title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #50575e; }
-            .ssc-ai-selection-item { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr) auto; align-items: start; padding: 12px; border: 1px solid #ececec; border-radius: 12px; background: #fff; }
-            .ssc-ai-selection-item__title { margin: 0 0 6px; font-size: 13px; line-height: 1.4; }
-            .ssc-ai-selection-item__meta { display: flex; flex-wrap: wrap; gap: 6px; }
-            .ssc-preview-result { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
-            .ssc-preview-result:last-child { border-bottom: none; }
-            .ssc-preview-thumb { width: 36px; height: 36px; background: #eee; border-radius: 4px; flex-shrink: 0; }
-            .ssc-preview-result span { font-size: 13px; color: #555; }
-            @media (max-width: 960px) {
-                #ssc-settings-layout { flex-direction: column; }
-                #ssc-settings-right { width: 100%; }
-                #ssc-preview-panel { position: static; }
-                .ssc-analytics-stats, .ssc-analytics-panels { grid-template-columns: 1fr; }
-                .ssc-ai-picker { grid-template-columns: 1fr; }
-                .ssc-ai-browser-results, .ssc-ai-selected-items { max-height: none; }
-                .ssc-ai-term__row, .ssc-ai-term-item { grid-template-columns: 1fr; }
-                .ssc-ai-term__actions { justify-content: flex-start; }
-                .ssc-ai-term__items { padding-left: 14px; }
-            }
-        </style>
-
-        <script>
-        (function() {
-            function val(name) {
-                var el = document.querySelector('[name="' + name + '"]');
-                return el ? el.value : null;
-            }
-
-            function renderPreview() {
-                var color = val('ssc_chip_color') || '#e74c3c';
-                var textColor = val('ssc_chip_text_color') || '#ffffff';
-                var inactiveColor = val('ssc_chip_inactive_color') || '#ffffff';
-                var inactiveText = val('ssc_chip_inactive_text_color') || '#333333';
-                var radius = (val('ssc_chip_radius') || '16') + 'px';
-                var fontSize = (val('ssc_chip_font_size') || '13') + 'px';
-                var padX = (val('ssc_chip_padding_x') || '12') + 'px';
-                var padY = (val('ssc_chip_padding_y') || '4') + 'px';
-
-                var container = document.getElementById('ssc-preview-chips');
-                if (!container) return;
-
-                var chips = [
-                    { label: 'Active chip (3)', active: true },
-                    { label: 'Inactive chip (7)', active: false },
-                    { label: 'Another chip (5)', active: false },
-                ];
-
-                container.innerHTML = '';
-                chips.forEach(function(c) {
-                    var btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.textContent = c.label;
-                    btn.style.cssText = 'cursor:pointer;white-space:nowrap;font-family:inherit;'
-                        + 'border-radius:' + radius + ';'
-                        + 'font-size:' + fontSize + ';'
-                        + 'padding:' + padY + ' ' + padX + ';'
-                        + 'border:1px solid ' + color + ';'
-                        + (c.active
-                            ? 'background:' + color + ';color:' + textColor + ';'
-                            : 'background:' + inactiveColor + ';color:' + inactiveText + ';');
-                    container.appendChild(btn);
-                });
-            }
-
-            // Listen to all design inputs
-            var inputs = ['ssc_chip_color', 'ssc_chip_text_color', 'ssc_chip_inactive_color', 'ssc_chip_inactive_text_color', 'ssc_chip_radius', 'ssc_chip_font_size', 'ssc_chip_padding_x', 'ssc_chip_padding_y'];
-            inputs.forEach(function(name) {
-                var el = document.querySelector('[name="' + name + '"]');
-                if (el) {
-                    el.addEventListener('input', renderPreview);
-                    el.addEventListener('change', renderPreview);
-                }
-            });
-
-            // Initial render
-            renderPreview();
-
-            // Floating preview - JS approach since CSS sticky doesn't work in WP admin
-            var panel = document.getElementById('ssc-preview-panel');
-            var right = document.getElementById('ssc-settings-right');
-            if (panel && right && window.innerWidth > 960) {
-                // Capture original measurements before anything changes
-                var rect = right.getBoundingClientRect();
-                var origTop = rect.top + window.scrollY;
-                var origLeft = rect.left;
-                var availableWidth = document.documentElement.clientWidth - rect.left - 20;
-                var origWidth = Math.min(rect.width, availableWidth);
-
-                function resetPanel() {
-                    panel.removeAttribute('style');
-                }
-
-                function fixPanel() {
-                    panel.style.position = 'fixed';
-                    panel.style.top = '48px';
-                    panel.style.left = origLeft + 'px';
-                    panel.style.width = origWidth + 'px';
-                    panel.style.boxSizing = 'border-box';
-                    panel.style.zIndex = '100';
-                    panel.style.background = '#fff';
-                    panel.style.border = '1px solid #ddd';
-                    panel.style.borderRadius = '8px';
-                    panel.style.padding = '20px';
-                    panel.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)';
-                }
-
-                function onScroll() {
-                    if (window.innerWidth <= 960) { resetPanel(); return; }
-                    var scrollTop = window.scrollY || document.documentElement.scrollTop;
-                    if (scrollTop + 48 > origTop) {
-                        fixPanel();
-                    } else {
-                        resetPanel();
-                    }
-                }
-
-                window.addEventListener('scroll', onScroll, { passive: true });
-                window.addEventListener('resize', function() {
-                    resetPanel();
-                    var r = right.getBoundingClientRect();
-                    origTop = r.top + window.scrollY;
-                    origLeft = r.left;
-                    origWidth = r.width;
-                    onScroll();
-                });
-            }
-
-        })();
-        </script>
         <?php
     }
 
@@ -880,15 +696,15 @@ class SSC_Settings {
             wp_die( esc_html__( 'You do not have permission to delete plugin data.', 'smart-search-chips' ) );
         }
 
-        check_admin_referer( 'ssc_delete_plugin_data_now' );
+        check_admin_referer( 'sschp_delete_plugin_data_now' );
 
-        ssc_delete_plugin_data( false );
+        sschp_delete_plugin_data( false );
 
         wp_safe_redirect(
             add_query_arg(
                 array(
                     'page'             => 'smart-search-chips',
-                    'ssc_data_deleted' => '1',
+                    'sschp_data_deleted' => '1',
                 ),
                 admin_url( 'options-general.php' )
             )
@@ -899,7 +715,7 @@ class SSC_Settings {
     // ─── Helper renderers ────────────────────────────────────────────
 
     private function render_post_types() {
-        $selected = get_option( 'ssc_post_types', array( 'post' ) );
+        $selected = get_option( 'sschp_post_types', array( 'post' ) );
         if ( ! is_array( $selected ) ) {
             $selected = array( $selected );
         }
@@ -909,7 +725,7 @@ class SSC_Settings {
         foreach ( $post_types as $pt ) {
             if ( $pt->name === 'attachment' ) continue;
             printf(
-                '<label style="display:block;margin-bottom:4px;"><input type="checkbox" name="ssc_post_types[]" value="%s" %s /> %s</label>',
+                '<label style="display:block;margin-bottom:4px;"><input type="checkbox" name="sschp_post_types[]" value="%s" %s /> %s</label>',
                 esc_attr( $pt->name ),
                 checked( in_array( $pt->name, $selected, true ), true, false ),
                 esc_html( $pt->label )
@@ -924,10 +740,10 @@ class SSC_Settings {
      */
     private function get_ai_target_field_options() {
         $options = array(
-            'built_in' => __( 'Built-in Search Chips Tags (ssc_tags)', 'smart-search-chips' ),
+            'built_in' => __( 'Built-in Search Chips Tags (sschp_tags)', 'smart-search-chips' ),
         );
 
-        $custom_tag_field = trim( (string) get_option( 'ssc_tag_fields', '' ) );
+        $custom_tag_field = trim( (string) get_option( 'sschp_tag_fields', '' ) );
         if ( $custom_tag_field !== '' ) {
             $options['mapped_primary'] = sprintf(
                 /* translators: %s: configured custom field name */
@@ -947,25 +763,25 @@ class SSC_Settings {
             return;
         }
 
-        $is_pro       = SSC_License::is_pro();
-        $analytics_on = get_option( 'ssc_analytics_enabled', '0' );
+        $is_pro       = SSCHP_License::is_pro();
+        $analytics_on = get_option( 'sschp_analytics_enabled', '0' );
         $range_args   = array(
             'from' => isset( $_GET['from'] ) ? sanitize_text_field( wp_unslash( $_GET['from'] ) ) : '',
             'to'   => isset( $_GET['to'] ) ? sanitize_text_field( wp_unslash( $_GET['to'] ) ) : '',
         );
-        $range        = SSC_Analytics::get_date_range( $range_args );
-        $analytics    = $is_pro && $analytics_on === '1' ? SSC_Analytics::get_dashboard_data( $range ) : null;
-        $events       = $is_pro && $analytics_on === '1' ? SSC_Analytics::get_recent_events( array_merge( $range, array( 'limit' => 150 ) ) ) : array();
+        $range        = SSCHP_Analytics::get_date_range( $range_args );
+        $analytics    = $is_pro && $analytics_on === '1' ? SSCHP_Analytics::get_dashboard_data( $range ) : null;
+        $events       = $is_pro && $analytics_on === '1' ? SSCHP_Analytics::get_recent_events( array_merge( $range, array( 'limit' => 150 ) ) ) : array();
         $export_url   = wp_nonce_url(
             add_query_arg(
                 array(
-                    'action' => 'ssc_export_analytics',
+                    'action' => 'sschp_export_analytics',
                     'from'   => $range['from'],
                     'to'     => $range['to'],
                 ),
                 admin_url( 'admin-post.php' )
             ),
-            'ssc_export_analytics'
+            'sschp_export_analytics'
         );
         ?>
         <div class="wrap">
@@ -983,38 +799,6 @@ class SSC_Settings {
                 </div>
                 <?php return; ?>
             <?php endif; ?>
-
-            <style>
-                .ssc-analytics-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 18px 0; padding: 16px; border: 1px solid #dcdcde; border-radius: 12px; background: #fff; }
-                .ssc-analytics-toolbar label { display: grid; gap: 6px; font-weight: 600; }
-                .ssc-analytics-toolbar input[type="date"] { min-width: 180px; }
-                .ssc-analytics-dashboard { display: grid; gap: 18px; margin-top: 12px; }
-                .ssc-analytics-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
-                .ssc-analytics-stat { display: grid; gap: 6px; padding: 14px; border: 1px solid #e3e5e8; border-radius: 12px; background: #fcfcfd; }
-                .ssc-analytics-stat strong { font-size: 22px; line-height: 1.1; color: #1d2327; }
-                .ssc-analytics-stat span { color: #50575e; font-size: 13px; }
-                .ssc-analytics-panels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-                .ssc-analytics-panels--quad { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-                .ssc-analytics-panel { border: 1px solid #e3e5e8; border-radius: 12px; background: #fff; overflow: hidden; }
-                .ssc-analytics-panel h3 { margin: 0; padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #ebecef; background: #f7f8fa; }
-                .ssc-analytics-panel table { width: 100%; border-collapse: collapse; }
-                .ssc-analytics-panel th, .ssc-analytics-panel td { padding: 10px 16px; text-align: left; border-top: 1px solid #f0f1f3; font-size: 13px; vertical-align: top; }
-                .ssc-analytics-panel th { color: #50575e; font-weight: 600; background: #fcfcfd; }
-                .ssc-analytics-empty { padding: 16px; color: #646970; font-size: 13px; }
-                .ssc-analytics-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-                .ssc-chart { padding: 16px; }
-                .ssc-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
-                .ssc-chart-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; color: #50575e; font-size: 12px; }
-                .ssc-chart-meta span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 999px; margin-right: 6px; vertical-align: -1px; }
-                .ssc-chart-meta .ssc-chart-searches::before { background: #1d4ed8; }
-                .ssc-chart-meta .ssc-chart-clicks::before { background: #d97706; }
-                .ssc-chart-meta .ssc-chart-visitors::before { background: #059669; }
-                .ssc-chart-meta .ssc-chart-zero::before { background: #dc2626; }
-                @media (max-width: 1200px) { .ssc-analytics-stats, .ssc-analytics-panels, .ssc-analytics-panels--quad { grid-template-columns: 1fr 1fr; } }
-                @media (max-width: 960px) { .ssc-analytics-stats, .ssc-analytics-panels, .ssc-analytics-panels--quad { grid-template-columns: 1fr; } }
-                @media (max-width: 960px) { .ssc-analytics-charts { grid-template-columns: 1fr; } }
-            </style>
-
             <form method="get" action="<?php echo esc_url( admin_url( 'options-general.php' ) ); ?>" class="ssc-analytics-toolbar">
                 <input type="hidden" name="page" value="smart-search-chips-analytics" />
                 <label>
@@ -1229,7 +1013,7 @@ class SSC_Settings {
      * @return string
      */
     public function sanitize_ai_target_field( $value ) {
-        $custom_tag_field = trim( (string) get_option( 'ssc_tag_fields', '' ) );
+        $custom_tag_field = trim( (string) get_option( 'sschp_tag_fields', '' ) );
 
         if ( $value === 'mapped_primary' && $custom_tag_field !== '' ) {
             return 'mapped_primary';
@@ -1361,15 +1145,15 @@ class SSC_Settings {
             return '';
         }
 
-        $posted_primary = isset( $_POST['ssc_tag_fields'] ) ? trim( sanitize_key( wp_unslash( $_POST['ssc_tag_fields'] ) ) ) : trim( (string) get_option( 'ssc_tag_fields', '' ) );
-        $posted_extra   = isset( $_POST['ssc_extra_fields'] ) ? trim( sanitize_key( wp_unslash( $_POST['ssc_extra_fields'] ) ) ) : trim( (string) get_option( 'ssc_extra_fields', '' ) );
+        $posted_primary = isset( $_POST['sschp_tag_fields'] ) ? trim( sanitize_key( wp_unslash( $_POST['sschp_tag_fields'] ) ) ) : trim( (string) get_option( 'sschp_tag_fields', '' ) );
+        $posted_extra   = isset( $_POST['sschp_extra_fields'] ) ? trim( sanitize_key( wp_unslash( $_POST['sschp_extra_fields'] ) ) ) : trim( (string) get_option( 'sschp_extra_fields', '' ) );
         $other_value    = ( 'tag' === $role ) ? $posted_extra : $posted_primary;
 
-        if ( $value === SSC_Meta_Box::META_KEY ) {
+        if ( $value === SSCHP_Meta_Box::META_KEY ) {
             add_settings_error(
                 'smart-search-chips',
-                'ssc_reserved_meta_key',
-                __( 'The built-in field key `ssc_tags` is reserved by Smart Search Chips. Choose a different custom field key.', 'smart-search-chips' ),
+                'sschp_reserved_meta_key',
+                __( 'The built-in field key `sschp_tags` is reserved by Smart Search Chips. Choose a different custom field key.', 'smart-search-chips' ),
                 'error'
             );
             return '';
@@ -1378,7 +1162,7 @@ class SSC_Settings {
         if ( $value === $other_value ) {
             add_settings_error(
                 'smart-search-chips',
-                'ssc_duplicate_meta_key',
+                'sschp_duplicate_meta_key',
                 __( 'Custom Tag Field and Extra Tag Field must be different meta keys.', 'smart-search-chips' ),
                 'error'
             );

@@ -9,12 +9,12 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class SSC_Frontend {
+class SSCHP_Frontend {
 
-    /** @var SSC_Settings */
+    /** @var SSCHP_Settings */
     private $settings;
 
-    /** @var SSC_Chip_Engine */
+    /** @var SSCHP_Chip_Engine */
     private $engine;
 
     /** @var bool */
@@ -23,7 +23,7 @@ class SSC_Frontend {
     /** @var array */
     private $loop_source_posts = array();
 
-    public function __construct( SSC_Settings $settings, SSC_Chip_Engine $engine ) {
+    public function __construct( SSCHP_Settings $settings, SSCHP_Chip_Engine $engine ) {
         $this->settings = $settings;
         $this->engine   = $engine;
     }
@@ -33,7 +33,7 @@ class SSC_Frontend {
      */
     public function init() {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
-        add_shortcode( 'ssc_search', array( $this, 'render_search_form' ) );
+        add_shortcode( 'sschp_search', array( $this, 'render_search_form' ) );
         add_filter( 'the_posts', array( $this, 'filter_archive_posts' ), 10, 2 );
         add_action( 'loop_start', array( $this, 'render_archive_chips_before_loop' ) );
 
@@ -50,35 +50,35 @@ class SSC_Frontend {
      * Enqueue frontend assets.
      */
     public function enqueue_assets() {
-        $style_path  = SSC_PLUGIN_DIR . 'assets/css/chips.css';
-        $script_path = SSC_PLUGIN_DIR . 'assets/js/chips.js';
+        $style_path  = SSCHP_PLUGIN_DIR . 'assets/css/chips.css';
+        $script_path = SSCHP_PLUGIN_DIR . 'assets/js/chips.js';
 
         wp_enqueue_style(
             'smart-search-chips',
-            SSC_PLUGIN_URL . 'assets/css/chips.css',
+            SSCHP_PLUGIN_URL . 'assets/css/chips.css',
             array(),
-            file_exists( $style_path ) ? filemtime( $style_path ) : SSC_VERSION
+            file_exists( $style_path ) ? filemtime( $style_path ) : SSCHP_VERSION
         );
 
         wp_enqueue_script(
             'smart-search-chips',
-            SSC_PLUGIN_URL . 'assets/js/chips.js',
+            SSCHP_PLUGIN_URL . 'assets/js/chips.js',
             array(),
-            file_exists( $script_path ) ? filemtime( $script_path ) : SSC_VERSION,
+            file_exists( $script_path ) ? filemtime( $script_path ) : SSCHP_VERSION,
             true
         );
 
         // Pass settings to JS
-        wp_localize_script( 'smart-search-chips', 'sscConfig', array(
+        wp_localize_script( 'smart-search-chips', 'sschpConfig', array(
             'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
             'action'     => $this->get_ajax_action_name(),
             'minChars'   => 2,
             'postType'   => implode( ',', (array) $this->settings->get( 'post_types', array( 'post' ) ) ),
-            'nonce'      => wp_create_nonce( 'ssc_search_nonce' ),
-            'lang'       => SSC_Language::current_language(),
+            'nonce'      => wp_create_nonce( 'sschp_search_nonce' ),
+            'lang'       => SSCHP_Language::current_language(),
             'analytics'  => array(
-                'enabled' => SSC_Analytics::is_enabled(),
-                'nonce'   => wp_create_nonce( 'ssc_analytics_nonce' ),
+                'enabled' => SSCHP_Analytics::is_enabled(),
+                'nonce'   => wp_create_nonce( 'sschp_analytics_nonce' ),
             ),
         ) );
     }
@@ -92,14 +92,14 @@ class SSC_Frontend {
      * @return string
      */
     private function get_ajax_action_name() {
-        if ( SSC_License::can_use_ajax_override() ) {
+        if ( SSCHP_License::can_use_ajax_override() ) {
             $ajax_action = $this->settings->get( 'override_ajax' );
             if ( ! empty( $ajax_action ) ) {
                 return $ajax_action;
             }
         }
 
-        return 'ssc_search';
+        return 'sschp_search';
     }
 
     /**
@@ -276,7 +276,7 @@ class SSC_Frontend {
         $active_tags  = $this->get_active_archive_tags();
         $max_chips    = min(
             (int) $this->settings->get( 'max_chips', 8 ),
-            SSC_License::max_chips()
+            SSCHP_License::max_chips()
         );
         $max_length   = (int) $this->settings->get( 'max_tag_length', 40 );
         $chips        = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_length );
@@ -353,7 +353,7 @@ class SSC_Frontend {
 
             $post_id = (int) $post->ID;
 
-            if ( SSC_License::can_use_custom_fields() ) {
+            if ( SSCHP_License::can_use_custom_fields() ) {
                 $tag_field   = $this->settings->get( 'tag_fields', '' );
                 $extra_field = $this->settings->get( 'extra_fields', '' );
 
@@ -362,14 +362,14 @@ class SSC_Frontend {
                     $extra   = $this->get_field_value( $post_id, $extra_field );
 
                     if ( '' === $primary && '' === $extra && empty( $tag_field ) ) {
-                        $primary = get_post_meta( $post_id, SSC_Meta_Box::META_KEY, true ) ?: '';
+                        $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
                     }
                 } else {
-                    $primary = get_post_meta( $post_id, SSC_Meta_Box::META_KEY, true ) ?: '';
+                    $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
                     $extra   = '';
                 }
             } else {
-                $primary = get_post_meta( $post_id, SSC_Meta_Box::META_KEY, true ) ?: '';
+                $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
                 $extra   = '';
             }
 
@@ -414,7 +414,7 @@ class SSC_Frontend {
      * @return array
      */
     private function get_active_archive_tags() {
-        $raw = isset( $_GET['ssc_tags'] ) ? wp_unslash( $_GET['ssc_tags'] ) : '';
+        $raw = isset( $_GET['sschp_tags'] ) ? wp_unslash( $_GET['sschp_tags'] ) : '';
 
         if ( is_array( $raw ) ) {
             $values = $raw;
@@ -458,10 +458,10 @@ class SSC_Frontend {
         $url = remove_query_arg( array( 'paged', 'product-page' ), $url );
 
         if ( empty( $next_tags ) ) {
-            return remove_query_arg( 'ssc_tags', $url );
+            return remove_query_arg( 'sschp_tags', $url );
         }
 
-        return add_query_arg( 'ssc_tags', implode( ',', $next_tags ), $url );
+        return add_query_arg( 'sschp_tags', implode( ',', $next_tags ), $url );
     }
 
     /**
@@ -480,10 +480,10 @@ class SSC_Frontend {
             'background' => $is_active ? $color : $inactive_color,
             'color'      => $is_active ? $text_color : $inactive_text,
             'border'     => $color,
-            'radius'     => SSC_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_radius', 16, 0 ) : 16,
-            'font_size'  => SSC_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_font_size', 13, 8 ) : 13,
-            'pad_x'      => SSC_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_x', 12, 0 ) : 12,
-            'pad_y'      => SSC_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_y', 4, 0 ) : 4,
+            'radius'     => SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_radius', 16, 0 ) : 16,
+            'font_size'  => SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_font_size', 13, 8 ) : 13,
+            'pad_x'      => SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_x', 12, 0 ) : 12,
+            'pad_y'      => SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_y', 4, 0 ) : 4,
         );
     }
 

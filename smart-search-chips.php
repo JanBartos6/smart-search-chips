@@ -18,24 +18,24 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-if ( function_exists( 'ssc_fs' ) ) {
-    $ssc_fs = ssc_fs();
+if ( function_exists( 'sschp_fs' ) ) {
+    $sschp_fs = sschp_fs();
 
-    if ( $ssc_fs ) {
-        $ssc_fs->set_basename( true, __FILE__ );
+    if ( $sschp_fs ) {
+        $sschp_fs->set_basename( true, __FILE__ );
     }
 } else {
-    if ( ! function_exists( 'ssc_fs' ) ) {
+    if ( ! function_exists( 'sschp_fs' ) ) {
         /**
          * Create a helper function for easy SDK access.
          *
          * @return Freemius_Abstract|null
          */
-        function ssc_fs() {
-            global $ssc_fs;
+        function sschp_fs() {
+            global $sschp_fs;
 
-            if ( isset( $ssc_fs ) ) {
-                return $ssc_fs;
+            if ( isset( $sschp_fs ) ) {
+                return $sschp_fs;
             }
 
             $sdk_start = dirname( __FILE__ ) . '/vendor/freemius/start.php';
@@ -50,7 +50,7 @@ if ( function_exists( 'ssc_fs' ) ) {
 
             require_once $sdk_start;
 
-            $ssc_fs = fs_dynamic_init(
+            $sschp_fs = fs_dynamic_init(
                 array(
                     'id'                  => '27046',
                     'slug'                => 'smart-search-chips',
@@ -76,28 +76,28 @@ if ( function_exists( 'ssc_fs' ) ) {
                 )
             );
 
-            return $ssc_fs;
+            return $sschp_fs;
         }
 
-        $ssc_fs = ssc_fs();
+        $sschp_fs = sschp_fs();
 
-        if ( $ssc_fs ) {
-            $ssc_fs->add_action( 'after_uninstall', 'ssc_fs_uninstall_cleanup' );
-            do_action( 'ssc_fs_loaded' );
+        if ( $sschp_fs ) {
+            $sschp_fs->add_action( 'after_uninstall', 'sschp_fs_uninstall_cleanup' );
+            do_action( 'sschp_fs_loaded' );
         }
     }
 
     /**
      * Clean up all plugin data on Freemius uninstall.
      */
-    function ssc_fs_uninstall_cleanup() {
-        if ( get_option( 'ssc_delete_data_on_uninstall', '0' ) !== '1' ) {
+    function sschp_fs_uninstall_cleanup() {
+        if ( get_option( 'sschp_delete_data_on_uninstall', '0' ) !== '1' ) {
             return;
         }
 
         global $wpdb;
 
-        $options = ssc_get_option_keys();
+        $options = sschp_get_option_keys();
         foreach ( $options as $option ) {
             delete_option( $option );
         }
@@ -105,81 +105,81 @@ if ( function_exists( 'ssc_fs' ) ) {
         $wpdb->query(
             $wpdb->prepare(
                 "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s",
-                'ssc_tags'
+                'sschp_tags'
             )
         );
 
-        $table_name = $wpdb->prefix . 'ssc_events';
+        $table_name = $wpdb->prefix . 'sschp_events';
         $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
     }
 
-    define( 'SSC_VERSION', '1.0.0' );
-    define( 'SSC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-    define( 'SSC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-    define( 'SSC_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+    define( 'SSCHP_VERSION', '1.0.0' );
+    define( 'SSCHP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+    define( 'SSCHP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+    define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
     /**
      * Core includes
      */
-    require_once SSC_PLUGIN_DIR . 'includes/class-license.php';
-    require_once SSC_PLUGIN_DIR . 'includes/class-language.php';
-    require_once SSC_PLUGIN_DIR . 'includes/class-chip-engine.php';
-    require_once SSC_PLUGIN_DIR . 'includes/class-search-handler.php';
-    require_once SSC_PLUGIN_DIR . 'includes/class-analytics.php';
-    require_once SSC_PLUGIN_DIR . 'includes/class-ai-tagger.php';
-    require_once SSC_PLUGIN_DIR . 'includes/class-settings.php';
-    require_once SSC_PLUGIN_DIR . 'includes/class-frontend.php';
-    require_once SSC_PLUGIN_DIR . 'includes/class-meta-box.php';
-    require_once SSC_PLUGIN_DIR . 'includes/class-woocommerce.php';
+    require_once SSCHP_PLUGIN_DIR . 'includes/class-license.php';
+    require_once SSCHP_PLUGIN_DIR . 'includes/class-language.php';
+    require_once SSCHP_PLUGIN_DIR . 'includes/class-chip-engine.php';
+    require_once SSCHP_PLUGIN_DIR . 'includes/class-search-handler.php';
+    require_once SSCHP_PLUGIN_DIR . 'includes/class-analytics.php';
+    require_once SSCHP_PLUGIN_DIR . 'includes/class-ai-tagger.php';
+    require_once SSCHP_PLUGIN_DIR . 'includes/class-settings.php';
+    require_once SSCHP_PLUGIN_DIR . 'includes/class-frontend.php';
+    require_once SSCHP_PLUGIN_DIR . 'includes/class-meta-box.php';
+    require_once SSCHP_PLUGIN_DIR . 'includes/class-woocommerce.php';
 
     /**
      * Initialize the plugin
      */
-    function ssc_init() {
-        $license = new SSC_License();
+    function sschp_init() {
+        $license = new SSCHP_License();
         $license->init();
 
-        $settings = new SSC_Settings();
+        $settings = new SSCHP_Settings();
         $settings->init();
 
-        $engine = new SSC_Chip_Engine();
+        $engine = new SSCHP_Chip_Engine();
 
-        $handler = new SSC_Search_Handler( $engine, $settings );
+        $handler = new SSCHP_Search_Handler( $engine, $settings );
         $handler->init();
 
-        $analytics = new SSC_Analytics();
+        $analytics = new SSCHP_Analytics();
         $analytics->init();
 
-        $frontend = new SSC_Frontend( $settings, $engine );
+        $frontend = new SSCHP_Frontend( $settings, $engine );
         $frontend->init();
 
-        $ai_tagger = new SSC_AI_Tagger( $settings );
+        $ai_tagger = new SSCHP_AI_Tagger( $settings );
         $ai_tagger->init();
 
         // Always show the built-in meta box (free feature)
-        $meta_box = new SSC_Meta_Box();
+        $meta_box = new SSCHP_Meta_Box();
         $meta_box->init();
 
         // WooCommerce integration (if WooCommerce is active)
-        $woo = new SSC_WooCommerce();
+        $woo = new SSCHP_WooCommerce();
         $woo->init();
     }
-    add_action( 'plugins_loaded', 'ssc_init' );
+    add_action( 'plugins_loaded', 'sschp_init' );
 
     /**
      * Register meta fields for REST API access
      */
-    function ssc_register_meta() {
-        $post_types = get_option( 'ssc_post_types', array( 'post' ) );
+    function sschp_register_meta() {
+        $post_types = get_option( 'sschp_post_types', array( 'post' ) );
         if ( ! is_array( $post_types ) ) {
             $post_types = array( $post_types );
         }
 
         // Only register custom field meta if Pro
-        if ( SSC_License::is_pro() ) {
+        if ( SSCHP_License::is_pro() ) {
             $fields = array();
-            $tag_field   = get_option( 'ssc_tag_fields', '' );
-            $extra_field = get_option( 'ssc_extra_fields', '' );
+            $tag_field   = get_option( 'sschp_tag_fields', '' );
+            $extra_field = get_option( 'sschp_extra_fields', '' );
             if ( $tag_field ) {
                 $fields[] = $tag_field;
             }
@@ -196,46 +196,46 @@ if ( function_exists( 'ssc_fs' ) ) {
                             'show_in_rest'  => true,
                             'single'        => true,
                             'type'          => 'string',
-                            'auth_callback' => 'ssc_can_edit_post_meta',
+                            'auth_callback' => 'sschp_can_edit_post_meta',
                         )
                     );
                 }
             }
         }
     }
-    add_action( 'init', 'ssc_register_meta' );
+    add_action( 'init', 'sschp_register_meta' );
 
     /**
      * Activation hook
      */
-    function ssc_activate() {
+    function sschp_activate() {
         $defaults = array(
-            'ssc_post_types'              => array( 'post' ),
-            'ssc_tag_fields'              => '',
-            'ssc_extra_fields'            => '',
-            'ssc_max_chips'               => 8,
-            'ssc_max_results'             => 10,
-            'ssc_relevance_threshold'     => 0.3,
-            'ssc_max_tag_length'          => 40,
-            'ssc_chip_color'              => '#e74c3c',
-            'ssc_chip_text_color'         => '#ffffff',
-            'ssc_chip_inactive_color'     => '#ffffff',
-            'ssc_chip_inactive_text_color'=> '#333333',
-            'ssc_chip_radius'             => 16,
-            'ssc_chip_font_size'          => 13,
-            'ssc_chip_padding_x'          => 12,
-            'ssc_chip_padding_y'          => 4,
-            'ssc_woo_enabled'             => '1',
-            'ssc_override_ajax'           => '',
-            'ssc_search_results_count'    => 50,
-            'ssc_analytics_enabled'       => '0',
-            'ssc_ai_custom_read_fields'   => '',
-            'ssc_ai_target_field'         => 'built_in',
-            'ssc_ai_rest_enabled'         => '1',
-            'ssc_ai_max_tags'             => 8,
-            'ssc_ai_language'             => '',
-            'ssc_ai_custom_instruction'   => '',
-            'ssc_delete_data_on_uninstall'=> '0',
+            'sschp_post_types'              => array( 'post' ),
+            'sschp_tag_fields'              => '',
+            'sschp_extra_fields'            => '',
+            'sschp_max_chips'               => 8,
+            'sschp_max_results'             => 10,
+            'sschp_relevance_threshold'     => 0.3,
+            'sschp_max_tag_length'          => 40,
+            'sschp_chip_color'              => '#e74c3c',
+            'sschp_chip_text_color'         => '#ffffff',
+            'sschp_chip_inactive_color'     => '#ffffff',
+            'sschp_chip_inactive_text_color'=> '#333333',
+            'sschp_chip_radius'             => 16,
+            'sschp_chip_font_size'          => 13,
+            'sschp_chip_padding_x'          => 12,
+            'sschp_chip_padding_y'          => 4,
+            'sschp_woo_enabled'             => '1',
+            'sschp_override_ajax'           => '',
+            'sschp_search_results_count'    => 50,
+            'sschp_analytics_enabled'       => '0',
+            'sschp_ai_custom_read_fields'   => '',
+            'sschp_ai_target_field'         => 'built_in',
+            'sschp_ai_rest_enabled'         => '1',
+            'sschp_ai_max_tags'             => 8,
+            'sschp_ai_language'             => '',
+            'sschp_ai_custom_instruction'   => '',
+            'sschp_delete_data_on_uninstall'=> '0',
         );
 
         foreach ( $defaults as $key => $value ) {
@@ -244,45 +244,45 @@ if ( function_exists( 'ssc_fs' ) ) {
             }
         }
 
-        SSC_Analytics::create_table();
+        SSCHP_Analytics::create_table();
     }
-    register_activation_hook( __FILE__, 'ssc_activate' );
+    register_activation_hook( __FILE__, 'sschp_activate' );
 
     /**
      * Return the list of plugin option keys owned by Smart Search Chips.
      *
      * @return array
      */
-    function ssc_get_option_keys() {
+    function sschp_get_option_keys() {
         return array(
-            'ssc_post_types',
-            'ssc_tag_fields',
-            'ssc_extra_fields',
-            'ssc_max_chips',
-            'ssc_max_results',
-            'ssc_relevance_threshold',
-            'ssc_max_tag_length',
-            'ssc_chip_color',
-            'ssc_chip_text_color',
-            'ssc_chip_inactive_color',
-            'ssc_chip_inactive_text_color',
-            'ssc_chip_radius',
-            'ssc_chip_font_size',
-            'ssc_chip_padding_x',
-            'ssc_chip_padding_y',
-            'ssc_woo_enabled',
-            'ssc_override_ajax',
-            'ssc_search_results_count',
-            'ssc_license_key',
-            'ssc_license_status',
-            'ssc_analytics_enabled',
-            'ssc_ai_custom_read_fields',
-            'ssc_ai_target_field',
-            'ssc_ai_rest_enabled',
-            'ssc_ai_max_tags',
-            'ssc_ai_language',
-            'ssc_ai_custom_instruction',
-            'ssc_delete_data_on_uninstall',
+            'sschp_post_types',
+            'sschp_tag_fields',
+            'sschp_extra_fields',
+            'sschp_max_chips',
+            'sschp_max_results',
+            'sschp_relevance_threshold',
+            'sschp_max_tag_length',
+            'sschp_chip_color',
+            'sschp_chip_text_color',
+            'sschp_chip_inactive_color',
+            'sschp_chip_inactive_text_color',
+            'sschp_chip_radius',
+            'sschp_chip_font_size',
+            'sschp_chip_padding_x',
+            'sschp_chip_padding_y',
+            'sschp_woo_enabled',
+            'sschp_override_ajax',
+            'sschp_search_results_count',
+            'sschp_license_key',
+            'sschp_license_status',
+            'sschp_analytics_enabled',
+            'sschp_ai_custom_read_fields',
+            'sschp_ai_target_field',
+            'sschp_ai_rest_enabled',
+            'sschp_ai_max_tags',
+            'sschp_ai_language',
+            'sschp_ai_custom_instruction',
+            'sschp_delete_data_on_uninstall',
         );
     }
 
@@ -292,32 +292,32 @@ if ( function_exists( 'ssc_fs' ) ) {
      * @param bool $drop_analytics_table Whether to drop the analytics table entirely.
      * @return void
      */
-    function ssc_delete_plugin_data( $drop_analytics_table = false ) {
+    function sschp_delete_plugin_data( $drop_analytics_table = false ) {
         global $wpdb;
 
-        foreach ( ssc_get_option_keys() as $option ) {
+        foreach ( sschp_get_option_keys() as $option ) {
             delete_option( $option );
         }
 
         $wpdb->query(
             $wpdb->prepare(
                 "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s",
-                'ssc_tags'
+                'sschp_tags'
             )
         );
 
         if ( $drop_analytics_table ) {
-            SSC_Analytics::drop_table();
-            delete_option( SSC_Analytics::DB_VERSION_OPTION );
+            SSCHP_Analytics::drop_table();
+            delete_option( SSCHP_Analytics::DB_VERSION_OPTION );
         } else {
-            SSC_Analytics::clear_events();
+            SSCHP_Analytics::clear_events();
         }
     }
 
     /**
      * Privacy Policy suggested content
      */
-    function ssc_privacy_policy_content() {
+    function sschp_privacy_policy_content() {
         $content = '<h2>' . __( 'Smart Search Chips', 'smart-search-chips' ) . '</h2>'
             . '<p>' . __( 'This plugin processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this server and are not stored or sent to any third-party service.', 'smart-search-chips' ) . '</p>'
             . '<p>' . __( 'If the site owner enables the optional analytics feature, the plugin stores anonymous search and chip interaction events on this WordPress site so administrators can review popular queries, chip usage, click-through rates, and zero-result searches. This analytics feature is designed for aggregate reporting and does not require LLM-provider credentials.', 'smart-search-chips' ) . '</p>'
@@ -326,7 +326,7 @@ if ( function_exists( 'ssc_fs' ) ) {
 
         wp_add_privacy_policy_content( 'Smart Search Chips', wp_kses_post( $content ) );
     }
-    add_action( 'admin_init', 'ssc_privacy_policy_content' );
+    add_action( 'admin_init', 'sschp_privacy_policy_content' );
 
     /**
      * Give Freemius API calls a little more room to establish a connection.
@@ -338,7 +338,7 @@ if ( function_exists( 'ssc_fs' ) ) {
      * @param string $url  Request URL.
      * @return array
      */
-    function ssc_adjust_freemius_http_args( $args, $url ) {
+    function sschp_adjust_freemius_http_args( $args, $url ) {
         if ( false === strpos( $url, 'freemius.com' ) ) {
             return $args;
         }
@@ -348,5 +348,5 @@ if ( function_exists( 'ssc_fs' ) ) {
 
         return $args;
     }
-    add_filter( 'http_request_args', 'ssc_adjust_freemius_http_args', 10, 2 );
+    add_filter( 'http_request_args', 'sschp_adjust_freemius_http_args', 10, 2 );
 }

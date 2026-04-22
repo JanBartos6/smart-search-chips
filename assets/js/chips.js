@@ -12,10 +12,10 @@
     "use strict";
 
     var activeTags = [];
-    var config = window.sscConfig || {};
+    var config = window.sschpConfig || {};
     var debounceTimer = null;
     var DEBOUNCE_MS = 300;
-    var VISITOR_STORAGE_KEY = "ssc_visitor_id";
+    var VISITOR_STORAGE_KEY = "sschp_visitor_id";
 
     function getVisitorId() {
         var existing = "";
@@ -53,7 +53,7 @@
         }
 
         var data = new FormData();
-        data.append("action", "ssc_track_event");
+        data.append("action", "sschp_track_event");
         data.append("nonce", config.analytics.nonce);
         data.append("ssc_lang", config.lang || "");
         data.append("visitor_id", getVisitorId());
@@ -146,14 +146,14 @@
         }
 
         var formData = new FormData();
-        formData.append("action", config.action || "ssc_search");
+        formData.append("action", config.action || "sschp_search");
         formData.append("keyword", input.value);
         formData.append("post_type", config.postType || "post");
         formData.append("f-form--submitted", "true");
         formData.append("ssc_lang", config.lang || "");
 
         if (config.nonce) {
-            formData.append("ssc_nonce", config.nonce);
+            formData.append("sschp_nonce", config.nonce);
         }
 
         activeTags.forEach(function (t) {
@@ -309,7 +309,7 @@
             var keyword = "";
             if (data.entries) {
                 for (var pair of data.entries()) {
-                    if (pair[0] === "action" && pair[1] === (config.action || "ssc_search")) {
+                    if (pair[0] === "action" && pair[1] === (config.action || "sschp_search")) {
                         hasAction = true;
                     }
                     if (pair[0] === "keyword") {

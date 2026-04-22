@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class SSC_Chip_Engine {
+class SSCHP_Chip_Engine {
 
     /**
      * Generate chips from a set of posts with tags.
@@ -192,7 +192,7 @@ class SSC_Chip_Engine {
     /**
      * Extract and deduplicate tags from field values.
      *
-     * The built-in `ssc_tags` field is stored as a comma-delimited string, while
+     * The built-in `sschp_tags` field is stored as a comma-delimited string, while
      * some external sources are semicolon-delimited. Accept both separators from
      * either field so the parser stays resilient across Free/Pro sources.
      *
