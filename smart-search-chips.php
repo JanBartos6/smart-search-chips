@@ -125,12 +125,15 @@ if ( function_exists( 'sschp_fs' ) ) {
     require_once SSCHP_PLUGIN_DIR . 'includes/class-language.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-chip-engine.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-search-handler.php';
-    require_once SSCHP_PLUGIN_DIR . 'includes/class-analytics.php';
-    require_once SSCHP_PLUGIN_DIR . 'includes/class-ai-tagger.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-settings.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-frontend.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-meta-box.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-woocommerce.php';
+
+    if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+        require_once SSCHP_PLUGIN_DIR . 'includes/class-analytics__premium_only.php';
+        require_once SSCHP_PLUGIN_DIR . 'includes/class-ai-tagger__premium_only.php';
+    }
 
     /**
      * Initialize the plugin
@@ -147,14 +150,16 @@ if ( function_exists( 'sschp_fs' ) ) {
         $handler = new SSCHP_Search_Handler( $engine, $settings );
         $handler->init();
 
-        $analytics = new SSCHP_Analytics();
-        $analytics->init();
-
         $frontend = new SSCHP_Frontend( $settings, $engine );
         $frontend->init();
 
-        $ai_tagger = new SSCHP_AI_Tagger( $settings );
-        $ai_tagger->init();
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            $analytics = new SSCHP_Analytics();
+            $analytics->init();
+
+            $ai_tagger = new SSCHP_AI_Tagger( $settings );
+            $ai_tagger->init();
+        }
 
         // Always show the built-in meta box (free feature)
         $meta_box = new SSCHP_Meta_Box();
@@ -176,7 +181,7 @@ if ( function_exists( 'sschp_fs' ) ) {
         }
 
         // Only register custom field meta if Pro
-        if ( SSCHP_License::is_pro() ) {
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
             $fields = array();
             $tag_field   = get_option( 'sschp_tag_fields', '' );
             $extra_field = get_option( 'sschp_extra_fields', '' );
@@ -244,7 +249,9 @@ if ( function_exists( 'sschp_fs' ) ) {
             }
         }
 
-        SSCHP_Analytics::create_table();
+        if ( function_exists( 'sschp_fs' ) && sschp_fs() && sschp_fs()->can_use_premium_code__premium_only() ) {
+            SSCHP_Analytics::create_table();
+        }
     }
     register_activation_hook( __FILE__, 'sschp_activate' );
 
@@ -306,11 +313,13 @@ if ( function_exists( 'sschp_fs' ) ) {
             )
         );
 
-        if ( $drop_analytics_table ) {
-            SSCHP_Analytics::drop_table();
-            delete_option( SSCHP_Analytics::DB_VERSION_OPTION );
-        } else {
-            SSCHP_Analytics::clear_events();
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            if ( $drop_analytics_table ) {
+                SSCHP_Analytics::drop_table();
+                delete_option( SSCHP_Analytics::DB_VERSION_OPTION );
+            } else {
+                SSCHP_Analytics::clear_events();
+            }
         }
     }
 

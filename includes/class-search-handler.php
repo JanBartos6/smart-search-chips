@@ -26,11 +26,13 @@ class SSCHP_Search_Handler {
      * Register AJAX hooks.
      */
     public function init() {
-        // Override existing AJAX action (Pro only)
-        $ajax_action = $this->settings->get( 'override_ajax' );
-        if ( SSCHP_License::can_use_ajax_override() && ! empty( $ajax_action ) ) {
-            add_action( 'wp_ajax_' . $ajax_action, array( $this, 'handle_search' ), 0 );
-            add_action( 'wp_ajax_nopriv_' . $ajax_action, array( $this, 'handle_search' ), 0 );
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            // Override existing AJAX action (Pro only)
+            $ajax_action = $this->settings->get( 'override_ajax' );
+            if ( ! empty( $ajax_action ) ) {
+                add_action( 'wp_ajax_' . $ajax_action, array( $this, 'handle_search' ), 0 );
+                add_action( 'wp_ajax_nopriv_' . $ajax_action, array( $this, 'handle_search' ), 0 );
+            }
         }
 
         // Always register our own action
@@ -63,11 +65,13 @@ class SSCHP_Search_Handler {
         $max_tag_length = (int) $this->settings->get( 'max_tag_length', 40 );
         $display_count  = (int) $this->settings->get( 'max_results', 10 );
 
-        // Enforce free version limits
-        $max_chips = min(
-            (int) $this->settings->get( 'max_chips', 8 ),
-            SSCHP_License::max_chips()
-        );
+        // Enforce free version limit (5 chips)
+        $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), 5 );
+
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            // Pro: raise the limit
+            $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), 99 );
+        }
 
         // Run search query (Relevanssi hooks in automatically if active)
         $query_args = array(
@@ -102,7 +106,11 @@ class SSCHP_Search_Handler {
         wp_reset_postdata();
 
         // Filter by relevance threshold (Pro + Relevanssi only)
-        if ( SSCHP_License::can_use_relevanssi() && $top_score > 0 ) {
+        $use_relevance = false;
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            $use_relevance = $top_score > 0;
+        }
+        if ( $use_relevance ) {
             $threshold      = $top_score * $threshold_pct;
             $relevant_posts = array_filter( $scored_posts, function( $p ) use ( $threshold ) {
                 return $p['score'] >= $threshold;
@@ -181,8 +189,11 @@ class SSCHP_Search_Handler {
         foreach ( $relevant_posts as $rp ) {
             $pid = $rp['post']->ID;
 
-            // Get tags from appropriate source
-            if ( SSCHP_License::can_use_custom_fields() ) {
+            // Default: use built-in sschp_tags field only
+            $primary = get_post_meta( $pid, SSCHP_Meta_Box::META_KEY, true ) ?: '';
+            $extra   = '';
+
+            if ( sschp_fs()->can_use_premium_code__premium_only() ) {
                 // Pro: use configured custom fields when present, otherwise keep
                 // the built-in fallback so sites do not lose chips just because
                 // Pro is active before field mapping is configured.
@@ -196,14 +207,7 @@ class SSCHP_Search_Handler {
                     if ( '' === $primary && '' === $extra && empty( $tag_field ) ) {
                         $primary = get_post_meta( $pid, SSCHP_Meta_Box::META_KEY, true ) ?: '';
                     }
-                } else {
-                    $primary = get_post_meta( $pid, SSCHP_Meta_Box::META_KEY, true ) ?: '';
-                    $extra   = '';
                 }
-            } else {
-                // Free: use built-in sschp_tags field only
-                $primary = get_post_meta( $pid, SSCHP_Meta_Box::META_KEY, true ) ?: '';
-                $extra   = '';
             }
 
             $tag_data = $this->engine->extract_tags( $primary, $extra );
@@ -262,11 +266,18 @@ class SSCHP_Search_Handler {
         $inactive_color = $this->get_color_setting( 'chip_inactive_color', '#ffffff' );
         $inactive_text  = $this->get_color_setting( 'chip_inactive_text_color', '#333333' );
 
-        // Pro design options
-        $radius    = SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_radius', 16, 0 ) : 16;
-        $font_size = SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_font_size', 13, 8 ) : 13;
-        $pad_x     = SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_x', 12, 0 ) : 12;
-        $pad_y     = SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_y', 4, 0 ) : 4;
+        // Pro design options (defaults for free)
+        $radius    = 16;
+        $font_size = 13;
+        $pad_x     = 12;
+        $pad_y     = 4;
+
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            $radius    = $this->get_numeric_setting( 'chip_radius', 16, 0 );
+            $font_size = $this->get_numeric_setting( 'chip_font_size', 13, 8 );
+            $pad_x     = $this->get_numeric_setting( 'chip_padding_x', 12, 0 );
+            $pad_y     = $this->get_numeric_setting( 'chip_padding_y', 4, 0 );
+        }
 
         echo '<div class="ssc-chips">';
 

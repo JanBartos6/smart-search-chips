@@ -69,6 +69,13 @@ class SSCHP_Frontend {
         );
 
         // Pass settings to JS
+        $analytics_enabled = false;
+        $analytics_nonce   = '';
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            $analytics_enabled = SSCHP_Analytics::is_enabled();
+            $analytics_nonce   = wp_create_nonce( 'sschp_analytics_nonce' );
+        }
+
         wp_localize_script( 'smart-search-chips', 'sschpConfig', array(
             'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
             'action'     => $this->get_ajax_action_name(),
@@ -77,8 +84,8 @@ class SSCHP_Frontend {
             'nonce'      => wp_create_nonce( 'sschp_search_nonce' ),
             'lang'       => SSCHP_Language::current_language(),
             'analytics'  => array(
-                'enabled' => SSCHP_Analytics::is_enabled(),
-                'nonce'   => wp_create_nonce( 'sschp_analytics_nonce' ),
+                'enabled' => $analytics_enabled,
+                'nonce'   => $analytics_nonce,
             ),
         ) );
     }
@@ -92,7 +99,7 @@ class SSCHP_Frontend {
      * @return string
      */
     private function get_ajax_action_name() {
-        if ( SSCHP_License::can_use_ajax_override() ) {
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
             $ajax_action = $this->settings->get( 'override_ajax' );
             if ( ! empty( $ajax_action ) ) {
                 return $ajax_action;
@@ -274,10 +281,11 @@ class SSCHP_Frontend {
         $source_posts = isset( $this->loop_source_posts[ $query_hash ] ) ? $this->loop_source_posts[ $query_hash ] : $query->posts;
         $posts_data   = $this->collect_posts_data( $query->posts );
         $active_tags  = $this->get_active_archive_tags();
-        $max_chips    = min(
-            (int) $this->settings->get( 'max_chips', 8 ),
-            SSCHP_License::max_chips()
-        );
+        $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), 5 );
+
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), 99 );
+        }
         $max_length   = (int) $this->settings->get( 'max_tag_length', 40 );
         $chips        = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_length );
 
@@ -353,7 +361,10 @@ class SSCHP_Frontend {
 
             $post_id = (int) $post->ID;
 
-            if ( SSCHP_License::can_use_custom_fields() ) {
+            $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
+            $extra   = '';
+
+            if ( sschp_fs()->can_use_premium_code__premium_only() ) {
                 $tag_field   = $this->settings->get( 'tag_fields', '' );
                 $extra_field = $this->settings->get( 'extra_fields', '' );
 
@@ -364,13 +375,7 @@ class SSCHP_Frontend {
                     if ( '' === $primary && '' === $extra && empty( $tag_field ) ) {
                         $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
                     }
-                } else {
-                    $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
-                    $extra   = '';
                 }
-            } else {
-                $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
-                $extra   = '';
             }
 
             $tag_data = $this->engine->extract_tags( $primary, $extra );
@@ -476,14 +481,26 @@ class SSCHP_Frontend {
         $inactive_color = $this->get_color_setting( 'chip_inactive_color', '#ffffff' );
         $inactive_text  = $this->get_color_setting( 'chip_inactive_text_color', '#333333' );
 
+        $radius    = 16;
+        $font_size = 13;
+        $pad_x     = 12;
+        $pad_y     = 4;
+
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            $radius    = $this->get_numeric_setting( 'chip_radius', 16, 0 );
+            $font_size = $this->get_numeric_setting( 'chip_font_size', 13, 8 );
+            $pad_x     = $this->get_numeric_setting( 'chip_padding_x', 12, 0 );
+            $pad_y     = $this->get_numeric_setting( 'chip_padding_y', 4, 0 );
+        }
+
         return array(
             'background' => $is_active ? $color : $inactive_color,
             'color'      => $is_active ? $text_color : $inactive_text,
             'border'     => $color,
-            'radius'     => SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_radius', 16, 0 ) : 16,
-            'font_size'  => SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_font_size', 13, 8 ) : 13,
-            'pad_x'      => SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_x', 12, 0 ) : 12,
-            'pad_y'      => SSCHP_License::can_use_advanced_design() ? $this->get_numeric_setting( 'chip_padding_y', 4, 0 ) : 4,
+            'radius'     => $radius,
+            'font_size'  => $font_size,
+            'pad_x'      => $pad_x,
+            'pad_y'      => $pad_y,
         );
     }
 

@@ -154,6 +154,10 @@ class SSCHP_Settings {
             return;
         }
 
+        if ( ! sschp_fs()->can_use_premium_code__premium_only() ) {
+            return;
+        }
+
         wp_enqueue_script(
             'smart-search-chips-admin-ai',
             SSCHP_PLUGIN_URL . 'assets/js/admin-ai.js',
@@ -407,7 +411,7 @@ class SSCHP_Settings {
                                         </td>
                                     </tr>
                                 </table>
-                                <?php if ( $analytics_on === '1' ) : ?>
+                                <?php if ( $analytics_on === '1' && sschp_fs()->can_use_premium_code__premium_only() ) : ?>
                                     <?php $analytics = SSCHP_Analytics::get_dashboard_data(); ?>
                                     <div class="ssc-analytics-dashboard">
                                         <div class="ssc-analytics-stats">
@@ -763,15 +767,22 @@ class SSCHP_Settings {
             return;
         }
 
-        $is_pro       = SSCHP_License::is_pro();
+        $is_pro       = false;
         $analytics_on = get_option( 'sschp_analytics_enabled', '0' );
         $range_args   = array(
             'from' => isset( $_GET['from'] ) ? sanitize_text_field( wp_unslash( $_GET['from'] ) ) : '',
             'to'   => isset( $_GET['to'] ) ? sanitize_text_field( wp_unslash( $_GET['to'] ) ) : '',
         );
-        $range        = SSCHP_Analytics::get_date_range( $range_args );
-        $analytics    = $is_pro && $analytics_on === '1' ? SSCHP_Analytics::get_dashboard_data( $range ) : null;
-        $events       = $is_pro && $analytics_on === '1' ? SSCHP_Analytics::get_recent_events( array_merge( $range, array( 'limit' => 150 ) ) ) : array();
+        $range     = array( 'from' => '', 'to' => '' );
+        $analytics = null;
+        $events    = array();
+
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            $is_pro    = SSCHP_License::is_pro();
+            $range     = SSCHP_Analytics::get_date_range( $range_args );
+            $analytics = $is_pro && $analytics_on === '1' ? SSCHP_Analytics::get_dashboard_data( $range ) : null;
+            $events    = $is_pro && $analytics_on === '1' ? SSCHP_Analytics::get_recent_events( array_merge( $range, array( 'limit' => 150 ) ) ) : array();
+        }
         $export_url   = wp_nonce_url(
             add_query_arg(
                 array(
