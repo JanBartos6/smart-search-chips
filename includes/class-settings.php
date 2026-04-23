@@ -154,19 +154,16 @@ class SSCHP_Settings {
             return;
         }
 
-        if ( ! sschp_fs()->can_use_premium_code__premium_only() ) {
-            return;
-        }
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            wp_enqueue_script(
+                'smart-search-chips-admin-ai',
+                SSCHP_PLUGIN_URL . 'assets/js/admin-ai.js',
+                array(),
+                file_exists( SSCHP_PLUGIN_DIR . 'assets/js/admin-ai.js' ) ? filemtime( SSCHP_PLUGIN_DIR . 'assets/js/admin-ai.js' ) : SSCHP_VERSION,
+                true
+            );
 
-        wp_enqueue_script(
-            'smart-search-chips-admin-ai',
-            SSCHP_PLUGIN_URL . 'assets/js/admin-ai.js',
-            array(),
-            file_exists( SSCHP_PLUGIN_DIR . 'assets/js/admin-ai.js' ) ? filemtime( SSCHP_PLUGIN_DIR . 'assets/js/admin-ai.js' ) : SSCHP_VERSION,
-            true
-        );
-
-        wp_localize_script( 'smart-search-chips-admin-ai', 'sschpAiAdmin', array(
+            wp_localize_script( 'smart-search-chips-admin-ai', 'sschpAiAdmin', array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce'   => wp_create_nonce( SSCHP_AI_Tagger::AJAX_NONCE ),
             'strings' => array(
@@ -194,9 +191,10 @@ class SSCHP_Settings {
                 'selectItems'         => __( 'Select at least one product or post first.', 'smart-search-chips' ),
                 'promptReady'         => __( 'Agent prompt generated.', 'smart-search-chips' ),
                 'copied'              => __( 'Copied.', 'smart-search-chips' ),
-                'copyFailed'          => __( 'Copy failed. Copy the snippet manually.', 'smart-search-chips' ),
-            ),
-        ) );
+                    'copyFailed'          => __( 'Copy failed. Copy the snippet manually.', 'smart-search-chips' ),
+                ),
+            ) );
+        }
     }
 
     /**
