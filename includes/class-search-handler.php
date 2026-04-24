@@ -65,13 +65,7 @@ class SSCHP_Search_Handler {
         $max_tag_length = (int) $this->settings->get( 'max_tag_length', 40 );
         $display_count  = (int) $this->settings->get( 'max_results', 10 );
 
-        // Enforce free version limit (5 chips)
-        $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), 5 );
-
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
-            // Pro: raise the limit
-            $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), 99 );
-        }
+        $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_License::max_chips() );
 
         // Run search query (Relevanssi hooks in automatically if active)
         $query_args = array(

@@ -159,7 +159,7 @@ class SSCHP_License {
      * @return int
      */
     public static function max_chips() {
-        return self::is_pro() ? 99 : 5;
+        return 99;
     }
 
     /**
