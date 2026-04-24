@@ -585,7 +585,7 @@ class SSCHP_Settings {
 
                         <div class="ssc-settings-card">
                             <h2><?php esc_html_e( 'Smart Search Chips Pro', 'smart-search-chips' ); ?></h2>
-                            <p><?php esc_html_e( 'Need ACF/custom field connectors, analytics, manual chip curation, synonym rules, AI-assisted tag workflows, and commercial support? Smart Search Chips Pro is available as a separate product from our website.', 'smart-search-chips' ); ?></p>
+                            <p><?php esc_html_e( 'Need ACF/custom field connectors, search analytics, AI-assisted tag workflows, and commercial support? Smart Search Chips Pro is available as a separate product from our website.', 'smart-search-chips' ); ?></p>
                             <p class="description"><?php esc_html_e( 'The WordPress.org plugin remains fully functional with its built-in Search Chips Tags field. Pro is an optional add-on for teams that want existing field integrations, catalog optimization, reporting, and workflow extras.', 'smart-search-chips' ); ?></p>
                             <p><a class="button button-secondary" href="<?php echo esc_url( SSCHP_License::get_upgrade_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Pro Features', 'smart-search-chips' ); ?></a></p>
                         </div>
@@ -823,7 +823,7 @@ function Patch-WpOrgCoreFiles {
     $readme = $readme -replace '(?s)== Privacy Policy ==.*?== Upgrade Notice ==', @'
 == Smart Search Chips Pro ==
 
-Smart Search Chips Pro is available separately from https://smartsearchchips.app/ for teams that want ACF/custom field connectors, analytics, manual chip curation, synonym rules, AI-assisted tag workflows, and commercial support. The WordPress.org plugin is fully functional with its built-in Search Chips Tags field and does not require accounts or payment.
+Smart Search Chips Pro is available separately from https://smartsearchchips.app/ for teams that want ACF/custom field connectors, search analytics, AI-assisted tag workflows, and commercial support. The WordPress.org plugin is fully functional with its built-in Search Chips Tags field and does not require accounts or payment.
 
 == Privacy Policy ==
 
