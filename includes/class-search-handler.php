@@ -168,7 +168,7 @@ class SSCHP_Search_Handler {
             return '' !== $tag;
         } );
 
-        return array_values( array_unique( $tags ) );
+        return apply_filters( 'sschp_active_tags', array_values( array_unique( $tags ) ) );
     }
 
     /**
@@ -276,7 +276,8 @@ class SSCHP_Search_Handler {
         echo '<div class="ssc-chips">';
 
         foreach ( $chips as $key => $chip ) {
-            $is_active = in_array( $chip['label'], $active_tags, true );
+            $value     = isset( $chip['value'] ) ? $chip['value'] : $chip['label'];
+            $is_active = in_array( $value, $active_tags, true );
             $bg        = $is_active ? esc_attr( $color ) : esc_attr( $inactive_color );
             $fg        = $is_active ? esc_attr( $text_color ) : esc_attr( $inactive_text );
             $border    = esc_attr( $color );
@@ -284,7 +285,7 @@ class SSCHP_Search_Handler {
             printf(
                 '<button type="button" class="ssc-chip%s" data-tag="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;">%s (%d)</button>',
                 $is_active ? ' ssc-chip--active' : '',
-                esc_attr( $chip['label'] ),
+                esc_attr( $value ),
                 esc_attr( $bg ), esc_attr( $fg ), esc_attr( $border ),
                 esc_attr( $radius ), esc_attr( $font_size ),
                 esc_attr( $pad_y ), esc_attr( $pad_x ),

@@ -143,7 +143,7 @@ class SSCHP_License {
         }
 
         if ( self::is_pro() ) {
-            return __( 'This site can use Pro features through Freemius, including custom field mapping, advanced design controls, analytics, and the AI prompt builder.', 'smart-search-chips' );
+            return __( 'This site can use Pro features through Freemius, including custom field mapping, chip curation rules, synonym rules, analytics, and the AI prompt builder.', 'smart-search-chips' );
         }
 
         if ( self::is_registered() ) {

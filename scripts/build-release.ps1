@@ -585,7 +585,7 @@ class SSCHP_Settings {
 
                         <div class="ssc-settings-card">
                             <h2><?php esc_html_e( 'Smart Search Chips Pro', 'smart-search-chips' ); ?></h2>
-                            <p><?php esc_html_e( 'Need ACF/custom field connectors, search analytics, AI-assisted tag workflows, and commercial support? Smart Search Chips Pro is available as a separate product from our website.', 'smart-search-chips' ); ?></p>
+                            <p><?php esc_html_e( 'Need ACF/custom field connectors, search analytics, synonym rules, manual chip curation, AI-assisted tag workflows, and commercial support? Smart Search Chips Pro is available as a separate product from our website.', 'smart-search-chips' ); ?></p>
                             <p class="description"><?php esc_html_e( 'The WordPress.org plugin remains fully functional with its built-in Search Chips Tags field. Pro is an optional add-on for teams that want existing field integrations, catalog optimization, reporting, and workflow extras.', 'smart-search-chips' ); ?></p>
                             <p><a class="button button-secondary" href="<?php echo esc_url( SSCHP_License::get_upgrade_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Pro Features', 'smart-search-chips' ); ?></a></p>
                         </div>
@@ -816,6 +816,10 @@ function Patch-WpOrgCoreFiles {
     $readme = $readme -replace 'Auto-generates smart, non-redundant filter tags from your search results\.', 'Auto-generates smart, non-redundant filter tags from the built-in Search Chips Tags field.'
     $readme = $readme -replace 'Plugin analyzes the top results and their custom field tags', 'Plugin analyzes the top results and their Search Chips Tags'
     $readme = $readme -replace '\* Uses custom fields \(ACF or regular post meta\) as tag sources\s*\r?\n', "* Uses the built-in Search Chips Tags field as the free tag source`r`n"
+    $readme = $readme -replace '\* Synonym rules for normalizing equivalent catalog terms into one chip\s*\r?\n', ''
+    $readme = $readme -replace '\* Manual chip curation with pinned chips, hidden chips, and display label overrides\s*\r?\n', ''
+    $readme = $readme -replace '\* Search analytics for query, chip-click, impression, and zero-result insights\s*\r?\n', ''
+    $readme = $readme -replace '\* AI prompt builder for external agent-assisted tag workflows\s*\r?\n', ''
     $readme = $readme -replace '4\. Set your custom field names \(primary tag field \+ extra tag field\)\s*\r?\n', "4. Add Search Chips Tags to your posts/products using the plugin meta box`r`n"
     $readme = $readme -replace '1\. Create a custom field on your posts/products \(e\.g\. `search_tags`\) with semicolon-separated tags\s*\r?\n2\. In plugin settings, set "Primary Tag Field" to your field name\s*\r?\n3\. Add `\[sschp_search\]` shortcode to any page, or set "Override AJAX Action" to hook into your theme''s existing search', "1. Add semicolon-separated tags to the built-in Search Chips Tags field on your posts/products`r`n2. Select which post types to search in Settings > Search Chips`r`n3. Add ``[sschp_search]`` shortcode to any page, or set ""Override AJAX Action"" to hook into your theme's existing search"
     $readme = $readme -replace 'You can use ACF \(Advanced Custom Fields\), regular WordPress custom fields, or populate them programmatically via the REST API\. Tags should be semicolon-separated in the primary field and comma-separated in the extra field\.', 'Use the built-in Search Chips Tags meta box on each post/product. Tags should be semicolon-separated. ACF/custom field connectors are available separately in Smart Search Chips Pro.'
@@ -823,7 +827,7 @@ function Patch-WpOrgCoreFiles {
     $readme = $readme -replace '(?s)== Privacy Policy ==.*?== Upgrade Notice ==', @'
 == Smart Search Chips Pro ==
 
-Smart Search Chips Pro is available separately from https://smartsearchchips.app/ for teams that want ACF/custom field connectors, search analytics, AI-assisted tag workflows, and commercial support. The WordPress.org plugin is fully functional with its built-in Search Chips Tags field and does not require accounts or payment.
+Smart Search Chips Pro is available separately from https://smartsearchchips.app/ for teams that want ACF/custom field connectors, search analytics, synonym rules, manual chip curation, AI-assisted tag workflows, and commercial support. The WordPress.org plugin is fully functional with its built-in Search Chips Tags field and does not require accounts or payment.
 
 == Privacy Policy ==
 
@@ -839,6 +843,7 @@ function Remove-WpOrgExcludedFiles {
 
     $paths = @(
         'vendor',
+        'includes\class-chip-rules__premium_only.php',
         'includes\class-ai-tagger__premium_only.php',
         'includes\class-analytics__premium_only.php',
         'assets\js\admin-ai.js',

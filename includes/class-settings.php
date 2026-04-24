@@ -85,6 +85,18 @@ class SSCHP_Settings {
         register_setting( 'smart-search-chips', 'sschp_chip_padding_y', array(
             'sanitize_callback' => array( $this, 'sanitize_chip_padding_y' ),
         ) );
+        register_setting( 'smart-search-chips', 'sschp_synonym_rules', array(
+            'sanitize_callback' => array( $this, 'sanitize_chip_rules_text' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_pinned_chips', array(
+            'sanitize_callback' => array( $this, 'sanitize_chip_rules_text' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_hidden_chips', array(
+            'sanitize_callback' => array( $this, 'sanitize_chip_rules_text' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_renamed_chips', array(
+            'sanitize_callback' => array( $this, 'sanitize_chip_rules_text' ),
+        ) );
 
         register_setting( 'smart-search-chips', 'sschp_ai_custom_read_fields', array(
             'sanitize_callback' => 'sanitize_text_field',
@@ -311,6 +323,40 @@ class SSCHP_Settings {
                                     <th><?php esc_html_e( 'Max Tag Length', 'smart-search-chips' ); ?></th>
                                     <td><input type="number" name="sschp_max_tag_length" value="<?php echo esc_attr( get_option( 'sschp_max_tag_length', '40' ) ); ?>" class="small-text" min="5" /></td>
                                 </tr>
+                                <?php if ( $is_pro ) : ?>
+                                <tr>
+                                    <th><?php esc_html_e( 'Synonym Rules', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <textarea name="sschp_synonym_rules" rows="5" class="large-text code" placeholder="Sofa = couch, settee&#10;Organic = bio, eco"><?php echo esc_textarea( get_option( 'sschp_synonym_rules', '' ) ); ?></textarea>
+                                        <p class="description"><?php esc_html_e( 'Pro: normalize several tag names into one canonical chip. Use one rule per line: Canonical = alias, alias.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><?php esc_html_e( 'Pinned Chips', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <textarea name="sschp_pinned_chips" rows="3" class="large-text code" placeholder="Bestseller, New arrival, Eco"><?php echo esc_textarea( get_option( 'sschp_pinned_chips', '' ) ); ?></textarea>
+                                        <p class="description"><?php esc_html_e( 'Pro: show these chips first whenever they exist in the current result set, even if the normal ranking would hide them.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><?php esc_html_e( 'Hidden Chips', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <textarea name="sschp_hidden_chips" rows="3" class="large-text code" placeholder="Internal, Old SKU, Supplier only"><?php echo esc_textarea( get_option( 'sschp_hidden_chips', '' ) ); ?></textarea>
+                                        <p class="description"><?php esc_html_e( 'Pro: prevent noisy or internal chips from being suggested. Active chips remain visible so users can clear them.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><?php esc_html_e( 'Chip Label Overrides', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <textarea name="sschp_renamed_chips" rows="4" class="large-text code" placeholder="eco => Eco friendly&#10;small => Compact"><?php echo esc_textarea( get_option( 'sschp_renamed_chips', '' ) ); ?></textarea>
+                                        <p class="description"><?php esc_html_e( 'Pro: change the displayed chip label without editing product field values. Use one rule per line: source => display label.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <?php else : ?>
+                                <tr>
+                                    <td colspan="2"><p class="description"><?php esc_html_e( 'Upgrade to Pro for synonym rules, pinned chips, hidden chips, and display label overrides.', 'smart-search-chips' ); ?></p></td>
+                                </tr>
+                                <?php endif; ?>
                             </table>
                         </div>
 
@@ -1097,6 +1143,26 @@ class SSCHP_Settings {
      */
     public function sanitize_chip_padding_y( $value ) {
         return $this->sanitize_numeric_setting( $value, 4, 0, 24 );
+    }
+
+    /**
+     * Sanitize multi-line chip rule settings.
+     *
+     * @param mixed $value Raw value.
+     * @return string
+     */
+    public function sanitize_chip_rules_text( $value ) {
+        $value = sanitize_textarea_field( (string) $value );
+        $lines = array();
+
+        foreach ( preg_split( '/\r\n|\r|\n/', $value ) as $line ) {
+            $line = trim( $line );
+            if ( '' !== $line ) {
+                $lines[] = $line;
+            }
+        }
+
+        return implode( "\n", $lines );
     }
 
     /**

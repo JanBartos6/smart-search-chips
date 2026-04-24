@@ -22,6 +22,7 @@ class SSCHP_Chip_Engine {
      */
     public function generate_chips( $posts_data, $active_tags = array(), $max_chips = 8, $max_length = 40 ) {
         $total = count( $posts_data );
+        $active_tags = $this->normalize_active_tags( $active_tags );
 
         if ( $total < 1 ) {
             return array();
@@ -29,6 +30,7 @@ class SSCHP_Chip_Engine {
 
         // Count tag frequency across all posts
         $tag_counts = $this->count_tags( $posts_data );
+        $tag_counts = apply_filters( 'sschp_chip_tag_counts', $tag_counts, $posts_data, $active_tags );
 
         // Sort by frequency descending
         uasort( $tag_counts, function( $a, $b ) {
@@ -77,10 +79,13 @@ class SSCHP_Chip_Engine {
                 $count = isset( $tag_counts[ $at_lower ] ) ? $tag_counts[ $at_lower ]['count'] : $total;
                 $chips[ $at_lower ] = array(
                     'label' => $at,
+                    'value' => $at,
                     'count' => $count,
                 );
             }
         }
+
+        $chips = apply_filters( 'sschp_generated_chips', $chips, $tag_counts, $posts_data, $active_tags, $max_chips, $max_length );
 
         if ( empty( $active_tags ) ) {
             return $chips;
@@ -113,6 +118,8 @@ class SSCHP_Chip_Engine {
      * @return array Filtered posts.
      */
     public function filter_by_tags( $posts_data, $active_tags ) {
+        $active_tags = $this->normalize_active_tags( $active_tags );
+
         if ( empty( $active_tags ) ) {
             return $posts_data;
         }
@@ -144,6 +151,7 @@ class SSCHP_Chip_Engine {
                 if ( ! isset( $tag_counts[ $tag_lower ] ) ) {
                     $tag_counts[ $tag_lower ] = array(
                         'label' => $tag,
+                        'value' => $tag,
                         'count' => 0,
                     );
                 }
@@ -216,9 +224,25 @@ class SSCHP_Chip_Engine {
             }
         }
 
-        return array(
+        $tag_data = array(
             'tags'       => $tags,
             'tags_lower' => array_map( 'mb_strtolower', $tags ),
         );
+
+        return apply_filters( 'sschp_extracted_tags', $tag_data, $semicolon_field, $comma_field );
+    }
+
+    /**
+     * Normalize active tags through plugin filters.
+     *
+     * @param array $active_tags Raw active tags.
+     * @return array
+     */
+    private function normalize_active_tags( $active_tags ) {
+        if ( ! is_array( $active_tags ) ) {
+            $active_tags = array();
+        }
+
+        return apply_filters( 'sschp_active_tags', array_values( $active_tags ) );
     }
 }

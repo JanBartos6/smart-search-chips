@@ -31,6 +31,10 @@ Smart Search Chips adds dynamic, clickable filter chips to your WordPress search
 * AJAX-powered live search with instant filtering
 * Fully customizable colors, limits, and thresholds
 * Override existing theme AJAX search handlers
+* Synonym rules for normalizing equivalent catalog terms into one chip
+* Manual chip curation with pinned chips, hidden chips, and display label overrides
+* Search analytics for query, chip-click, impression, and zero-result insights
+* AI prompt builder for external agent-assisted tag workflows
 * Theme template overrides for custom result rendering
 * Shortcode [sschp_search] for easy integration
 

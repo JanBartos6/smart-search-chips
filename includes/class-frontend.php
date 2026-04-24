@@ -289,6 +289,7 @@ class SSCHP_Frontend {
             foreach ( $active_tags as $tag ) {
                 $chips[ mb_strtolower( $tag ) ] = array(
                     'label' => $tag,
+                    'value' => $tag,
                     'count' => 0,
                 );
             }
@@ -316,14 +317,15 @@ class SSCHP_Frontend {
         echo '<div class="ssc-chips">';
         foreach ( $chips as $chip ) {
             $label     = $chip['label'];
-            $is_active = in_array( $label, $active_tags, true );
+            $value     = isset( $chip['value'] ) ? $chip['value'] : $label;
+            $is_active = in_array( $value, $active_tags, true );
             $styles    = $this->get_chip_style_values( $is_active );
 
             printf(
                 '<a class="ssc-chip%s" href="%s" data-tag="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;text-decoration:none;">%s (%d)</a>',
                 $is_active ? ' ssc-chip--active' : '',
-                esc_url( $this->build_archive_filter_url( $label, $active_tags ) ),
-                esc_attr( $label ),
+                esc_url( $this->build_archive_filter_url( $value, $active_tags ) ),
+                esc_attr( $value ),
                 esc_attr( $styles['background'] ),
                 esc_attr( $styles['color'] ),
                 esc_attr( $styles['border'] ),
@@ -436,7 +438,7 @@ class SSCHP_Frontend {
             }
         }
 
-        return $tags;
+        return apply_filters( 'sschp_active_tags', $tags );
     }
 
     /**

@@ -131,6 +131,7 @@ if ( function_exists( 'sschp_fs' ) ) {
     require_once SSCHP_PLUGIN_DIR . 'includes/class-woocommerce.php';
 
     if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+        require_once SSCHP_PLUGIN_DIR . 'includes/class-chip-rules__premium_only.php';
         require_once SSCHP_PLUGIN_DIR . 'includes/class-analytics__premium_only.php';
         require_once SSCHP_PLUGIN_DIR . 'includes/class-ai-tagger__premium_only.php';
     }
@@ -154,6 +155,9 @@ if ( function_exists( 'sschp_fs' ) ) {
         $frontend->init();
 
         if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            $chip_rules = new SSCHP_Chip_Rules();
+            $chip_rules->init();
+
             $analytics = new SSCHP_Analytics();
             $analytics->init();
 
@@ -233,6 +237,10 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_woo_enabled'             => '1',
             'sschp_override_ajax'           => '',
             'sschp_search_results_count'    => 50,
+            'sschp_synonym_rules'            => '',
+            'sschp_pinned_chips'             => '',
+            'sschp_hidden_chips'             => '',
+            'sschp_renamed_chips'            => '',
             'sschp_analytics_enabled'       => '0',
             'sschp_ai_custom_read_fields'   => '',
             'sschp_ai_target_field'         => 'built_in',
@@ -280,6 +288,10 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_woo_enabled',
             'sschp_override_ajax',
             'sschp_search_results_count',
+            'sschp_synonym_rules',
+            'sschp_pinned_chips',
+            'sschp_hidden_chips',
+            'sschp_renamed_chips',
             'sschp_license_key',
             'sschp_license_status',
             'sschp_analytics_enabled',
