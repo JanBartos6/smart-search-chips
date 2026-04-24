@@ -143,6 +143,8 @@ class SSCHP_WooCommerce {
             return $redirect_to;
         }
 
+        check_admin_referer( 'bulk-posts' );
+
         if ( ! current_user_can( 'edit_posts' ) ) {
             return $redirect_to;
         }
@@ -163,8 +165,12 @@ class SSCHP_WooCommerce {
      * Show admin notice after bulk action.
      */
     public function bulk_action_notice() {
+        if ( ! current_user_can( 'edit_posts' ) ) {
+            return;
+        }
+
         if ( ! empty( $_REQUEST['sschp_tags_generated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display after redirect.
-            $count = (int) $_REQUEST['sschp_tags_generated']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $count = isset( $_REQUEST['sschp_tags_generated'] ) ? absint( wp_unslash( $_REQUEST['sschp_tags_generated'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             printf(
                 '<div class="notice notice-success is-dismissible"><p>' .
                 /* translators: %d: number of products tagged */

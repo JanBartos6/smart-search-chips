@@ -32,7 +32,7 @@ Smart Search Chips adds dynamic, clickable filter chips to your WordPress search
 * Fully customizable colors, limits, and thresholds
 * Override existing theme AJAX search handlers
 * Theme template overrides for custom result rendering
-* Shortcode [ssc_search] for easy integration
+* Shortcode [sschp_search] for easy integration
 
 **Works best with:**
 
@@ -53,7 +53,7 @@ Smart Search Chips adds dynamic, clickable filter chips to your WordPress search
 
 1. Create a custom field on your posts/products (e.g. `search_tags`) with semicolon-separated tags
 2. In plugin settings, set "Primary Tag Field" to your field name
-3. Add `[ssc_search]` shortcode to any page, or set "Override AJAX Action" to hook into your theme's existing search
+3. Add `[sschp_search]` shortcode to any page, or set "Override AJAX Action" to hook into your theme's existing search
 
 == Frequently Asked Questions ==
 
@@ -67,7 +67,7 @@ You can use ACF (Advanced Custom Fields), regular WordPress custom fields, or po
 
 = Can I override the search result HTML? =
 
-Yes. Create a file at `your-theme/smart-search-chips/results.php` and the plugin will use it instead of the default template. The variable `$ssc_posts` contains the post data array.
+Yes. Create a file at `your-theme/smart-search-chips/results.php` and the plugin will use it instead of the default template. The variable `$sschp_posts` contains the post data array.
 
 = How does redundancy elimination work? =
 
@@ -91,7 +91,7 @@ Yes. Set "Post Types" to include "product" and use WooCommerce product attribute
 * Relevanssi integration with relevance threshold
 * AJAX search handler with chip filtering
 * Admin settings page
-* Shortcode [ssc_search]
+* Shortcode [sschp_search]
 * Theme template override support
 
 == Privacy Policy ==

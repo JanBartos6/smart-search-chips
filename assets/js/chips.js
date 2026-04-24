@@ -55,7 +55,7 @@
         var data = new FormData();
         data.append("action", "sschp_track_event");
         data.append("nonce", config.analytics.nonce);
-        data.append("ssc_lang", config.lang || "");
+        data.append("sschp_lang", config.lang || "");
         data.append("visitor_id", getVisitorId());
         data.append("event_type", payload.eventType || "");
         data.append("search_query", payload.searchQuery || "");
@@ -150,7 +150,7 @@
         formData.append("keyword", input.value);
         formData.append("post_type", config.postType || "post");
         formData.append("f-form--submitted", "true");
-        formData.append("ssc_lang", config.lang || "");
+        formData.append("sschp_lang", config.lang || "");
 
         if (config.nonce) {
             formData.append("sschp_nonce", config.nonce);
@@ -320,8 +320,8 @@
 
             if (hasAction) {
                 if (!this._sscManagedRequest) {
-                    if (config.lang && !data.has("ssc_lang")) {
-                        data.append("ssc_lang", config.lang);
+                    if (config.lang && !data.has("sschp_lang")) {
+                        data.append("sschp_lang", config.lang);
                     }
 
                     activeTags.forEach(function (t) {

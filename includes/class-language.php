@@ -45,8 +45,8 @@ class SSCHP_Language {
      */
     public static function request_language() {
         $candidates = array(
-            isset( $_REQUEST['sschp_lang'] ) ? wp_unslash( $_REQUEST['sschp_lang'] ) : '',
-            isset( $_REQUEST['lang'] ) ? wp_unslash( $_REQUEST['lang'] ) : '',
+            isset( $_REQUEST['sschp_lang'] ) ? sanitize_key( wp_unslash( $_REQUEST['sschp_lang'] ) ) : '',
+            isset( $_REQUEST['lang'] ) ? sanitize_key( wp_unslash( $_REQUEST['lang'] ) ) : '',
         );
 
         foreach ( $candidates as $candidate ) {

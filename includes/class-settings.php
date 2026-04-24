@@ -646,7 +646,8 @@ class SSCHP_Settings {
                                             type="submit"
                                             form="ssc-delete-data-form"
                                             class="button button-secondary"
-                                            onclick="return confirm('<?php echo esc_js( __( 'Delete Smart Search Chips settings, built-in chip meta, and stored analytics events now? This cannot be undone.', 'smart-search-chips' ) ); ?>');"
+                                            id="ssc-delete-data-btn"
+                                            data-confirm="<?php echo esc_attr__( 'Delete Smart Search Chips settings, built-in chip meta, and stored analytics events now? This cannot be undone.', 'smart-search-chips' ); ?>"
                                         ><?php esc_html_e( 'Delete All Plugin Data Now', 'smart-search-chips' ); ?></button>
                                     </td>
                                 </tr>

@@ -419,7 +419,12 @@ class SSCHP_Frontend {
      * @return array
      */
     private function get_active_archive_tags() {
-        $raw = isset( $_GET['sschp_tags'] ) ? wp_unslash( $_GET['sschp_tags'] ) : '';
+        $raw = '';
+        if ( isset( $_GET['sschp_tags'] ) ) {
+            $raw = is_array( $_GET['sschp_tags'] )
+                ? array_map( 'sanitize_text_field', wp_unslash( $_GET['sschp_tags'] ) )
+                : sanitize_text_field( wp_unslash( $_GET['sschp_tags'] ) );
+        }
 
         if ( is_array( $raw ) ) {
             $values = $raw;

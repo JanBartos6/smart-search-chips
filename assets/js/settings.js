@@ -5,14 +5,14 @@
     }
 
     function renderPreview() {
-        var color = val('ssc_chip_color') || '#e74c3c';
-        var textColor = val('ssc_chip_text_color') || '#ffffff';
-        var inactiveColor = val('ssc_chip_inactive_color') || '#ffffff';
-        var inactiveText = val('ssc_chip_inactive_text_color') || '#333333';
-        var radius = (val('ssc_chip_radius') || '16') + 'px';
-        var fontSize = (val('ssc_chip_font_size') || '13') + 'px';
-        var padX = (val('ssc_chip_padding_x') || '12') + 'px';
-        var padY = (val('ssc_chip_padding_y') || '4') + 'px';
+        var color = val('sschp_chip_color') || '#e74c3c';
+        var textColor = val('sschp_chip_text_color') || '#ffffff';
+        var inactiveColor = val('sschp_chip_inactive_color') || '#ffffff';
+        var inactiveText = val('sschp_chip_inactive_text_color') || '#333333';
+        var radius = (val('sschp_chip_radius') || '16') + 'px';
+        var fontSize = (val('sschp_chip_font_size') || '13') + 'px';
+        var padX = (val('sschp_chip_padding_x') || '12') + 'px';
+        var padY = (val('sschp_chip_padding_y') || '4') + 'px';
 
         var container = document.getElementById('ssc-preview-chips');
         if (!container) return;
@@ -40,7 +40,7 @@
         });
     }
 
-    var inputs = ['ssc_chip_color', 'ssc_chip_text_color', 'ssc_chip_inactive_color', 'ssc_chip_inactive_text_color', 'ssc_chip_radius', 'ssc_chip_font_size', 'ssc_chip_padding_x', 'ssc_chip_padding_y'];
+    var inputs = ['sschp_chip_color', 'sschp_chip_text_color', 'sschp_chip_inactive_color', 'sschp_chip_inactive_text_color', 'sschp_chip_radius', 'sschp_chip_font_size', 'sschp_chip_padding_x', 'sschp_chip_padding_y'];
     inputs.forEach(function (name) {
         var el = document.querySelector('[name="' + name + '"]');
         if (el) {
@@ -50,6 +50,17 @@
     });
 
     renderPreview();
+
+    // Wire up delete-data confirmation (replaces inline onclick)
+    var deleteBtn = document.getElementById('ssc-delete-data-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function (e) {
+            var msg = deleteBtn.getAttribute('data-confirm') || 'Are you sure?';
+            if (!window.confirm(msg)) {
+                e.preventDefault();
+            }
+        });
+    }
 
     var panel = document.getElementById('ssc-preview-panel');
     var right = document.getElementById('ssc-settings-right');
