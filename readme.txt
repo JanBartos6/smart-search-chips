@@ -81,6 +81,10 @@ The algorithm ranks tags by frequency, then for each candidate chip checks if it
 
 Yes. Set "Post Types" to include "product" and use WooCommerce product attributes or ACF fields as your tag source.
 
+= Can external automation manage Pro chip rules? =
+
+Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at `/wp-json/smart-search-chips/v1/chip-rules`. Administrators can read or update `synonym_rules`, `pinned_chips`, `hidden_chips`, and `renamed_chips` using WordPress REST authentication such as Application Passwords.
+
 == Screenshots ==
 
 1. Search for "tea" and filter chips appear automatically

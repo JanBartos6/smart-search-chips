@@ -18,6 +18,87 @@ class SSCHP_Chip_Rules {
         add_filter( 'sschp_extracted_tags', array( $this, 'apply_synonyms_to_tag_data' ), 10, 3 );
         add_filter( 'sschp_active_tags', array( $this, 'normalize_active_tags' ) );
         add_filter( 'sschp_generated_chips', array( $this, 'apply_curation_rules' ), 10, 6 );
+        add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+    }
+
+    /**
+     * Register authenticated REST routes for external automation.
+     */
+    public function register_rest_routes() {
+        register_rest_route(
+            'smart-search-chips/v1',
+            '/chip-rules',
+            array(
+                array(
+                    'methods'             => WP_REST_Server::READABLE,
+                    'callback'            => array( $this, 'get_rest_chip_rules' ),
+                    'permission_callback' => array( $this, 'can_manage_rules' ),
+                ),
+                array(
+                    'methods'             => WP_REST_Server::EDITABLE,
+                    'callback'            => array( $this, 'update_rest_chip_rules' ),
+                    'permission_callback' => array( $this, 'can_manage_rules' ),
+                    'args'                => array(
+                        'synonym_rules' => array(
+                            'type'        => 'string',
+                            'required'    => false,
+                            'description' => __( 'Synonym rules, one rule per line: Canonical = alias, alias.', 'smart-search-chips' ),
+                        ),
+                        'pinned_chips' => array(
+                            'type'        => 'string',
+                            'required'    => false,
+                            'description' => __( 'Pinned chips shown first when present in the current result set.', 'smart-search-chips' ),
+                        ),
+                        'hidden_chips' => array(
+                            'type'        => 'string',
+                            'required'    => false,
+                            'description' => __( 'Chips hidden from suggestions unless they are currently active.', 'smart-search-chips' ),
+                        ),
+                        'renamed_chips' => array(
+                            'type'        => 'string',
+                            'required'    => false,
+                            'description' => __( 'Display label overrides, one rule per line: source => display label.', 'smart-search-chips' ),
+                        ),
+                    ),
+                ),
+            )
+        );
+    }
+
+    /**
+     * Restrict rule management to administrators.
+     *
+     * @return bool
+     */
+    public function can_manage_rules() {
+        return current_user_can( 'manage_options' );
+    }
+
+    /**
+     * Return current chip rules over REST.
+     *
+     * @return WP_REST_Response
+     */
+    public function get_rest_chip_rules() {
+        return rest_ensure_response( $this->get_rest_rules_payload() );
+    }
+
+    /**
+     * Update chip rules over REST.
+     *
+     * @param WP_REST_Request $request REST request.
+     * @return WP_REST_Response
+     */
+    public function update_rest_chip_rules( $request ) {
+        foreach ( $this->get_rest_option_map() as $field => $option ) {
+            if ( ! $this->rest_request_has_param( $request, $field ) ) {
+                continue;
+            }
+
+            update_option( $option, $this->sanitize_rules_text( $this->rest_request_get_param( $request, $field ) ) );
+        }
+
+        return rest_ensure_response( $this->get_rest_rules_payload() );
     }
 
     /**
@@ -227,6 +308,93 @@ class SSCHP_Chip_Rules {
      */
     private function get_list_option( $option ) {
         return $this->split_list( (string) get_option( $option, '' ) );
+    }
+
+    /**
+     * Return REST field names mapped to stored options.
+     *
+     * @return array
+     */
+    private function get_rest_option_map() {
+        return array(
+            'synonym_rules' => 'sschp_synonym_rules',
+            'pinned_chips'  => 'sschp_pinned_chips',
+            'hidden_chips'  => 'sschp_hidden_chips',
+            'renamed_chips' => 'sschp_renamed_chips',
+        );
+    }
+
+    /**
+     * Build the REST response payload.
+     *
+     * @return array
+     */
+    private function get_rest_rules_payload() {
+        $payload = array();
+
+        foreach ( $this->get_rest_option_map() as $field => $option ) {
+            $payload[ $field ] = (string) get_option( $option, '' );
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Check if a REST request contains a field.
+     *
+     * @param WP_REST_Request $request REST request.
+     * @param string          $field   Field name.
+     * @return bool
+     */
+    private function rest_request_has_param( $request, $field ) {
+        if ( is_object( $request ) && method_exists( $request, 'has_param' ) ) {
+            return $request->has_param( $field );
+        }
+
+        if ( is_array( $request ) ) {
+            return array_key_exists( $field, $request );
+        }
+
+        return false;
+    }
+
+    /**
+     * Read a REST request field.
+     *
+     * @param WP_REST_Request $request REST request.
+     * @param string          $field   Field name.
+     * @return mixed
+     */
+    private function rest_request_get_param( $request, $field ) {
+        if ( is_object( $request ) && method_exists( $request, 'get_param' ) ) {
+            return $request->get_param( $field );
+        }
+
+        if ( is_array( $request ) && array_key_exists( $field, $request ) ) {
+            return $request[ $field ];
+        }
+
+        return '';
+    }
+
+    /**
+     * Sanitize multi-line REST rule text.
+     *
+     * @param mixed $value Raw value.
+     * @return string
+     */
+    private function sanitize_rules_text( $value ) {
+        $value = sanitize_textarea_field( (string) $value );
+        $lines = array();
+
+        foreach ( preg_split( '/\r\n|\r|\n/', $value ) as $line ) {
+            $line = trim( $line );
+            if ( '' !== $line ) {
+                $lines[] = $line;
+            }
+        }
+
+        return implode( "\n", $lines );
     }
 
     /**
