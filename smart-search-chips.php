@@ -132,6 +132,7 @@ if ( function_exists( 'sschp_fs' ) ) {
 
     if ( sschp_fs()->can_use_premium_code__premium_only() ) {
         require_once SSCHP_PLUGIN_DIR . 'includes/class-chip-rules__premium_only.php';
+        require_once SSCHP_PLUGIN_DIR . 'includes/class-range-filters__premium_only.php';
         require_once SSCHP_PLUGIN_DIR . 'includes/class-analytics__premium_only.php';
         require_once SSCHP_PLUGIN_DIR . 'includes/class-ai-tagger__premium_only.php';
     }
@@ -157,6 +158,9 @@ if ( function_exists( 'sschp_fs' ) ) {
         if ( sschp_fs()->can_use_premium_code__premium_only() ) {
             $chip_rules = new SSCHP_Chip_Rules();
             $chip_rules->init();
+
+            $range_filters = new SSCHP_Range_Filters();
+            $range_filters->init();
 
             $analytics = new SSCHP_Analytics();
             $analytics->init();

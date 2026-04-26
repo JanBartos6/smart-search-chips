@@ -42,6 +42,8 @@ class SSCHP_Chip_Engine {
         $selected_keys = array();
 
         foreach ( $tag_counts as $key => $data ) {
+            $is_virtual_chip = isset( $data['type'] ) && 'range' === $data['type'];
+
             if ( count( $chips ) >= $max_chips ) {
                 break;
             }
@@ -57,14 +59,14 @@ class SSCHP_Chip_Engine {
             }
 
             // Skip tags that appear in ALL results (they don't filter anything)
-            if ( $data['count'] >= $total ) {
+            if ( ! $is_virtual_chip && $data['count'] >= $total ) {
                 continue;
             }
 
             // Redundancy check: for each already-selected chip, get its subset.
             // If this candidate appears in ALL products of any existing chip's subset,
             // it's redundant (wouldn't help narrow down within that group).
-            if ( $this->is_redundant( $key, $selected_keys, $posts_data ) ) {
+            if ( ! $is_virtual_chip && $this->is_redundant( $key, $selected_keys, $posts_data ) ) {
                 continue;
             }
 
@@ -76,6 +78,16 @@ class SSCHP_Chip_Engine {
         foreach ( $active_tags as $at ) {
             $at_lower = mb_strtolower( $at );
             if ( ! isset( $chips[ $at_lower ] ) ) {
+                $fallback = apply_filters( 'sschp_active_chip_fallback', null, $at, $tag_counts, $posts_data, $total );
+                if ( false === $fallback ) {
+                    continue;
+                }
+
+                if ( is_array( $fallback ) && isset( $fallback['key'], $fallback['chip'] ) && is_array( $fallback['chip'] ) ) {
+                    $chips[ $fallback['key'] ] = $fallback['chip'];
+                    continue;
+                }
+
                 $count = isset( $tag_counts[ $at_lower ] ) ? $tag_counts[ $at_lower ]['count'] : $total;
                 $chips[ $at_lower ] = array(
                     'label' => $at,
@@ -95,8 +107,12 @@ class SSCHP_Chip_Engine {
         // ranking order inside the active and inactive groups.
         $ordered = array();
 
+        $active_tags_lower = array_map( 'mb_strtolower', $active_tags );
+
         foreach ( $chips as $key => $chip ) {
-            if ( in_array( $key, array_map( 'mb_strtolower', $active_tags ), true ) ) {
+            $value = isset( $chip['value'] ) ? $chip['value'] : $key;
+
+            if ( in_array( $key, $active_tags_lower, true ) || in_array( $value, $active_tags, true ) ) {
                 $ordered[ $key ] = $chip;
             }
         }
@@ -122,6 +138,11 @@ class SSCHP_Chip_Engine {
 
         if ( empty( $active_tags ) ) {
             return $posts_data;
+        }
+
+        $filtered_by_extension = apply_filters( 'sschp_filter_posts_by_tags', null, $posts_data, $active_tags );
+        if ( is_array( $filtered_by_extension ) ) {
+            return array_values( $filtered_by_extension );
         }
 
         $filtered = array_filter( $posts_data, function( $post ) use ( $active_tags ) {

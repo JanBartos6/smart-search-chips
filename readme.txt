@@ -32,6 +32,7 @@ Smart Search Chips adds dynamic, clickable filter chips to your WordPress search
 * Fully customizable colors, limits, and thresholds
 * Override existing theme AJAX search handlers
 * Synonym rules for normalizing equivalent catalog terms into one chip
+* Numeric range slider chips for values like Power 100 W, Power 200 W, or mapped numeric fields
 * Manual chip curation with pinned chips, hidden chips, and display label overrides
 * Search analytics for query, chip-click, impression, and zero-result insights
 * AI prompt builder for external agent-assisted tag workflows

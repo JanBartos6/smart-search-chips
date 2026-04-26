@@ -1,0 +1,163 @@
+/**
+ * Smart Search Chips Pro - numeric range chips.
+ *
+ * @package SmartSearchChips
+ */
+
+.ssc-range-chip {
+    --ssc-range-accent: #e74c3c;
+    --ssc-range-bg: #ffffff;
+    --ssc-range-color: #333333;
+    --ssc-range-border: #e74c3c;
+    --ssc-range-radius: 16px;
+    --ssc-range-font: 13px;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 190px;
+    padding: 10px 12px;
+    border: 1px solid var(--ssc-range-border);
+    border-radius: var(--ssc-range-radius);
+    background: var(--ssc-range-bg);
+    color: var(--ssc-range-color);
+    font-family: inherit;
+    font-size: var(--ssc-range-font);
+    line-height: 1.35;
+    box-sizing: border-box;
+}
+
+.ssc-range-chip--active {
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.18);
+}
+
+.ssc-range-chip__header,
+.ssc-range-chip__values,
+.ssc-range-chip__actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ssc-range-chip__header {
+    justify-content: space-between;
+}
+
+.ssc-range-chip__label {
+    font-weight: 600;
+}
+
+.ssc-range-chip__count {
+    min-width: 1.75em;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.06);
+    color: inherit;
+    text-align: center;
+    font-size: 0.85em;
+}
+
+.ssc-range-chip__values {
+    color: inherit;
+    opacity: 0.86;
+    font-variant-numeric: tabular-nums;
+}
+
+.ssc-range-chip__sliders {
+    position: relative;
+    height: 26px;
+}
+
+.ssc-range-chip__sliders::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    left: 0;
+    top: 12px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.ssc-range-chip__input {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 26px;
+    margin: 0;
+    background: transparent;
+    pointer-events: none;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.ssc-range-chip__input:focus {
+    outline: none;
+}
+
+.ssc-range-chip__input::-webkit-slider-runnable-track {
+    height: 4px;
+    background: transparent;
+}
+
+.ssc-range-chip__input::-moz-range-track {
+    height: 4px;
+    background: transparent;
+}
+
+.ssc-range-chip__input::-webkit-slider-thumb {
+    width: 16px;
+    height: 16px;
+    margin-top: -6px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    background: var(--ssc-range-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
+    cursor: grab;
+    pointer-events: auto;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.ssc-range-chip__input::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    background: var(--ssc-range-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
+    cursor: grab;
+    pointer-events: auto;
+}
+
+.ssc-range-chip__actions {
+    justify-content: flex-end;
+}
+
+.ssc-range-chip__apply,
+.ssc-range-chip__clear {
+    border: 0;
+    border-radius: 999px;
+    padding: 3px 9px;
+    font: inherit;
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
+.ssc-range-chip__apply {
+    background: var(--ssc-range-accent);
+    color: #ffffff;
+}
+
+.ssc-range-chip__clear {
+    background: transparent;
+    color: inherit;
+    text-decoration: underline;
+}
+
+.ssc-range-chip__apply:focus,
+.ssc-range-chip__clear:focus,
+.ssc-range-chip__input:focus::-webkit-slider-thumb {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}

@@ -332,6 +332,13 @@ class SSCHP_Settings {
                                     </td>
                                 </tr>
                                 <tr>
+                                    <th><?php esc_html_e( 'Numeric Range Chips', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <p><?php esc_html_e( 'Pro automatically groups numeric chip variants such as "Power 100 W" and "Power 200 W" into one slider chip.', 'smart-search-chips' ); ?></p>
+                                        <p class="description"><?php esc_html_e( 'Use labels before values for best results, for example "Power 100 W", "Length: 120 cm", or a mapped numeric field.', 'smart-search-chips' ); ?></p>
+                                    </td>
+                                </tr>
+                                <tr>
                                     <th><?php esc_html_e( 'Pinned Chips', 'smart-search-chips' ); ?></th>
                                     <td>
                                         <textarea name="sschp_pinned_chips" rows="3" class="large-text code" placeholder="Bestseller, New arrival, Eco"><?php echo esc_textarea( get_option( 'sschp_pinned_chips', '' ) ); ?></textarea>
@@ -354,7 +361,7 @@ class SSCHP_Settings {
                                 </tr>
                                 <?php else : ?>
                                 <tr>
-                                    <td colspan="2"><p class="description"><?php esc_html_e( 'Upgrade to Pro for synonym rules, pinned chips, hidden chips, and display label overrides.', 'smart-search-chips' ); ?></p></td>
+                                    <td colspan="2"><p class="description"><?php esc_html_e( 'Upgrade to Pro for synonym rules, numeric range slider chips, pinned chips, hidden chips, and display label overrides.', 'smart-search-chips' ); ?></p></td>
                                 </tr>
                                 <?php endif; ?>
                             </table>

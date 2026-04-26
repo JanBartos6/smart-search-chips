@@ -143,6 +143,11 @@ class SSCHP_Chip_Rules {
         $normalized = array();
 
         foreach ( (array) $active_tags as $tag ) {
+            if ( is_string( $tag ) && 0 === strpos( $tag, 'sschp_range|' ) ) {
+                $normalized[ $tag ] = $tag;
+                continue;
+            }
+
             $canonical = $this->canonicalize_label( $tag, $synonyms );
             $key       = $this->label_key( $canonical );
 

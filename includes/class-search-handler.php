@@ -282,6 +282,30 @@ class SSCHP_Search_Handler {
             $fg        = $is_active ? esc_attr( $text_color ) : esc_attr( $inactive_text );
             $border    = esc_attr( $color );
 
+            $custom_html = apply_filters(
+                'sschp_render_chip_html',
+                '',
+                $chip,
+                $active_tags,
+                array(
+                    'context' => 'ajax',
+                    'styles'  => array(
+                        'background' => $is_active ? $color : $inactive_color,
+                        'color'      => $is_active ? $text_color : $inactive_text,
+                        'border'     => $color,
+                        'radius'     => $radius,
+                        'font_size'  => $font_size,
+                        'pad_x'      => $pad_x,
+                        'pad_y'      => $pad_y,
+                    ),
+                )
+            );
+
+            if ( is_string( $custom_html ) && '' !== $custom_html ) {
+                echo $custom_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                continue;
+            }
+
             printf(
                 '<button type="button" class="ssc-chip%s" data-tag="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;">%s (%d)</button>',
                 $is_active ? ' ssc-chip--active' : '',

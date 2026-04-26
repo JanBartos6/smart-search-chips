@@ -48,7 +48,10 @@ $forbiddenPaths = @(
     'includes\class-ai-tagger__premium_only.php',
     'includes\class-analytics__premium_only.php',
     'includes\class-chip-rules__premium_only.php',
+    'includes\class-range-filters__premium_only.php',
     'assets\js\admin-ai.js',
+    'assets\js\range-filters__premium_only.js',
+    'assets\css\range-filters__premium_only.css',
     'assets\css\analytics.css',
     'languages\smart-search-chips.pot'
 )
