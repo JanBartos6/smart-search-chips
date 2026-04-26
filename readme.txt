@@ -83,7 +83,7 @@ Yes. Set "Post Types" to include "product" and use WooCommerce product attribute
 
 = Can external automation manage Pro chip rules? =
 
-Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at `/wp-json/smart-search-chips/v1/chip-rules`. Administrators can read or update `synonym_rules`, `pinned_chips`, `hidden_chips`, and `renamed_chips` using WordPress REST authentication such as Application Passwords.
+Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at `/wp-json/smart-search-chips/v1/chip-rules`. Administrators can read or update `synonym_rules`, `pinned_chips`, `hidden_chips`, and `renamed_chips` using standard WordPress REST authentication.
 
 == Screenshots ==
 

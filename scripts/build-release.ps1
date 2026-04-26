@@ -147,7 +147,7 @@ define( 'SSCHP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSCHP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
-require_once SSCHP_PLUGIN_DIR . 'includes/class-license.php';
+require_once SSCHP_PLUGIN_DIR . 'includes/class-edition.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-language.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-chip-engine.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-search-handler.php';
@@ -160,9 +160,6 @@ require_once SSCHP_PLUGIN_DIR . 'includes/class-woocommerce.php';
  * Initialize the plugin.
  */
 function sschp_init() {
-    $license = new SSCHP_License();
-    $license->init();
-
     $settings = new SSCHP_Settings();
     $settings->init();
 
@@ -311,13 +308,13 @@ add_action( 'admin_init', 'sschp_privacy_policy_content' );
 '@
 }
 
-function Write-WpOrgLicense {
+function Write-WpOrgEdition {
     param([string] $PluginDir)
 
-    Set-Text -Path (Join-Path $PluginDir 'includes\class-license.php') -Content @'
+    Set-Text -Path (Join-Path $PluginDir 'includes\class-edition.php') -Content @'
 <?php
 /**
- * WordPress.org edition feature availability.
+ * WordPress.org edition metadata.
  *
  * @package SmartSearchChips
  */
@@ -326,50 +323,13 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class SSCHP_License {
-
-    /**
-     * The WordPress.org package does not perform license checks.
-     *
-     * @return bool
-     */
-    public static function is_pro() {
-        return false;
-    }
-
-    /**
-     * @return bool
-     */
-    public static function is_sdk_ready() {
-        return false;
-    }
-
-    /**
-     * @return bool
-     */
-    public static function is_registered() {
-        return false;
-    }
-
-    /**
-     * @return bool
-     */
-    public static function has_paid_plan() {
-        return false;
-    }
+class SSCHP_Edition {
 
     /**
      * @return string
      */
-    public static function get_upgrade_url() {
+    public static function get_product_url() {
         return 'https://smartsearchchips.app/';
-    }
-
-    /**
-     * @return string
-     */
-    public static function get_account_url() {
-        return '';
     }
 
     /**
@@ -391,40 +351,6 @@ class SSCHP_License {
      */
     public static function max_chips() {
         return 99;
-    }
-
-    /**
-     * @return bool
-     */
-    public static function can_use_custom_fields() {
-        return false;
-    }
-
-    /**
-     * @return bool
-     */
-    public static function can_use_relevanssi() {
-        return true;
-    }
-
-    /**
-     * @return bool
-     */
-    public static function can_use_advanced_design() {
-        return true;
-    }
-
-    /**
-     * @return bool
-     */
-    public static function can_use_ajax_override() {
-        return true;
-    }
-
-    /**
-     * Initialize compatibility hooks.
-     */
-    public function init() {
     }
 }
 '@
@@ -579,15 +505,15 @@ class SSCHP_Settings {
                         <div class="ssc-settings-card">
                             <h2><?php esc_html_e( 'WordPress.org Edition', 'smart-search-chips' ); ?></h2>
                             <div class="ssc-badge ssc-badge--free"><?php esc_html_e( 'Free', 'smart-search-chips' ); ?></div>
-                            <p><strong><?php echo esc_html( SSCHP_License::get_status_label() ); ?></strong></p>
-                            <p class="description"><?php echo esc_html( SSCHP_License::get_status_description() ); ?></p>
+                            <p><strong><?php echo esc_html( SSCHP_Edition::get_status_label() ); ?></strong></p>
+                            <p class="description"><?php echo esc_html( SSCHP_Edition::get_status_description() ); ?></p>
                         </div>
 
                         <div class="ssc-settings-card">
                             <h2><?php esc_html_e( 'Smart Search Chips Pro', 'smart-search-chips' ); ?></h2>
                             <p><?php esc_html_e( 'Need ACF/custom field connectors, search analytics, synonym rules, manual chip curation, AI-assisted tag workflows, and commercial support? Smart Search Chips Pro is available as a separate product from our website.', 'smart-search-chips' ); ?></p>
                             <p class="description"><?php esc_html_e( 'The WordPress.org plugin remains fully functional with its built-in Search Chips Tags field. Pro is an optional add-on for teams that want existing field integrations, catalog optimization, reporting, and workflow extras.', 'smart-search-chips' ); ?></p>
-                            <p><a class="button button-secondary" href="<?php echo esc_url( SSCHP_License::get_upgrade_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Pro Features', 'smart-search-chips' ); ?></a></p>
+                            <p><a class="button button-secondary" href="<?php echo esc_url( SSCHP_Edition::get_product_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Pro Features', 'smart-search-chips' ); ?></a></p>
                         </div>
 
                         <div class="ssc-settings-card">
@@ -616,7 +542,7 @@ class SSCHP_Settings {
                             <table class="form-table">
                                 <tr>
                                     <th><?php esc_html_e( 'Max Chips', 'smart-search-chips' ); ?></th>
-                                    <td><input type="number" name="sschp_max_chips" value="<?php echo esc_attr( min( (int) get_option( 'sschp_max_chips', '8' ), SSCHP_License::max_chips() ) ); ?>" class="small-text" min="1" max="<?php echo (int) SSCHP_License::max_chips(); ?>" /></td>
+                                    <td><input type="number" name="sschp_max_chips" value="<?php echo esc_attr( min( (int) get_option( 'sschp_max_chips', '8' ), SSCHP_Edition::max_chips() ) ); ?>" class="small-text" min="1" max="<?php echo (int) SSCHP_Edition::max_chips(); ?>" /></td>
                                 </tr>
                                 <tr>
                                     <th><?php esc_html_e( 'Max Tag Length', 'smart-search-chips' ); ?></th>
@@ -792,6 +718,7 @@ function Patch-WpOrgCoreFiles {
     $frontend = Get-Content -Raw -LiteralPath $frontendPath
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*// Pass settings to JS\s*\r?\n\s*\$analytics_enabled = false;\s*\r?\n\s*\$analytics_nonce\s+= '''';\s*\r?\n\s*if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \) \{\s*\r?\n\s*\$analytics_enabled = SSCHP_Analytics::is_enabled\(\);\s*\r?\n\s*\$analytics_nonce\s+= wp_create_nonce\( ''sschp_analytics_nonce'' \);\s*\r?\n\s*\}' -Replacement "`r`n        // Pass settings to JS`r`n        `$analytics_enabled = false;`r`n        `$analytics_nonce   = '';"
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)private function get_ajax_action_name\(\) \{.*?return ''sschp_search'';\s*\r?\n\s*\}' -Replacement "private function get_ajax_action_name() {`r`n        `$ajax_action = `$this->settings->get( 'override_ajax' );`r`n        return ! empty( `$ajax_action ) ? `$ajax_action : 'sschp_search';`r`n    }"
+    $frontend = $frontend -replace 'SSCHP_License::max_chips\(\)', 'SSCHP_Edition::max_chips()'
     $frontend = $frontend -replace 'if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \)', 'if ( true )'
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*if \( true \) \{\s*\r?\n\s*\$tag_field\s+= \$this->settings->get\( ''tag_fields'', '''' \);\s*\r?\n\s*\$extra_field = \$this->settings->get\( ''extra_fields'', '''' \);\s*\r?\n\s*if \( ! empty\( \$tag_field \) \|\| ! empty\( \$extra_field \) \) \{\s*\r?\n\s*\$primary = \$this->get_field_value\( \$post_id, \$tag_field \);\s*\r?\n\s*\$extra\s+= \$this->get_field_value\( \$post_id, \$extra_field \);\s*\r?\n\s*if \( '''' === \$primary && '''' === \$extra && empty\( \$tag_field \) \) \{\s*\r?\n\s*\$primary = get_post_meta\( \$post_id, SSCHP_Meta_Box::META_KEY, true \) \?: '''';\s*\r?\n\s*\}\s*\r?\n\s*\}\s*\r?\n\s*\}' -Replacement ''
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*/\*\*\s*\r?\n\s*\* Read a field value using ACF when available\..*?private function get_field_value\( \$post_id, \$field_name \) \{.*?\r?\n\s*\}\s*\r?\n\s*/\*\*\s*\r?\n\s*\* Parse active archive chip filters from the URL\.' -Replacement "`r`n    /**`r`n     * Parse active archive chip filters from the URL."
@@ -801,6 +728,7 @@ function Patch-WpOrgCoreFiles {
     $handler = Get-Content -Raw -LiteralPath $handlerPath
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*// Nonce verification \(optional .*?\s*if \( isset\( \$_POST\[''sschp_nonce''\] \) && ! wp_verify_nonce\( sanitize_text_field\( wp_unslash\( \$_POST\[''sschp_nonce''\] \) \), ''sschp_search_nonce'' \) \) \{\s*\r?\n\s*wp_die\( esc_html__\( ''Security check failed\.'', ''smart-search-chips'' \) \);\s*\r?\n\s*\}' -Replacement "`r`n        if ( ! isset( `$_POST['sschp_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( `$_POST['sschp_nonce'] ) ), 'sschp_search_nonce' ) ) {`r`n            wp_die( esc_html__( 'Security check failed.', 'smart-search-chips' ) );`r`n        }"
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*// Filter by relevance threshold \(Pro \+ Relevanssi only\)\s*\r?\n\s*\$use_relevance = false;\s*\r?\n\s*if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \) \{\s*\r?\n\s*\$use_relevance = \$top_score > 0;\s*\r?\n\s*\}' -Replacement "`r`n        `$use_relevance = `$top_score > 0;"
+    $handler = $handler -replace 'SSCHP_License::max_chips\(\)', 'SSCHP_Edition::max_chips()'
     $handler = $handler -replace 'if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \)', 'if ( true )'
     $handler = $handler -replace 'Override existing AJAX action \(Pro only\)', 'Override an existing AJAX action when configured'
     $handler = $handler -replace 'Pro: use configured custom fields', 'Use configured custom fields'
@@ -843,6 +771,7 @@ function Remove-WpOrgExcludedFiles {
 
     $paths = @(
         'vendor',
+        'includes\class-license.php',
         'includes\class-chip-rules__premium_only.php',
         'includes\class-ai-tagger__premium_only.php',
         'includes\class-analytics__premium_only.php',
@@ -873,7 +802,7 @@ function Build-WpOrg {
     Copy-PluginTree -Destination $WpOrgDir -IncludeVendor $false
     Remove-WpOrgExcludedFiles -PluginDir $WpOrgDir
     Write-WpOrgMain -PluginDir $WpOrgDir
-    Write-WpOrgLicense -PluginDir $WpOrgDir
+    Write-WpOrgEdition -PluginDir $WpOrgDir
     Write-WpOrgSettings -PluginDir $WpOrgDir
     Patch-WpOrgCoreFiles -PluginDir $WpOrgDir
     Compress-Plugin -ParentDir $parent -ZipPath $WpOrgZip

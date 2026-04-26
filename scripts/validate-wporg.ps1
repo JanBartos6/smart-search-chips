@@ -44,6 +44,7 @@ function Add-Failure {
 
 $forbiddenPaths = @(
     'vendor',
+    'includes\class-license.php',
     'includes\class-ai-tagger__premium_only.php',
     'includes\class-analytics__premium_only.php',
     'includes\class-chip-rules__premium_only.php',
@@ -68,6 +69,7 @@ $patterns = [ordered]@{
     "'has_paid_plans'"                 = 'Freemius paid-plan config is present.'
     'SSCHP_Analytics'                  = 'Analytics module reference is present in the wp.org build.'
     'SSCHP_AI_Tagger'                  = 'AI prompt module reference is present in the wp.org build.'
+    'SSCHP_License'                    = 'License-gating class reference is present in the wp.org build.'
     'license key'                      = 'License-key wording is present.'
     'trial'                            = 'Trial wording is present.'
     'quota'                            = 'Quota wording is present.'
