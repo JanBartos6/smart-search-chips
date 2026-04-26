@@ -407,31 +407,18 @@ class SSCHP_Settings {
     }
 
     public function register_settings() {
-        $fields = array(
-            'post_types',
-            'override_ajax',
-            'max_chips',
-            'max_tag_length',
-            'woo_enabled',
-            'chip_color',
-            'chip_text_color',
-            'chip_inactive_color',
-            'chip_inactive_text_color',
-            'max_results',
-            'search_results_count',
-            'relevance_threshold',
-        );
-
-        foreach ( $fields as $field ) {
-            register_setting(
-                'smart-search-chips',
-                $this->prefix . $field,
-                array(
-                    'sanitize_callback' => 'sanitize_text_field',
-                )
-            );
-        }
-
+        register_setting( 'smart-search-chips', 'sschp_post_types', array( 'sanitize_callback' => array( $this, 'sanitize_post_types' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_override_ajax', array( 'sanitize_callback' => 'sanitize_key' ) );
+        register_setting( 'smart-search-chips', 'sschp_max_chips', array( 'sanitize_callback' => array( $this, 'sanitize_max_chips' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_max_tag_length', array( 'sanitize_callback' => array( $this, 'sanitize_max_tag_length' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_woo_enabled', array( 'sanitize_callback' => array( $this, 'sanitize_checkbox' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_chip_color', array( 'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_chip_text_color', array( 'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_chip_inactive_color', array( 'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_chip_inactive_text_color', array( 'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_max_results', array( 'sanitize_callback' => array( $this, 'sanitize_max_results' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_search_results_count', array( 'sanitize_callback' => array( $this, 'sanitize_search_results_count' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_relevance_threshold', array( 'sanitize_callback' => array( $this, 'sanitize_relevance_threshold' ) ) );
         register_setting( 'smart-search-chips', 'sschp_chip_radius', array( 'sanitize_callback' => array( $this, 'sanitize_chip_radius' ) ) );
         register_setting( 'smart-search-chips', 'sschp_chip_font_size', array( 'sanitize_callback' => array( $this, 'sanitize_chip_font_size' ) ) );
         register_setting( 'smart-search-chips', 'sschp_chip_padding_x', array( 'sanitize_callback' => array( $this, 'sanitize_chip_padding_x' ) ) );
@@ -528,6 +515,7 @@ class SSCHP_Settings {
                                     <th><?php esc_html_e( 'WooCommerce Auto-Tags', 'smart-search-chips' ); ?></th>
                                     <td>
                                         <label>
+                                            <input type="hidden" name="sschp_woo_enabled" value="0" />
                                             <input type="checkbox" name="sschp_woo_enabled" value="1" <?php checked( get_option( 'sschp_woo_enabled', '1' ), '1' ); ?> />
                                             <?php esc_html_e( 'Auto-populate tags from product attributes, categories, and SKU', 'smart-search-chips' ); ?>
                                         </label>
@@ -669,6 +657,49 @@ class SSCHP_Settings {
         return ! empty( $value ) ? '1' : '0';
     }
 
+    public function sanitize_post_types( $value ) {
+        $selected = is_array( $value ) ? $value : array( $value );
+        $selected = array_filter( array_map( 'sanitize_key', $selected ) );
+        $public   = get_post_types( array( 'public' => true ), 'names' );
+
+        $selected = array_values( array_intersect( $selected, $public ) );
+
+        return ! empty( $selected ) ? $selected : array( 'post' );
+    }
+
+    public function sanitize_hex_color_setting( $value ) {
+        $color = sanitize_hex_color( $value );
+        return $color ? $color : '';
+    }
+
+    public function sanitize_max_chips( $value ) {
+        return $this->sanitize_numeric_setting( $value, 8, 1, SSCHP_Edition::max_chips() );
+    }
+
+    public function sanitize_max_tag_length( $value ) {
+        return $this->sanitize_numeric_setting( $value, 40, 5, 120 );
+    }
+
+    public function sanitize_max_results( $value ) {
+        return $this->sanitize_numeric_setting( $value, 10, 1, 100 );
+    }
+
+    public function sanitize_search_results_count( $value ) {
+        return $this->sanitize_numeric_setting( $value, 50, 5, 200 );
+    }
+
+    public function sanitize_relevance_threshold( $value ) {
+        if ( '' === $value || ! is_numeric( $value ) ) {
+            return 0.3;
+        }
+
+        $value = (float) $value;
+        $value = max( 0, $value );
+        $value = min( 1, $value );
+
+        return $value;
+    }
+
     public function sanitize_chip_radius( $value ) {
         return $this->sanitize_numeric_setting( $value, 16, 0, 50 );
     }
@@ -700,11 +731,11 @@ class SSCHP_Settings {
             return (int) $default;
         }
 
-        $value = (int) $value;
-        $value = max( $min, $value );
-        $value = min( $max, $value );
+        $value = absint( $value );
+        $value = max( (int) $min, $value );
+        $value = min( (int) $max, $value );
 
-        return $value;
+        return (int) $value;
     }
 
 }
@@ -718,8 +749,11 @@ function Patch-WpOrgCoreFiles {
     $frontend = Get-Content -Raw -LiteralPath $frontendPath
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*// Pass settings to JS\s*\r?\n\s*\$analytics_enabled = false;\s*\r?\n\s*\$analytics_nonce\s+= '''';\s*\r?\n\s*if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \) \{\s*\r?\n\s*\$analytics_enabled = SSCHP_Analytics::is_enabled\(\);\s*\r?\n\s*\$analytics_nonce\s+= wp_create_nonce\( ''sschp_analytics_nonce'' \);\s*\r?\n\s*\}' -Replacement "`r`n        // Pass settings to JS`r`n        `$analytics_enabled = false;`r`n        `$analytics_nonce   = '';"
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)private function get_ajax_action_name\(\) \{.*?return ''sschp_search'';\s*\r?\n\s*\}' -Replacement "private function get_ajax_action_name() {`r`n        `$ajax_action = `$this->settings->get( 'override_ajax' );`r`n        return ! empty( `$ajax_action ) ? `$ajax_action : 'sschp_search';`r`n    }"
+    $frontend = $frontend -replace 'Free sites should always use the built-in handler even if an old Pro-only\s*\r?\n\s*\* override setting is still stored after a downgrade\.', 'Sites use the configured AJAX handler when one is provided.'
     $frontend = $frontend -replace 'SSCHP_License::max_chips\(\)', 'SSCHP_Edition::max_chips()'
+    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '\$request_uri = isset\( \$_SERVER\[''REQUEST_URI''\] \) \? wp_unslash\( \$_SERVER\[''REQUEST_URI''\] \) : ''/'';' -Replacement '$request_uri = isset( $_SERVER[''REQUEST_URI''] ) ? esc_url_raw( wp_unslash( $_SERVER[''REQUEST_URI''] ) ) : ''/'';'
     $frontend = $frontend -replace 'if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \)', 'if ( true )'
+    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*if \( true \) \{\s*\r?\n\s*\$radius\s+= \$this->get_numeric_setting\( ''chip_radius'', 16, 0 \);\s*\r?\n\s*\$font_size = \$this->get_numeric_setting\( ''chip_font_size'', 13, 8 \);\s*\r?\n\s*\$pad_x\s+= \$this->get_numeric_setting\( ''chip_padding_x'', 12, 0 \);\s*\r?\n\s*\$pad_y\s+= \$this->get_numeric_setting\( ''chip_padding_y'', 4, 0 \);\s*\r?\n\s*\}' -Replacement "`r`n        `$radius    = `$this->get_numeric_setting( 'chip_radius', 16, 0 );`r`n        `$font_size = `$this->get_numeric_setting( 'chip_font_size', 13, 8 );`r`n        `$pad_x     = `$this->get_numeric_setting( 'chip_padding_x', 12, 0 );`r`n        `$pad_y     = `$this->get_numeric_setting( 'chip_padding_y', 4, 0 );"
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*if \( true \) \{\s*\r?\n\s*\$tag_field\s+= \$this->settings->get\( ''tag_fields'', '''' \);\s*\r?\n\s*\$extra_field = \$this->settings->get\( ''extra_fields'', '''' \);\s*\r?\n\s*if \( ! empty\( \$tag_field \) \|\| ! empty\( \$extra_field \) \) \{\s*\r?\n\s*\$primary = \$this->get_field_value\( \$post_id, \$tag_field \);\s*\r?\n\s*\$extra\s+= \$this->get_field_value\( \$post_id, \$extra_field \);\s*\r?\n\s*if \( '''' === \$primary && '''' === \$extra && empty\( \$tag_field \) \) \{\s*\r?\n\s*\$primary = get_post_meta\( \$post_id, SSCHP_Meta_Box::META_KEY, true \) \?: '''';\s*\r?\n\s*\}\s*\r?\n\s*\}\s*\r?\n\s*\}' -Replacement ''
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*/\*\*\s*\r?\n\s*\* Read a field value using ACF when available\..*?private function get_field_value\( \$post_id, \$field_name \) \{.*?\r?\n\s*\}\s*\r?\n\s*/\*\*\s*\r?\n\s*\* Parse active archive chip filters from the URL\.' -Replacement "`r`n    /**`r`n     * Parse active archive chip filters from the URL."
     Set-Text -Path $frontendPath -Content $frontend
@@ -730,12 +764,14 @@ function Patch-WpOrgCoreFiles {
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*// Filter by relevance threshold \(Pro \+ Relevanssi only\)\s*\r?\n\s*\$use_relevance = false;\s*\r?\n\s*if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \) \{\s*\r?\n\s*\$use_relevance = \$top_score > 0;\s*\r?\n\s*\}' -Replacement "`r`n        `$use_relevance = `$top_score > 0;"
     $handler = $handler -replace 'SSCHP_License::max_chips\(\)', 'SSCHP_Edition::max_chips()'
     $handler = $handler -replace 'if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \)', 'if ( true )'
+    $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*if \( true \) \{\s*\r?\n\s*\$radius\s+= \$this->get_numeric_setting\( ''chip_radius'', 16, 0 \);\s*\r?\n\s*\$font_size = \$this->get_numeric_setting\( ''chip_font_size'', 13, 8 \);\s*\r?\n\s*\$pad_x\s+= \$this->get_numeric_setting\( ''chip_padding_x'', 12, 0 \);\s*\r?\n\s*\$pad_y\s+= \$this->get_numeric_setting\( ''chip_padding_y'', 4, 0 \);\s*\r?\n\s*\}' -Replacement "`r`n        `$radius    = `$this->get_numeric_setting( 'chip_radius', 16, 0 );`r`n        `$font_size = `$this->get_numeric_setting( 'chip_font_size', 13, 8 );`r`n        `$pad_x     = `$this->get_numeric_setting( 'chip_padding_x', 12, 0 );`r`n        `$pad_y     = `$this->get_numeric_setting( 'chip_padding_y', 4, 0 );"
     $handler = $handler -replace 'Override existing AJAX action \(Pro only\)', 'Override an existing AJAX action when configured'
     $handler = $handler -replace 'Pro: use configured custom fields', 'Use configured custom fields'
     $handler = $handler -replace 'Pro is active before field mapping is configured', 'field mapping is changed'
     $handler = $handler -replace 'Pro design options \(defaults for free\)', 'Design options'
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*if \( true \) \{\s*\r?\n\s*// Use configured custom fields when present, otherwise keep\s*\r?\n\s*// the built-in fallback so sites do not lose chips just because\s*\r?\n\s*// field mapping is changed\.\s*\r?\n\s*\$tag_field\s+= \$this->settings->get\( ''tag_fields'', '''' \);\s*\r?\n\s*\$extra_field = \$this->settings->get\( ''extra_fields'', '''' \);\s*\r?\n\s*if \( ! empty\( \$tag_field \) \|\| ! empty\( \$extra_field \) \) \{\s*\r?\n\s*\$primary = \$this->get_field_value\( \$pid, \$tag_field \);\s*\r?\n\s*\$extra\s+= \$this->get_field_value\( \$pid, \$extra_field \);\s*\r?\n\s*if \( '''' === \$primary && '''' === \$extra && empty\( \$tag_field \) \) \{\s*\r?\n\s*\$primary = get_post_meta\( \$pid, SSCHP_Meta_Box::META_KEY, true \) \?: '''';\s*\r?\n\s*\}\s*\r?\n\s*\}\s*\r?\n\s*\}' -Replacement ''
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*/\*\*\s*\r?\n\s*\* Get a field value from a post, supporting ACF and regular post meta\..*?private function get_field_value\( \$post_id, \$field_name \) \{.*?\r?\n\s*\}\s*\r?\n\s*/\*\*\s*\r?\n\s*\* Render chips HTML\.' -Replacement "`r`n    /**`r`n     * Render chips HTML."
+    $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)public function init\(\) \{.*?add_action\( ''wp_ajax_nopriv_sschp_search'', array\( \$this, ''handle_search'' \) \);\s*\r?\n\s*\}' -Replacement "public function init() {`r`n        `$ajax_action = `$this->settings->get( 'override_ajax' );`r`n        if ( ! empty( `$ajax_action ) ) {`r`n            add_action( 'wp_ajax_' . `$ajax_action, array( `$this, 'handle_search' ), 0 );`r`n            add_action( 'wp_ajax_nopriv_' . `$ajax_action, array( `$this, 'handle_search' ), 0 );`r`n        }`r`n`r`n        add_action( 'wp_ajax_sschp_search', array( `$this, 'handle_search' ) );`r`n        add_action( 'wp_ajax_nopriv_sschp_search', array( `$this, 'handle_search' ) );`r`n    }"
     Set-Text -Path $handlerPath -Content $handler
 
     $readmePath = Join-Path $PluginDir 'readme.txt'
