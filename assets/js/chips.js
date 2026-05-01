@@ -363,6 +363,10 @@
                         data.append("sschp_lang", config.lang);
                     }
 
+                    if (config.nonce && !data.has("sschp_nonce")) {
+                        data.append("sschp_nonce", config.nonce);
+                    }
+
                     activeTags.forEach(function (t) {
                         data.append("active_tags[]", t);
                     });

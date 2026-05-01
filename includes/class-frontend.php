@@ -34,6 +34,7 @@ class SSCHP_Frontend {
     public function init() {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_shortcode( 'sschp_search', array( $this, 'render_search_form' ) );
+        add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
         add_filter( 'the_posts', array( $this, 'filter_archive_posts' ), 10, 2 );
         add_action( 'loop_start', array( $this, 'render_archive_chips_before_loop' ) );
 
@@ -44,6 +45,18 @@ class SSCHP_Frontend {
         if ( class_exists( 'WooCommerce' ) ) {
             add_action( 'woocommerce_before_shop_loop', array( $this, 'render_woocommerce_loop_chips' ), 5 );
         }
+    }
+
+    /**
+     * Register public query vars used by archive chip links.
+     *
+     * @param array $vars Existing query vars.
+     * @return array
+     */
+    public function register_query_vars( $vars ) {
+        $vars[] = 'sschp_tags';
+
+        return $vars;
     }
 
     /**
@@ -198,7 +211,7 @@ class SSCHP_Frontend {
             return;
         }
 
-        echo $markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo wp_kses( $markup, $this->get_archive_chips_allowed_html() );
     }
 
     /**
@@ -216,7 +229,7 @@ class SSCHP_Frontend {
             return;
         }
 
-        echo $markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo wp_kses( $markup, $this->get_archive_chips_allowed_html() );
     }
 
     /**
@@ -335,7 +348,7 @@ class SSCHP_Frontend {
             );
 
             if ( is_string( $custom_html ) && '' !== $custom_html ) {
-                echo $custom_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                echo wp_kses( $custom_html, $this->get_archive_chips_allowed_html() );
                 continue;
             }
 
@@ -359,6 +372,59 @@ class SSCHP_Frontend {
         echo '</div>';
 
         return ob_get_clean();
+    }
+
+    /**
+     * Allowed markup for internally generated archive chips.
+     *
+     * @return array
+     */
+    private function get_archive_chips_allowed_html() {
+        $allowed = array(
+            'div'    => array(
+                'class'                 => true,
+                'style'                 => true,
+                'data-range-context'    => true,
+                'data-range-group-key'  => true,
+                'data-range-unit-key'   => true,
+                'data-range-prefix'     => true,
+                'data-range-bounds-min' => true,
+                'data-range-bounds-max' => true,
+                'data-range-value'      => true,
+                'data-range-label'      => true,
+                'aria-live'             => true,
+            ),
+            'strong' => array(
+                'class' => true,
+            ),
+            'a'      => array(
+                'class'    => true,
+                'href'     => true,
+                'data-tag' => true,
+                'style'    => true,
+            ),
+            'span'   => array(
+                'class'           => true,
+                'data-range-role' => true,
+                'aria-live'       => true,
+            ),
+            'input'  => array(
+                'class'           => true,
+                'type'            => true,
+                'min'             => true,
+                'max'             => true,
+                'step'            => true,
+                'value'           => true,
+                'data-range-role' => true,
+                'aria-label'      => true,
+            ),
+            'button' => array(
+                'class' => true,
+                'type'  => true,
+            ),
+        );
+
+        return apply_filters( 'sschp_archive_chips_allowed_html', $allowed );
     }
 
     /**
@@ -435,17 +501,12 @@ class SSCHP_Frontend {
      * @return array
      */
     private function get_active_archive_tags() {
-        $raw = '';
-        if ( isset( $_GET['sschp_tags'] ) ) {
-            $raw = is_array( $_GET['sschp_tags'] )
-                ? array_map( 'sanitize_text_field', wp_unslash( $_GET['sschp_tags'] ) )
-                : sanitize_text_field( wp_unslash( $_GET['sschp_tags'] ) );
-        }
+        $raw = get_query_var( 'sschp_tags', '' );
 
         if ( is_array( $raw ) ) {
-            $values = $raw;
+            $values = map_deep( $raw, 'sanitize_text_field' );
         } else {
-            $values = explode( ',', (string) $raw );
+            $values = explode( ',', sanitize_text_field( (string) $raw ) );
         }
 
         $tags = array();
@@ -467,7 +528,7 @@ class SSCHP_Frontend {
      * @return string
      */
     private function build_archive_filter_url( $tag, $active_tags ) {
-        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '/';
         $url         = home_url( $request_uri );
         $next_tags   = array_values( $active_tags );
 

@@ -82,6 +82,11 @@ $patterns = [ordered]@{
     'free version limit'               = 'Old free version cap comment is present.'
     'Upgrade to Pro to unlock'         = 'Unlock wording suggests restricted included functionality.'
     'becomes available in Pro'         = 'Locked-feature wording is present.'
+    '$_REQUEST'                        = 'Raw $_REQUEST access is present.'
+    '$_GET['                           = 'Raw $_GET array access is present.'
+    'echo $markup'                     = 'Raw archive markup echo is present.'
+    'Security.EscapeOutput'            = 'Escaping suppression is present.'
+    "wp_unslash( `$_POST['active_tags'] )" = 'active_tags is unslashed without array sanitization.'
 }
 
 $files = Get-ChildItem -LiteralPath $PackageDir -Recurse -File |

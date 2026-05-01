@@ -41,12 +41,17 @@ class SSCHP_Language {
      * Resolve the current request language from explicit request data or the
      * active frontend language.
      *
+     * @param array $request Sanitized request values.
      * @return string
      */
-    public static function request_language() {
+    public static function request_language( $request = array() ) {
+        if ( ! is_array( $request ) ) {
+            $request = array();
+        }
+
         $candidates = array(
-            isset( $_REQUEST['sschp_lang'] ) ? sanitize_key( wp_unslash( $_REQUEST['sschp_lang'] ) ) : '',
-            isset( $_REQUEST['lang'] ) ? sanitize_key( wp_unslash( $_REQUEST['lang'] ) ) : '',
+            isset( $request['sschp_lang'] ) ? sanitize_key( wp_unslash( $request['sschp_lang'] ) ) : '',
+            isset( $request['lang'] ) ? sanitize_key( wp_unslash( $request['lang'] ) ) : '',
         );
 
         foreach ( $candidates as $candidate ) {

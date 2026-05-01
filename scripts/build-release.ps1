@@ -468,7 +468,10 @@ class SSCHP_Settings {
         $chip_pad_x           = $this->get_numeric_option_value( 'sschp_chip_padding_x', 12, 0 );
         $chip_pad_y           = $this->get_numeric_option_value( 'sschp_chip_padding_y', 4, 0 );
         $delete_on_uninstall  = get_option( 'sschp_delete_data_on_uninstall', '0' );
-        $data_deleted         = isset( $_GET['sschp_data_deleted'] ) ? sanitize_text_field( wp_unslash( $_GET['sschp_data_deleted'] ) ) : '';
+        $data_deleted         = get_transient( 'sschp_data_deleted_' . get_current_user_id() );
+        if ( $data_deleted ) {
+            delete_transient( 'sschp_data_deleted_' . get_current_user_id() );
+        }
 
         ?>
         <div class="wrap">
@@ -618,12 +621,12 @@ class SSCHP_Settings {
 
         check_admin_referer( 'sschp_delete_plugin_data_now' );
         sschp_delete_plugin_data();
+        set_transient( 'sschp_data_deleted_' . get_current_user_id(), '1', MINUTE_IN_SECONDS );
 
         wp_safe_redirect(
             add_query_arg(
                 array(
-                    'page'               => 'smart-search-chips',
-                    'sschp_data_deleted' => '1',
+                    'page' => 'smart-search-chips',
                 ),
                 admin_url( 'options-general.php' )
             )

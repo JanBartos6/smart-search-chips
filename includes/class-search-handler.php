@@ -44,19 +44,22 @@ class SSCHP_Search_Handler {
      * Handle the AJAX search request.
      */
     public function handle_search() {
-        // Nonce verification (optional — skip if overriding a theme handler that doesn't use nonces)
-        if ( isset( $_POST['sschp_nonce'] ) && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['sschp_nonce'] ) ), 'sschp_search_nonce' ) ) {
+        if ( ! isset( $_POST['sschp_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['sschp_nonce'] ) ), 'sschp_search_nonce' ) ) {
             wp_die( esc_html__( 'Security check failed.', 'smart-search-chips' ) );
         }
 
-        $keyword     = isset( $_POST['keyword'] ) ? sanitize_text_field( wp_unslash( $_POST['keyword'] ) ) : '';
-        $active_tags = $this->normalize_active_tags( isset( $_POST['active_tags'] ) ? wp_unslash( $_POST['active_tags'] ) : array() );
+        $keyword          = isset( $_POST['keyword'] ) ? sanitize_text_field( wp_unslash( $_POST['keyword'] ) ) : '';
+        $active_tags      = $this->normalize_active_tags( $this->get_active_tags_request_input() );
+        $language_request = array(
+            'sschp_lang' => isset( $_POST['sschp_lang'] ) ? sanitize_key( wp_unslash( $_POST['sschp_lang'] ) ) : '',
+            'lang'       => isset( $_POST['lang'] ) ? sanitize_key( wp_unslash( $_POST['lang'] ) ) : '',
+        );
 
         if ( empty( $keyword ) || strlen( $keyword ) < 2 ) {
             wp_die();
         }
 
-        $language = SSCHP_Language::request_language();
+        $language = SSCHP_Language::request_language( $language_request );
         SSCHP_Language::switch_ajax_language( $language );
 
         $post_types     = $this->settings->get( 'post_types', array( 'post' ) );
@@ -163,12 +166,46 @@ class SSCHP_Search_Handler {
             return array();
         }
 
-        $tags = array_map( 'sanitize_text_field', $raw_tags );
-        $tags = array_filter( $tags, function( $tag ) {
-            return '' !== $tag;
+        $tags = array();
+        array_walk_recursive( $raw_tags, function( $tag ) use ( &$tags ) {
+            $tag = sanitize_text_field( (string) $tag );
+            if ( '' !== $tag ) {
+                $tags[] = $tag;
+            }
         } );
 
         return apply_filters( 'sschp_active_tags', array_values( array_unique( $tags ) ) );
+    }
+
+    /**
+     * Read and sanitize the active_tags AJAX field.
+     *
+     * @return mixed Sanitized scalar or array.
+     */
+    private function get_active_tags_request_input() {
+        $raw_tags = filter_input( INPUT_POST, 'active_tags', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
+
+        if ( null === $raw_tags || false === $raw_tags ) {
+            $raw_tags = filter_input( INPUT_POST, 'active_tags', FILTER_UNSAFE_RAW );
+        }
+
+        return $this->sanitize_active_tags_input( $raw_tags );
+    }
+
+    /**
+     * Sanitize the active_tags request field before normalization.
+     *
+     * @param mixed $raw_tags Raw request field.
+     * @return mixed Sanitized scalar or array.
+     */
+    private function sanitize_active_tags_input( $raw_tags ) {
+        $unslashed = wp_unslash( $raw_tags );
+
+        if ( is_array( $unslashed ) ) {
+            return map_deep( $unslashed, 'sanitize_text_field' );
+        }
+
+        return sanitize_text_field( (string) $unslashed );
     }
 
     /**
@@ -302,7 +339,7 @@ class SSCHP_Search_Handler {
             );
 
             if ( is_string( $custom_html ) && '' !== $custom_html ) {
-                echo $custom_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                echo wp_kses( $custom_html, $this->get_chip_markup_allowed_html() );
                 continue;
             }
 
@@ -319,6 +356,52 @@ class SSCHP_Search_Handler {
         }
 
         echo '</div>';
+    }
+
+    /**
+     * Allowed markup for internally generated chip controls.
+     *
+     * @return array
+     */
+    private function get_chip_markup_allowed_html() {
+        return apply_filters(
+            'sschp_chip_markup_allowed_html',
+            array(
+                'div'    => array(
+                    'class'                 => true,
+                    'style'                 => true,
+                    'data-range-context'    => true,
+                    'data-range-group-key'  => true,
+                    'data-range-unit-key'   => true,
+                    'data-range-prefix'     => true,
+                    'data-range-bounds-min' => true,
+                    'data-range-bounds-max' => true,
+                    'data-range-value'      => true,
+                    'data-range-label'      => true,
+                    'aria-live'             => true,
+                ),
+                'span'   => array(
+                    'class'           => true,
+                    'data-range-role' => true,
+                ),
+                'input'  => array(
+                    'class'           => true,
+                    'type'            => true,
+                    'min'             => true,
+                    'max'             => true,
+                    'step'            => true,
+                    'value'           => true,
+                    'data-range-role' => true,
+                    'aria-label'      => true,
+                ),
+                'button' => array(
+                    'class'    => true,
+                    'type'     => true,
+                    'data-tag' => true,
+                    'style'    => true,
+                ),
+            )
+        );
     }
 
     /**

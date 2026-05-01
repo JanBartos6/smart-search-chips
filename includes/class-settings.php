@@ -232,12 +232,16 @@ class SSCHP_Settings {
         $ai_target     = $this->sanitize_ai_target_field( get_option( 'sschp_ai_target_field', 'built_in' ) );
         $analytics_on  = get_option( 'sschp_analytics_enabled', '0' );
         $delete_on_uninstall = get_option( 'sschp_delete_data_on_uninstall', '0' );
+        $data_deleted = get_transient( 'sschp_data_deleted_' . get_current_user_id() );
+        if ( $data_deleted ) {
+            delete_transient( 'sschp_data_deleted_' . get_current_user_id() );
+        }
 
         ?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
             <?php settings_errors( 'smart-search-chips' ); ?>
-            <?php if ( isset( $_GET['sschp_data_deleted'] ) && $_GET['sschp_data_deleted'] === '1' ) : ?>
+            <?php if ( '1' === $data_deleted ) : ?>
                 <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Smart Search Chips data was deleted. Settings have been reset, built-in chip meta was removed, and analytics events were cleared.', 'smart-search-chips' ); ?></p></div>
             <?php endif; ?>
 
@@ -752,12 +756,12 @@ class SSCHP_Settings {
         check_admin_referer( 'sschp_delete_plugin_data_now' );
 
         sschp_delete_plugin_data( false );
+        set_transient( 'sschp_data_deleted_' . get_current_user_id(), '1', MINUTE_IN_SECONDS );
 
         wp_safe_redirect(
             add_query_arg(
                 array(
-                    'page'             => 'smart-search-chips',
-                    'sschp_data_deleted' => '1',
+                    'page' => 'smart-search-chips',
                 ),
                 admin_url( 'options-general.php' )
             )
@@ -818,10 +822,7 @@ class SSCHP_Settings {
 
         $is_pro       = false;
         $analytics_on = get_option( 'sschp_analytics_enabled', '0' );
-        $range_args   = array(
-            'from' => isset( $_GET['from'] ) ? sanitize_text_field( wp_unslash( $_GET['from'] ) ) : '',
-            'to'   => isset( $_GET['to'] ) ? sanitize_text_field( wp_unslash( $_GET['to'] ) ) : '',
-        );
+        $range_args   = $this->get_admin_date_range_args();
         $range     = array( 'from' => '', 'to' => '' );
         $analytics = null;
         $events    = array();
@@ -946,6 +947,34 @@ class SSCHP_Settings {
             </div>
         </div>
         <?php
+    }
+
+    /**
+     * Read the optional analytics date filters from the admin request.
+     *
+     * @return array
+     */
+    private function get_admin_date_range_args() {
+        return array(
+            'from' => $this->get_admin_date_query_var( 'from' ),
+            'to'   => $this->get_admin_date_query_var( 'to' ),
+        );
+    }
+
+    /**
+     * Read and sanitize a date filter query variable.
+     *
+     * @param string $key Query variable name.
+     * @return string
+     */
+    private function get_admin_date_query_var( $key ) {
+        $value = filter_input( INPUT_GET, $key, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+
+        if ( null === $value || false === $value ) {
+            return '';
+        }
+
+        return sanitize_text_field( wp_unslash( $value ) );
     }
 
     /**

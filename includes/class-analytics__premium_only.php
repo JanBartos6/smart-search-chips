@@ -151,7 +151,12 @@ class SSCHP_Analytics {
         $page_url         = isset( $_POST['page_url'] ) ? esc_url_raw( wp_unslash( $_POST['page_url'] ) ) : '';
         $result_count     = isset( $_POST['result_count'] ) ? intval( $_POST['result_count'] ) : null;
         $active_tag_count = isset( $_POST['active_tag_count'] ) ? max( 0, intval( $_POST['active_tag_count'] ) ) : null;
-        $language_code    = SSCHP_Language::request_language();
+        $language_code    = SSCHP_Language::request_language(
+            array(
+                'sschp_lang' => isset( $_POST['sschp_lang'] ) ? sanitize_key( wp_unslash( $_POST['sschp_lang'] ) ) : '',
+                'lang'       => isset( $_POST['lang'] ) ? sanitize_key( wp_unslash( $_POST['lang'] ) ) : '',
+            )
+        );
         $chip_labels      = self::sanitize_chip_labels( isset( $_POST['chip_labels'] ) ? wp_unslash( $_POST['chip_labels'] ) : array() );
 
         if ( $event_type === 'search' && strlen( $search_query ) < 2 ) {
@@ -462,8 +467,8 @@ class SSCHP_Analytics {
         }
 
         $args   = array(
-            'from'  => isset( $_GET['from'] ) ? sanitize_text_field( wp_unslash( $_GET['from'] ) ) : '',
-            'to'    => isset( $_GET['to'] ) ? sanitize_text_field( wp_unslash( $_GET['to'] ) ) : '',
+            'from'  => self::get_request_date_arg( 'from' ),
+            'to'    => self::get_request_date_arg( 'to' ),
             'limit' => 0,
         );
         $range  = self::get_date_range( $args );
@@ -497,6 +502,22 @@ class SSCHP_Analytics {
 
         fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- streaming CSV to php://output.
         exit;
+    }
+
+    /**
+     * Read and sanitize an optional analytics export date query argument.
+     *
+     * @param string $key Query variable name.
+     * @return string
+     */
+    private static function get_request_date_arg( $key ) {
+        $value = filter_input( INPUT_GET, $key, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+
+        if ( null === $value || false === $value ) {
+            return '';
+        }
+
+        return sanitize_text_field( wp_unslash( $value ) );
     }
 
     /**

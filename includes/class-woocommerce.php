@@ -158,7 +158,9 @@ class SSCHP_WooCommerce {
             }
         }
 
-        return add_query_arg( 'sschp_tags_generated', $count, $redirect_to );
+        set_transient( 'sschp_tags_generated_' . get_current_user_id(), (int) $count, MINUTE_IN_SECONDS );
+
+        return $redirect_to;
     }
 
     /**
@@ -169,8 +171,11 @@ class SSCHP_WooCommerce {
             return;
         }
 
-        if ( ! empty( $_REQUEST['sschp_tags_generated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display after redirect.
-            $count = isset( $_REQUEST['sschp_tags_generated'] ) ? absint( wp_unslash( $_REQUEST['sschp_tags_generated'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $transient_key = 'sschp_tags_generated_' . get_current_user_id();
+        $count = absint( get_transient( $transient_key ) );
+
+        if ( $count > 0 ) {
+            delete_transient( $transient_key );
             printf(
                 '<div class="notice notice-success is-dismissible"><p>' .
                 /* translators: %d: number of products tagged */
