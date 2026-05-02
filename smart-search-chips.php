@@ -102,12 +102,7 @@ if ( function_exists( 'sschp_fs' ) ) {
             delete_option( $option );
         }
 
-        $wpdb->query(
-            $wpdb->prepare(
-                "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s",
-                'sschp_tags'
-            )
-        );
+        delete_metadata( 'post', 0, 'sschp_tags', '', true );
 
         $table_name = $wpdb->prefix . 'sschp_events';
         $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -316,18 +311,11 @@ if ( function_exists( 'sschp_fs' ) ) {
      * @return void
      */
     function sschp_delete_plugin_data( $drop_analytics_table = false ) {
-        global $wpdb;
-
         foreach ( sschp_get_option_keys() as $option ) {
             delete_option( $option );
         }
 
-        $wpdb->query(
-            $wpdb->prepare(
-                "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s",
-                'sschp_tags'
-            )
-        );
+        delete_metadata( 'post', 0, 'sschp_tags', '', true );
 
         if ( sschp_fs()->can_use_premium_code__premium_only() ) {
             if ( $drop_analytics_table ) {

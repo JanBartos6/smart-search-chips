@@ -268,18 +268,11 @@ function sschp_get_option_keys() {
  * @return void
  */
 function sschp_delete_plugin_data() {
-    global $wpdb;
-
     foreach ( sschp_get_option_keys() as $option ) {
         delete_option( $option );
     }
 
-    $wpdb->query(
-        $wpdb->prepare(
-            "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s",
-            'sschp_tags'
-        )
-    );
+    delete_metadata( 'post', 0, 'sschp_tags', '', true );
 }
 
 /**
