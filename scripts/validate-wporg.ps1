@@ -84,6 +84,7 @@ $patterns = [ordered]@{
     'becomes available in Pro'         = 'Locked-feature wording is present.'
     '$_REQUEST'                        = 'Raw $_REQUEST access is present.'
     '$_GET['                           = 'Raw $_GET array access is present.'
+    '$_SERVER['                        = 'Raw $_SERVER array access is present.'
     'echo $markup'                     = 'Raw archive markup echo is present.'
     'Security.EscapeOutput'            = 'Escaping suppression is present.'
     "wp_unslash( `$_POST['active_tags'] )" = 'active_tags is unslashed without array sanitization.'

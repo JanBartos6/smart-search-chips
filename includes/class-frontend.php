@@ -528,9 +528,8 @@ class SSCHP_Frontend {
      * @return string
      */
     private function build_archive_filter_url( $tag, $active_tags ) {
-        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '/';
-        $url         = home_url( $request_uri );
-        $next_tags   = array_values( $active_tags );
+        $url       = home_url( add_query_arg( array() ) );
+        $next_tags = array_values( $active_tags );
 
         if ( null !== $tag ) {
             if ( in_array( $tag, $next_tags, true ) ) {
