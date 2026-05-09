@@ -34,6 +34,8 @@ Try searches like:
 - `coffee`
 - `sleep`
 
+For the Pro numeric range slider, the seeded posts include repeated numeric chip tags such as `Weight 420 g`, `Weight 1300 g`, and `Capacity 45 L`. The local site currently runs the unlicensed/free path by default, so those tags are present in the data, but the slider UI only appears when Pro premium code is active.
+
 ## Useful Commands
 
 ```powershell

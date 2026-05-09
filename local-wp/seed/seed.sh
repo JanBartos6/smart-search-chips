@@ -91,18 +91,18 @@ create_post() {
   wp post meta update "$id" "$SEED_MARKER" 1 >/dev/null
 }
 
-create_post "RidgeLite Two-Person Tent" "ridgelite-two-person-tent" "A freestanding backpacking tent for wet alpine weekends. Search for tent, waterproof, rainfly, or ultralight to test chip grouping." "tent; backpacking; waterproof; ultralight; rainfly; two person; alpine" "Shelters"
-create_post "Pinebreak Family Tent" "pinebreak-family-tent" "A roomy car camping tent with standing height, storm vents, and a durable floor for family trips." "tent; family camping; waterproof; car camping; standing height; storm vents" "Shelters"
-create_post "StormPeak Bivy" "stormpeak-bivy" "Minimal emergency shelter for fast solo missions where pack size matters more than comfort." "bivy; solo; emergency shelter; ultralight; waterproof; compact" "Shelters"
-create_post "EmberJet Trail Stove" "emberjet-trail-stove" "Compact canister stove for boiling water fast on backpacking routes and overnight hikes." "stove; cooking; backpacking; compact; canister fuel; fast boil" "Camp Kitchen"
-create_post "IronPan Camp Skillet" "ironpan-camp-skillet" "A heavy-duty skillet for fire cooking, camp breakfasts, and basecamp meals." "skillet; cooking; cast iron; camp kitchen; basecamp; fire cooking" "Camp Kitchen"
-create_post "MossCup Pour-Over Kit" "mosscup-pour-over-kit" "A collapsible coffee kit for slow mornings outside the tent." "coffee; pour over; camp kitchen; collapsible; lightweight; morning ritual" "Camp Kitchen"
-create_post "CloudLoft Sleeping Bag 20F" "cloudloft-sleeping-bag-20f" "Synthetic sleeping bag for cold shoulder-season camping and damp conditions." "sleeping bag; 20f; synthetic; cold weather; insulated; damp conditions" "Sleep Systems"
-create_post "DriftPad Sleeping Mat" "driftpad-sleeping-mat" "Inflatable sleeping pad with quiet fabric and a high R-value for colder nights." "sleeping pad; insulated; inflatable; sleep; cold weather; high r value" "Sleep Systems"
-create_post "SummitShell Rain Jacket" "summitshell-rain-jacket" "Breathable waterproof shell for exposed hikes, trail storms, and daily carry." "rain jacket; waterproof; breathable; hiking; shell; packable" "Apparel"
-create_post "CedarTrail Hiking Pants" "cedartrail-hiking-pants" "Stretch hiking pants with reinforced knees and quick-dry fabric for rough routes." "hiking pants; quick dry; stretch; reinforced; trail; durable" "Apparel"
-create_post "Northline 45L Backpack" "northline-45l-backpack" "A balanced 45 liter pack for weekend backpacking, tent storage, and food carries." "backpack; 45l; backpacking; weekend; load carry; hydration compatible" "Packs"
-create_post "Riverbend Dry Bag Set" "riverbend-dry-bag-set" "Color-coded waterproof dry bags for paddling, rainy hikes, and organizing pack contents." "dry bag; waterproof; paddling; organization; rain; pack storage" "Packs"
+create_post "RidgeLite Two-Person Tent" "ridgelite-two-person-tent" "A freestanding backpacking tent for wet alpine weekends. Search for tent, waterproof, rainfly, or ultralight to test chip grouping." "tent; backpacking; waterproof; ultralight; rainfly; two person; alpine; Weight 1300 g; Capacity 2 person; Packed Length 46 cm" "Shelters"
+create_post "Pinebreak Family Tent" "pinebreak-family-tent" "A roomy car camping tent with standing height, storm vents, and a durable floor for family trips." "tent; family camping; waterproof; car camping; standing height; storm vents; Weight 5200 g; Capacity 4 person; Packed Length 68 cm" "Shelters"
+create_post "StormPeak Bivy" "stormpeak-bivy" "Minimal emergency shelter for fast solo missions where pack size matters more than comfort." "bivy; solo; emergency shelter; ultralight; waterproof; compact; Weight 420 g; Capacity 1 person; Packed Length 28 cm" "Shelters"
+create_post "EmberJet Trail Stove" "emberjet-trail-stove" "Compact canister stove for boiling water fast on backpacking routes and overnight hikes." "stove; cooking; backpacking; compact; canister fuel; fast boil; Weight 89 g; Power 3200 W; Boil Time 3.2 min" "Camp Kitchen"
+create_post "IronPan Camp Skillet" "ironpan-camp-skillet" "A heavy-duty skillet for fire cooking, camp breakfasts, and basecamp meals." "skillet; cooking; cast iron; camp kitchen; basecamp; fire cooking; Weight 1450 g; Diameter 26 cm" "Camp Kitchen"
+create_post "MossCup Pour-Over Kit" "mosscup-pour-over-kit" "A collapsible coffee kit for slow mornings outside the tent." "coffee; pour over; camp kitchen; collapsible; lightweight; morning ritual; Weight 180 g; Capacity 0.6 L" "Camp Kitchen"
+create_post "CloudLoft Sleeping Bag 20F" "cloudloft-sleeping-bag-20f" "Synthetic sleeping bag for cold shoulder-season camping and damp conditions." "sleeping bag; 20f; synthetic; cold weather; insulated; damp conditions; Weight 980 g; Comfort 20 F; Packed Length 34 cm" "Sleep Systems"
+create_post "DriftPad Sleeping Mat" "driftpad-sleeping-mat" "Inflatable sleeping pad with quiet fabric and a high R-value for colder nights." "sleeping pad; insulated; inflatable; sleep; cold weather; high r value; Weight 610 g; R Value 4.8; Packed Length 25 cm" "Sleep Systems"
+create_post "SummitShell Rain Jacket" "summitshell-rain-jacket" "Breathable waterproof shell for exposed hikes, trail storms, and daily carry." "rain jacket; waterproof; breathable; hiking; shell; packable; Weight 310 g; Waterproof Rating 20000 mm" "Apparel"
+create_post "CedarTrail Hiking Pants" "cedartrail-hiking-pants" "Stretch hiking pants with reinforced knees and quick-dry fabric for rough routes." "hiking pants; quick dry; stretch; reinforced; trail; durable; Weight 390 g; Inseam 81 cm" "Apparel"
+create_post "Northline 45L Backpack" "northline-45l-backpack" "A balanced 45 liter pack for weekend backpacking, tent storage, and food carries." "backpack; 45l; backpacking; weekend; load carry; hydration compatible; Weight 1280 g; Capacity 45 L" "Packs"
+create_post "Riverbend Dry Bag Set" "riverbend-dry-bag-set" "Color-coded waterproof dry bags for paddling, rainy hikes, and organizing pack contents." "dry bag; waterproof; paddling; organization; rain; pack storage; Weight 240 g; Capacity 20 L" "Packs"
 
 wp cache flush >/dev/null
 
