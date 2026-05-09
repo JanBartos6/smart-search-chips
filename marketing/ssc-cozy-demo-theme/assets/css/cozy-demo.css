@@ -213,6 +213,10 @@ p {
     margin-top: 28px;
 }
 
+.ssc-button-row--center {
+    justify-content: center;
+}
+
 .ssc-button-column {
     flex-direction: column;
 }
@@ -676,6 +680,10 @@ p {
     margin-top: 10px;
 }
 
+.ssc-pro-section__header .ssc-button-row {
+    margin-top: 24px;
+}
+
 .ssc-pro-features {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -912,6 +920,12 @@ p {
 
 .ssc-tier-list__highlight::before {
     display: none !important;
+}
+
+.ssc-tier-price {
+    margin: 6px 0 0;
+    color: var(--ssc-accent-deep);
+    font-weight: 800;
 }
 
 /* ========== SHARED COMPONENTS (used across pages) ========== */

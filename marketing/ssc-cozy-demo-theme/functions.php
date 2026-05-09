@@ -31,6 +31,7 @@ function ssc_demo_theme_enqueue_assets() {
 
     $style_path  = get_theme_file_path( 'assets/css/cozy-demo.css' );
     $script_path = get_theme_file_path( 'assets/js/cozy-demo.js' );
+    $is_landing  = is_front_page() || is_home();
 
     wp_enqueue_style(
         'ssc-demo-theme',
@@ -39,15 +40,49 @@ function ssc_demo_theme_enqueue_assets() {
         file_exists( $style_path ) ? filemtime( $style_path ) : null
     );
 
+    $script_dependencies = array();
+
+    if ( $is_landing ) {
+        wp_enqueue_script(
+            'ssc-demo-freemius-checkout',
+            'https://checkout.freemius.com/js/v1/',
+            array(),
+            null,
+            true
+        );
+
+        $script_dependencies[] = 'ssc-demo-freemius-checkout';
+    }
+
     wp_enqueue_script(
         'ssc-demo-theme',
         get_theme_file_uri( 'assets/js/cozy-demo.js' ),
-        array(),
+        $script_dependencies,
         file_exists( $script_path ) ? filemtime( $script_path ) : null,
         true
     );
+
+    if ( $is_landing ) {
+        wp_localize_script(
+            'ssc-demo-theme',
+            'sscDemoCheckout',
+            array(
+                'productId'   => '27046',
+                'planId'      => '45154',
+                'publicKey'   => 'pk_69b2a1db30add56864a42e4ea9929',
+                'image'       => 'https://smartsearchchips.app/wp-content/uploads/2026/04/ssc-favicon-300x300.png',
+                'name'        => 'Smart Search Chips',
+                'licenses'    => 1,
+                'checkoutUrl' => ssc_demo_get_checkout_url(),
+            )
+        );
+    }
 }
 add_action( 'wp_enqueue_scripts', 'ssc_demo_theme_enqueue_assets' );
+
+function ssc_demo_get_checkout_url() {
+    return 'https://checkout.freemius.com/plugin/27046/plan/45154/';
+}
 
 function ssc_demo_get_product_tags( $post_id, $limit = 4 ) {
     $raw = get_post_meta( $post_id, 'ssc_tags', true );
@@ -148,4 +183,3 @@ function ssc_demo_render_native_search_form( $value = '' ) {
     </form>
     <?php
 }
-

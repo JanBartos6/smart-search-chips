@@ -7,6 +7,7 @@ get_header();
 
 $mugs_term = get_category_by_slug( 'mugs' );
 $mugs_url  = $mugs_term ? get_category_link( $mugs_term ) : home_url( '/category/mugs/' );
+$checkout_url = ssc_demo_get_checkout_url();
 ?>
 <main class="ssc-home ssc-home--landing">
 
@@ -22,6 +23,7 @@ $mugs_url  = $mugs_term ? get_category_link( $mugs_term ) : home_url( '/category
                 <div class="ssc-button-row">
                     <a class="ssc-button ssc-button--solid ssc-button--lg" href="<?php echo esc_url( home_url( '/search/' ) ); ?>"><?php esc_html_e( 'Try it live', 'ssc-cozy-demo' ); ?></a>
                     <a class="ssc-button ssc-button--ghost ssc-button--lg" href="#before-after"><?php esc_html_e( 'See the difference', 'ssc-cozy-demo' ); ?></a>
+                    <a class="ssc-button ssc-button--solid ssc-button--lg" href="<?php echo esc_url( $checkout_url ); ?>" data-ssc-checkout><?php esc_html_e( 'Buy Pro', 'ssc-cozy-demo' ); ?></a>
                 </div>
             </div>
 
@@ -210,6 +212,10 @@ $mugs_url  = $mugs_term ? get_category_link( $mugs_term ) : home_url( '/category
             <div class="ssc-pro-section__header">
                 <span class="ssc-kicker"><?php esc_html_e( 'Go further with Pro', 'ssc-cozy-demo' ); ?></span>
                 <h2><?php esc_html_e( 'See what visitors search. Shape what they find.', 'ssc-cozy-demo' ); ?></h2>
+                <p><?php esc_html_e( 'Upgrade when you need analytics, custom data sources, numeric range chips, and team workflows.', 'ssc-cozy-demo' ); ?></p>
+                <div class="ssc-button-row ssc-button-row--center">
+                    <a class="ssc-button ssc-button--solid ssc-button--lg" href="<?php echo esc_url( $checkout_url ); ?>" data-ssc-checkout><?php esc_html_e( 'Buy Smart Search Chips Pro', 'ssc-cozy-demo' ); ?></a>
+                </div>
             </div>
 
             <!-- Analytics visual -->
@@ -282,8 +288,8 @@ $mugs_url  = $mugs_term ? get_category_link( $mugs_term ) : home_url( '/category
                     <div class="ssc-pro-feature__icon">
                         <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M6 20l4-8 4 5 4-10 4 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </div>
-                    <h3><?php esc_html_e( 'REST rule access', 'ssc-cozy-demo' ); ?></h3>
-                    <p><?php esc_html_e( 'Let authenticated automation read or update synonym, pinned, hidden, and renamed chip rules.', 'ssc-cozy-demo' ); ?></p>
+                    <h3><?php esc_html_e( 'Numeric range chips', 'ssc-cozy-demo' ); ?></h3>
+                    <p><?php esc_html_e( 'Group values like 100 W, 200 W, and 500 W into one range slider chip with min and max controls.', 'ssc-cozy-demo' ); ?></p>
                 </div>
                 <div class="ssc-pro-feature" data-reveal>
                     <div class="ssc-pro-feature__icon">
@@ -373,11 +379,14 @@ $mugs_url  = $mugs_term ? get_category_link( $mugs_term ) : home_url( '/category
                         <li class="ssc-tier-list__highlight"><?php esc_html_e( 'Everything in Free, plus:', 'ssc-cozy-demo' ); ?></li>
                         <li><?php esc_html_e( 'Analytics dashboard', 'ssc-cozy-demo' ); ?></li>
                         <li><?php esc_html_e( 'ACF and custom field connectors', 'ssc-cozy-demo' ); ?></li>
+                        <li><?php esc_html_e( 'Numeric range slider chips', 'ssc-cozy-demo' ); ?></li>
                         <li><?php esc_html_e( 'Synonym rules and manual chip curation', 'ssc-cozy-demo' ); ?></li>
                         <li><?php esc_html_e( 'Authenticated REST access for chip rules', 'ssc-cozy-demo' ); ?></li>
                         <li><?php esc_html_e( 'AI-assisted tag workflows', 'ssc-cozy-demo' ); ?></li>
                         <li><?php esc_html_e( 'Commercial support', 'ssc-cozy-demo' ); ?></li>
                     </ul>
+                    <p class="ssc-tier-price"><?php esc_html_e( '$49 per year for one site.', 'ssc-cozy-demo' ); ?></p>
+                    <a class="ssc-button ssc-button--solid" href="<?php echo esc_url( $checkout_url ); ?>" data-ssc-checkout><?php esc_html_e( 'Buy Pro', 'ssc-cozy-demo' ); ?></a>
                 </article>
             </div>
         </div>

@@ -64,4 +64,33 @@ document.addEventListener("DOMContentLoaded", function () {
             }, 120);
         }
     }
+
+    var checkoutButtons = document.querySelectorAll("[data-ssc-checkout]");
+    if (checkoutButtons.length && window.sscDemoCheckout) {
+        var checkoutHandler = null;
+
+        checkoutButtons.forEach(function (button) {
+            button.addEventListener("click", function (event) {
+                if (!window.FS || typeof window.FS.Checkout !== "function") {
+                    return;
+                }
+
+                event.preventDefault();
+
+                if (!checkoutHandler) {
+                    checkoutHandler = new window.FS.Checkout({
+                        product_id: window.sscDemoCheckout.productId,
+                        plan_id: window.sscDemoCheckout.planId,
+                        public_key: window.sscDemoCheckout.publicKey,
+                        image: window.sscDemoCheckout.image
+                    });
+                }
+
+                checkoutHandler.open({
+                    name: window.sscDemoCheckout.name,
+                    licenses: window.sscDemoCheckout.licenses || 1
+                });
+            });
+        });
+    }
 });
