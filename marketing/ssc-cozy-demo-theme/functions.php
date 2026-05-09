@@ -84,6 +84,10 @@ function ssc_demo_get_checkout_url() {
     return 'https://checkout.freemius.com/plugin/27046/plan/45154/';
 }
 
+function ssc_demo_get_free_plugin_url() {
+    return 'https://wordpress.org/plugins/smart-search-chips/';
+}
+
 function ssc_demo_get_product_tags( $post_id, $limit = 4 ) {
     $raw = get_post_meta( $post_id, 'ssc_tags', true );
     if ( empty( $raw ) ) {

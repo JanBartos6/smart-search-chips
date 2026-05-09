@@ -7,7 +7,8 @@ get_header();
 
 $mugs_term = get_category_by_slug( 'mugs' );
 $mugs_url  = $mugs_term ? get_category_link( $mugs_term ) : home_url( '/category/mugs/' );
-$checkout_url = ssc_demo_get_checkout_url();
+$checkout_url    = ssc_demo_get_checkout_url();
+$free_plugin_url = ssc_demo_get_free_plugin_url();
 ?>
 <main class="ssc-home ssc-home--landing">
 
@@ -22,6 +23,7 @@ $checkout_url = ssc_demo_get_checkout_url();
                 </p>
                 <div class="ssc-button-row">
                     <a class="ssc-button ssc-button--solid ssc-button--lg" href="<?php echo esc_url( home_url( '/search/' ) ); ?>"><?php esc_html_e( 'Try it live', 'ssc-cozy-demo' ); ?></a>
+                    <a class="ssc-button ssc-button--ghost ssc-button--lg" href="<?php echo esc_url( $free_plugin_url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Get free plugin', 'ssc-cozy-demo' ); ?></a>
                     <a class="ssc-button ssc-button--ghost ssc-button--lg" href="#before-after"><?php esc_html_e( 'See the difference', 'ssc-cozy-demo' ); ?></a>
                     <a class="ssc-button ssc-button--solid ssc-button--lg" href="<?php echo esc_url( $checkout_url ); ?>" data-ssc-checkout><?php esc_html_e( 'Buy Pro', 'ssc-cozy-demo' ); ?></a>
                 </div>
@@ -371,6 +373,7 @@ $checkout_url = ssc_demo_get_checkout_url();
                         <li><?php esc_html_e( 'Chip color and style controls', 'ssc-cozy-demo' ); ?></li>
                         <li><?php esc_html_e( 'No account or payment required', 'ssc-cozy-demo' ); ?></li>
                     </ul>
+                    <a class="ssc-button ssc-button--ghost" href="<?php echo esc_url( $free_plugin_url ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Get free on WordPress.org', 'ssc-cozy-demo' ); ?></a>
                 </article>
                 <article class="ssc-card ssc-tier-card ssc-tier-card--pro">
                     <span class="ssc-card-label"><?php esc_html_e( 'Pro', 'ssc-cozy-demo' ); ?></span>
