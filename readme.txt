@@ -4,7 +4,7 @@ Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.5
+Stable tag: 1.0.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,10 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 
 == Changelog ==
 
+= 1.0.6 =
+* Improved chip-click behavior inside third-party AJAX search panels so selecting a chip keeps the search UI open.
+* Improved frontend input discovery for theme search forms that use keyword, s, or query fields.
+
 = 1.0.5 =
 * Added runtime WooCommerce tag fallback so chips can appear from product attributes, categories, tags, and SKU before stored chip tags are generated.
 
@@ -115,6 +119,9 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 Smart Search Chips uses [Freemius](https://freemius.com/) for license management and optional usage tracking. When you opt in during activation, basic diagnostic data (WordPress version, PHP version, site URL) is shared with Freemius. You can opt out at any time. The Pro analytics feature stores search data locally in your WordPress database — it is never sent externally. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.0.6 =
+Keeps live search panels open when visitors click chips in theme autocomplete integrations.
 
 = 1.0.5 =
 Improves WooCommerce chip generation for existing product catalogs.

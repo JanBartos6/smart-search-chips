@@ -25,6 +25,34 @@
         return config.keywordField || "keyword";
     }
 
+    function getInputSelector() {
+        return '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"]';
+    }
+
+    function markSearchUiActive(input, resultsContainer) {
+        if (input && typeof input.focus === "function" && document.activeElement !== input) {
+            try {
+                input.focus({ preventScroll: true });
+            } catch (error) {
+                input.focus();
+            }
+        }
+
+        if (resultsContainer && resultsContainer.classList) {
+            resultsContainer.classList.add("ssc-search-active");
+            resultsContainer.style.display = "";
+            resultsContainer.removeAttribute("hidden");
+            resultsContainer.setAttribute("aria-hidden", "false");
+            resultsContainer.setAttribute("aria-expanded", "true");
+        }
+
+        var root = input ? input.closest("form, .ssc-search, .js-search, .js-ssc-search") : null;
+        if (root && root.classList) {
+            root.classList.add("ssc-search-root-active");
+            root.setAttribute("aria-expanded", "true");
+        }
+    }
+
     function getVisitorId() {
         var existing = "";
 
@@ -184,6 +212,7 @@
                 }
                 if (xhr.status === 200 && resultsContainer) {
                     resultsContainer.innerHTML = xhr.responseText;
+                    markSearchUiActive(input, resultsContainer);
                 }
 
                 if (xhr.status === 200) {
@@ -263,10 +292,29 @@
     function findInput(el) {
         var container = el.closest(".ssc-search");
         if (container) {
-            return container.querySelector('input[type="search"]');
+            return container.querySelector(getInputSelector());
         }
+
+        var results = el.closest(getResultsSelector());
+        if (results) {
+            var scopedRoot = results.closest("form, .js-search, .js-ssc-search") || results.parentElement;
+            if (scopedRoot) {
+                var scopedInput = scopedRoot.querySelector(getInputSelector());
+                if (scopedInput) {
+                    return scopedInput;
+                }
+            }
+        }
+
         var form = document.querySelector(".js-ssc-search, .js-search");
-        return form ? form.querySelector('input[type="search"]') : null;
+        if (form) {
+            var formInput = form.querySelector(getInputSelector());
+            if (formInput) {
+                return formInput;
+            }
+        }
+
+        return document.querySelector(getInputSelector());
     }
 
     function applyTagSelection(source, tag, options, meta) {
@@ -299,6 +347,7 @@
             trigger: "chip",
             chipLabel: meta && meta.chipLabel ? meta.chipLabel : tag
         });
+        markSearchUiActive(input, results);
 
         return true;
     }
@@ -319,10 +368,7 @@
         });
     });
 
-    /**
-     * Handle chip clicks - toggle active state and re-search.
-     */
-    document.addEventListener("click", function (e) {
+    function handleChipActivation(e) {
         var chip = e.target.closest(".ssc-chip");
         if (!chip) return;
 
@@ -345,9 +391,47 @@
         }
 
         e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") {
+            e.stopImmediatePropagation();
+        }
 
         applyTagSelection(chip, tag, {}, { chipLabel: tag });
-    });
+    }
+
+    /**
+     * Keep chip clicks inside the search UI. Some themes close autocomplete
+     * panels on document pointer/click handlers or input blur.
+     */
+    document.addEventListener("mousedown", function (e) {
+        var chip = e.target.closest(".ssc-chip");
+        if (!chip || !findInput(chip) || !findResults(chip)) {
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") {
+            e.stopImmediatePropagation();
+        }
+    }, true);
+
+    document.addEventListener("touchstart", function (e) {
+        var chip = e.target.closest(".ssc-chip");
+        if (!chip || !findInput(chip) || !findResults(chip)) {
+            return;
+        }
+
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") {
+            e.stopImmediatePropagation();
+        }
+    }, true);
+
+    /**
+     * Handle chip clicks - toggle active state and re-search.
+     */
+    document.addEventListener("click", handleChipActivation, true);
 
     /**
      * Intercept existing AJAX search requests (from theme's search.js)

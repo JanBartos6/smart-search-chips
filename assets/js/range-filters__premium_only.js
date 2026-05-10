@@ -149,6 +149,34 @@
         syncChip(chip, event.target.getAttribute("data-range-role") || "");
     });
 
+    document.addEventListener("mousedown", function (event) {
+        var chip = findRangeChip(event.target);
+        if (!chip) {
+            return;
+        }
+
+        if (event.target.closest && event.target.closest(".ssc-range-chip__apply, .ssc-range-chip__clear")) {
+            event.preventDefault();
+        }
+
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") {
+            event.stopImmediatePropagation();
+        }
+    }, true);
+
+    document.addEventListener("touchstart", function (event) {
+        var chip = findRangeChip(event.target);
+        if (!chip) {
+            return;
+        }
+
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") {
+            event.stopImmediatePropagation();
+        }
+    }, true);
+
     document.addEventListener("click", function (event) {
         var applyButton = event.target.closest ? event.target.closest(".ssc-range-chip__apply") : null;
         var clearButton = event.target.closest ? event.target.closest(".ssc-range-chip__clear") : null;
@@ -163,6 +191,10 @@
         }
 
         event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") {
+            event.stopImmediatePropagation();
+        }
 
         if (clearButton) {
             applyRange(chip, "");
