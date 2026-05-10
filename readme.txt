@@ -4,7 +4,7 @@ Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.8
+Stable tag: 1.0.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,7 +32,7 @@ Smart Search Chips adds dynamic, clickable filter chips to your WordPress search
 * Fully customizable colors, limits, and thresholds
 * Override existing theme AJAX search handlers
 * Synonym rules for normalizing equivalent catalog terms into one chip
-* Numeric range slider chips for values like Power 100 W, Power 200 W, or mapped numeric fields
+* Numeric range slider chips for values like 100 W, 200 W, or mapped numeric fields
 * Manual chip curation with pinned chips, hidden chips, and display label overrides
 * Search analytics for query, chip-click, impression, and zero-result insights
 * AI prompt builder for external agent-assisted tag workflows
@@ -94,6 +94,10 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 
 == Changelog ==
 
+= 1.0.9 =
+* Pro numeric range sliders now use labels from the catalog unit/text itself instead of inferred English concepts.
+* Groups simple unit variants such as W, V AC/V DC, watt, watts, wattu, and wattů into stable range chips.
+
 = 1.0.8 =
 * Improved Pro numeric range parsing for electrical values such as 24 V DC and 230 V AC.
 * Keeps unitless model/title numbers out of sliders while still allowing real unit-bearing measurements.
@@ -128,8 +132,11 @@ Smart Search Chips uses [Freemius](https://freemius.com/) for license management
 
 == Upgrade Notice ==
 
+= 1.0.9 =
+Range chips now display unit/common text from your catalog instead of inferred labels.
+
 = 1.0.8 =
-Restores useful unit-bearing sliders such as voltage while avoiding unitless junk sliders.
+Restores useful unit-bearing sliders such as V AC/V DC while avoiding unitless junk sliders.
 
 = 1.0.7 =
 Improves Pro numeric slider relevance and switches sliders to auto-apply.

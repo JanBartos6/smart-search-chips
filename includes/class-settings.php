@@ -374,8 +374,8 @@ class SSCHP_Settings {
                                 <tr>
                                     <th><?php esc_html_e( 'Numeric Range Chips', 'smart-search-chips' ); ?></th>
                                     <td>
-                                        <p><?php esc_html_e( 'Pro automatically groups numeric chip variants such as "Power 100 W" and "Power 200 W" into one slider chip.', 'smart-search-chips' ); ?></p>
-                                        <p class="description"><?php esc_html_e( 'Use labels before values for best results, for example "Power 100 W", "Length: 120 cm", or a mapped numeric field.', 'smart-search-chips' ); ?></p>
+                                        <p><?php esc_html_e( 'Pro automatically groups numeric chip variants such as "100 W" and "200 W" into one slider chip.', 'smart-search-chips' ); ?></p>
+                                        <p class="description"><?php esc_html_e( 'Use the same catalog label or unit near each value for best results, for example "100 W", "Length: 120 cm", or a mapped numeric field.', 'smart-search-chips' ); ?></p>
                                     </td>
                                 </tr>
                                 <tr>

@@ -127,7 +127,7 @@ function Write-WpOrgMain {
  * Plugin Name: Smart Search Chips
  * Plugin URI:  https://smartsearchchips.app
  * Description: Dynamic filter chips for WordPress search. Generates smart, non-redundant filter tags from the built-in Search Chips Tags field. Works with Relevanssi for best results.
- * Version:     1.0.8
+ * Version:     1.0.9
  * Author:      Jan Bartos
  * Author URI:  https://teprostroj.com
  * License:     GPL-2.0-or-later
@@ -142,7 +142,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'SSCHP_VERSION', '1.0.8' );
+define( 'SSCHP_VERSION', '1.0.9' );
 define( 'SSCHP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSCHP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -782,7 +782,7 @@ function Patch-WpOrgCoreFiles {
     $readme = $readme -replace 'Plugin analyzes the top results and their custom field tags', 'Plugin analyzes the top results and their Search Chips Tags'
     $readme = $readme -replace '\* Uses custom fields \(ACF or regular post meta\) as tag sources\s*\r?\n', "* Uses the built-in Search Chips Tags field as the free tag source`r`n"
     $readme = $readme -replace '\* Synonym rules for normalizing equivalent catalog terms into one chip\s*\r?\n', ''
-    $readme = $readme -replace '\* Numeric range slider chips for values like Power 100 W, Power 200 W, or mapped numeric fields\s*\r?\n', ''
+    $readme = $readme -replace '\* Numeric range slider chips for values like .*? or mapped numeric fields\s*\r?\n', ''
     $readme = $readme -replace '\* Manual chip curation with pinned chips, hidden chips, and display label overrides\s*\r?\n', ''
     $readme = $readme -replace '\* Search analytics for query, chip-click, impression, and zero-result insights\s*\r?\n', ''
     $readme = $readme -replace '\* AI prompt builder for external agent-assisted tag workflows\s*\r?\n', ''

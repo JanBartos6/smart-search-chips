@@ -498,20 +498,12 @@ class SSCHP_Range_Filters {
 
         $normalized_key = $this->unit_to_key( $unit );
         $display_map    = array(
-            'vac'  => 'V',
-            'v-ac' => 'V',
-            'vdc'  => 'V',
-            'v-dc' => 'V',
-            'aac'  => 'A',
-            'a-ac' => 'A',
-            'adc'  => 'A',
-            'a-dc' => 'A',
-            'watt' => 'W',
-            'watts'=> 'W',
-            'volt' => 'V',
-            'volts'=> 'V',
-            'amp'  => 'A',
-            'amps' => 'A',
+            'v'    => 'V',
+            'a'    => 'A',
+            'w'    => 'W',
+            'watt' => 'watt',
+            'volt' => 'volt',
+            'amp'  => 'amp',
         );
 
         if ( isset( $display_map[ $normalized_key ] ) ) {
@@ -547,11 +539,11 @@ class SSCHP_Range_Filters {
             'sschp_range_allowed_units',
             array(
                 'w', 'kw', 'mw',
-                'watt', 'watts',
+                'watt',
                 'v', 'kv', 'mv',
-                'vac', 'v-ac', 'vdc', 'v-dc', 'volt', 'volts',
+                'volt',
                 'a', 'ma',
-                'aac', 'a-ac', 'adc', 'a-dc', 'amp', 'amps',
+                'amp',
                 'ohm',
                 'hz', 'khz', 'mhz', 'ghz',
                 'mm', 'cm', 'm', 'km',
@@ -719,7 +711,30 @@ class SSCHP_Range_Filters {
         $unit = str_replace( array( 'µ', 'μ' ), 'u', mb_strtolower( trim( (string) $unit ) ) );
         $unit = str_replace( array( '²', '³' ), array( '2', '3' ), $unit );
         $unit = str_replace( array( '%', '°', '/', '\\' ), array( 'percent', 'deg', '-', '-' ), $unit );
-        $key  = sanitize_key( preg_replace( '/[^a-z0-9_\-]+/i', '-', $unit ) );
+        $unit = preg_replace( '/\s+/', ' ', $unit );
+
+        $compact_unit = str_replace( array( ' ', '.', '-' ), '', $unit );
+        if ( preg_match( '/^v(?:ac|dc)?$/u', $compact_unit ) ) {
+            return 'v';
+        }
+
+        if ( preg_match( '/^a(?:ac|dc)?$/u', $compact_unit ) ) {
+            return 'a';
+        }
+
+        if ( preg_match( '/^watt(?:s|u|ů|y|ech|ům|em)?$/u', $compact_unit ) ) {
+            return 'watt';
+        }
+
+        if ( preg_match( '/^volt(?:s|u|ů|y|ech|ům|em)?$/u', $compact_unit ) ) {
+            return 'volt';
+        }
+
+        if ( preg_match( '/^(?:amp|amps|amp[eé]r(?:u|ů|y|ech|ům|em)?|amp[eé]ry)$/u', $compact_unit ) ) {
+            return 'amp';
+        }
+
+        $key = trim( sanitize_key( preg_replace( '/[^a-z0-9_\-]+/i', '-', $unit ) ), '-' );
 
         return '' !== $key ? $key : 'none';
     }
@@ -735,49 +750,18 @@ class SSCHP_Range_Filters {
     }
 
     /**
-     * Infer a label for purely numeric mapped custom fields.
+     * Infer a label for pure number + unit tags.
      *
+     * Keep this tied to the catalog text. Do not invent translated concept
+     * labels; users need to see labels that exist in their data.
+     *
+     * @param string $unit Parsed unit.
      * @return string
      */
     private function get_default_numeric_label( $unit = '' ) {
-        $unit_key = $this->unit_to_key( $unit );
-        $labels   = array(
-            'w'    => __( 'Power', 'smart-search-chips' ),
-            'kw'   => __( 'Power', 'smart-search-chips' ),
-            'mw'   => __( 'Power', 'smart-search-chips' ),
-            'v'    => __( 'Voltage', 'smart-search-chips' ),
-            'kv'   => __( 'Voltage', 'smart-search-chips' ),
-            'mv'   => __( 'Voltage', 'smart-search-chips' ),
-            'vac'  => __( 'Voltage', 'smart-search-chips' ),
-            'v-ac' => __( 'Voltage', 'smart-search-chips' ),
-            'vdc'  => __( 'Voltage', 'smart-search-chips' ),
-            'v-dc' => __( 'Voltage', 'smart-search-chips' ),
-            'a'    => __( 'Current', 'smart-search-chips' ),
-            'ma'   => __( 'Current', 'smart-search-chips' ),
-            'hz'   => __( 'Frequency', 'smart-search-chips' ),
-            'khz'  => __( 'Frequency', 'smart-search-chips' ),
-            'mhz'  => __( 'Frequency', 'smart-search-chips' ),
-            'ghz'  => __( 'Frequency', 'smart-search-chips' ),
-            'mm'   => __( 'Length', 'smart-search-chips' ),
-            'cm'   => __( 'Length', 'smart-search-chips' ),
-            'm'    => __( 'Length', 'smart-search-chips' ),
-            'km'   => __( 'Length', 'smart-search-chips' ),
-            'g'    => __( 'Weight', 'smart-search-chips' ),
-            'kg'   => __( 'Weight', 'smart-search-chips' ),
-            'mg'   => __( 'Weight', 'smart-search-chips' ),
-            'bar'  => __( 'Pressure', 'smart-search-chips' ),
-            'mbar' => __( 'Pressure', 'smart-search-chips' ),
-            'psi'  => __( 'Pressure', 'smart-search-chips' ),
-            'pa'   => __( 'Pressure', 'smart-search-chips' ),
-            'kpa'  => __( 'Pressure', 'smart-search-chips' ),
-            'mpa'  => __( 'Pressure', 'smart-search-chips' ),
-            'rpm'  => __( 'Speed', 'smart-search-chips' ),
-            'lm'   => __( 'Luminous flux', 'smart-search-chips' ),
-            'lux'  => __( 'Illuminance', 'smart-search-chips' ),
-        );
-
-        if ( isset( $labels[ $unit_key ] ) ) {
-            return $labels[ $unit_key ];
+        $unit_label = $this->normalize_unit( $unit );
+        if ( '' !== $unit_label ) {
+            return $unit_label;
         }
 
         $field = trim( (string) get_option( 'sschp_tag_fields', '' ) );
