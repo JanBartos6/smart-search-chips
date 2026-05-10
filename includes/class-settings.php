@@ -55,7 +55,7 @@ class SSCHP_Settings {
     public function register_settings() {
         // All settings registered flat (no sections — we render manually)
         $fields = array(
-            'post_types', 'override_ajax',
+            'post_types', 'override_ajax', 'ajax_keyword_field', 'result_container_selector',
             'max_chips', 'max_tag_length',
             'woo_enabled',
             'chip_color', 'chip_text_color', 'chip_inactive_color', 'chip_inactive_text_color',
@@ -121,6 +121,12 @@ class SSCHP_Settings {
         ) );
         register_setting( 'smart-search-chips', 'sschp_delete_data_on_uninstall', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_result_image_fit', array(
+            'sanitize_callback' => array( $this, 'sanitize_result_image_fit' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_result_image_size', array(
+            'sanitize_callback' => array( $this, 'sanitize_result_image_size' ),
         ) );
     }
 
@@ -666,6 +672,38 @@ class SSCHP_Settings {
                                             <p class="description"><?php esc_html_e( 'Pro advanced integration only. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Keyword Field Name', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <input type="text" name="sschp_ajax_keyword_field" value="<?php echo esc_attr( get_option( 'sschp_ajax_keyword_field', 'keyword' ) ); ?>" class="regular-text" />
+                                            <p class="description"><?php esc_html_e( 'The request field that contains the typed search term. Your theme uses `keyword`; other common values are `s` and `query`.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Result Container Selector', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <input type="text" name="sschp_result_container_selector" value="<?php echo esc_attr( get_option( 'sschp_result_container_selector', '.js-ssc-results, .js-search__results, .ssc-search__results' ) ); ?>" class="regular-text" />
+                                            <p class="description"><?php esc_html_e( 'CSS selector for the theme element that receives AJAX results, for example `.js-search__results`.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Result Image Fit', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <?php $image_fit = $this->sanitize_result_image_fit( get_option( 'sschp_result_image_fit', 'contain' ) ); ?>
+                                            <select name="sschp_result_image_fit">
+                                                <option value="contain" <?php selected( $image_fit, 'contain' ); ?>><?php esc_html_e( 'Contain', 'smart-search-chips' ); ?></option>
+                                                <option value="cover" <?php selected( $image_fit, 'cover' ); ?>><?php esc_html_e( 'Cover', 'smart-search-chips' ); ?></option>
+                                            </select>
+                                            <p class="description"><?php esc_html_e( 'Contain keeps full product images visible. Cover crops images to fill the square.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Result Image Size', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <input type="text" name="sschp_result_image_size" value="<?php echo esc_attr( get_option( 'sschp_result_image_size', 'medium' ) ); ?>" class="regular-text" />
+                                            <p class="description"><?php esc_html_e( 'WordPress image size used for AJAX results. Common values: `thumbnail`, `medium`, `large`, `full`. Developers can override this with the `sschp_result_image_size` filter.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
                                     <?php else : ?>
                                     <tr>
                                         <th><?php esc_html_e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
@@ -1119,6 +1157,16 @@ class SSCHP_Settings {
      */
     public function sanitize_checkbox( $value ) {
         return ! empty( $value ) ? '1' : '0';
+    }
+
+    public function sanitize_result_image_fit( $value ) {
+        $value = sanitize_key( $value );
+        return in_array( $value, array( 'contain', 'cover' ), true ) ? $value : 'contain';
+    }
+
+    public function sanitize_result_image_size( $value ) {
+        $value = sanitize_key( $value );
+        return '' !== $value ? $value : 'medium';
     }
 
     /**

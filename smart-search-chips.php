@@ -3,7 +3,7 @@
  * Plugin Name: Smart Search Chips
  * Plugin URI:  https://smartsearchchips.app
  * Description: Dynamic filter chips for WordPress search. Generates smart, non-redundant filter tags from search results using custom fields. Works with Relevanssi for best results.
- * Version:     1.0.1
+ * Version:     1.0.2
  * Author:      Jan Bartos
  * Author URI:  https://teprostroj.com
  * License:     GPL-2.0-or-later
@@ -137,7 +137,7 @@ if ( function_exists( 'sschp_fs' ) ) {
         $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
     }
 
-    define( 'SSCHP_VERSION', '1.0.1' );
+    define( 'SSCHP_VERSION', '1.0.2' );
     define( 'SSCHP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
     define( 'SSCHP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
     define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -269,6 +269,10 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_chip_padding_y'          => 4,
             'sschp_woo_enabled'             => '1',
             'sschp_override_ajax'           => '',
+            'sschp_ajax_keyword_field'       => 'keyword',
+            'sschp_result_container_selector'=> '.js-ssc-results, .js-search__results, .ssc-search__results',
+            'sschp_result_image_fit'         => 'contain',
+            'sschp_result_image_size'        => 'medium',
             'sschp_search_results_count'    => 50,
             'sschp_synonym_rules'            => '',
             'sschp_pinned_chips'             => '',
@@ -320,6 +324,10 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_chip_padding_y',
             'sschp_woo_enabled',
             'sschp_override_ajax',
+            'sschp_ajax_keyword_field',
+            'sschp_result_container_selector',
+            'sschp_result_image_fit',
+            'sschp_result_image_size',
             'sschp_search_results_count',
             'sschp_synonym_rules',
             'sschp_pinned_chips',

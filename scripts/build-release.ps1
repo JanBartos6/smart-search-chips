@@ -127,7 +127,7 @@ function Write-WpOrgMain {
  * Plugin Name: Smart Search Chips
  * Plugin URI:  https://smartsearchchips.app
  * Description: Dynamic filter chips for WordPress search. Generates smart, non-redundant filter tags from the built-in Search Chips Tags field. Works with Relevanssi for best results.
- * Version:     1.0.1
+ * Version:     1.0.2
  * Author:      Jan Bartos
  * Author URI:  https://teprostroj.com
  * License:     GPL-2.0-or-later
@@ -142,7 +142,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'SSCHP_VERSION', '1.0.1' );
+define( 'SSCHP_VERSION', '1.0.2' );
 define( 'SSCHP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSCHP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -745,6 +745,8 @@ function Patch-WpOrgCoreFiles {
     $frontend = Get-Content -Raw -LiteralPath $frontendPath
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*// Pass settings to JS\s*\r?\n\s*\$analytics_enabled = false;\s*\r?\n\s*\$analytics_nonce\s+= '''';\s*\r?\n\s*if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \) \{\s*\r?\n\s*\$analytics_enabled = SSCHP_Analytics::is_enabled\(\);\s*\r?\n\s*\$analytics_nonce\s+= wp_create_nonce\( ''sschp_analytics_nonce'' \);\s*\r?\n\s*\}' -Replacement "`r`n        // Pass settings to JS`r`n        `$analytics_enabled = false;`r`n        `$analytics_nonce   = '';"
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)private function get_ajax_action_name\(\) \{.*?return ''sschp_search'';\s*\r?\n\s*\}' -Replacement "private function get_ajax_action_name() {`r`n        `$ajax_action = `$this->settings->get( 'override_ajax' );`r`n        return ! empty( `$ajax_action ) ? `$ajax_action : 'sschp_search';`r`n    }"
+    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)private function get_ajax_keyword_field_name\(\) \{.*?return ''keyword'';\s*\r?\n\s*\}' -Replacement "private function get_ajax_keyword_field_name() {`r`n        return 'keyword';`r`n    }"
+    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)private function get_result_container_selector\(\) \{.*?return \$default;\s*\r?\n\s*\}' -Replacement "private function get_result_container_selector() {`r`n        return '.js-ssc-results, .js-search__results, .ssc-search__results';`r`n    }"
     $frontend = $frontend -replace 'Free sites should always use the built-in handler even if an old Pro-only\s*\r?\n\s*\* override setting is still stored after a downgrade\.', 'Sites use the configured AJAX handler when one is provided.'
     $frontend = $frontend -replace 'SSCHP_License::max_chips\(\)', 'SSCHP_Edition::max_chips()'
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '\$request_uri = isset\( \$_SERVER\[''REQUEST_URI''\] \) \? wp_unslash\( \$_SERVER\[''REQUEST_URI''\] \) : ''/'';' -Replacement '$request_uri = isset( $_SERVER[''REQUEST_URI''] ) ? esc_url_raw( wp_unslash( $_SERVER[''REQUEST_URI''] ) ) : ''/'';'
@@ -766,6 +768,7 @@ function Patch-WpOrgCoreFiles {
     $handler = $handler -replace 'Pro is active before field mapping is configured', 'field mapping is changed'
     $handler = $handler -replace 'Pro design options \(defaults for free\)', 'Design options'
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*if \( true \) \{\s*\r?\n\s*// Use configured custom fields when present, otherwise keep\s*\r?\n\s*// the built-in fallback so sites do not lose chips just because\s*\r?\n\s*// field mapping is changed\.\s*\r?\n\s*\$tag_field\s+= \$this->settings->get\( ''tag_fields'', '''' \);\s*\r?\n\s*\$extra_field = \$this->settings->get\( ''extra_fields'', '''' \);\s*\r?\n\s*if \( ! empty\( \$tag_field \) \|\| ! empty\( \$extra_field \) \) \{\s*\r?\n\s*\$primary = \$this->get_field_value\( \$pid, \$tag_field \);\s*\r?\n\s*\$extra\s+= \$this->get_field_value\( \$pid, \$extra_field \);\s*\r?\n\s*if \( '''' === \$primary && '''' === \$extra && empty\( \$tag_field \) \) \{\s*\r?\n\s*\$primary = get_post_meta\( \$pid, SSCHP_Meta_Box::META_KEY, true \) \?: '''';\s*\r?\n\s*\}\s*\r?\n\s*\}\s*\r?\n\s*\}' -Replacement ''
+    $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*if \( true \) \{\s*\r?\n\s*\$configured = sanitize_key\( \$this->settings->get\( ''ajax_keyword_field'', ''keyword'' \) \);\s*\r?\n\s*if \( '''' !== \$configured \) \{\s*\r?\n\s*array_unshift\( \$fields, \$configured \);\s*\r?\n\s*\}\s*\r?\n\s*\}' -Replacement ''
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*/\*\*\s*\r?\n\s*\* Get a field value from a post, supporting ACF and regular post meta\..*?private function get_field_value\( \$post_id, \$field_name \) \{.*?\r?\n\s*\}\s*\r?\n\s*/\*\*\s*\r?\n\s*\* Render chips HTML\.' -Replacement "`r`n    /**`r`n     * Render chips HTML."
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)public function init\(\) \{.*?add_action\( ''wp_ajax_nopriv_sschp_search'', array\( \$this, ''handle_search'' \) \);\s*\r?\n\s*\}' -Replacement "public function init() {`r`n        `$ajax_action = `$this->settings->get( 'override_ajax' );`r`n        if ( ! empty( `$ajax_action ) ) {`r`n            add_action( 'wp_ajax_' . `$ajax_action, array( `$this, 'handle_search' ), 0 );`r`n            add_action( 'wp_ajax_nopriv_' . `$ajax_action, array( `$this, 'handle_search' ), 0 );`r`n        }`r`n`r`n        add_action( 'wp_ajax_sschp_search', array( `$this, 'handle_search' ) );`r`n        add_action( 'wp_ajax_nopriv_sschp_search', array( `$this, 'handle_search' ) );`r`n    }"
     Set-Text -Path $handlerPath -Content $handler

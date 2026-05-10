@@ -17,6 +17,14 @@
     var DEBOUNCE_MS = 300;
     var VISITOR_STORAGE_KEY = "sschp_visitor_id";
 
+    function getResultsSelector() {
+        return config.resultSelector || ".js-ssc-results, .js-search__results, .ssc-search__results";
+    }
+
+    function getKeywordField() {
+        return config.keywordField || "keyword";
+    }
+
     function getVisitorId() {
         var existing = "";
 
@@ -146,8 +154,12 @@
         }
 
         var formData = new FormData();
+        var keywordField = getKeywordField();
         formData.append("action", config.action || "sschp_search");
-        formData.append("keyword", input.value);
+        formData.append(keywordField, input.value);
+        if (keywordField !== "keyword") {
+            formData.append("keyword", input.value);
+        }
         formData.append("post_type", config.postType || "post");
         formData.append("f-form--submitted", "true");
         formData.append("sschp_lang", config.lang || "");
@@ -229,16 +241,17 @@
      * Find the results container relative to an element.
      */
     function findResults(el) {
-        var container = el.closest(".ssc-search") || el.closest(".ssc-search__results, .js-ssc-results, .js-search__results");
+        var selector = getResultsSelector();
+        var container = el.closest(".ssc-search") || el.closest(selector);
         if (container) {
             var parent = container.closest(".ssc-search") || container.parentElement;
-            return parent ? parent.querySelector(".js-ssc-results, .js-search__results, .ssc-search__results") : null;
+            return parent ? parent.querySelector(selector) : null;
         }
         // Fallback
         var form = document.querySelector(".js-ssc-search, .js-search");
         if (form) {
-            var results = form.querySelector(".js-ssc-results, .js-search__results");
-            if (!results) results = form.parentElement.querySelector(".js-ssc-results, .js-search__results");
+            var results = form.querySelector(selector);
+            if (!results) results = form.parentElement.querySelector(selector);
             return results;
         }
         return null;
@@ -346,12 +359,13 @@
         if (data instanceof FormData) {
             var hasAction = false;
             var keyword = "";
+            var keywordField = getKeywordField();
             if (data.entries) {
                 for (var pair of data.entries()) {
                     if (pair[0] === "action" && pair[1] === (config.action || "sschp_search")) {
                         hasAction = true;
                     }
-                    if (pair[0] === "keyword") {
+                    if (pair[0] === keywordField || pair[0] === "keyword" || pair[0] === "s" || pair[0] === "query") {
                         keyword = pair[1];
                     }
                 }

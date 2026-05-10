@@ -48,7 +48,7 @@ class SSCHP_Search_Handler {
             wp_die( esc_html__( 'Security check failed.', 'smart-search-chips' ) );
         }
 
-        $keyword          = isset( $_POST['keyword'] ) ? sanitize_text_field( wp_unslash( $_POST['keyword'] ) ) : '';
+        $keyword          = $this->get_search_keyword();
         $active_tags      = $this->normalize_active_tags( $this->get_active_tags_request_input() );
         $language_request = array(
             'sschp_lang' => isset( $_POST['sschp_lang'] ) ? sanitize_key( wp_unslash( $_POST['sschp_lang'] ) ) : '',
@@ -70,14 +70,23 @@ class SSCHP_Search_Handler {
 
         $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_License::max_chips() );
 
-        // Run search query (Relevanssi hooks in automatically if active)
+        // Run search query. If Relevanssi is active, explicitly hand the query
+        // to Relevanssi so theme AJAX overrides keep the same relevance order.
         $query_args = array(
             's'              => $keyword,
             'post_type'      => $post_types,
             'posts_per_page' => $max_results,
+            'post_status'    => 'publish',
+            'relevanssi'     => true,
+            'suppress_filters' => false,
         );
 
-        $query = new WP_Query( SSCHP_Language::apply_query_language( $query_args, $language ) );
+        $query_args = apply_filters( 'sschp_search_query_args', $query_args, $keyword, $active_tags, $language );
+        $query      = new WP_Query( SSCHP_Language::apply_query_language( $query_args, $language ) );
+
+        if ( function_exists( 'relevanssi_do_query' ) ) {
+            relevanssi_do_query( $query );
+        }
 
         if ( ! $query->have_posts() ) {
             header( 'X-SSC-Results-Count: 0' );
@@ -209,6 +218,43 @@ class SSCHP_Search_Handler {
     }
 
     /**
+     * Read the search keyword from the configured AJAX field.
+     *
+     * @return string
+     */
+    private function get_search_keyword() {
+        $fields = array( 'keyword', 's', 'query' );
+
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            $configured = sanitize_key( $this->settings->get( 'ajax_keyword_field', 'keyword' ) );
+            if ( '' !== $configured ) {
+                array_unshift( $fields, $configured );
+            }
+        }
+
+        $fields = apply_filters( 'sschp_ajax_keyword_fields', array_values( array_unique( array_filter( $fields ) ) ) );
+
+        foreach ( (array) $fields as $field ) {
+            $field = sanitize_key( $field );
+            if ( '' === $field ) {
+                continue;
+            }
+
+            $value = filter_input( INPUT_POST, $field, FILTER_UNSAFE_RAW );
+            if ( null === $value || false === $value ) {
+                $value = filter_input( INPUT_GET, $field, FILTER_UNSAFE_RAW );
+            }
+
+            $value = sanitize_text_field( wp_unslash( (string) $value ) );
+            if ( '' !== $value ) {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    /**
      * Collect post data with tags from relevant posts.
      *
      * @param array $relevant_posts Scored posts.
@@ -247,7 +293,8 @@ class SSCHP_Search_Handler {
                 'id'         => $pid,
                 'url'        => get_permalink( $pid ),
                 'title'      => get_the_title( $pid ),
-                'thumbnail'  => get_the_post_thumbnail( $pid, apply_filters( 'sschp_thumbnail_size', 'thumbnail' ) ),
+                'thumbnail'  => $this->get_result_thumbnail( $pid ),
+                'score'      => isset( $rp['score'] ) ? (float) $rp['score'] : 0.0,
                 'tags'       => $tag_data['tags'],
                 'tags_lower' => $tag_data['tags_lower'],
             );
@@ -279,6 +326,39 @@ class SSCHP_Search_Handler {
         // Fall back to regular post meta
         $value = get_post_meta( $post_id, $field_name, true );
         return $value ? (string) $value : '';
+    }
+
+    /**
+     * Render the result thumbnail with filterable image size.
+     *
+     * @param int $post_id Post ID.
+     * @return string Thumbnail markup.
+     */
+    private function get_result_thumbnail( $post_id ) {
+        $configured_size = sanitize_key( $this->settings->get( 'result_image_size', 'medium' ) );
+        $allowed_sizes   = array_merge( array( 'thumbnail', 'medium', 'medium_large', 'large', 'full' ), get_intermediate_image_sizes() );
+
+        if ( ! in_array( $configured_size, array_unique( $allowed_sizes ), true ) ) {
+            $configured_size = 'medium';
+        }
+
+        $image_size = apply_filters(
+            'sschp_result_image_size',
+            $configured_size,
+            $post_id,
+            array(
+                'context' => 'ajax',
+            )
+        );
+
+        return get_the_post_thumbnail(
+            $post_id,
+            $image_size,
+            array(
+                'class'   => 'ssc-result__img',
+                'loading' => 'lazy',
+            )
+        );
     }
 
     /**

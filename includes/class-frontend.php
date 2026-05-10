@@ -73,6 +73,16 @@ class SSCHP_Frontend {
             file_exists( $style_path ) ? filemtime( $style_path ) : SSCHP_VERSION
         );
 
+        $image_fit = $this->settings->get( 'result_image_fit', 'contain' );
+        if ( ! in_array( $image_fit, array( 'contain', 'cover' ), true ) ) {
+            $image_fit = 'contain';
+        }
+
+        wp_add_inline_style(
+            'smart-search-chips',
+            ':root{--ssc-result-image-fit:' . esc_html( $image_fit ) . ';}'
+        );
+
         wp_enqueue_script(
             'smart-search-chips',
             SSCHP_PLUGIN_URL . 'assets/js/chips.js',
@@ -92,6 +102,8 @@ class SSCHP_Frontend {
         wp_localize_script( 'smart-search-chips', 'sschpConfig', array(
             'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
             'action'     => $this->get_ajax_action_name(),
+            'keywordField' => $this->get_ajax_keyword_field_name(),
+            'resultSelector' => $this->get_result_container_selector(),
             'minChars'   => 2,
             'postType'   => implode( ',', (array) $this->settings->get( 'post_types', array( 'post' ) ) ),
             'nonce'      => wp_create_nonce( 'sschp_search_nonce' ),
@@ -120,6 +132,40 @@ class SSCHP_Frontend {
         }
 
         return 'sschp_search';
+    }
+
+    /**
+     * Resolve the request field that contains the search term.
+     *
+     * @return string
+     */
+    private function get_ajax_keyword_field_name() {
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            $field = sanitize_key( $this->settings->get( 'ajax_keyword_field', 'keyword' ) );
+            if ( '' !== $field ) {
+                return $field;
+            }
+        }
+
+        return 'keyword';
+    }
+
+    /**
+     * Resolve the frontend selector that receives AJAX results.
+     *
+     * @return string
+     */
+    private function get_result_container_selector() {
+        $default = '.js-ssc-results, .js-search__results, .ssc-search__results';
+
+        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            $selector = sanitize_text_field( $this->settings->get( 'result_container_selector', '' ) );
+            if ( '' !== $selector ) {
+                return $selector . ', ' . $default;
+            }
+        }
+
+        return $default;
     }
 
     /**
