@@ -232,10 +232,6 @@ class SSCHP_Range_Filters {
             data-range-value="<?php echo esc_attr( $value ); ?>"
             data-range-label="<?php echo esc_attr( $chip['label'] ); ?>"
         >
-            <div class="ssc-range-chip__header">
-                <span class="ssc-range-chip__label"><?php echo esc_html( $chip['label'] ); ?></span>
-                <span class="ssc-range-chip__count"><?php echo esc_html( (string) (int) $chip['count'] ); ?></span>
-            </div>
             <div class="ssc-range-chip__values" aria-live="polite">
                 <span class="ssc-range-chip__value" data-range-role="min-label"><?php echo esc_html( $selected_min ); ?></span>
                 <span class="ssc-range-chip__separator">-</span>
