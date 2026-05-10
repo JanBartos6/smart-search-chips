@@ -266,12 +266,11 @@ class SSCHP_Range_Filters {
                     aria-label="<?php echo esc_attr( sprintf( __( 'Maximum %s', 'smart-search-chips' ), $chip['label'] ) ); ?>"
                 />
             </div>
+            <?php if ( $is_active ) : ?>
             <div class="ssc-range-chip__actions">
-                <button type="button" class="ssc-range-chip__apply"><?php esc_html_e( 'Apply', 'smart-search-chips' ); ?></button>
-                <?php if ( $is_active ) : ?>
                     <button type="button" class="ssc-range-chip__clear"><?php esc_html_e( 'Clear', 'smart-search-chips' ); ?></button>
-                <?php endif; ?>
             </div>
+            <?php endif; ?>
         </div>
         <?php
 
@@ -448,17 +447,22 @@ class SSCHP_Range_Filters {
         $number = '';
         $unit   = '';
 
-        if ( preg_match( '/^\s*([^\d\+\-][^:=]*?)\s*(?:[:=]|\s+)\s*([-+]?\d+(?:[\.,]\d+)?)\s*([^\d\s,;]+)?\s*$/u', $tag, $matches ) ) {
+        if ( preg_match( '/^\s*([^\d\+\-][^:=]*?)\s*(?:[:=]|\s+)\s*([-+]?\d+(?:[\.,]\d+)?)\s*([^\s,;]+)?\s*$/u', $tag, $matches ) ) {
             $label  = trim( $matches[1], " \t\n\r\0\x0B:-=" );
             $number = $matches[2];
             $unit   = isset( $matches[3] ) ? trim( $matches[3] ) : '';
-        } elseif ( preg_match( '/^\s*([-+]?\d+(?:[\.,]\d+)?)\s*([^\d\s,;]+)?\s*$/u', $tag, $matches ) ) {
+        } elseif ( preg_match( '/^\s*([-+]?\d+(?:[\.,]\d+)?)\s*([^\s,;]+)?\s*$/u', $tag, $matches ) ) {
             $label  = $this->get_default_numeric_label();
             $number = $matches[1];
             $unit   = isset( $matches[2] ) ? trim( $matches[2] ) : '';
         }
 
         if ( '' === $label || '' === $number ) {
+            return null;
+        }
+
+        $unit = $this->normalize_unit( $unit );
+        if ( ! $this->is_supported_unit( $unit, $label, $tag ) ) {
             return null;
         }
 
@@ -478,6 +482,73 @@ class SSCHP_Range_Filters {
             'value'     => $value,
             'precision' => isset( $parts[1] ) ? strlen( rtrim( $parts[1], '0' ) ) : 0,
         );
+    }
+
+    /**
+     * Normalize a parsed measurement unit.
+     *
+     * @param string $unit Parsed unit.
+     * @return string
+     */
+    private function normalize_unit( $unit ) {
+        $unit = trim( (string) $unit );
+        $unit = trim( $unit, ".:;()[]{}" );
+        $unit = str_replace( array( 'μ' ), 'µ', $unit );
+
+        return $unit;
+    }
+
+    /**
+     * Decide whether a numeric tag is safe to turn into a range slider.
+     *
+     * Arbitrary numbers in product names/model labels are common, so range chips
+     * require an explicit recognized measurement unit by default.
+     *
+     * @param string $unit  Parsed unit.
+     * @param string $label Parsed label.
+     * @param string $tag   Original tag.
+     * @return bool
+     */
+    private function is_supported_unit( $unit, $label, $tag ) {
+        $requires_unit = apply_filters( 'sschp_range_requires_unit', true, $tag, $label, $unit );
+        if ( ! $requires_unit && '' === $unit ) {
+            return true;
+        }
+
+        if ( '' === $unit ) {
+            return false;
+        }
+
+        $normalized = $this->unit_to_key( $unit );
+        $allowed    = apply_filters(
+            'sschp_range_allowed_units',
+            array(
+                'w', 'kw', 'mw',
+                'v', 'kv', 'mv',
+                'a', 'ma',
+                'ohm',
+                'hz', 'khz', 'mhz', 'ghz',
+                'mm', 'cm', 'm', 'km',
+                'g', 'kg', 'mg', 't',
+                'ml', 'l',
+                'percent',
+                'deg', 'degc', 'c', 'f',
+                'n', 'kn', 'nm',
+                'bar', 'mbar', 'psi', 'pa', 'kpa', 'mpa',
+                'rpm',
+                'lm', 'lux',
+                'm3-h', 'm3-min', 'l-min', 'l-h',
+                'mah', 'ah',
+                'wh', 'kwh',
+                'gb', 'mb', 'kb', 'tb',
+                'px', 'em', 'rem',
+            ),
+            $tag,
+            $label,
+            $unit
+        );
+
+        return in_array( $normalized, array_map( 'sanitize_key', (array) $allowed ), true );
     }
 
     /**
@@ -620,6 +691,7 @@ class SSCHP_Range_Filters {
      */
     private function unit_to_key( $unit ) {
         $unit = str_replace( array( 'µ', 'μ' ), 'u', mb_strtolower( trim( (string) $unit ) ) );
+        $unit = str_replace( array( '²', '³' ), array( '2', '3' ), $unit );
         $unit = str_replace( array( '%', '°', '/', '\\' ), array( 'percent', 'deg', '-', '-' ), $unit );
         $key  = sanitize_key( preg_replace( '/[^a-z0-9_\-]+/i', '-', $unit ) );
 

@@ -13,9 +13,10 @@
     --ssc-range-font: 13px;
     display: inline-flex;
     flex-direction: column;
-    gap: 7px;
-    min-width: 190px;
-    padding: 10px 12px;
+    gap: 5px;
+    min-width: 164px;
+    max-width: 220px;
+    padding: 7px 9px;
     border: 1px solid var(--ssc-range-border);
     border-radius: var(--ssc-range-radius);
     background: var(--ssc-range-bg);
@@ -44,11 +45,14 @@
 
 .ssc-range-chip__label {
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .ssc-range-chip__count {
     min-width: 1.75em;
-    padding: 1px 6px;
+    padding: 0 5px;
     border-radius: 999px;
     background: rgba(0, 0, 0, 0.06);
     color: inherit;
@@ -60,11 +64,12 @@
     color: inherit;
     opacity: 0.86;
     font-variant-numeric: tabular-nums;
+    font-size: 0.92em;
 }
 
 .ssc-range-chip__sliders {
     position: relative;
-    height: 26px;
+    height: 20px;
 }
 
 .ssc-range-chip__sliders::before {
@@ -72,7 +77,7 @@
     position: absolute;
     right: 0;
     left: 0;
-    top: 12px;
+    top: 9px;
     height: 4px;
     border-radius: 999px;
     background: rgba(0, 0, 0, 0.12);
@@ -83,7 +88,7 @@
     left: 0;
     top: 0;
     width: 100%;
-    height: 26px;
+    height: 20px;
     margin: 0;
     background: transparent;
     pointer-events: none;
@@ -106,9 +111,9 @@
 }
 
 .ssc-range-chip__input::-webkit-slider-thumb {
-    width: 16px;
-    height: 16px;
-    margin-top: -6px;
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
     border: 2px solid #ffffff;
     border-radius: 50%;
     background: var(--ssc-range-accent);
@@ -120,8 +125,8 @@
 }
 
 .ssc-range-chip__input::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     border: 2px solid #ffffff;
     border-radius: 50%;
     background: var(--ssc-range-accent);
@@ -132,30 +137,21 @@
 
 .ssc-range-chip__actions {
     justify-content: flex-end;
+    margin-top: -2px;
 }
 
-.ssc-range-chip__apply,
 .ssc-range-chip__clear {
     border: 0;
     border-radius: 999px;
-    padding: 3px 9px;
-    font: inherit;
-    font-size: 0.9em;
-    cursor: pointer;
-}
-
-.ssc-range-chip__apply {
-    background: var(--ssc-range-accent);
-    color: #ffffff;
-}
-
-.ssc-range-chip__clear {
+    padding: 0;
     background: transparent;
     color: inherit;
+    font: inherit;
+    font-size: 0.85em;
+    cursor: pointer;
     text-decoration: underline;
 }
 
-.ssc-range-chip__apply:focus,
 .ssc-range-chip__clear:focus,
 .ssc-range-chip__input:focus::-webkit-slider-thumb {
     outline: 2px solid currentColor;

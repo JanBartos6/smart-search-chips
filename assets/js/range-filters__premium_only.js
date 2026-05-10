@@ -7,6 +7,9 @@
 (function () {
     "use strict";
 
+    var autoApplyTimers = new WeakMap();
+    var AUTO_APPLY_DELAY = 350;
+
     function findRangeChip(target) {
         return target && target.closest ? target.closest(".ssc-range-chip") : null;
     }
@@ -26,14 +29,21 @@
     }
 
     function buildRangeTag(chip, selectedMin, selectedMax) {
+        var boundsMin = parseFloat(chip.getAttribute("data-range-bounds-min") || selectedMin);
+        var boundsMax = parseFloat(chip.getAttribute("data-range-bounds-max") || selectedMax);
+
+        if (!isNaN(boundsMin) && !isNaN(boundsMax) && parseFloat(selectedMin) <= boundsMin && parseFloat(selectedMax) >= boundsMax) {
+            return "";
+        }
+
         return [
             "sschp_range",
             chip.getAttribute("data-range-group-key") || "",
             chip.getAttribute("data-range-unit-key") || "none",
             formatNumber(selectedMin),
             formatNumber(selectedMax),
-            formatNumber(chip.getAttribute("data-range-bounds-min") || selectedMin),
-            formatNumber(chip.getAttribute("data-range-bounds-max") || selectedMax)
+            formatNumber(boundsMin),
+            formatNumber(boundsMax)
         ].join("|");
     }
 
@@ -136,6 +146,20 @@
         applyAjaxRange(chip, tag);
     }
 
+    function scheduleAutoApply(chip, changedRole) {
+        var existingTimer = autoApplyTimers.get(chip);
+        if (existingTimer) {
+            clearTimeout(existingTimer);
+        }
+
+        var timer = setTimeout(function () {
+            autoApplyTimers.delete(chip);
+            applyRange(chip, syncChip(chip, changedRole || ""));
+        }, AUTO_APPLY_DELAY);
+
+        autoApplyTimers.set(chip, timer);
+    }
+
     document.addEventListener("input", function (event) {
         if (!event.target.matches || !event.target.matches(".ssc-range-chip__input")) {
             return;
@@ -146,7 +170,22 @@
             return;
         }
 
-        syncChip(chip, event.target.getAttribute("data-range-role") || "");
+        var role = event.target.getAttribute("data-range-role") || "";
+        syncChip(chip, role);
+        scheduleAutoApply(chip, role);
+    });
+
+    document.addEventListener("change", function (event) {
+        if (!event.target.matches || !event.target.matches(".ssc-range-chip__input")) {
+            return;
+        }
+
+        var chip = findRangeChip(event.target);
+        if (!chip) {
+            return;
+        }
+
+        scheduleAutoApply(chip, event.target.getAttribute("data-range-role") || "");
     });
 
     document.addEventListener("mousedown", function (event) {
@@ -155,7 +194,7 @@
             return;
         }
 
-        if (event.target.closest && event.target.closest(".ssc-range-chip__apply, .ssc-range-chip__clear")) {
+        if (event.target.closest && event.target.closest(".ssc-range-chip__clear")) {
             event.preventDefault();
         }
 
@@ -178,14 +217,13 @@
     }, true);
 
     document.addEventListener("click", function (event) {
-        var applyButton = event.target.closest ? event.target.closest(".ssc-range-chip__apply") : null;
         var clearButton = event.target.closest ? event.target.closest(".ssc-range-chip__clear") : null;
 
-        if (!applyButton && !clearButton) {
+        if (!clearButton) {
             return;
         }
 
-        var chip = findRangeChip(applyButton || clearButton);
+        var chip = findRangeChip(clearButton);
         if (!chip) {
             return;
         }
@@ -196,12 +234,13 @@
             event.stopImmediatePropagation();
         }
 
-        if (clearButton) {
-            applyRange(chip, "");
-            return;
+        var existingTimer = autoApplyTimers.get(chip);
+        if (existingTimer) {
+            clearTimeout(existingTimer);
+            autoApplyTimers.delete(chip);
         }
 
-        applyRange(chip, syncChip(chip, ""));
+        applyRange(chip, "");
     });
 
     document.addEventListener("DOMContentLoaded", function () {
