@@ -506,6 +506,23 @@ class SSCHP_Frontend {
                 }
             }
 
+            $tag_source = apply_filters(
+                'sschp_post_tag_source',
+                array(
+                    'primary' => $primary,
+                    'extra'   => $extra,
+                ),
+                $post_id,
+                array(
+                    'context' => 'archive',
+                )
+            );
+
+            if ( is_array( $tag_source ) ) {
+                $primary = isset( $tag_source['primary'] ) ? (string) $tag_source['primary'] : '';
+                $extra   = isset( $tag_source['extra'] ) ? (string) $tag_source['extra'] : '';
+            }
+
             $tag_data = $this->engine->extract_tags( $primary, $extra );
 
             $posts_data[] = array(

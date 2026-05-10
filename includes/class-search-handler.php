@@ -142,6 +142,8 @@ class SSCHP_Search_Handler {
 
         // Allow themes/plugins to modify chips
         $chips = apply_filters( 'sschp_chips', $chips, $posts_data, $active_tags );
+        header( 'X-SSC-Tagged-Posts: ' . (int) $this->count_tagged_posts( $posts_data ) );
+        header( 'X-SSC-Chips-Count: ' . (int) count( $chips ) );
 
         // Render
         $this->render_chips( $chips, $active_tags );
@@ -301,6 +303,23 @@ class SSCHP_Search_Handler {
                 }
             }
 
+            $tag_source = apply_filters(
+                'sschp_post_tag_source',
+                array(
+                    'primary' => $primary,
+                    'extra'   => $extra,
+                ),
+                $pid,
+                array(
+                    'context' => 'ajax',
+                )
+            );
+
+            if ( is_array( $tag_source ) ) {
+                $primary = isset( $tag_source['primary'] ) ? (string) $tag_source['primary'] : '';
+                $extra   = isset( $tag_source['extra'] ) ? (string) $tag_source['extra'] : '';
+            }
+
             $tag_data = $this->engine->extract_tags( $primary, $extra );
 
             $posts_data[] = array(
@@ -315,6 +334,24 @@ class SSCHP_Search_Handler {
         }
 
         return $posts_data;
+    }
+
+    /**
+     * Count posts that have at least one available chip tag.
+     *
+     * @param array $posts_data Posts data.
+     * @return int
+     */
+    private function count_tagged_posts( $posts_data ) {
+        $count = 0;
+
+        foreach ( $posts_data as $post_data ) {
+            if ( ! empty( $post_data['tags'] ) ) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 
     /**

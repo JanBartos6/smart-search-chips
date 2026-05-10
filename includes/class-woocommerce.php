@@ -22,6 +22,7 @@ class SSCHP_WooCommerce {
 
         // Auto-populate sschp_tags when a product is saved
         add_action( 'save_post_product', array( $this, 'auto_populate_tags' ), 20, 2 );
+        add_filter( 'sschp_post_tag_source', array( $this, 'add_runtime_product_tags' ), 10, 3 );
 
         // Add bulk action to generate tags for all products
         add_filter( 'bulk_actions-edit-product', array( $this, 'add_bulk_action' ) );
@@ -117,6 +118,47 @@ class SSCHP_WooCommerce {
         $tags = array_unique( array_filter( array_map( 'trim', $tags ) ) );
 
         return apply_filters( 'sschp_woocommerce_tags', $tags, $product_id, $product );
+    }
+
+    /**
+     * Add WooCommerce product-derived tags at read time.
+     *
+     * This keeps existing catalogs useful immediately, even before the stored
+     * Search Chips Tags field has been generated through save/bulk actions.
+     *
+     * @param array $source  Current tag source values.
+     * @param int   $post_id Post ID.
+     * @param array $context Read context.
+     * @return array
+     */
+    public function add_runtime_product_tags( $source, $post_id, $context = array() ) {
+        if ( ! is_array( $source ) ) {
+            $source = array();
+        }
+
+        if ( function_exists( 'get_post_type' ) && 'product' !== get_post_type( $post_id ) ) {
+            return $source;
+        }
+
+        $tags = $this->extract_product_tags( $post_id );
+        if ( empty( $tags ) ) {
+            return $source;
+        }
+
+        $tag_string = implode( '; ', $tags );
+        $primary    = isset( $source['primary'] ) ? trim( (string) $source['primary'] ) : '';
+        $extra      = isset( $source['extra'] ) ? trim( (string) $source['extra'] ) : '';
+
+        if ( '' === $primary && '' === $extra ) {
+            $source['primary'] = $tag_string;
+            $source['extra']   = '';
+            return $source;
+        }
+
+        $source['primary'] = $primary;
+        $source['extra']   = '' === $extra ? $tag_string : $extra . '; ' . $tag_string;
+
+        return $source;
     }
 
     /**
