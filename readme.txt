@@ -4,7 +4,7 @@ Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,10 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 
 == Changelog ==
 
+= 1.0.4 =
+* Fixed post type settings persistence when selecting products or other custom post types.
+* Added an extra save button below the settings style preview.
+
 = 1.0.0 =
 * Initial release
 * Core chip engine with redundancy elimination
@@ -108,6 +112,9 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 Smart Search Chips uses [Freemius](https://freemius.com/) for license management and optional usage tracking. When you opt in during activation, basic diagnostic data (WordPress version, PHP version, site URL) is shared with Freemius. You can opt out at any time. The Pro analytics feature stores search data locally in your WordPress database — it is never sent externally. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.0.4 =
+Fixes post type settings saving for product catalogs.
 
 = 1.0.0 =
 Initial release.
