@@ -262,11 +262,6 @@ class SSCHP_Range_Filters {
                     aria-label="<?php echo esc_attr( sprintf( __( 'Maximum %s', 'smart-search-chips' ), $chip['label'] ) ); ?>"
                 />
             </div>
-            <?php if ( $is_active ) : ?>
-            <div class="ssc-range-chip__actions">
-                    <button type="button" class="ssc-range-chip__clear"><?php esc_html_e( 'Clear', 'smart-search-chips' ); ?></button>
-            </div>
-            <?php endif; ?>
         </div>
         <?php
 

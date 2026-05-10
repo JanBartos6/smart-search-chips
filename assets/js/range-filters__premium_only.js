@@ -194,10 +194,6 @@
             return;
         }
 
-        if (event.target.closest && event.target.closest(".ssc-range-chip__clear")) {
-            event.preventDefault();
-        }
-
         event.stopPropagation();
         if (typeof event.stopImmediatePropagation === "function") {
             event.stopImmediatePropagation();
@@ -215,33 +211,6 @@
             event.stopImmediatePropagation();
         }
     }, true);
-
-    document.addEventListener("click", function (event) {
-        var clearButton = event.target.closest ? event.target.closest(".ssc-range-chip__clear") : null;
-
-        if (!clearButton) {
-            return;
-        }
-
-        var chip = findRangeChip(clearButton);
-        if (!chip) {
-            return;
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-        if (typeof event.stopImmediatePropagation === "function") {
-            event.stopImmediatePropagation();
-        }
-
-        var existingTimer = autoApplyTimers.get(chip);
-        if (existingTimer) {
-            clearTimeout(existingTimer);
-            autoApplyTimers.delete(chip);
-        }
-
-        applyRange(chip, "");
-    });
 
     document.addEventListener("DOMContentLoaded", function () {
         Array.prototype.forEach.call(document.querySelectorAll(".ssc-range-chip"), function (chip) {
