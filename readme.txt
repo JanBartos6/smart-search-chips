@@ -4,7 +4,7 @@ Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.7
+Stable tag: 1.0.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,10 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 
 == Changelog ==
 
+= 1.0.8 =
+* Improved Pro numeric range parsing for electrical values such as 24 V DC and 230 V AC.
+* Keeps unitless model/title numbers out of sliders while still allowing real unit-bearing measurements.
+
 = 1.0.7 =
 * Made Pro numeric range chips more conservative so random product title/model numbers do not become sliders.
 * Compact range chip styling and removed the Apply button; range changes now auto-apply.
@@ -123,6 +127,9 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 Smart Search Chips uses [Freemius](https://freemius.com/) for license management and optional usage tracking. When you opt in during activation, basic diagnostic data (WordPress version, PHP version, site URL) is shared with Freemius. You can opt out at any time. The Pro analytics feature stores search data locally in your WordPress database — it is never sent externally. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.0.8 =
+Restores useful unit-bearing sliders such as voltage while avoiding unitless junk sliders.
 
 = 1.0.7 =
 Improves Pro numeric slider relevance and switches sliders to auto-apply.
