@@ -3,7 +3,7 @@
  * Plugin Name: Smart Search Chips
  * Plugin URI:  https://smartsearchchips.app
  * Description: Dynamic filter chips for WordPress search. Generates smart, non-redundant filter tags from search results using custom fields. Works with Relevanssi for best results.
- * Version:     1.0.0
+ * Version:     1.0.1
  * Author:      Jan Bartos
  * Author URI:  https://teprostroj.com
  * License:     GPL-2.0-or-later
@@ -16,6 +16,33 @@
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
+}
+
+$sschp_current_basename = plugin_basename( __FILE__ );
+
+if ( defined( 'SSCHP_PLUGIN_BASENAME' ) && SSCHP_PLUGIN_BASENAME !== $sschp_current_basename ) {
+    if ( ! function_exists( 'sschp_premium_handoff_from_free' ) ) {
+        /**
+         * Deactivate the WordPress.org package before the premium package loads.
+         *
+         * The free WordPress.org build intentionally ships without Freemius. When
+         * the premium ZIP is installed next to it, both packages would otherwise
+         * declare the same classes during activation.
+         */
+        function sschp_premium_handoff_from_free() {
+            if ( ! function_exists( 'deactivate_plugins' ) && is_admin() ) {
+                require_once ABSPATH . 'wp-admin/includes/plugin.php';
+            }
+
+            if ( function_exists( 'deactivate_plugins' ) && defined( 'SSCHP_PLUGIN_BASENAME' ) ) {
+                deactivate_plugins( SSCHP_PLUGIN_BASENAME );
+                update_option( 'sschp_pending_pro_activation_defaults', '1', false );
+            }
+        }
+    }
+
+    sschp_premium_handoff_from_free();
+    return;
 }
 
 if ( function_exists( 'sschp_fs' ) ) {
@@ -54,6 +81,7 @@ if ( function_exists( 'sschp_fs' ) ) {
                 array(
                     'id'                  => '27046',
                     'slug'                => 'smart-search-chips',
+                    'premium_slug'        => 'smart-search-chips-premium',
                     'type'                => 'plugin',
                     'public_key'          => 'pk_69b2a1db30add56864a42e4ea9929',
                     'is_premium'          => true,
@@ -86,6 +114,7 @@ if ( function_exists( 'sschp_fs' ) ) {
             do_action( 'sschp_fs_loaded' );
         }
     }
+}
 
     /**
      * Clean up all plugin data on Freemius uninstall.
@@ -108,7 +137,7 @@ if ( function_exists( 'sschp_fs' ) ) {
         $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
     }
 
-    define( 'SSCHP_VERSION', '1.0.0' );
+    define( 'SSCHP_VERSION', '1.0.1' );
     define( 'SSCHP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
     define( 'SSCHP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
     define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -136,6 +165,11 @@ if ( function_exists( 'sschp_fs' ) ) {
      * Initialize the plugin
      */
     function sschp_init() {
+        if ( get_option( 'sschp_pending_pro_activation_defaults', '0' ) === '1' ) {
+            sschp_activate();
+            delete_option( 'sschp_pending_pro_activation_defaults' );
+        }
+
         $license = new SSCHP_License();
         $license->init();
 
@@ -362,4 +396,3 @@ if ( function_exists( 'sschp_fs' ) ) {
         return $args;
     }
     add_filter( 'http_request_args', 'sschp_adjust_freemius_http_args', 10, 2 );
-}
