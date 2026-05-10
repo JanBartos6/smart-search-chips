@@ -62,7 +62,7 @@ class SSCHP_Search_Handler {
         $language = SSCHP_Language::request_language( $language_request );
         SSCHP_Language::switch_ajax_language( $language );
 
-        $post_types     = $this->settings->get( 'post_types', array( 'post' ) );
+        $post_types     = $this->normalize_post_types( $this->settings->get( 'post_types', array( 'post' ) ) );
         $max_results    = (int) $this->settings->get( 'search_results_count', 50 );
         $threshold_pct  = (float) $this->settings->get( 'relevance_threshold', 0.3 );
         $max_tag_length = (int) $this->settings->get( 'max_tag_length', 40 );
@@ -252,6 +252,20 @@ class SSCHP_Search_Handler {
         }
 
         return '';
+    }
+
+    /**
+     * Normalize stored post type settings before building a query.
+     *
+     * @param mixed $post_types Stored post type option.
+     * @return array
+     */
+    private function normalize_post_types( $post_types ) {
+        $post_types = is_array( $post_types ) ? $post_types : array( $post_types );
+        $post_types = array_filter( array_map( 'sanitize_key', $post_types ) );
+        $post_types = array_values( array_filter( $post_types, 'post_type_exists' ) );
+
+        return ! empty( $post_types ) ? $post_types : array( 'post' );
     }
 
     /**

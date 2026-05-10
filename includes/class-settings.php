@@ -54,18 +54,48 @@ class SSCHP_Settings {
 
     public function register_settings() {
         // All settings registered flat (no sections — we render manually)
-        $fields = array(
-            'post_types', 'override_ajax', 'ajax_keyword_field', 'result_container_selector',
-            'max_chips', 'max_tag_length',
-            'woo_enabled',
-            'chip_color', 'chip_text_color', 'chip_inactive_color', 'chip_inactive_text_color',
-            'max_results', 'search_results_count', 'relevance_threshold',
-        );
-        foreach ( $fields as $f ) {
-            register_setting( 'smart-search-chips', $this->prefix . $f, array(
-                'sanitize_callback' => 'sanitize_text_field',
-            ) );
-        }
+        register_setting( 'smart-search-chips', 'sschp_post_types', array(
+            'sanitize_callback' => array( $this, 'sanitize_post_types' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_override_ajax', array(
+            'sanitize_callback' => 'sanitize_key',
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_ajax_keyword_field', array(
+            'sanitize_callback' => 'sanitize_key',
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_result_container_selector', array(
+            'sanitize_callback' => 'sanitize_text_field',
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_max_chips', array(
+            'sanitize_callback' => array( $this, 'sanitize_max_chips' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_max_tag_length', array(
+            'sanitize_callback' => array( $this, 'sanitize_max_tag_length' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_woo_enabled', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_chip_color', array(
+            'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_chip_text_color', array(
+            'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_chip_inactive_color', array(
+            'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_chip_inactive_text_color', array(
+            'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_max_results', array(
+            'sanitize_callback' => array( $this, 'sanitize_max_results' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_search_results_count', array(
+            'sanitize_callback' => array( $this, 'sanitize_search_results_count' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_relevance_threshold', array(
+            'sanitize_callback' => array( $this, 'sanitize_relevance_threshold' ),
+        ) );
 
         register_setting( 'smart-search-chips', 'sschp_tag_fields', array(
             'sanitize_callback' => array( $this, 'sanitize_custom_tag_field' ),
@@ -764,6 +794,9 @@ class SSCHP_Settings {
                                 <div class="ssc-preview-result"><div class="ssc-preview-thumb"></div><span>Product result 2</span></div>
                                 <div class="ssc-preview-result"><div class="ssc-preview-thumb"></div><span>Product result 3</span></div>
                             </div>
+                            <p class="ssc-preview-save">
+                                <button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'smart-search-chips' ); ?></button>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -811,11 +844,11 @@ class SSCHP_Settings {
 
     private function render_post_types() {
         $selected = get_option( 'sschp_post_types', array( 'post' ) );
-        if ( ! is_array( $selected ) ) {
-            $selected = array( $selected );
-        }
+        $selected = $this->sanitize_post_types( $selected );
 
         $post_types = get_post_types( array( 'public' => true ), 'objects' );
+
+        echo '<input type="hidden" name="sschp_post_types[]" value="" />';
 
         foreach ( $post_types as $pt ) {
             if ( $pt->name === 'attachment' ) continue;
@@ -1159,6 +1192,34 @@ class SSCHP_Settings {
         return ! empty( $value ) ? '1' : '0';
     }
 
+    /**
+     * Sanitize the selected searchable post types.
+     *
+     * @param mixed $value Raw option value.
+     * @return array
+     */
+    public function sanitize_post_types( $value ) {
+        $selected = is_array( $value ) ? $value : array( $value );
+        $selected = array_filter( array_map( 'sanitize_key', $selected ) );
+        $public   = get_post_types( array( 'public' => true ), 'names' );
+        $public   = array_diff( $public, array( 'attachment' ) );
+
+        $selected = array_values( array_intersect( $selected, $public ) );
+
+        return ! empty( $selected ) ? $selected : array( 'post' );
+    }
+
+    /**
+     * Sanitize a hex color option.
+     *
+     * @param mixed $value Raw option value.
+     * @return string
+     */
+    public function sanitize_hex_color_setting( $value ) {
+        $color = sanitize_hex_color( (string) $value );
+        return $color ? $color : '';
+    }
+
     public function sanitize_result_image_fit( $value ) {
         $value = sanitize_key( $value );
         return in_array( $value, array( 'contain', 'cover' ), true ) ? $value : 'contain';
@@ -1167,6 +1228,64 @@ class SSCHP_Settings {
     public function sanitize_result_image_size( $value ) {
         $value = sanitize_key( $value );
         return '' !== $value ? $value : 'medium';
+    }
+
+    /**
+     * Sanitize the max chips setting.
+     *
+     * @param mixed $value Raw value.
+     * @return int
+     */
+    public function sanitize_max_chips( $value ) {
+        return $this->sanitize_numeric_setting( $value, 8, 1, SSCHP_License::max_chips() );
+    }
+
+    /**
+     * Sanitize the max tag length setting.
+     *
+     * @param mixed $value Raw value.
+     * @return int
+     */
+    public function sanitize_max_tag_length( $value ) {
+        return $this->sanitize_numeric_setting( $value, 40, 5, 120 );
+    }
+
+    /**
+     * Sanitize the visible result count.
+     *
+     * @param mixed $value Raw value.
+     * @return int
+     */
+    public function sanitize_max_results( $value ) {
+        return $this->sanitize_numeric_setting( $value, 10, 1, 100 );
+    }
+
+    /**
+     * Sanitize the analyzed result count.
+     *
+     * @param mixed $value Raw value.
+     * @return int
+     */
+    public function sanitize_search_results_count( $value ) {
+        return $this->sanitize_numeric_setting( $value, 50, 5, 200 );
+    }
+
+    /**
+     * Sanitize the Relevanssi relevance threshold.
+     *
+     * @param mixed $value Raw value.
+     * @return float
+     */
+    public function sanitize_relevance_threshold( $value ) {
+        if ( '' === $value || ! is_numeric( $value ) ) {
+            return 0.3;
+        }
+
+        $value = (float) $value;
+        $value = max( 0, $value );
+        $value = min( 1, $value );
+
+        return $value;
     }
 
     /**

@@ -589,6 +589,7 @@ class SSCHP_Settings {
                                 <div class="ssc-preview-result"><div class="ssc-preview-thumb"></div><span>Product result 2</span></div>
                                 <div class="ssc-preview-result"><div class="ssc-preview-thumb"></div><span>Product result 3</span></div>
                             </div>
+                            <p class="ssc-preview-save"><button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'smart-search-chips' ); ?></button></p>
                         </div>
                     </div>
                 </div>
@@ -629,11 +630,11 @@ class SSCHP_Settings {
 
     private function render_post_types() {
         $selected = get_option( 'sschp_post_types', array( 'post' ) );
-        if ( ! is_array( $selected ) ) {
-            $selected = array( $selected );
-        }
+        $selected = $this->sanitize_post_types( $selected );
 
         $post_types = get_post_types( array( 'public' => true ), 'objects' );
+
+        echo '<input type="hidden" name="sschp_post_types[]" value="" />';
 
         foreach ( $post_types as $pt ) {
             if ( 'attachment' === $pt->name ) {
@@ -657,6 +658,7 @@ class SSCHP_Settings {
         $selected = is_array( $value ) ? $value : array( $value );
         $selected = array_filter( array_map( 'sanitize_key', $selected ) );
         $public   = get_post_types( array( 'public' => true ), 'names' );
+        $public   = array_diff( $public, array( 'attachment' ) );
 
         $selected = array_values( array_intersect( $selected, $public ) );
 
