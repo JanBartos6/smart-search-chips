@@ -96,8 +96,8 @@
 
 .ssc-result__image {
     flex-shrink: 0;
-    width: var(--ssc-result-image-size, 48px);
-    height: var(--ssc-result-image-size, 48px);
+    width: var(--ssc-result-image-size, 64px);
+    height: var(--ssc-result-image-size, 64px);
     padding: var(--ssc-result-image-padding, 4px);
     margin: 0;
     overflow: visible;

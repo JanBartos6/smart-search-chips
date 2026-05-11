@@ -53,6 +53,42 @@
         }
     }
 
+    function closeSearchUi(input, resultsContainer) {
+        clearTimeout(debounceTimer);
+
+        if (resultsContainer && resultsContainer.classList) {
+            resultsContainer.classList.remove("ssc-loading");
+            resultsContainer.classList.remove("ssc-search-active");
+            resultsContainer.innerHTML = "";
+            resultsContainer.style.display = "none";
+            resultsContainer.setAttribute("hidden", "hidden");
+            resultsContainer.setAttribute("aria-hidden", "true");
+            resultsContainer.setAttribute("aria-expanded", "false");
+        }
+
+        var root = input ? input.closest("form, .ssc-search, .js-search, .js-ssc-search") : null;
+        if (root && root.classList) {
+            root.classList.remove("ssc-search-root-active");
+            root.setAttribute("aria-expanded", "false");
+        }
+    }
+
+    function findSearchDismissControl(target) {
+        if (!target || !target.closest) {
+            return null;
+        }
+
+        return target.closest([
+            ".js-search__clear",
+            ".js-search__close",
+            ".ssc-search__clear",
+            ".ssc-search__close",
+            "[data-search-clear]",
+            "[data-search-close]",
+            "button[type=\"reset\"]"
+        ].join(", "));
+    }
+
     function getVisitorId() {
         var existing = "";
 
@@ -172,7 +208,7 @@
      */
     function doSearch(input, resultsContainer, meta) {
         if (!input || input.value.length < (config.minChars || 2)) {
-            if (resultsContainer) resultsContainer.innerHTML = "";
+            closeSearchUi(input, resultsContainer);
             return;
         }
 
@@ -496,10 +532,19 @@
      * Reset active tags when search is cleared.
      */
     document.addEventListener("click", function (e) {
-        if (e.target.closest(".js-search__clear, .ssc-search__clear")) {
-            activeTags = [];
+        var control = findSearchDismissControl(e.target);
+        if (!control) {
+            return;
         }
-    });
+
+        var input = findInput(control);
+        var results = findResults(control);
+        activeTags = [];
+        closeSearchUi(input, results);
+        window.setTimeout(function () {
+            closeSearchUi(input, results);
+        }, 0);
+    }, true);
 
     /**
      * Built-in search form handler (for [ssc_search] shortcode) - with debounce.
@@ -513,9 +558,8 @@
         if (input.value.length >= (config.minChars || 2)) {
             debouncedSearch(input, results);
         } else if (results) {
-            clearTimeout(debounceTimer);
-            results.innerHTML = "";
             activeTags = [];
+            closeSearchUi(input, results);
         }
     });
 

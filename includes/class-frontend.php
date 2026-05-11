@@ -338,8 +338,9 @@ class SSCHP_Frontend {
 
         $query_hash   = spl_object_hash( $query );
         $source_posts = isset( $this->loop_source_posts[ $query_hash ] ) ? $this->loop_source_posts[ $query_hash ] : $query->posts;
-        $posts_data   = $this->collect_posts_data( $query->posts );
         $active_tags  = $this->get_active_archive_tags();
+        $chip_posts   = ! empty( $active_tags ) && ! empty( $source_posts ) ? $source_posts : $query->posts;
+        $posts_data   = $this->collect_posts_data( $chip_posts );
         $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_License::max_chips() );
         $max_length   = (int) $this->settings->get( 'max_tag_length', 40 );
         $chips        = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_length );
