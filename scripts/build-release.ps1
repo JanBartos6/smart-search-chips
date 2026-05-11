@@ -127,7 +127,7 @@ function Write-WpOrgMain {
  * Plugin Name: Smart Search Chips
  * Plugin URI:  https://smartsearchchips.app
  * Description: Dynamic filter chips for WordPress search. Generates smart, non-redundant filter tags from the built-in Search Chips Tags field. Works with Relevanssi for best results.
- * Version:     1.0.13
+ * Version:     1.0.14
  * Author:      Jan Bartos
  * Author URI:  https://teprostroj.com
  * License:     GPL-2.0-or-later
@@ -142,7 +142,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'SSCHP_VERSION', '1.0.13' );
+define( 'SSCHP_VERSION', '1.0.14' );
 define( 'SSCHP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSCHP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -373,6 +373,7 @@ class SSCHP_Settings {
         add_action( 'admin_menu', array( $this, 'add_menu_page' ) );
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_post_sschp_delete_plugin_data_now', array( $this, 'handle_delete_data_now' ) );
+        add_action( 'admin_post_sschp_dismiss_onboarding', array( $this, 'handle_dismiss_onboarding' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
         add_filter( 'plugin_action_links_' . SSCHP_PLUGIN_BASENAME, array( $this, 'add_settings_link' ) );
     }
@@ -396,6 +397,8 @@ class SSCHP_Settings {
         $url  = admin_url( 'options-general.php?page=smart-search-chips' );
         $link = '<a href="' . esc_url( $url ) . '">' . __( 'Settings', 'smart-search-chips' ) . '</a>';
         array_unshift( $links, $link );
+        $links[] = '<a href="' . esc_url( SSCHP_Edition::get_product_url() ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View Pro Features', 'smart-search-chips' ) . '</a>';
+        $links[] = '<a href="' . esc_url( SSCHP_Edition::get_product_url() ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Upgrade to Pro', 'smart-search-chips' ) . '</a>';
         return $links;
     }
 
@@ -479,6 +482,18 @@ class SSCHP_Settings {
                 <div class="notice notice-info"><p><strong><?php esc_html_e( 'Relevanssi not detected.', 'smart-search-chips' ); ?></strong> <?php esc_html_e( 'Install Relevanssi for relevance scoring. Smart Search Chips also works with default WordPress search.', 'smart-search-chips' ); ?></p></div>
             <?php endif; ?>
 
+            <?php if ( ! get_user_meta( get_current_user_id(), 'sschp_onboarding_dismissed', true ) ) : ?>
+                <div class="notice notice-info ssc-onboarding-panel">
+                    <p><strong><?php esc_html_e( 'Set up Smart Search Chips', 'smart-search-chips' ); ?></strong></p>
+                    <p><?php esc_html_e( 'Free setup: choose searchable post types, add Search Chips Tags to products or posts, then use the shortcode or archive chips to show filters.', 'smart-search-chips' ); ?></p>
+                    <p class="description"><?php esc_html_e( 'Pro is a separate upgrade for ACF/custom field mapping, numeric slider chips, analytics, synonym rules, manual curation, AI-assisted tag workflows, and commercial support.', 'smart-search-chips' ); ?></p>
+                    <p>
+                        <a class="button button-secondary" href="<?php echo esc_url( SSCHP_Edition::get_product_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Pro Features', 'smart-search-chips' ); ?></a>
+                        <a class="button-link" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sschp_dismiss_onboarding' ), 'sschp_dismiss_onboarding' ) ); ?>"><?php esc_html_e( 'Dismiss setup panel', 'smart-search-chips' ); ?></a>
+                    </p>
+                </div>
+            <?php endif; ?>
+
             <form method="post" action="options.php">
                 <?php settings_fields( 'smart-search-chips' ); ?>
 
@@ -490,13 +505,6 @@ class SSCHP_Settings {
                             <div class="ssc-badge ssc-badge--free"><?php esc_html_e( 'Free', 'smart-search-chips' ); ?></div>
                             <p><strong><?php echo esc_html( SSCHP_Edition::get_status_label() ); ?></strong></p>
                             <p class="description"><?php echo esc_html( SSCHP_Edition::get_status_description() ); ?></p>
-                        </div>
-
-                        <div class="ssc-settings-card">
-                            <h2><?php esc_html_e( 'Smart Search Chips Pro', 'smart-search-chips' ); ?></h2>
-                            <p><?php esc_html_e( 'Need ACF/custom field connectors, numeric range slider chips, search analytics, synonym rules, manual chip curation, AI-assisted tag workflows, and commercial support? Smart Search Chips Pro is available as a separate product from our website.', 'smart-search-chips' ); ?></p>
-                            <p class="description"><?php esc_html_e( 'The WordPress.org plugin remains fully functional with its built-in Search Chips Tags field. Pro is an optional add-on for teams that want existing field integrations, catalog optimization, reporting, and workflow extras.', 'smart-search-chips' ); ?></p>
-                            <p><a class="button button-secondary" href="<?php echo esc_url( SSCHP_Edition::get_product_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Pro Features', 'smart-search-chips' ); ?></a></p>
                         </div>
 
                         <div class="ssc-settings-card">
@@ -591,6 +599,20 @@ class SSCHP_Settings {
                             </div>
                             <p class="ssc-preview-save"><button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'smart-search-chips' ); ?></button></p>
                         </div>
+
+                        <div class="ssc-sidebar-card ssc-sidebar-card--pro">
+                            <h3><?php esc_html_e( 'Need Pro Features?', 'smart-search-chips' ); ?></h3>
+                            <p><?php esc_html_e( 'Pro is a separate upgrade for ACF/custom fields, numeric sliders, analytics, synonyms, manual curation, AI-assisted tag workflows, and commercial support.', 'smart-search-chips' ); ?></p>
+                            <ul>
+                                <li><?php esc_html_e( 'Map existing ACF or custom tag fields.', 'smart-search-chips' ); ?></li>
+                                <li><?php esc_html_e( 'Turn numeric chip variants into range sliders.', 'smart-search-chips' ); ?></li>
+                                <li><?php esc_html_e( 'Review local search analytics and curate chip labels.', 'smart-search-chips' ); ?></li>
+                            </ul>
+                            <p>
+                                <a class="button button-primary" href="<?php echo esc_url( SSCHP_Edition::get_product_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Upgrade to Pro', 'smart-search-chips' ); ?></a>
+                                <a class="button button-secondary" href="<?php echo esc_url( SSCHP_Edition::get_product_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Features', 'smart-search-chips' ); ?></a>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -616,6 +638,25 @@ class SSCHP_Settings {
         check_admin_referer( 'sschp_delete_plugin_data_now' );
         sschp_delete_plugin_data();
         set_transient( 'sschp_data_deleted_' . get_current_user_id(), '1', MINUTE_IN_SECONDS );
+
+        wp_safe_redirect(
+            add_query_arg(
+                array(
+                    'page' => 'smart-search-chips',
+                ),
+                admin_url( 'options-general.php' )
+            )
+        );
+        exit;
+    }
+
+    public function handle_dismiss_onboarding() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have permission to change this setting.', 'smart-search-chips' ) );
+        }
+
+        check_admin_referer( 'sschp_dismiss_onboarding' );
+        update_user_meta( get_current_user_id(), 'sschp_onboarding_dismissed', '1' );
 
         wp_safe_redirect(
             add_query_arg(

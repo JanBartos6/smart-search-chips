@@ -18,6 +18,7 @@ class SSCHP_Settings {
         add_action( 'admin_menu', array( $this, 'add_menu_page' ) );
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_post_sschp_delete_plugin_data_now', array( $this, 'handle_delete_data_now' ) );
+        add_action( 'admin_post_sschp_dismiss_onboarding', array( $this, 'handle_dismiss_onboarding' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
         add_filter( 'plugin_action_links_' . SSCHP_PLUGIN_BASENAME, array( $this, 'add_settings_link' ) );
     }
@@ -49,6 +50,19 @@ class SSCHP_Settings {
         $url  = admin_url( 'options-general.php?page=smart-search-chips' );
         $link = '<a href="' . esc_url( $url ) . '">' . __( 'Settings', 'smart-search-chips' ) . '</a>';
         array_unshift( $links, $link );
+
+        if ( SSCHP_License::is_pro() ) {
+            $account_url = SSCHP_License::get_account_url();
+            if ( $account_url ) {
+                $links[] = '<a href="' . esc_url( $account_url ) . '">' . esc_html__( 'Manage License', 'smart-search-chips' ) . '</a>';
+            }
+
+            return $links;
+        }
+
+        $links[] = '<a href="' . esc_url( $this->get_pro_features_url() ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View Pro Features', 'smart-search-chips' ) . '</a>';
+        $links[] = '<a href="' . esc_url( $this->get_upgrade_url() ) . '">' . esc_html__( 'Upgrade to Pro', 'smart-search-chips' ) . '</a>';
+
         return $links;
     }
 
@@ -288,6 +302,18 @@ class SSCHP_Settings {
                 <div class="notice notice-info"><p><strong><?php esc_html_e( 'Relevanssi not detected.', 'smart-search-chips' ); ?></strong> <?php esc_html_e( 'Install Relevanssi (free) for relevance scoring.', 'smart-search-chips' ); ?></p></div>
             <?php endif; ?>
 
+            <?php if ( ! get_user_meta( get_current_user_id(), 'sschp_onboarding_dismissed', true ) ) : ?>
+                <div class="notice notice-info ssc-onboarding-panel">
+                    <p><strong><?php esc_html_e( 'Set up Smart Search Chips', 'smart-search-chips' ); ?></strong></p>
+                    <p><?php esc_html_e( 'Free setup: choose searchable post types, add Search Chips Tags to products or posts, then use the shortcode or archive chips to show filters.', 'smart-search-chips' ); ?></p>
+                    <p class="description"><?php esc_html_e( 'Pro is a separate upgrade for ACF/custom field mapping, numeric slider chips, analytics, synonym rules, manual curation, AI-assisted tag workflows, and commercial support.', 'smart-search-chips' ); ?></p>
+                    <p>
+                        <a class="button button-secondary" href="<?php echo esc_url( $this->get_pro_features_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Pro Features', 'smart-search-chips' ); ?></a>
+                        <a class="button-link" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sschp_dismiss_onboarding' ), 'sschp_dismiss_onboarding' ) ); ?>"><?php esc_html_e( 'Dismiss setup panel', 'smart-search-chips' ); ?></a>
+                    </p>
+                </div>
+            <?php endif; ?>
+
             <form method="post" action="options.php">
                 <?php settings_fields( 'smart-search-chips' ); ?>
 
@@ -334,7 +360,7 @@ class SSCHP_Settings {
                                         <?php if ( $is_pro ) : ?>
                                             <p class="description"><?php esc_html_e( 'If you already use your own tag meta field, you can map it in Advanced settings.', 'smart-search-chips' ); ?></p>
                                         <?php else : ?>
-                                            <p class="description"><?php esc_html_e( 'Upgrade to Pro to map an existing custom field instead.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Need ACF/custom fields? Smart Search Chips Pro supports mapped fields as a separate upgrade.', 'smart-search-chips' ); ?></p>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -809,6 +835,28 @@ class SSCHP_Settings {
                                 <button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'smart-search-chips' ); ?></button>
                             </p>
                         </div>
+
+                        <div class="ssc-sidebar-card ssc-sidebar-card--pro">
+                            <?php if ( $is_pro ) : ?>
+                                <h3><?php esc_html_e( 'Pro Active', 'smart-search-chips' ); ?></h3>
+                                <p><?php esc_html_e( 'This site can use Pro features including ACF/custom fields, numeric sliders, analytics, synonyms, manual curation, and AI-assisted tag workflows.', 'smart-search-chips' ); ?></p>
+                                <?php if ( SSCHP_License::get_account_url() ) : ?>
+                                    <p><a class="button button-secondary" href="<?php echo esc_url( SSCHP_License::get_account_url() ); ?>"><?php esc_html_e( 'Manage License', 'smart-search-chips' ); ?></a></p>
+                                <?php endif; ?>
+                            <?php else : ?>
+                                <h3><?php esc_html_e( 'Need Pro Features?', 'smart-search-chips' ); ?></h3>
+                                <p><?php esc_html_e( 'Pro is a separate upgrade for ACF/custom fields, numeric sliders, analytics, synonyms, manual curation, AI-assisted tag workflows, and commercial support.', 'smart-search-chips' ); ?></p>
+                                <ul>
+                                    <li><?php esc_html_e( 'Map existing ACF or custom tag fields.', 'smart-search-chips' ); ?></li>
+                                    <li><?php esc_html_e( 'Turn numeric chip variants into range sliders.', 'smart-search-chips' ); ?></li>
+                                    <li><?php esc_html_e( 'Review local search analytics and curate chip labels.', 'smart-search-chips' ); ?></li>
+                                </ul>
+                                <p>
+                                    <a class="button button-primary" href="<?php echo esc_url( $this->get_upgrade_url() ); ?>"><?php esc_html_e( 'Upgrade to Pro', 'smart-search-chips' ); ?></a>
+                                    <a class="button button-secondary" href="<?php echo esc_url( $this->get_pro_features_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Features', 'smart-search-chips' ); ?></a>
+                                </p>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -839,6 +887,30 @@ class SSCHP_Settings {
 
         sschp_delete_plugin_data( false );
         set_transient( 'sschp_data_deleted_' . get_current_user_id(), '1', MINUTE_IN_SECONDS );
+
+        wp_safe_redirect(
+            add_query_arg(
+                array(
+                    'page' => 'smart-search-chips',
+                ),
+                admin_url( 'options-general.php' )
+            )
+        );
+        exit;
+    }
+
+    /**
+     * Dismiss the settings-page setup panel for the current administrator.
+     *
+     * @return void
+     */
+    public function handle_dismiss_onboarding() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have permission to change this setting.', 'smart-search-chips' ) );
+        }
+
+        check_admin_referer( 'sschp_dismiss_onboarding' );
+        update_user_meta( get_current_user_id(), 'sschp_onboarding_dismissed', '1' );
 
         wp_safe_redirect(
             add_query_arg(
@@ -1421,6 +1493,26 @@ class SSCHP_Settings {
         $value = min( $max, $value );
 
         return $value;
+    }
+
+    /**
+     * Public product page for feature details.
+     *
+     * @return string
+     */
+    private function get_pro_features_url() {
+        return 'https://smartsearchchips.app/';
+    }
+
+    /**
+     * Prefer Freemius checkout in the Pro-capable build, with website fallback.
+     *
+     * @return string
+     */
+    private function get_upgrade_url() {
+        $upgrade_url = SSCHP_License::get_upgrade_url();
+
+        return $upgrade_url ? $upgrade_url : $this->get_pro_features_url();
     }
 
     /**
