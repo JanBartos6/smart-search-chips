@@ -73,15 +73,25 @@ class SSCHP_Frontend {
             file_exists( $style_path ) ? filemtime( $style_path ) : SSCHP_VERSION
         );
 
-        $image_fit = $this->settings->get( 'result_image_fit', 'contain' );
-        if ( ! in_array( $image_fit, array( 'contain', 'cover' ), true ) ) {
-            $image_fit = 'contain';
+        $image_fit         = $this->settings->get( 'result_image_fit', '' );
+        $image_display_px  = absint( $this->settings->get( 'result_image_display_size', 0 ) );
+        $image_declarations = array();
+
+        if ( in_array( $image_fit, array( 'contain', 'cover' ), true ) ) {
+            $image_declarations[] = '--ssc-result-image-fit:' . $image_fit;
         }
 
-        wp_add_inline_style(
-            'smart-search-chips',
-            ':root{--ssc-result-image-fit:' . esc_html( $image_fit ) . ';}'
-        );
+        if ( $image_display_px > 0 ) {
+            $image_declarations[] = '--ssc-result-image-size:' . $image_display_px . 'px';
+            $image_declarations[] = '--ssc-result-image-padding:4px';
+        }
+
+        if ( ! empty( $image_declarations ) ) {
+            wp_add_inline_style(
+                'smart-search-chips',
+                ':root{' . esc_html( implode( ';', $image_declarations ) ) . ';}'
+            );
+        }
 
         wp_enqueue_script(
             'smart-search-chips',
@@ -338,9 +348,8 @@ class SSCHP_Frontend {
 
         $query_hash   = spl_object_hash( $query );
         $source_posts = isset( $this->loop_source_posts[ $query_hash ] ) ? $this->loop_source_posts[ $query_hash ] : $query->posts;
+        $posts_data   = $this->collect_posts_data( $query->posts );
         $active_tags  = $this->get_active_archive_tags();
-        $chip_posts   = ! empty( $active_tags ) && ! empty( $source_posts ) ? $source_posts : $query->posts;
-        $posts_data   = $this->collect_posts_data( $chip_posts );
         $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_License::max_chips() );
         $max_length   = (int) $this->settings->get( 'max_tag_length', 40 );
         $chips        = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_length );

@@ -126,10 +126,8 @@ class SSCHP_Search_Handler {
             $relevant_posts = $scored_posts;
         }
 
-        // Build posts data with tags. Keep the unfiltered set for chips so
-        // selecting one chip does not collapse the available chip choices.
-        $chip_posts_data = $this->collect_posts_data( $relevant_posts );
-        $posts_data      = $chip_posts_data;
+        // Build posts data with tags.
+        $posts_data = $this->collect_posts_data( $relevant_posts );
 
         // Filter by active tags
         if ( ! empty( $active_tags ) ) {
@@ -140,11 +138,11 @@ class SSCHP_Search_Handler {
         header( 'X-SSC-Results-Count: ' . (int) $total );
 
         // Generate chips
-        $chips = $this->engine->generate_chips( $chip_posts_data, $active_tags, $max_chips, $max_tag_length );
+        $chips = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_tag_length );
 
         // Allow themes/plugins to modify chips
-        $chips = apply_filters( 'sschp_chips', $chips, $chip_posts_data, $active_tags );
-        header( 'X-SSC-Tagged-Posts: ' . (int) $this->count_tagged_posts( $chip_posts_data ) );
+        $chips = apply_filters( 'sschp_chips', $chips, $posts_data, $active_tags );
+        header( 'X-SSC-Tagged-Posts: ' . (int) $this->count_tagged_posts( $posts_data ) );
         header( 'X-SSC-Chips-Count: ' . (int) count( $chips ) );
 
         // Render

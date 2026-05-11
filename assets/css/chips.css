@@ -96,13 +96,13 @@
 
 .ssc-result__image {
     flex-shrink: 0;
-    width: var(--ssc-result-image-size, 64px);
-    height: var(--ssc-result-image-size, 64px);
-    padding: var(--ssc-result-image-padding, 4px);
+    width: var(--ssc-result-image-size, auto);
+    height: var(--ssc-result-image-size, auto);
+    padding: var(--ssc-result-image-padding, 0);
     margin: 0;
     overflow: visible;
     border-radius: 0;
-    background: #fff;
+    background: transparent;
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -110,9 +110,11 @@
 }
 
 .ssc-result__image img {
-    width: 100%;
-    height: 100%;
-    object-fit: var(--ssc-result-image-fit, contain);
+    width: var(--ssc-result-image-size, auto);
+    height: var(--ssc-result-image-size, auto);
+    max-width: var(--ssc-result-image-size, 100%);
+    max-height: var(--ssc-result-image-size, none);
+    object-fit: var(--ssc-result-image-fit, initial);
 }
 
 .ssc-result__title {

@@ -158,6 +158,9 @@ class SSCHP_Settings {
         register_setting( 'smart-search-chips', 'sschp_result_image_size', array(
             'sanitize_callback' => array( $this, 'sanitize_result_image_size' ),
         ) );
+        register_setting( 'smart-search-chips', 'sschp_result_image_display_size', array(
+            'sanitize_callback' => array( $this, 'sanitize_result_image_display_size' ),
+        ) );
     }
 
     /**
@@ -719,12 +722,13 @@ class SSCHP_Settings {
                                     <tr>
                                         <th><?php esc_html_e( 'Result Image Fit', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <?php $image_fit = $this->sanitize_result_image_fit( get_option( 'sschp_result_image_fit', 'contain' ) ); ?>
+                                            <?php $image_fit = $this->sanitize_result_image_fit( get_option( 'sschp_result_image_fit', '' ) ); ?>
                                             <select name="sschp_result_image_fit">
+                                                <option value="" <?php selected( $image_fit, '' ); ?>><?php esc_html_e( 'Theme/default', 'smart-search-chips' ); ?></option>
                                                 <option value="contain" <?php selected( $image_fit, 'contain' ); ?>><?php esc_html_e( 'Contain', 'smart-search-chips' ); ?></option>
                                                 <option value="cover" <?php selected( $image_fit, 'cover' ); ?>><?php esc_html_e( 'Cover', 'smart-search-chips' ); ?></option>
                                             </select>
-                                            <p class="description"><?php esc_html_e( 'Contain keeps full product images visible. Cover crops images to fill the square.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Leave as Theme/default unless SSC-rendered AJAX results need explicit image fitting.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -732,6 +736,13 @@ class SSCHP_Settings {
                                         <td>
                                             <input type="text" name="sschp_result_image_size" value="<?php echo esc_attr( get_option( 'sschp_result_image_size', 'medium' ) ); ?>" class="regular-text" />
                                             <p class="description"><?php esc_html_e( 'WordPress image size used for AJAX results. Common values: `thumbnail`, `medium`, `large`, `full`. Developers can override this with the `sschp_result_image_size` filter.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Result Image Display Size', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <input type="number" name="sschp_result_image_display_size" value="<?php echo esc_attr( get_option( 'sschp_result_image_display_size', '' ) ); ?>" class="small-text" min="0" step="1" />
+                                            <p class="description"><?php esc_html_e( 'Optional pixel size for SSC-rendered AJAX result thumbnails. Leave empty or 0 to avoid forcing a display size.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <?php else : ?>
@@ -1222,12 +1233,17 @@ class SSCHP_Settings {
 
     public function sanitize_result_image_fit( $value ) {
         $value = sanitize_key( $value );
-        return in_array( $value, array( 'contain', 'cover' ), true ) ? $value : 'contain';
+        return in_array( $value, array( '', 'contain', 'cover' ), true ) ? $value : '';
     }
 
     public function sanitize_result_image_size( $value ) {
         $value = sanitize_key( $value );
         return '' !== $value ? $value : 'medium';
+    }
+
+    public function sanitize_result_image_display_size( $value ) {
+        $value = absint( $value );
+        return $value > 0 ? $value : '';
     }
 
     /**

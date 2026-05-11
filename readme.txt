@@ -4,7 +4,7 @@ Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.12
+Stable tag: 1.0.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,10 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 
 == Changelog ==
 
+= 1.0.13 =
+* Restored chip generation to use the currently filtered result set after chip selection.
+* Removed the forced AJAX result thumbnail display size by default and added an optional pixel override.
+
 = 1.0.12 =
 * Fixed theme search close buttons leaving an empty active results strip.
 * Keeps chip suggestions available from the base search set after a chip is selected.
@@ -144,6 +148,9 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 Smart Search Chips uses [Freemius](https://freemius.com/) for license management and optional usage tracking. When you opt in during activation, basic diagnostic data (WordPress version, PHP version, site URL) is shared with Freemius. You can opt out at any time. The Pro analytics feature stores search data locally in your WordPress database — it is never sent externally. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.0.13 =
+Restores filtered-set chip generation and makes AJAX result thumbnail display sizing opt-in.
 
 = 1.0.12 =
 Improves live-search close behavior, chip continuity after selection, and default result image size.
