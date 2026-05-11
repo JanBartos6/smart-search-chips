@@ -43,9 +43,30 @@ class SSCHP_License {
      * @return bool
      */
     public static function is_pro() {
+        return self::can_use_premium_code();
+    }
+
+    /**
+     * Safely check whether premium-only code may run.
+     *
+     * Freemius strips or renames premium helpers depending on the build. Keeping
+     * this in one wrapper prevents direct installs from fataling when the SDK or
+     * premium helper method is unavailable.
+     *
+     * @return bool
+     */
+    public static function can_use_premium_code() {
         $freemius = self::freemius();
 
-        return $freemius ? (bool) $freemius->can_use_premium_code() : false;
+        if ( ! $freemius ) {
+            return false;
+        }
+
+        if ( method_exists( $freemius, 'can_use_premium_code__premium_only' ) ) {
+            return (bool) $freemius->can_use_premium_code__premium_only();
+        }
+
+        return method_exists( $freemius, 'can_use_premium_code' ) ? (bool) $freemius->can_use_premium_code() : false;
     }
 
     /**
@@ -177,7 +198,7 @@ class SSCHP_License {
      * @return bool
      */
     public static function can_use_relevanssi() {
-        return self::is_pro();
+        return true;
     }
 
     /**
@@ -186,7 +207,7 @@ class SSCHP_License {
      * @return bool
      */
     public static function can_use_advanced_design() {
-        return self::is_pro();
+        return true;
     }
 
     /**
@@ -195,7 +216,7 @@ class SSCHP_License {
      * @return bool
      */
     public static function can_use_ajax_override() {
-        return self::is_pro();
+        return true;
     }
 
     /**

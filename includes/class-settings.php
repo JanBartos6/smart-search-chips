@@ -80,6 +80,9 @@ class SSCHP_Settings {
         register_setting( 'smart-search-chips', 'sschp_result_container_selector', array(
             'sanitize_callback' => 'sanitize_text_field',
         ) );
+        register_setting( 'smart-search-chips', 'sschp_search_input_selector', array(
+            'sanitize_callback' => 'sanitize_text_field',
+        ) );
         register_setting( 'smart-search-chips', 'sschp_max_chips', array(
             'sanitize_callback' => array( $this, 'sanitize_max_chips' ),
         ) );
@@ -219,7 +222,7 @@ class SSCHP_Settings {
             return;
         }
 
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+        if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_AI_Tagger' ) ) {
             wp_enqueue_script(
                 'smart-search-chips-admin-ai',
                 SSCHP_PLUGIN_URL . 'assets/js/admin-ai.js',
@@ -528,7 +531,7 @@ class SSCHP_Settings {
                                         </td>
                                     </tr>
                                 </table>
-                                <?php if ( $analytics_on === '1' && sschp_fs()->can_use_premium_code__premium_only() ) : ?>
+                                <?php if ( $analytics_on === '1' && SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) : ?>
                                     <?php $analytics = SSCHP_Analytics::get_dashboard_data(); ?>
                                     <div class="ssc-analytics-dashboard">
                                         <div class="ssc-analytics-stats">
@@ -723,25 +726,31 @@ class SSCHP_Settings {
                                         </td>
                                     </tr>
                                     <?php endif; ?>
-                                    <?php if ( $is_pro ) : ?>
                                     <tr>
                                         <th><?php esc_html_e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <input type="text" name="sschp_override_ajax" value="<?php echo esc_attr( get_option( 'sschp_override_ajax', '' ) ); ?>" class="regular-text" />
-                                            <p class="description"><?php esc_html_e( 'Pro advanced integration only. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Optional. Use your theme\'s existing AJAX search action name (for example `search_processing`) if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th><?php esc_html_e( 'Keyword Field Name', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <input type="text" name="sschp_ajax_keyword_field" value="<?php echo esc_attr( get_option( 'sschp_ajax_keyword_field', 'keyword' ) ); ?>" class="regular-text" />
-                                            <p class="description"><?php esc_html_e( 'The request field that contains the typed search term. Your theme uses `keyword`; other common values are `s` and `query`.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'The request field that contains the typed search term. Common values are `keyword`, `s`, `query`, and `search`.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Search Input Selector', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <input type="text" name="sschp_search_input_selector" value="<?php echo esc_attr( get_option( 'sschp_search_input_selector', '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]' ) ); ?>" class="large-text" />
+                                            <p class="description"><?php esc_html_e( 'CSS selector used to find the live-search input. Keep the default unless your theme uses a custom search field.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th><?php esc_html_e( 'Result Container Selector', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <input type="text" name="sschp_result_container_selector" value="<?php echo esc_attr( get_option( 'sschp_result_container_selector', '.js-ssc-results, .js-search__results, .ssc-search__results' ) ); ?>" class="regular-text" />
+                                            <input type="text" name="sschp_result_container_selector" value="<?php echo esc_attr( get_option( 'sschp_result_container_selector', '.js-ssc-results, .js-search__results, .ssc-search__results' ) ); ?>" class="large-text" />
                                             <p class="description"><?php esc_html_e( 'CSS selector for the theme element that receives AJAX results, for example `.js-search__results`.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
@@ -771,14 +780,6 @@ class SSCHP_Settings {
                                             <p class="description"><?php esc_html_e( 'Optional pixel size for SSC-rendered AJAX result thumbnails. Leave empty or 0 to avoid forcing a display size.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
-                                    <?php else : ?>
-                                    <tr>
-                                        <th><?php esc_html_e( 'Override AJAX Action', 'smart-search-chips' ); ?></th>
-                                        <td>
-                                            <p class="description"><?php esc_html_e( 'Pro can hook into an existing theme AJAX action when you need to piggyback on a custom live-search implementation. Standard shortcode AJAX search and loop chips still work in Free.', 'smart-search-chips' ); ?></p>
-                                        </td>
-                                    </tr>
-                                    <?php endif; ?>
                                 </table>
                             </div>
                         </details>
@@ -981,7 +982,7 @@ class SSCHP_Settings {
         $analytics = null;
         $events    = array();
 
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+        if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) {
             $is_pro    = SSCHP_License::is_pro();
             $range     = SSCHP_Analytics::get_date_range( $range_args );
             $analytics = $is_pro && $analytics_on === '1' ? SSCHP_Analytics::get_dashboard_data( $range ) : null;

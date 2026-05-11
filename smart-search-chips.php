@@ -3,7 +3,7 @@
  * Plugin Name: Smart Search Chips
  * Plugin URI:  https://smartsearchchips.app
  * Description: Dynamic filter chips for WordPress search. Generates smart, non-redundant filter tags from search results using custom fields. Works with Relevanssi for best results.
- * Version:     1.0.14
+ * Version:     1.0.15
  * Author:      Jan Bartos
  * Author URI:  https://teprostroj.com
  * License:     GPL-2.0-or-later
@@ -137,7 +137,7 @@ if ( function_exists( 'sschp_fs' ) ) {
         $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
     }
 
-    define( 'SSCHP_VERSION', '1.0.14' );
+    define( 'SSCHP_VERSION', '1.0.15' );
     define( 'SSCHP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
     define( 'SSCHP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
     define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -154,7 +154,7 @@ if ( function_exists( 'sschp_fs' ) ) {
     require_once SSCHP_PLUGIN_DIR . 'includes/class-meta-box.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-woocommerce.php';
 
-    if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+    if ( SSCHP_License::is_pro() ) {
         require_once SSCHP_PLUGIN_DIR . 'includes/class-chip-rules__premium_only.php';
         require_once SSCHP_PLUGIN_DIR . 'includes/class-range-filters__premium_only.php';
         require_once SSCHP_PLUGIN_DIR . 'includes/class-analytics__premium_only.php';
@@ -184,7 +184,13 @@ if ( function_exists( 'sschp_fs' ) ) {
         $frontend = new SSCHP_Frontend( $settings, $engine );
         $frontend->init();
 
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+        if (
+            SSCHP_License::is_pro()
+            && class_exists( 'SSCHP_Chip_Rules' )
+            && class_exists( 'SSCHP_Range_Filters' )
+            && class_exists( 'SSCHP_Analytics' )
+            && class_exists( 'SSCHP_AI_Tagger' )
+        ) {
             $chip_rules = new SSCHP_Chip_Rules();
             $chip_rules->init();
 
@@ -218,7 +224,7 @@ if ( function_exists( 'sschp_fs' ) ) {
         }
 
         // Only register custom field meta if Pro
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+        if ( SSCHP_License::is_pro() ) {
             $fields = array();
             $tag_field   = get_option( 'sschp_tag_fields', '' );
             $extra_field = get_option( 'sschp_extra_fields', '' );
@@ -271,8 +277,10 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_override_ajax'           => '',
             'sschp_ajax_keyword_field'       => 'keyword',
             'sschp_result_container_selector'=> '.js-ssc-results, .js-search__results, .ssc-search__results',
-            'sschp_result_image_fit'         => 'contain',
+            'sschp_search_input_selector'    => '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]',
+            'sschp_result_image_fit'         => '',
             'sschp_result_image_size'        => 'medium',
+            'sschp_result_image_display_size'=> '',
             'sschp_search_results_count'    => 50,
             'sschp_synonym_rules'            => '',
             'sschp_pinned_chips'             => '',
@@ -294,7 +302,7 @@ if ( function_exists( 'sschp_fs' ) ) {
             }
         }
 
-        if ( function_exists( 'sschp_fs' ) && sschp_fs() && sschp_fs()->can_use_premium_code__premium_only() ) {
+        if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) {
             SSCHP_Analytics::create_table();
         }
     }
@@ -326,8 +334,10 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_override_ajax',
             'sschp_ajax_keyword_field',
             'sschp_result_container_selector',
+            'sschp_search_input_selector',
             'sschp_result_image_fit',
             'sschp_result_image_size',
+            'sschp_result_image_display_size',
             'sschp_search_results_count',
             'sschp_synonym_rules',
             'sschp_pinned_chips',
@@ -359,7 +369,7 @@ if ( function_exists( 'sschp_fs' ) ) {
 
         delete_metadata( 'post', 0, 'sschp_tags', '', true );
 
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+        if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) {
             if ( $drop_analytics_table ) {
                 SSCHP_Analytics::drop_table();
                 delete_option( SSCHP_Analytics::DB_VERSION_OPTION );

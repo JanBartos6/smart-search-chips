@@ -104,21 +104,22 @@ class SSCHP_Frontend {
         // Pass settings to JS
         $analytics_enabled = false;
         $analytics_nonce   = '';
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+        if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) {
             $analytics_enabled = SSCHP_Analytics::is_enabled();
             $analytics_nonce   = wp_create_nonce( 'sschp_analytics_nonce' );
         }
 
         wp_localize_script( 'smart-search-chips', 'sschpConfig', array(
-            'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
-            'action'     => $this->get_ajax_action_name(),
-            'keywordField' => $this->get_ajax_keyword_field_name(),
+            'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+            'action'        => $this->get_ajax_action_name(),
+            'keywordField'  => $this->get_ajax_keyword_field_name(),
+            'inputSelector' => $this->get_search_input_selector(),
             'resultSelector' => $this->get_result_container_selector(),
-            'minChars'   => 2,
-            'postType'   => implode( ',', (array) $this->settings->get( 'post_types', array( 'post' ) ) ),
-            'nonce'      => wp_create_nonce( 'sschp_search_nonce' ),
-            'lang'       => SSCHP_Language::current_language(),
-            'analytics'  => array(
+            'minChars'      => 2,
+            'postType'      => implode( ',', (array) $this->settings->get( 'post_types', array( 'post' ) ) ),
+            'nonce'         => wp_create_nonce( 'sschp_search_nonce' ),
+            'lang'          => SSCHP_Language::current_language(),
+            'analytics'     => array(
                 'enabled' => $analytics_enabled,
                 'nonce'   => $analytics_nonce,
             ),
@@ -128,17 +129,12 @@ class SSCHP_Frontend {
     /**
      * Resolve the AJAX action name that the frontend should call.
      *
-     * Free sites should always use the built-in handler even if an old Pro-only
-     * override setting is still stored after a downgrade.
-     *
      * @return string
      */
     private function get_ajax_action_name() {
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
-            $ajax_action = $this->settings->get( 'override_ajax' );
-            if ( ! empty( $ajax_action ) ) {
-                return $ajax_action;
-            }
+        $ajax_action = sanitize_key( $this->settings->get( 'override_ajax', '' ) );
+        if ( '' !== $ajax_action ) {
+            return $ajax_action;
         }
 
         return 'sschp_search';
@@ -150,14 +146,24 @@ class SSCHP_Frontend {
      * @return string
      */
     private function get_ajax_keyword_field_name() {
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
-            $field = sanitize_key( $this->settings->get( 'ajax_keyword_field', 'keyword' ) );
-            if ( '' !== $field ) {
-                return $field;
-            }
+        $field = sanitize_key( $this->settings->get( 'ajax_keyword_field', 'keyword' ) );
+        if ( '' !== $field ) {
+            return $field;
         }
 
         return 'keyword';
+    }
+
+    /**
+     * Resolve the frontend selector used to find a search input.
+     *
+     * @return string
+     */
+    private function get_search_input_selector() {
+        $default  = '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]';
+        $selector = sanitize_text_field( $this->settings->get( 'search_input_selector', '' ) );
+
+        return '' !== $selector ? $selector : $default;
     }
 
     /**
@@ -167,12 +173,10 @@ class SSCHP_Frontend {
      */
     private function get_result_container_selector() {
         $default = '.js-ssc-results, .js-search__results, .ssc-search__results';
+        $selector = sanitize_text_field( $this->settings->get( 'result_container_selector', '' ) );
 
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
-            $selector = sanitize_text_field( $this->settings->get( 'result_container_selector', '' ) );
-            if ( '' !== $selector ) {
-                return $selector . ', ' . $default;
-            }
+        if ( '' !== $selector ) {
+            return $selector . ', ' . $default;
         }
 
         return $default;
@@ -502,7 +506,7 @@ class SSCHP_Frontend {
             $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
             $extra   = '';
 
-            if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            if ( SSCHP_License::is_pro() ) {
                 $tag_field   = $this->settings->get( 'tag_fields', '' );
                 $extra_field = $this->settings->get( 'extra_fields', '' );
 
@@ -635,17 +639,10 @@ class SSCHP_Frontend {
         $inactive_color = $this->get_color_setting( 'chip_inactive_color', '#ffffff' );
         $inactive_text  = $this->get_color_setting( 'chip_inactive_text_color', '#333333' );
 
-        $radius    = 16;
-        $font_size = 13;
-        $pad_x     = 12;
-        $pad_y     = 4;
-
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
-            $radius    = $this->get_numeric_setting( 'chip_radius', 16, 0 );
-            $font_size = $this->get_numeric_setting( 'chip_font_size', 13, 8 );
-            $pad_x     = $this->get_numeric_setting( 'chip_padding_x', 12, 0 );
-            $pad_y     = $this->get_numeric_setting( 'chip_padding_y', 4, 0 );
-        }
+        $radius    = $this->get_numeric_setting( 'chip_radius', 16, 0 );
+        $font_size = $this->get_numeric_setting( 'chip_font_size', 13, 8 );
+        $pad_x     = $this->get_numeric_setting( 'chip_padding_x', 12, 0 );
+        $pad_y     = $this->get_numeric_setting( 'chip_padding_y', 4, 0 );
 
         return array(
             'background' => $is_active ? $color : $inactive_color,

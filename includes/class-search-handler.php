@@ -26,13 +26,10 @@ class SSCHP_Search_Handler {
      * Register AJAX hooks.
      */
     public function init() {
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
-            // Override existing AJAX action (Pro only)
-            $ajax_action = $this->settings->get( 'override_ajax' );
-            if ( ! empty( $ajax_action ) ) {
-                add_action( 'wp_ajax_' . $ajax_action, array( $this, 'handle_search' ), 0 );
-                add_action( 'wp_ajax_nopriv_' . $ajax_action, array( $this, 'handle_search' ), 0 );
-            }
+        $ajax_action = sanitize_key( $this->settings->get( 'override_ajax', '' ) );
+        if ( '' !== $ajax_action && 'sschp_search' !== $ajax_action ) {
+            add_action( 'wp_ajax_' . $ajax_action, array( $this, 'handle_search' ), 0 );
+            add_action( 'wp_ajax_nopriv_' . $ajax_action, array( $this, 'handle_search' ), 0 );
         }
 
         // Always register our own action
@@ -111,11 +108,7 @@ class SSCHP_Search_Handler {
         }
         wp_reset_postdata();
 
-        // Filter by relevance threshold (Pro + Relevanssi only)
-        $use_relevance = false;
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
-            $use_relevance = $top_score > 0;
-        }
+        $use_relevance = $top_score > 0;
         if ( $use_relevance ) {
             $threshold      = $top_score * $threshold_pct;
             $relevant_posts = array_filter( $scored_posts, function( $p ) use ( $threshold ) {
@@ -225,13 +218,11 @@ class SSCHP_Search_Handler {
      * @return string
      */
     private function get_search_keyword() {
-        $fields = array( 'keyword', 's', 'query' );
+        $fields = array( 'keyword', 's', 'query', 'search' );
 
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
-            $configured = sanitize_key( $this->settings->get( 'ajax_keyword_field', 'keyword' ) );
-            if ( '' !== $configured ) {
-                array_unshift( $fields, $configured );
-            }
+        $configured = sanitize_key( $this->settings->get( 'ajax_keyword_field', 'keyword' ) );
+        if ( '' !== $configured ) {
+            array_unshift( $fields, $configured );
         }
 
         $fields = apply_filters( 'sschp_ajax_keyword_fields', array_values( array_unique( array_filter( $fields ) ) ) );
@@ -286,7 +277,7 @@ class SSCHP_Search_Handler {
             $primary = get_post_meta( $pid, SSCHP_Meta_Box::META_KEY, true ) ?: '';
             $extra   = '';
 
-            if ( sschp_fs()->can_use_premium_code__premium_only() ) {
+            if ( SSCHP_License::is_pro() ) {
                 // Pro: use configured custom fields when present, otherwise keep
                 // the built-in fallback so sites do not lose chips just because
                 // Pro is active before field mapping is configured.
@@ -428,18 +419,10 @@ class SSCHP_Search_Handler {
         $inactive_color = $this->get_color_setting( 'chip_inactive_color', '#ffffff' );
         $inactive_text  = $this->get_color_setting( 'chip_inactive_text_color', '#333333' );
 
-        // Pro design options (defaults for free)
-        $radius    = 16;
-        $font_size = 13;
-        $pad_x     = 12;
-        $pad_y     = 4;
-
-        if ( sschp_fs()->can_use_premium_code__premium_only() ) {
-            $radius    = $this->get_numeric_setting( 'chip_radius', 16, 0 );
-            $font_size = $this->get_numeric_setting( 'chip_font_size', 13, 8 );
-            $pad_x     = $this->get_numeric_setting( 'chip_padding_x', 12, 0 );
-            $pad_y     = $this->get_numeric_setting( 'chip_padding_y', 4, 0 );
-        }
+        $radius    = $this->get_numeric_setting( 'chip_radius', 16, 0 );
+        $font_size = $this->get_numeric_setting( 'chip_font_size', 13, 8 );
+        $pad_x     = $this->get_numeric_setting( 'chip_padding_x', 12, 0 );
+        $pad_y     = $this->get_numeric_setting( 'chip_padding_y', 4, 0 );
 
         echo '<div class="ssc-chips">';
 

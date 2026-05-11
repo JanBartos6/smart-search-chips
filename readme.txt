@@ -4,7 +4,7 @@ Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.14
+Stable tag: 1.0.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,7 @@ Smart Search Chips adds dynamic, clickable filter chips to your WordPress search
 **How it works:**
 
 1. User types a search query
-2. Plugin analyzes the top results and their custom field tags
+2. Plugin analyzes the top results and their Search Chips Tags or Pro custom field tags
 3. Displays clickable filter chips ranked by frequency
 4. Automatically eliminates redundant chips (tags shared by all results)
 5. Clicking a chip filters results to only show matching products
@@ -27,7 +27,7 @@ Smart Search Chips adds dynamic, clickable filter chips to your WordPress search
 * Dynamic chip generation from search results - no predefined facets needed
 * Smart redundancy elimination - chips that don't help narrow results are hidden
 * Works with Relevanssi (recommended) for relevance-based scoring
-* Uses custom fields (ACF or regular post meta) as tag sources
+* Uses the built-in Search Chips Tags field, with ACF/custom field connectors in Pro
 * AJAX-powered live search with instant filtering
 * Fully customizable colors, limits, and thresholds
 * Override existing theme AJAX search handlers
@@ -50,14 +50,14 @@ Smart Search Chips adds dynamic, clickable filter chips to your WordPress search
 1. Upload the `smart-search-chips` folder to `/wp-content/plugins/`
 2. Activate the plugin through the Plugins menu
 3. Go to Settings > Search Chips to configure
-4. Set your custom field names (primary tag field + extra tag field)
+4. Add Search Chips Tags to your posts/products, or map existing custom fields in Pro
 5. Select which post types to search
 6. Optionally install Relevanssi (free) for better search ranking
 
 **Quick Start:**
 
-1. Create a custom field on your posts/products (e.g. `search_tags`) with semicolon-separated tags
-2. In plugin settings, set "Primary Tag Field" to your field name
+1. Add semicolon-separated tags to the built-in Search Chips Tags field on your posts/products
+2. Select which post types to search in Settings > Search Chips
 3. Add `[sschp_search]` shortcode to any page, or set "Override AJAX Action" to hook into your theme's existing search
 
 == Frequently Asked Questions ==
@@ -68,7 +68,7 @@ No, but it's recommended. Without Relevanssi, the plugin uses default WordPress 
 
 = How do I populate the tag fields? =
 
-You can use ACF (Advanced Custom Fields), regular WordPress custom fields, or populate them programmatically via the REST API. Tags should be semicolon-separated in the primary field and comma-separated in the extra field.
+Free uses the built-in Search Chips Tags field. Pro can map existing ACF or regular WordPress custom fields and can expose authenticated REST workflows for chip rules and AI-assisted tagging.
 
 = Can I override the search result HTML? =
 
@@ -80,7 +80,7 @@ The algorithm ranks tags by frequency, then for each candidate chip checks if it
 
 = Can I use this with WooCommerce? =
 
-Yes. Set "Post Types" to include "product" and use WooCommerce product attributes or ACF fields as your tag source.
+Yes. Set "Post Types" to include "product". Free can use the built-in Search Chips Tags field and WooCommerce helper tags; Pro can also map ACF or regular custom fields.
 
 = Can external automation manage Pro chip rules? =
 
@@ -93,6 +93,11 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 3. The Smart Search Chips demo homepage
 
 == Changelog ==
+
+= 1.0.15 =
+* Made theme AJAX compatibility settings available without Pro gating.
+* Added configurable search input selector, keyword field, result container, and result image handling to the compatibility settings.
+* Hardened internal feature checks to avoid direct-install fatals when optional billing components are unavailable.
 
 = 1.0.14 =
 * Added compliant admin-only Pro feature links on the plugin row, settings sidebar, and setup panel.
@@ -152,6 +157,9 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 Smart Search Chips uses [Freemius](https://freemius.com/) for license management and optional usage tracking. When you opt in during activation, basic diagnostic data (WordPress version, PHP version, site URL) is shared with Freemius. You can opt out at any time. The Pro analytics feature stores search data locally in your WordPress database — it is never sent externally. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.0.15 =
+Improves theme live-search compatibility settings and hardens internal feature checks.
 
 = 1.0.14 =
 Adds factual admin-only Pro feature links and setup guidance.

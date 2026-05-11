@@ -127,7 +127,7 @@ function Write-WpOrgMain {
  * Plugin Name: Smart Search Chips
  * Plugin URI:  https://smartsearchchips.app
  * Description: Dynamic filter chips for WordPress search. Generates smart, non-redundant filter tags from the built-in Search Chips Tags field. Works with Relevanssi for best results.
- * Version:     1.0.14
+ * Version:     1.0.15
  * Author:      Jan Bartos
  * Author URI:  https://teprostroj.com
  * License:     GPL-2.0-or-later
@@ -142,7 +142,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'SSCHP_VERSION', '1.0.14' );
+define( 'SSCHP_VERSION', '1.0.15' );
 define( 'SSCHP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSCHP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -223,6 +223,12 @@ function sschp_activate() {
         'sschp_chip_padding_y'           => 4,
         'sschp_woo_enabled'              => '1',
         'sschp_override_ajax'            => '',
+        'sschp_ajax_keyword_field'        => 'keyword',
+        'sschp_result_container_selector' => '.js-ssc-results, .js-search__results, .ssc-search__results',
+        'sschp_search_input_selector'     => '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]',
+        'sschp_result_image_fit'          => '',
+        'sschp_result_image_size'         => 'medium',
+        'sschp_result_image_display_size' => '',
         'sschp_search_results_count'     => 50,
         'sschp_delete_data_on_uninstall' => '0',
     );
@@ -257,6 +263,12 @@ function sschp_get_option_keys() {
         'sschp_chip_padding_y',
         'sschp_woo_enabled',
         'sschp_override_ajax',
+        'sschp_ajax_keyword_field',
+        'sschp_result_container_selector',
+        'sschp_search_input_selector',
+        'sschp_result_image_fit',
+        'sschp_result_image_size',
+        'sschp_result_image_display_size',
         'sschp_search_results_count',
         'sschp_delete_data_on_uninstall',
     );
@@ -405,6 +417,9 @@ class SSCHP_Settings {
     public function register_settings() {
         register_setting( 'smart-search-chips', 'sschp_post_types', array( 'sanitize_callback' => array( $this, 'sanitize_post_types' ) ) );
         register_setting( 'smart-search-chips', 'sschp_override_ajax', array( 'sanitize_callback' => 'sanitize_key' ) );
+        register_setting( 'smart-search-chips', 'sschp_ajax_keyword_field', array( 'sanitize_callback' => 'sanitize_key' ) );
+        register_setting( 'smart-search-chips', 'sschp_result_container_selector', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+        register_setting( 'smart-search-chips', 'sschp_search_input_selector', array( 'sanitize_callback' => 'sanitize_text_field' ) );
         register_setting( 'smart-search-chips', 'sschp_max_chips', array( 'sanitize_callback' => array( $this, 'sanitize_max_chips' ) ) );
         register_setting( 'smart-search-chips', 'sschp_max_tag_length', array( 'sanitize_callback' => array( $this, 'sanitize_max_tag_length' ) ) );
         register_setting( 'smart-search-chips', 'sschp_woo_enabled', array( 'sanitize_callback' => array( $this, 'sanitize_checkbox' ) ) );
@@ -420,6 +435,9 @@ class SSCHP_Settings {
         register_setting( 'smart-search-chips', 'sschp_chip_padding_x', array( 'sanitize_callback' => array( $this, 'sanitize_chip_padding_x' ) ) );
         register_setting( 'smart-search-chips', 'sschp_chip_padding_y', array( 'sanitize_callback' => array( $this, 'sanitize_chip_padding_y' ) ) );
         register_setting( 'smart-search-chips', 'sschp_delete_data_on_uninstall', array( 'sanitize_callback' => array( $this, 'sanitize_checkbox' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_result_image_fit', array( 'sanitize_callback' => array( $this, 'sanitize_result_image_fit' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_result_image_size', array( 'sanitize_callback' => array( $this, 'sanitize_result_image_size' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_result_image_display_size', array( 'sanitize_callback' => array( $this, 'sanitize_result_image_display_size' ) ) );
     }
 
     /**
@@ -571,7 +589,13 @@ class SSCHP_Settings {
                             <div class="ssc-settings-card__body">
                                 <p class="description"><?php esc_html_e( 'Only change these if you already know your field names or need to integrate with an existing setup.', 'smart-search-chips' ); ?></p>
                                 <table class="form-table">
-                                    <tr><th><?php esc_html_e( 'Override AJAX Action', 'smart-search-chips' ); ?></th><td><input type="text" name="sschp_override_ajax" value="<?php echo esc_attr( get_option( 'sschp_override_ajax', '' ) ); ?>" class="regular-text" /><p class="description"><?php esc_html_e( 'Use your theme existing AJAX search action name if you need Smart Search Chips to hook into it. Requests still require the Smart Search Chips nonce.', 'smart-search-chips' ); ?></p></td></tr>
+                                    <tr><th><?php esc_html_e( 'Override AJAX Action', 'smart-search-chips' ); ?></th><td><input type="text" name="sschp_override_ajax" value="<?php echo esc_attr( get_option( 'sschp_override_ajax', '' ) ); ?>" class="regular-text" /><p class="description"><?php esc_html_e( 'Optional. Use your theme existing AJAX search action name if you need Smart Search Chips to hook into it.', 'smart-search-chips' ); ?></p></td></tr>
+                                    <tr><th><?php esc_html_e( 'Keyword Field Name', 'smart-search-chips' ); ?></th><td><input type="text" name="sschp_ajax_keyword_field" value="<?php echo esc_attr( get_option( 'sschp_ajax_keyword_field', 'keyword' ) ); ?>" class="regular-text" /><p class="description"><?php esc_html_e( 'The request field that contains the typed search term. Common values are `keyword`, `s`, `query`, and `search`.', 'smart-search-chips' ); ?></p></td></tr>
+                                    <tr><th><?php esc_html_e( 'Search Input Selector', 'smart-search-chips' ); ?></th><td><input type="text" name="sschp_search_input_selector" value="<?php echo esc_attr( get_option( 'sschp_search_input_selector', '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]' ) ); ?>" class="large-text" /><p class="description"><?php esc_html_e( 'CSS selector used to find the live-search input. Keep the default unless your theme uses a custom search field.', 'smart-search-chips' ); ?></p></td></tr>
+                                    <tr><th><?php esc_html_e( 'Result Container Selector', 'smart-search-chips' ); ?></th><td><input type="text" name="sschp_result_container_selector" value="<?php echo esc_attr( get_option( 'sschp_result_container_selector', '.js-ssc-results, .js-search__results, .ssc-search__results' ) ); ?>" class="large-text" /><p class="description"><?php esc_html_e( 'CSS selector for the theme element that receives AJAX results, for example `.js-search__results`.', 'smart-search-chips' ); ?></p></td></tr>
+                                    <tr><th><?php esc_html_e( 'Result Image Fit', 'smart-search-chips' ); ?></th><td><?php $image_fit = $this->sanitize_result_image_fit( get_option( 'sschp_result_image_fit', '' ) ); ?><select name="sschp_result_image_fit"><option value="" <?php selected( $image_fit, '' ); ?>><?php esc_html_e( 'Theme/default', 'smart-search-chips' ); ?></option><option value="contain" <?php selected( $image_fit, 'contain' ); ?>><?php esc_html_e( 'Contain', 'smart-search-chips' ); ?></option><option value="cover" <?php selected( $image_fit, 'cover' ); ?>><?php esc_html_e( 'Cover', 'smart-search-chips' ); ?></option></select><p class="description"><?php esc_html_e( 'Leave as Theme/default unless SSC-rendered AJAX results need explicit image fitting.', 'smart-search-chips' ); ?></p></td></tr>
+                                    <tr><th><?php esc_html_e( 'Result Image Size', 'smart-search-chips' ); ?></th><td><input type="text" name="sschp_result_image_size" value="<?php echo esc_attr( get_option( 'sschp_result_image_size', 'medium' ) ); ?>" class="regular-text" /><p class="description"><?php esc_html_e( 'WordPress image size used for AJAX results. Common values: `thumbnail`, `medium`, `large`, `full`.', 'smart-search-chips' ); ?></p></td></tr>
+                                    <tr><th><?php esc_html_e( 'Result Image Display Size', 'smart-search-chips' ); ?></th><td><input type="number" name="sschp_result_image_display_size" value="<?php echo esc_attr( get_option( 'sschp_result_image_display_size', '' ) ); ?>" class="small-text" min="0" step="1" /><p class="description"><?php esc_html_e( 'Optional pixel size for SSC-rendered AJAX result thumbnails. Leave empty or 0 to avoid forcing a display size.', 'smart-search-chips' ); ?></p></td></tr>
                                 </table>
                             </div>
                         </details>
@@ -711,6 +735,21 @@ class SSCHP_Settings {
         return $color ? $color : '';
     }
 
+    public function sanitize_result_image_fit( $value ) {
+        $value = sanitize_key( $value );
+        return in_array( $value, array( '', 'contain', 'cover' ), true ) ? $value : '';
+    }
+
+    public function sanitize_result_image_size( $value ) {
+        $value = sanitize_key( $value );
+        return '' !== $value ? $value : 'medium';
+    }
+
+    public function sanitize_result_image_display_size( $value ) {
+        $value = absint( $value );
+        return $value > 0 ? $value : '';
+    }
+
     public function sanitize_max_chips( $value ) {
         return $this->sanitize_numeric_setting( $value, 8, 1, SSCHP_Edition::max_chips() );
     }
@@ -786,13 +825,14 @@ function Patch-WpOrgCoreFiles {
 
     $frontendPath = Join-Path $PluginDir 'includes\class-frontend.php'
     $frontend = Get-Content -Raw -LiteralPath $frontendPath
-    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*// Pass settings to JS\s*\r?\n\s*\$analytics_enabled = false;\s*\r?\n\s*\$analytics_nonce\s+= '''';\s*\r?\n\s*if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \) \{\s*\r?\n\s*\$analytics_enabled = SSCHP_Analytics::is_enabled\(\);\s*\r?\n\s*\$analytics_nonce\s+= wp_create_nonce\( ''sschp_analytics_nonce'' \);\s*\r?\n\s*\}' -Replacement "`r`n        // Pass settings to JS`r`n        `$analytics_enabled = false;`r`n        `$analytics_nonce   = '';"
-    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)private function get_ajax_action_name\(\) \{.*?return ''sschp_search'';\s*\r?\n\s*\}' -Replacement "private function get_ajax_action_name() {`r`n        `$ajax_action = `$this->settings->get( 'override_ajax' );`r`n        return ! empty( `$ajax_action ) ? `$ajax_action : 'sschp_search';`r`n    }"
-    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)private function get_ajax_keyword_field_name\(\) \{.*?return ''keyword'';\s*\r?\n\s*\}' -Replacement "private function get_ajax_keyword_field_name() {`r`n        return 'keyword';`r`n    }"
-    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)private function get_result_container_selector\(\) \{.*?return \$default;\s*\r?\n\s*\}' -Replacement "private function get_result_container_selector() {`r`n        return '.js-ssc-results, .js-search__results, .ssc-search__results';`r`n    }"
+    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*// Pass settings to JS\s*\r?\n\s*\$analytics_enabled = false;\s*\r?\n\s*\$analytics_nonce\s+= '''';\s*\r?\n\s*if \( SSCHP_License::is_pro\(\) && class_exists\( ''SSCHP_Analytics'' \) \) \{\s*\r?\n\s*\$analytics_enabled = SSCHP_Analytics::is_enabled\(\);\s*\r?\n\s*\$analytics_nonce\s+= wp_create_nonce\( ''sschp_analytics_nonce'' \);\s*\r?\n\s*\}' -Replacement "`r`n        // Pass settings to JS`r`n        `$analytics_enabled = false;`r`n        `$analytics_nonce   = '';"
+    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)private function get_ajax_action_name\(\) \{.*?return ''sschp_search'';\s*\r?\n\s*\}' -Replacement "private function get_ajax_action_name() {`r`n        `$ajax_action = sanitize_key( `$this->settings->get( 'override_ajax', '' ) );`r`n        return '' !== `$ajax_action ? `$ajax_action : 'sschp_search';`r`n    }"
+    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)private function get_ajax_keyword_field_name\(\) \{.*?return ''keyword'';\s*\r?\n\s*\}' -Replacement "private function get_ajax_keyword_field_name() {`r`n        `$field = sanitize_key( `$this->settings->get( 'ajax_keyword_field', 'keyword' ) );`r`n        return '' !== `$field ? `$field : 'keyword';`r`n    }"
+    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)private function get_result_container_selector\(\) \{.*?return \$default;\s*\r?\n\s*\}' -Replacement "private function get_result_container_selector() {`r`n        `$default = '.js-ssc-results, .js-search__results, .ssc-search__results';`r`n        `$selector = sanitize_text_field( `$this->settings->get( 'result_container_selector', '' ) );`r`n        return '' !== `$selector ? `$selector . ', ' . `$default : `$default;`r`n    }"
     $frontend = $frontend -replace 'Free sites should always use the built-in handler even if an old Pro-only\s*\r?\n\s*\* override setting is still stored after a downgrade\.', 'Sites use the configured AJAX handler when one is provided.'
     $frontend = $frontend -replace 'SSCHP_License::max_chips\(\)', 'SSCHP_Edition::max_chips()'
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '\$request_uri = isset\( \$_SERVER\[''REQUEST_URI''\] \) \? wp_unslash\( \$_SERVER\[''REQUEST_URI''\] \) : ''/'';' -Replacement '$request_uri = isset( $_SERVER[''REQUEST_URI''] ) ? esc_url_raw( wp_unslash( $_SERVER[''REQUEST_URI''] ) ) : ''/'';'
+    $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*if \( SSCHP_License::is_pro\(\) \) \{\s*\r?\n\s*\$tag_field\s+= \$this->settings->get\( ''tag_fields'', '''' \);\s*\r?\n\s*\$extra_field = \$this->settings->get\( ''extra_fields'', '''' \);\s*\r?\n\s*if \( ! empty\( \$tag_field \) \|\| ! empty\( \$extra_field \) \) \{\s*\r?\n\s*\$primary = \$this->get_field_value\( \$post_id, \$tag_field \);\s*\r?\n\s*\$extra\s+= \$this->get_field_value\( \$post_id, \$extra_field \);\s*\r?\n\s*if \( '''' === \$primary && '''' === \$extra && empty\( \$tag_field \) \) \{\s*\r?\n\s*\$primary = get_post_meta\( \$post_id, SSCHP_Meta_Box::META_KEY, true \) \?: '''';\s*\r?\n\s*\}\s*\r?\n\s*\}\s*\r?\n\s*\}' -Replacement ''
     $frontend = $frontend -replace 'if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \)', 'if ( true )'
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*if \( true \) \{\s*\r?\n\s*\$radius\s+= \$this->get_numeric_setting\( ''chip_radius'', 16, 0 \);\s*\r?\n\s*\$font_size = \$this->get_numeric_setting\( ''chip_font_size'', 13, 8 \);\s*\r?\n\s*\$pad_x\s+= \$this->get_numeric_setting\( ''chip_padding_x'', 12, 0 \);\s*\r?\n\s*\$pad_y\s+= \$this->get_numeric_setting\( ''chip_padding_y'', 4, 0 \);\s*\r?\n\s*\}' -Replacement "`r`n        `$radius    = `$this->get_numeric_setting( 'chip_radius', 16, 0 );`r`n        `$font_size = `$this->get_numeric_setting( 'chip_font_size', 13, 8 );`r`n        `$pad_x     = `$this->get_numeric_setting( 'chip_padding_x', 12, 0 );`r`n        `$pad_y     = `$this->get_numeric_setting( 'chip_padding_y', 4, 0 );"
     $frontend = Replace-RegexLiteral -Text $frontend -Pattern '(?s)\s*if \( true \) \{\s*\r?\n\s*\$tag_field\s+= \$this->settings->get\( ''tag_fields'', '''' \);\s*\r?\n\s*\$extra_field = \$this->settings->get\( ''extra_fields'', '''' \);\s*\r?\n\s*if \( ! empty\( \$tag_field \) \|\| ! empty\( \$extra_field \) \) \{\s*\r?\n\s*\$primary = \$this->get_field_value\( \$post_id, \$tag_field \);\s*\r?\n\s*\$extra\s+= \$this->get_field_value\( \$post_id, \$extra_field \);\s*\r?\n\s*if \( '''' === \$primary && '''' === \$extra && empty\( \$tag_field \) \) \{\s*\r?\n\s*\$primary = get_post_meta\( \$post_id, SSCHP_Meta_Box::META_KEY, true \) \?: '''';\s*\r?\n\s*\}\s*\r?\n\s*\}\s*\r?\n\s*\}' -Replacement ''
@@ -802,7 +842,7 @@ function Patch-WpOrgCoreFiles {
     $handlerPath = Join-Path $PluginDir 'includes\class-search-handler.php'
     $handler = Get-Content -Raw -LiteralPath $handlerPath
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*// Nonce verification \(optional .*?\s*if \( isset\( \$_POST\[''sschp_nonce''\] \) && ! wp_verify_nonce\( sanitize_text_field\( wp_unslash\( \$_POST\[''sschp_nonce''\] \) \), ''sschp_search_nonce'' \) \) \{\s*\r?\n\s*wp_die\( esc_html__\( ''Security check failed\.'', ''smart-search-chips'' \) \);\s*\r?\n\s*\}' -Replacement "`r`n        if ( ! isset( `$_POST['sschp_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( `$_POST['sschp_nonce'] ) ), 'sschp_search_nonce' ) ) {`r`n            wp_die( esc_html__( 'Security check failed.', 'smart-search-chips' ) );`r`n        }"
-    $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*// Filter by relevance threshold \(Pro \+ Relevanssi only\)\s*\r?\n\s*\$use_relevance = false;\s*\r?\n\s*if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \) \{\s*\r?\n\s*\$use_relevance = \$top_score > 0;\s*\r?\n\s*\}' -Replacement "`r`n        `$use_relevance = `$top_score > 0;"
+    $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*// Filter by relevance threshold for Pro Relevanssi integrations only\.\s*\r?\n\s*\$use_relevance = false;\s*\r?\n\s*if \( SSCHP_License::is_pro\(\) \) \{\s*\r?\n\s*\$use_relevance = \$top_score > 0;\s*\r?\n\s*\}' -Replacement "`r`n        `$use_relevance = `$top_score > 0;"
     $handler = $handler -replace 'SSCHP_License::max_chips\(\)', 'SSCHP_Edition::max_chips()'
     $handler = $handler -replace 'if \( sschp_fs\(\)->can_use_premium_code__premium_only\(\) \)', 'if ( true )'
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*if \( true \) \{\s*\r?\n\s*\$radius\s+= \$this->get_numeric_setting\( ''chip_radius'', 16, 0 \);\s*\r?\n\s*\$font_size = \$this->get_numeric_setting\( ''chip_font_size'', 13, 8 \);\s*\r?\n\s*\$pad_x\s+= \$this->get_numeric_setting\( ''chip_padding_x'', 12, 0 \);\s*\r?\n\s*\$pad_y\s+= \$this->get_numeric_setting\( ''chip_padding_y'', 4, 0 \);\s*\r?\n\s*\}' -Replacement "`r`n        `$radius    = `$this->get_numeric_setting( 'chip_radius', 16, 0 );`r`n        `$font_size = `$this->get_numeric_setting( 'chip_font_size', 13, 8 );`r`n        `$pad_x     = `$this->get_numeric_setting( 'chip_padding_x', 12, 0 );`r`n        `$pad_y     = `$this->get_numeric_setting( 'chip_padding_y', 4, 0 );"
@@ -810,10 +850,11 @@ function Patch-WpOrgCoreFiles {
     $handler = $handler -replace 'Pro: use configured custom fields', 'Use configured custom fields'
     $handler = $handler -replace 'Pro is active before field mapping is configured', 'field mapping is changed'
     $handler = $handler -replace 'Pro design options \(defaults for free\)', 'Design options'
+    $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*if \( SSCHP_License::is_pro\(\) \) \{\s*\r?\n\s*// Use configured custom fields when present, otherwise keep\s*\r?\n\s*// the built-in fallback so sites do not lose chips just because\s*\r?\n\s*// field mapping is changed\.\s*\r?\n\s*\$tag_field\s+= \$this->settings->get\( ''tag_fields'', '''' \);\s*\r?\n\s*\$extra_field = \$this->settings->get\( ''extra_fields'', '''' \);\s*\r?\n\s*if \( ! empty\( \$tag_field \) \|\| ! empty\( \$extra_field \) \) \{\s*\r?\n\s*\$primary = \$this->get_field_value\( \$pid, \$tag_field \);\s*\r?\n\s*\$extra\s+= \$this->get_field_value\( \$pid, \$extra_field \);\s*\r?\n\s*if \( '''' === \$primary && '''' === \$extra && empty\( \$tag_field \) \) \{\s*\r?\n\s*\$primary = get_post_meta\( \$pid, SSCHP_Meta_Box::META_KEY, true \) \?: '''';\s*\r?\n\s*\}\s*\r?\n\s*\}\s*\r?\n\s*\}' -Replacement ''
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*if \( true \) \{\s*\r?\n\s*// Use configured custom fields when present, otherwise keep\s*\r?\n\s*// the built-in fallback so sites do not lose chips just because\s*\r?\n\s*// field mapping is changed\.\s*\r?\n\s*\$tag_field\s+= \$this->settings->get\( ''tag_fields'', '''' \);\s*\r?\n\s*\$extra_field = \$this->settings->get\( ''extra_fields'', '''' \);\s*\r?\n\s*if \( ! empty\( \$tag_field \) \|\| ! empty\( \$extra_field \) \) \{\s*\r?\n\s*\$primary = \$this->get_field_value\( \$pid, \$tag_field \);\s*\r?\n\s*\$extra\s+= \$this->get_field_value\( \$pid, \$extra_field \);\s*\r?\n\s*if \( '''' === \$primary && '''' === \$extra && empty\( \$tag_field \) \) \{\s*\r?\n\s*\$primary = get_post_meta\( \$pid, SSCHP_Meta_Box::META_KEY, true \) \?: '''';\s*\r?\n\s*\}\s*\r?\n\s*\}\s*\r?\n\s*\}' -Replacement ''
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*if \( true \) \{\s*\r?\n\s*\$configured = sanitize_key\( \$this->settings->get\( ''ajax_keyword_field'', ''keyword'' \) \);\s*\r?\n\s*if \( '''' !== \$configured \) \{\s*\r?\n\s*array_unshift\( \$fields, \$configured \);\s*\r?\n\s*\}\s*\r?\n\s*\}' -Replacement ''
     $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)\s*/\*\*\s*\r?\n\s*\* Get a field value from a post, supporting ACF and regular post meta\..*?private function get_field_value\( \$post_id, \$field_name \) \{.*?\r?\n\s*\}\s*\r?\n\s*/\*\*\s*\r?\n\s*\* Render chips HTML\.' -Replacement "`r`n    /**`r`n     * Render chips HTML."
-    $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)public function init\(\) \{.*?add_action\( ''wp_ajax_nopriv_sschp_search'', array\( \$this, ''handle_search'' \) \);\s*\r?\n\s*\}' -Replacement "public function init() {`r`n        `$ajax_action = `$this->settings->get( 'override_ajax' );`r`n        if ( ! empty( `$ajax_action ) ) {`r`n            add_action( 'wp_ajax_' . `$ajax_action, array( `$this, 'handle_search' ), 0 );`r`n            add_action( 'wp_ajax_nopriv_' . `$ajax_action, array( `$this, 'handle_search' ), 0 );`r`n        }`r`n`r`n        add_action( 'wp_ajax_sschp_search', array( `$this, 'handle_search' ) );`r`n        add_action( 'wp_ajax_nopriv_sschp_search', array( `$this, 'handle_search' ) );`r`n    }"
+    $handler = Replace-RegexLiteral -Text $handler -Pattern '(?s)public function init\(\) \{.*?add_action\( ''wp_ajax_nopriv_sschp_search'', array\( \$this, ''handle_search'' \) \);\s*\r?\n\s*\}' -Replacement "public function init() {`r`n        `$ajax_action = sanitize_key( `$this->settings->get( 'override_ajax', '' ) );`r`n        if ( '' !== `$ajax_action && 'sschp_search' !== `$ajax_action ) {`r`n            add_action( 'wp_ajax_' . `$ajax_action, array( `$this, 'handle_search' ), 0 );`r`n            add_action( 'wp_ajax_nopriv_' . `$ajax_action, array( `$this, 'handle_search' ), 0 );`r`n        }`r`n`r`n        add_action( 'wp_ajax_sschp_search', array( `$this, 'handle_search' ) );`r`n        add_action( 'wp_ajax_nopriv_sschp_search', array( `$this, 'handle_search' ) );`r`n    }"
     Set-Text -Path $handlerPath -Content $handler
 
     $readmePath = Join-Path $PluginDir 'readme.txt'
@@ -821,16 +862,21 @@ function Patch-WpOrgCoreFiles {
     $readme = $readme -replace 'Generates smart, non-redundant filter tags from search results using custom fields\.', 'Generates smart, non-redundant filter tags from the built-in Search Chips Tags field.'
     $readme = $readme -replace 'Auto-generates smart, non-redundant filter tags from your search results\.', 'Auto-generates smart, non-redundant filter tags from the built-in Search Chips Tags field.'
     $readme = $readme -replace 'Plugin analyzes the top results and their custom field tags', 'Plugin analyzes the top results and their Search Chips Tags'
+    $readme = $readme -replace 'Plugin analyzes the top results and their Search Chips Tags or Pro custom field tags', 'Plugin analyzes the top results and their Search Chips Tags'
     $readme = $readme -replace '\* Uses custom fields \(ACF or regular post meta\) as tag sources\s*\r?\n', "* Uses the built-in Search Chips Tags field as the free tag source`r`n"
+    $readme = $readme -replace '\* Uses the built-in Search Chips Tags field, with ACF/custom field connectors in Pro\s*\r?\n', "* Uses the built-in Search Chips Tags field as the free tag source`r`n"
     $readme = $readme -replace '\* Synonym rules for normalizing equivalent catalog terms into one chip\s*\r?\n', ''
     $readme = $readme -replace '\* Numeric range slider chips for values like .*? or mapped numeric fields\s*\r?\n', ''
     $readme = $readme -replace '\* Manual chip curation with pinned chips, hidden chips, and display label overrides\s*\r?\n', ''
     $readme = $readme -replace '\* Search analytics for query, chip-click, impression, and zero-result insights\s*\r?\n', ''
     $readme = $readme -replace '\* AI prompt builder for external agent-assisted tag workflows\s*\r?\n', ''
     $readme = $readme -replace '4\. Set your custom field names \(primary tag field \+ extra tag field\)\s*\r?\n', "4. Add Search Chips Tags to your posts/products using the plugin meta box`r`n"
+    $readme = $readme -replace '4\. Add Search Chips Tags to your posts/products, or map existing custom fields in Pro\s*\r?\n', "4. Add Search Chips Tags to your posts/products using the plugin meta box`r`n"
     $readme = $readme -replace '1\. Create a custom field on your posts/products \(e\.g\. `search_tags`\) with semicolon-separated tags\s*\r?\n2\. In plugin settings, set "Primary Tag Field" to your field name\s*\r?\n3\. Add `\[sschp_search\]` shortcode to any page, or set "Override AJAX Action" to hook into your theme''s existing search', "1. Add semicolon-separated tags to the built-in Search Chips Tags field on your posts/products`r`n2. Select which post types to search in Settings > Search Chips`r`n3. Add ``[sschp_search]`` shortcode to any page, or set ""Override AJAX Action"" to hook into your theme's existing search"
     $readme = $readme -replace 'You can use ACF \(Advanced Custom Fields\), regular WordPress custom fields, or populate them programmatically via the REST API\. Tags should be semicolon-separated in the primary field and comma-separated in the extra field\.', 'Use the built-in Search Chips Tags meta box on each post/product. Tags should be semicolon-separated. ACF/custom field connectors are available separately in Smart Search Chips Pro.'
+    $readme = $readme -replace 'Free uses the built-in Search Chips Tags field\. Pro can map existing ACF or regular WordPress custom fields and can expose authenticated REST workflows for chip rules and AI-assisted tagging\.', 'Use the built-in Search Chips Tags meta box on each post/product. Tags should be semicolon-separated. ACF/custom field connectors are available separately in Smart Search Chips Pro.'
     $readme = $readme -replace 'Yes\. Set "Post Types" to include "product" and use WooCommerce product attributes or ACF fields as your tag source\.', 'Yes. Set "Post Types" to include "product". The WooCommerce helper can populate the built-in Search Chips Tags field from product attributes, categories, tags, and SKU.'
+    $readme = $readme -replace 'Yes\. Set "Post Types" to include "product"\. Free can use the built-in Search Chips Tags field and WooCommerce helper tags; Pro can also map ACF or regular custom fields\.', 'Yes. Set "Post Types" to include "product". The WooCommerce helper can populate the built-in Search Chips Tags field from product attributes, categories, tags, and SKU.'
     $readme = $readme -replace '(?s)== Privacy Policy ==.*?== Upgrade Notice ==', @'
 == Smart Search Chips Pro ==
 

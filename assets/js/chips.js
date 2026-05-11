@@ -26,7 +26,7 @@
     }
 
     function getInputSelector() {
-        return '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"]';
+        return config.inputSelector || '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]';
     }
 
     function markSearchUiActive(input, resultsContainer) {
