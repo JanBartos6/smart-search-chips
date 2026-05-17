@@ -208,6 +208,49 @@ function sschp_test_settings_duplicate_field_rejected() {
     sschp_assert_true( ! empty( $sschp_test_settings_errors ), 'duplicate mapped field names should register a settings error' );
 }
 
+function sschp_test_settings_valid_selector_is_preserved() {
+    sschp_reset_test_state();
+
+    $settings = new SSCHP_Settings();
+    $selector = '.site-header .search-field, form[data-search="products"] input[name="query"]';
+
+    sschp_assert_same(
+        $selector,
+        $settings->sanitize_search_input_selector( $selector ),
+        'valid custom search input selector should be preserved'
+    );
+}
+
+function sschp_test_settings_invalid_selector_keeps_previous_value() {
+    global $sschp_test_settings_errors, $sschp_test_options;
+
+    sschp_reset_test_state();
+    $sschp_test_options['sschp_search_input_selector'] = '.previous-search-input';
+
+    $settings = new SSCHP_Settings();
+    $result   = $settings->sanitize_search_input_selector( '.broken[' );
+
+    sschp_assert_same( '.previous-search-input', $result, 'invalid search input selector should keep the previous valid value' );
+    sschp_assert_true( ! empty( $sschp_test_settings_errors ), 'invalid search input selector should register a settings error' );
+}
+
+function sschp_test_settings_invalid_selector_falls_back_to_default() {
+    global $sschp_test_settings_errors, $sschp_test_options;
+
+    sschp_reset_test_state();
+    $sschp_test_options['sschp_result_container_selector'] = '.still-broken[';
+
+    $settings = new SSCHP_Settings();
+    $result   = $settings->sanitize_result_container_selector( '' );
+
+    sschp_assert_same(
+        '.js-ssc-results, .js-search__results, .ssc-search__results',
+        $result,
+        'invalid result container selector should fall back to the default if the previous value is invalid'
+    );
+    sschp_assert_true( ! empty( $sschp_test_settings_errors ), 'invalid result container selector should register a settings error' );
+}
+
 function sschp_test_ai_prompt_manual_mode() {
     $tagger = new SSCHP_AI_Tagger( new SSCHP_Test_Settings() );
     $posts  = array(
@@ -512,6 +555,9 @@ sschp_test_license_is_pro_false_without_freemius();
 sschp_test_settings_numeric_sanitizers();
 sschp_test_settings_reserved_custom_field_rejected();
 sschp_test_settings_duplicate_field_rejected();
+sschp_test_settings_valid_selector_is_preserved();
+sschp_test_settings_invalid_selector_keeps_previous_value();
+sschp_test_settings_invalid_selector_falls_back_to_default();
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_manual_mode' );
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_rest_mode' );
 sschp_test_language_request_prefers_explicit_request_value();

@@ -13,11 +13,104 @@
 
     var config = window.sschpConfig || {};
     var searchStates = new WeakMap();
+    var selectorWarnings = {};
     var DEBOUNCE_MS = 300;
     var VISITOR_STORAGE_KEY = "sschp_visitor_id";
+    var DEFAULT_INPUT_SELECTOR = '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]';
+    var DEFAULT_RESULTS_SELECTOR = ".js-ssc-results, .js-search__results, .ssc-search__results";
+
+    function warnInvalidSelectorOnce(label, selector) {
+        var key = label + ":" + selector;
+
+        if (!config.isAdmin || selectorWarnings[key]) {
+            return;
+        }
+
+        selectorWarnings[key] = true;
+
+        if (window.console && typeof window.console.warn === "function") {
+            window.console.warn("Smart Search Chips ignored an invalid " + label + " selector and used the default selector instead.");
+        }
+    }
+
+    function isValidSelector(selector) {
+        if (!selector) {
+            return false;
+        }
+
+        try {
+            document.createDocumentFragment().querySelector(selector);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function getSafeConfiguredSelector(selector, fallback, label) {
+        selector = (selector || "").trim();
+
+        if (!selector) {
+            return fallback;
+        }
+
+        if (isValidSelector(selector)) {
+            return selector;
+        }
+
+        warnInvalidSelectorOnce(label, selector);
+        return fallback;
+    }
+
+    function safeMatches(el, selector) {
+        if (!el || !el.matches || !selector) {
+            return false;
+        }
+
+        try {
+            return el.matches(selector);
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function safeClosest(el, selector) {
+        if (!el || !el.closest || !selector) {
+            return null;
+        }
+
+        try {
+            return el.closest(selector);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function safeQuerySelector(root, selector) {
+        if (!root || !root.querySelector || !selector) {
+            return null;
+        }
+
+        try {
+            return root.querySelector(selector);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function safeQuerySelectorAll(root, selector) {
+        if (!root || !root.querySelectorAll || !selector) {
+            return [];
+        }
+
+        try {
+            return root.querySelectorAll(selector);
+        } catch (error) {
+            return [];
+        }
+    }
 
     function getResultsSelector() {
-        return config.resultSelector || ".js-ssc-results, .js-search__results, .ssc-search__results";
+        return getSafeConfiguredSelector(config.resultSelector, DEFAULT_RESULTS_SELECTOR, "results container");
     }
 
     function getKeywordField() {
@@ -25,7 +118,7 @@
     }
 
     function getInputSelector() {
-        return config.inputSelector || '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]';
+        return getSafeConfiguredSelector(config.inputSelector, DEFAULT_INPUT_SELECTOR, "search input");
     }
 
     function getSearchRoot(el) {
@@ -33,22 +126,22 @@
             return document.documentElement;
         }
 
-        var shortcodeRoot = el.closest(".ssc-search");
+        var shortcodeRoot = safeClosest(el, ".ssc-search");
         if (shortcodeRoot) {
             return shortcodeRoot;
         }
 
-        var themeRoot = el.closest(".js-search, .js-ssc-search");
+        var themeRoot = safeClosest(el, ".js-search, .js-ssc-search");
         if (themeRoot) {
             return themeRoot;
         }
 
-        var results = el.closest(getResultsSelector());
+        var results = safeClosest(el, getResultsSelector());
         if (results) {
             return results.parentElement || document.documentElement;
         }
 
-        var form = el.closest("form");
+        var form = safeClosest(el, "form");
         if (form) {
             return form;
         }
@@ -72,7 +165,7 @@
     }
 
     function isSearchInput(el) {
-        return !!(el && el.matches && el.matches(getInputSelector()));
+        return safeMatches(el, getInputSelector());
     }
 
     function findInputForKeyword(keyword) {
@@ -81,7 +174,7 @@
             return active;
         }
 
-        var inputs = document.querySelectorAll(getInputSelector());
+        var inputs = safeQuerySelectorAll(document, getInputSelector());
         for (var i = 0; i < inputs.length; i++) {
             if (!keyword || inputs[i].value === keyword) {
                 return inputs[i];
@@ -146,7 +239,7 @@
             return null;
         }
 
-        return target.closest([
+        return safeClosest(target, [
             ".js-search__clear",
             ".js-search__close",
             ".ssc-search__clear",
@@ -237,7 +330,7 @@
     }
 
     function getCurrentSearchQuery() {
-        var shortcodeInput = document.querySelector(".ssc-search__input");
+        var shortcodeInput = safeQuerySelector(document, ".ssc-search__input");
         if (shortcodeInput && shortcodeInput.value) {
             return shortcodeInput.value;
         }
@@ -246,12 +339,12 @@
     }
 
     function getArchiveResultCount() {
-        var posts = document.querySelectorAll("main .wp-block-query.alignfull .wp-block-post-template > li.wp-block-post");
+        var posts = safeQuerySelectorAll(document, "main .wp-block-query.alignfull .wp-block-post-template > li.wp-block-post");
         if (posts.length) {
             return posts.length;
         }
 
-        var wooProducts = document.querySelectorAll("main ul.products > li.product");
+        var wooProducts = safeQuerySelectorAll(document, "main ul.products > li.product");
         if (wooProducts.length) {
             return wooProducts.length;
         }
@@ -340,7 +433,7 @@
 
                     if (resultsContainer) {
                         var visibleChips = Array.prototype.map.call(
-                            resultsContainer.querySelectorAll(".ssc-chips .ssc-chip[data-tag]"),
+                            safeQuerySelectorAll(resultsContainer, ".ssc-chips .ssc-chip[data-tag]"),
                             function (chipNode) {
                                 return chipNode.getAttribute("data-tag") || "";
                             }
@@ -383,24 +476,24 @@
      * Find the results container relative to an element.
      */
     function findResults(el) {
-        if (!el || !el.closest || el.closest(".ssc-loop-filters")) {
+        if (!el || !el.closest || safeClosest(el, ".ssc-loop-filters")) {
             return null;
         }
 
         var selector = getResultsSelector();
         var root = getSearchRoot(el);
-        var results = root && root.matches && root.matches(selector) ? root : null;
+        var results = safeMatches(root, selector) ? root : null;
 
-        if (!results && root && root.querySelector) {
-            results = root.querySelector(selector);
+        if (!results) {
+            results = safeQuerySelector(root, selector);
         }
 
-        if (!results && root && root.nextElementSibling && root.nextElementSibling.matches && root.nextElementSibling.matches(selector)) {
+        if (!results && root && safeMatches(root.nextElementSibling, selector)) {
             results = root.nextElementSibling;
         }
 
         if (!results && root && root.parentElement) {
-            results = root.parentElement.querySelector(selector);
+            results = safeQuerySelector(root.parentElement, selector);
         }
 
         if (results) {
@@ -414,20 +507,20 @@
      * Find the search input relative to an element.
      */
     function findInput(el) {
-        if (!el || !el.closest || el.closest(".ssc-loop-filters")) {
+        if (!el || !el.closest || safeClosest(el, ".ssc-loop-filters")) {
             return null;
         }
 
         var selector = getInputSelector();
         var root = getSearchRoot(el);
-        var scopedInput = root && root.matches && root.matches(selector) ? root : null;
+        var scopedInput = safeMatches(root, selector) ? root : null;
 
-        if (!scopedInput && root && root.querySelector) {
-            scopedInput = root.querySelector(selector);
+        if (!scopedInput) {
+            scopedInput = safeQuerySelector(root, selector);
         }
 
         if (!scopedInput && root && root.parentElement) {
-            scopedInput = root.parentElement.querySelector(selector);
+            scopedInput = safeQuerySelector(root.parentElement, selector);
         }
 
         if (scopedInput) {
@@ -490,7 +583,7 @@
     });
 
     function handleChipActivation(e) {
-        var chip = e.target.closest(".ssc-chip");
+        var chip = safeClosest(e.target, ".ssc-chip");
         if (!chip) return;
 
         var tag = chip.getAttribute("data-tag");
@@ -525,7 +618,7 @@
      * panels on document pointer/click handlers or input blur.
      */
     document.addEventListener("mousedown", function (e) {
-        var chip = e.target.closest(".ssc-chip");
+        var chip = safeClosest(e.target, ".ssc-chip");
         if (!chip || !findInput(chip) || !findResults(chip)) {
             return;
         }
@@ -538,7 +631,7 @@
     }, true);
 
     document.addEventListener("touchstart", function (e) {
-        var chip = e.target.closest(".ssc-chip");
+        var chip = safeClosest(e.target, ".ssc-chip");
         if (!chip || !findInput(chip) || !findResults(chip)) {
             return;
         }
@@ -640,7 +733,7 @@
     }, true);
 
     document.addEventListener("reset", function (e) {
-        if (!e.target.matches || !e.target.matches(".ssc-search__form, .js-ssc-search, .js-search")) {
+        if (!safeMatches(e.target, ".ssc-search__form, .js-ssc-search, .js-search")) {
             return;
         }
 
@@ -655,7 +748,7 @@
      */
     document.addEventListener("keyup", function (e) {
         var input = e.target;
-        if (!input.matches || !input.matches(".ssc-search__input")) return;
+        if (!safeMatches(input, getInputSelector())) return;
 
         var results = findResults(input);
 
@@ -671,9 +764,9 @@
      * Prevent built-in form submission (use AJAX instead).
      */
     document.addEventListener("submit", function (e) {
-        if (e.target.matches && e.target.matches(".ssc-search__form, .js-ssc-search")) {
+        if (safeMatches(e.target, ".ssc-search__form, .js-ssc-search")) {
             e.preventDefault();
-            var input = e.target.querySelector('input[type="search"]');
+            var input = safeQuerySelector(e.target, getInputSelector()) || safeQuerySelector(e.target, 'input[type="search"]');
             var results = findResults(input);
             if (input) {
                 doSearch(input, results, { trigger: "submit" });
@@ -683,7 +776,7 @@
 
     document.addEventListener("DOMContentLoaded", function () {
         var archiveChipLabels = Array.prototype.map.call(
-            document.querySelectorAll(".ssc-loop-filters .ssc-chip[data-tag]"),
+            safeQuerySelectorAll(document, ".ssc-loop-filters .ssc-chip[data-tag]"),
             function (chipNode) {
                 return chipNode.getAttribute("data-tag") || "";
             }

@@ -49,6 +49,25 @@ async function installThemeSearchFixture(page) {
   await page.addScriptTag({ path: chipsScriptPath });
 }
 
+async function installCustomSelectorFixture(page) {
+  await page.setContent(`
+    <main>
+      <section class="custom-search-root" data-testid="custom-search">
+        <form>
+          <input type="text" class="custom-search-input" name="keyword" />
+        </form>
+        <div class="custom-search-results"></div>
+      </section>
+    </main>
+  `);
+
+  await installFakeAjax(page, {
+    inputSelector: ".custom-search-input",
+    resultSelector: ".custom-search-results"
+  });
+  await page.addScriptTag({ path: chipsScriptPath });
+}
+
 async function installFakeAjax(page, options = {}) {
   await page.evaluate((config) => {
     window.__sschpRequests = [];
@@ -57,6 +76,9 @@ async function installFakeAjax(page, options = {}) {
       ajaxUrl: "/wp-admin/admin-ajax.php",
       minChars: 2,
       nonce: "test-nonce",
+      inputSelector: config.inputSelector || "",
+      resultSelector: config.resultSelector || "",
+      isAdmin: !!config.isAdmin,
       analytics: { enabled: false }
     };
 
@@ -153,6 +175,42 @@ function lastRequest(requests) {
 }
 
 test.describe("Multiple search box state", () => {
+  test("falls back to defaults when configured selectors are invalid", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+
+    await installSearchFixture(page, {
+      inputSelector: ".broken-input[",
+      resultSelector: ".broken-results[",
+      isAdmin: true
+    });
+
+    const first = page.getByTestId("first-search");
+    const firstInput = first.locator(".ssc-search__input");
+
+    await firstInput.click();
+    await firstInput.pressSequentially("Trapped", { delay: 10 });
+
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("supports custom valid input and results selectors", async ({ page }) => {
+    await installCustomSelectorFixture(page);
+
+    const custom = page.getByTestId("custom-search");
+    const input = custom.locator(".custom-search-input");
+
+    await input.click();
+    await input.pressSequentially("Trapped", { delay: 10 });
+
+    await expect(custom.locator(".custom-search-results .ssc-results .ssc-result")).toHaveCount(1);
+
+    const requests = await readRequests(page);
+    expect(lastRequest(requests).keyword).toBe("Trapped");
+    expect(lastRequest(requests).managed).toBe("1");
+  });
+
   test("keeps shortcode active chips isolated per search root", async ({ page }) => {
     await installSearchFixture(page);
 

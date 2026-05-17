@@ -78,10 +78,10 @@ class SSCHP_Settings {
             'sanitize_callback' => 'sanitize_key',
         ) );
         register_setting( 'smart-search-chips', 'sschp_result_container_selector', array(
-            'sanitize_callback' => 'sanitize_text_field',
+            'sanitize_callback' => array( $this, 'sanitize_result_container_selector' ),
         ) );
         register_setting( 'smart-search-chips', 'sschp_search_input_selector', array(
-            'sanitize_callback' => 'sanitize_text_field',
+            'sanitize_callback' => array( $this, 'sanitize_search_input_selector' ),
         ) );
         register_setting( 'smart-search-chips', 'sschp_max_chips', array(
             'sanitize_callback' => array( $this, 'sanitize_max_chips' ),
@@ -1302,6 +1302,156 @@ class SSCHP_Settings {
     public function sanitize_hex_color_setting( $value ) {
         $color = sanitize_hex_color( (string) $value );
         return $color ? $color : '';
+    }
+
+    /**
+     * Sanitize the configured frontend search input selector.
+     *
+     * @param mixed $value Raw selector value.
+     * @return string
+     */
+    public function sanitize_search_input_selector( $value ) {
+        return $this->sanitize_css_selector_setting(
+            $value,
+            'sschp_search_input_selector',
+            $this->get_default_search_input_selector(),
+            __( 'Search Input Selector', 'smart-search-chips' )
+        );
+    }
+
+    /**
+     * Sanitize the configured frontend results container selector.
+     *
+     * @param mixed $value Raw selector value.
+     * @return string
+     */
+    public function sanitize_result_container_selector( $value ) {
+        return $this->sanitize_css_selector_setting(
+            $value,
+            'sschp_result_container_selector',
+            $this->get_default_result_container_selector(),
+            __( 'Result Container Selector', 'smart-search-chips' )
+        );
+    }
+
+    /**
+     * Get the default frontend input selector.
+     *
+     * @return string
+     */
+    private function get_default_search_input_selector() {
+        return '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]';
+    }
+
+    /**
+     * Get the default frontend results selector.
+     *
+     * @return string
+     */
+    private function get_default_result_container_selector() {
+        return '.js-ssc-results, .js-search__results, .ssc-search__results';
+    }
+
+    /**
+     * Sanitize a CSS selector option without over-restricting valid selectors.
+     *
+     * PHP cannot fully parse CSS selectors, so this rejects only values that are
+     * obviously unsafe or broken and keeps the previous valid value otherwise.
+     *
+     * @param mixed  $value       Raw selector value.
+     * @param string $option_name Full option name.
+     * @param string $default     Default selector.
+     * @param string $label       Human-readable field label.
+     * @return string
+     */
+    private function sanitize_css_selector_setting( $value, $option_name, $default, $label ) {
+        $selector = trim( sanitize_text_field( (string) $value ) );
+
+        if ( $this->looks_like_valid_css_selector( $selector ) ) {
+            return $selector;
+        }
+
+        add_settings_error(
+            'smart-search-chips',
+            $option_name . '_invalid',
+            sprintf(
+                /* translators: %s: settings field label. */
+                __( '%s was not saved because it does not look like a valid CSS selector. The previous value or default selector is still being used.', 'smart-search-chips' ),
+                $label
+            ),
+            'error'
+        );
+
+        $previous = trim( sanitize_text_field( (string) get_option( $option_name, $default ) ) );
+
+        if ( $this->looks_like_valid_css_selector( $previous ) ) {
+            return $previous;
+        }
+
+        return $default;
+    }
+
+    /**
+     * Conservative CSS selector sanity check.
+     *
+     * @param string $selector Selector value.
+     * @return bool
+     */
+    private function looks_like_valid_css_selector( $selector ) {
+        if ( '' === trim( $selector ) ) {
+            return false;
+        }
+
+        if ( preg_match( '/[\x00-\x1F\x7F]/', $selector ) ) {
+            return false;
+        }
+
+        if ( preg_match( '/(^|,)\s*(,|$)/', $selector ) ) {
+            return false;
+        }
+
+        $pairs = array(
+            '(' => ')',
+            '[' => ']',
+            '{' => '}',
+        );
+        $stack = array();
+        $quote = '';
+        $len   = strlen( $selector );
+
+        for ( $i = 0; $i < $len; $i++ ) {
+            $char = $selector[ $i ];
+
+            if ( '\\' === $char ) {
+                $i++;
+                continue;
+            }
+
+            if ( '' !== $quote ) {
+                if ( $char === $quote ) {
+                    $quote = '';
+                }
+                continue;
+            }
+
+            if ( '"' === $char || "'" === $char ) {
+                $quote = $char;
+                continue;
+            }
+
+            if ( isset( $pairs[ $char ] ) ) {
+                $stack[] = $pairs[ $char ];
+                continue;
+            }
+
+            if ( in_array( $char, $pairs, true ) ) {
+                if ( empty( $stack ) || array_pop( $stack ) !== $char ) {
+                    return false;
+                }
+            }
+        }
+
+        return '' === $quote && empty( $stack );
     }
 
     public function sanitize_result_image_fit( $value ) {

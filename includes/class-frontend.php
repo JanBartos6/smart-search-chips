@@ -119,6 +119,7 @@ class SSCHP_Frontend {
             'postType'      => implode( ',', (array) $this->settings->get( 'post_types', array( 'post' ) ) ),
             'nonce'         => wp_create_nonce( 'sschp_search_nonce' ),
             'lang'          => SSCHP_Language::current_language(),
+            'isAdmin'       => current_user_can( 'manage_options' ),
             'analytics'     => array(
                 'enabled' => $analytics_enabled,
                 'nonce'   => $analytics_nonce,
