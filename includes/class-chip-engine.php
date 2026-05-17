@@ -40,6 +40,8 @@ class SSCHP_Chip_Engine {
         // Build chips with redundancy elimination
         $chips        = array();
         $selected_keys = array();
+        $min_count     = $total <= 5 ? 1 : 2;
+        $min_count     = max( 1, (int) apply_filters( 'sschp_min_chip_count', $min_count, $total, $posts_data, $active_tags ) );
 
         foreach ( $tag_counts as $key => $data ) {
             $is_virtual_chip = isset( $data['type'] ) && 'range' === $data['type'];
@@ -53,8 +55,8 @@ class SSCHP_Chip_Engine {
                 continue;
             }
 
-            // Skip tags that appear fewer than 2 times
-            if ( $data['count'] < 2 ) {
+            // Skip tags that do not meet the dynamic usefulness threshold.
+            if ( $data['count'] < $min_count ) {
                 continue;
             }
 

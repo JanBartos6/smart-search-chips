@@ -36,6 +36,13 @@ function sschp_run_if_class_exists( $class_name, $callback ) {
     }
 }
 
+function sschp_make_chip_post( array $tags ) {
+    return array(
+        'tags'       => $tags,
+        'tags_lower' => array_map( 'mb_strtolower', $tags ),
+    );
+}
+
 function sschp_reset_test_state() {
     global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid;
 
@@ -123,6 +130,111 @@ function sschp_test_chip_engine_generate_chips() {
     sschp_assert_true( ! isset( $chips['shared'] ), 'generate_chips should skip tags present in every result' );
     sschp_assert_true( isset( $chips['alpha'] ), 'generate_chips should keep useful differentiating tags' );
     sschp_assert_true( isset( $chips['beta'] ), 'generate_chips should keep useful differentiating tags from the other half of the set' );
+}
+
+function sschp_test_chip_engine_small_result_sets_show_one_off_tags() {
+    sschp_reset_test_state();
+
+    $engine = new SSCHP_Chip_Engine();
+    $posts  = array(
+        sschp_make_chip_post( array( 'Shared', 'Alpha' ) ),
+        sschp_make_chip_post( array( 'Shared', 'Beta' ) ),
+        sschp_make_chip_post( array( 'Shared', 'Gamma' ) ),
+    );
+
+    $chips = $engine->generate_chips( $posts, array(), 8, 40 );
+
+    sschp_assert_true( isset( $chips['alpha'] ), 'small result sets should show useful one-off differentiating tags' );
+    sschp_assert_true( isset( $chips['beta'] ), 'small result sets should show multiple useful one-off differentiating tags' );
+    sschp_assert_true( isset( $chips['gamma'] ), 'small result sets should not look empty when every useful tag is unique' );
+    sschp_assert_true( ! isset( $chips['shared'] ), 'tags present in every small-result item should still be hidden' );
+}
+
+function sschp_test_chip_engine_large_result_sets_hide_one_off_tags() {
+    sschp_reset_test_state();
+
+    $engine = new SSCHP_Chip_Engine();
+    $posts  = array();
+
+    for ( $i = 1; $i <= 10; $i++ ) {
+        $tags = array( 'Shared', $i <= 5 ? 'Group A' : 'Group B' );
+        if ( 1 === $i ) {
+            $tags[] = 'Unique One';
+        }
+        $posts[] = sschp_make_chip_post( $tags );
+    }
+
+    $chips = $engine->generate_chips( $posts, array(), 8, 40 );
+
+    sschp_assert_true( ! isset( $chips['unique one'] ), 'large result sets should hide one-off tags by default' );
+    sschp_assert_true( isset( $chips['group a'] ), 'large result sets should still show repeated differentiating tags' );
+    sschp_assert_true( isset( $chips['group b'] ), 'large result sets should still show repeated differentiating tags from another subset' );
+    sschp_assert_true( ! isset( $chips['shared'] ), 'tags present in every large-result item should still be hidden' );
+}
+
+function sschp_test_chip_engine_min_count_filter_can_force_two() {
+    global $sschp_test_filters;
+
+    sschp_reset_test_state();
+    $sschp_test_filters['sschp_min_chip_count'] = 2;
+
+    $engine = new SSCHP_Chip_Engine();
+    $posts  = array(
+        sschp_make_chip_post( array( 'Shared', 'Pair', 'Alpha' ) ),
+        sschp_make_chip_post( array( 'Shared', 'Pair', 'Beta' ) ),
+        sschp_make_chip_post( array( 'Shared', 'Gamma' ) ),
+    );
+
+    $chips = $engine->generate_chips( $posts, array(), 8, 40 );
+
+    sschp_assert_true( isset( $chips['pair'] ), 'min-count filter should allow repeated tags when forcing count 2' );
+    sschp_assert_true( ! isset( $chips['alpha'] ), 'min-count filter should hide one-off tags when forcing count 2' );
+    sschp_assert_true( ! isset( $chips['gamma'] ), 'min-count filter should hide all one-off tags when forcing count 2' );
+
+    sschp_reset_test_state();
+}
+
+function sschp_test_chip_engine_min_count_filter_can_force_one() {
+    global $sschp_test_filters;
+
+    sschp_reset_test_state();
+    $sschp_test_filters['sschp_min_chip_count'] = 1;
+
+    $engine = new SSCHP_Chip_Engine();
+    $posts  = array();
+
+    for ( $i = 1; $i <= 10; $i++ ) {
+        $tags = array( 'Shared', $i <= 5 ? 'Group A' : 'Group B' );
+        if ( 1 === $i ) {
+            $tags[] = 'Unique One';
+        }
+        $posts[] = sschp_make_chip_post( $tags );
+    }
+
+    $chips = $engine->generate_chips( $posts, array(), 8, 40 );
+
+    sschp_assert_true( isset( $chips['unique one'] ), 'min-count filter should be able to force one-off tags to appear in larger result sets' );
+    sschp_assert_true( ! isset( $chips['shared'] ), 'min-count filter should not bypass all-results redundancy elimination' );
+
+    sschp_reset_test_state();
+}
+
+function sschp_test_chip_engine_all_results_tag_hidden_unless_active() {
+    sschp_reset_test_state();
+
+    $engine = new SSCHP_Chip_Engine();
+    $posts  = array(
+        sschp_make_chip_post( array( 'Shared', 'Alpha' ) ),
+        sschp_make_chip_post( array( 'Shared', 'Beta' ) ),
+        sschp_make_chip_post( array( 'Shared', 'Gamma' ) ),
+    );
+
+    $inactive_chips = $engine->generate_chips( $posts, array(), 8, 40 );
+    $active_chips   = $engine->generate_chips( $posts, array( 'Shared' ), 8, 40 );
+
+    sschp_assert_true( ! isset( $inactive_chips['shared'] ), 'all-results tags should be hidden when inactive' );
+    sschp_assert_true( isset( $active_chips['shared'] ), 'active all-results tags should be restored so users can see and remove them' );
+    sschp_assert_same( 3, $active_chips['shared']['count'], 'active all-results tags should preserve their real count' );
 }
 
 function sschp_test_chip_engine_active_tag_survives() {
@@ -548,6 +660,11 @@ function sschp_test_frontend_registers_loop_fallback_for_block_themes() {
 sschp_test_chip_engine_extract_tags();
 sschp_test_chip_engine_extract_tags_supports_comma_delimited_primary_field();
 sschp_test_chip_engine_generate_chips();
+sschp_test_chip_engine_small_result_sets_show_one_off_tags();
+sschp_test_chip_engine_large_result_sets_hide_one_off_tags();
+sschp_test_chip_engine_min_count_filter_can_force_two();
+sschp_test_chip_engine_min_count_filter_can_force_one();
+sschp_test_chip_engine_all_results_tag_hidden_unless_active();
 sschp_test_chip_engine_active_tag_survives();
 sschp_test_chip_engine_active_tags_are_ordered_first();
 sschp_test_chip_engine_filter_by_tags();
