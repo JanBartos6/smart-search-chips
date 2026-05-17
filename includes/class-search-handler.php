@@ -459,17 +459,34 @@ class SSCHP_Search_Handler {
             return '';
         }
 
+        $context = array(
+            'post_id'    => (int) $post_id,
+            'field_name' => (string) $field_name,
+            'context'    => 'ajax',
+            'source'     => 'post_meta',
+        );
+
         // Try ACF first
         if ( function_exists( 'get_field' ) ) {
             $value = get_field( $field_name, $post_id );
-            if ( $value ) {
-                return (string) $value;
+            $normalized = SSCHP_Field_Normalizer::normalize(
+                $value,
+                array_merge(
+                    $context,
+                    array(
+                        'source' => 'acf',
+                    )
+                )
+            );
+
+            if ( '' !== $normalized ) {
+                return $normalized;
             }
         }
 
         // Fall back to regular post meta
         $value = get_post_meta( $post_id, $field_name, true );
-        return $value ? (string) $value : '';
+        return SSCHP_Field_Normalizer::normalize( $value, $context );
     }
 
     /**

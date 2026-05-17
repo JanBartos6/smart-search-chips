@@ -32,6 +32,7 @@ $sschp_test_post_types      = array();
 $sschp_test_post_terms      = array();
 $sschp_test_post_revisions  = array();
 $sschp_test_post_autosaves  = array();
+$sschp_test_acf_fields      = array();
 
 if ( ! function_exists( '__' ) ) {
     function __( $text, $domain = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
@@ -470,6 +471,16 @@ if ( ! function_exists( 'get_post_meta' ) ) {
     }
 }
 
+if ( ! function_exists( 'get_field' ) ) {
+    function get_field( $field_name, $post_id = false ) {
+        global $sschp_test_acf_fields;
+
+        return isset( $sschp_test_acf_fields[ $post_id ] ) && array_key_exists( $field_name, $sschp_test_acf_fields[ $post_id ] )
+            ? $sschp_test_acf_fields[ $post_id ][ $field_name ]
+            : null;
+    }
+}
+
 if ( ! function_exists( 'update_post_meta' ) ) {
     function update_post_meta( $post_id, $meta_key, $meta_value ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         global $sschp_test_post_meta;
@@ -775,6 +786,7 @@ require_once dirname( __DIR__ ) . '/includes/class-license.php';
 require_once dirname( __DIR__ ) . '/includes/class-meta-box.php';
 require_once dirname( __DIR__ ) . '/includes/class-woocommerce.php';
 require_once dirname( __DIR__ ) . '/includes/class-language.php';
+require_once dirname( __DIR__ ) . '/includes/class-field-normalizer.php';
 require_once dirname( __DIR__ ) . '/includes/class-chip-engine.php';
 require_once dirname( __DIR__ ) . '/includes/class-settings.php';
 require_once dirname( __DIR__ ) . '/includes/class-frontend.php';

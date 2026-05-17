@@ -82,7 +82,7 @@ function sschp_register_test_product( $post_id, $attributes = array(), $sku = ''
 }
 
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -107,6 +107,7 @@ function sschp_reset_test_state() {
     $sschp_test_post_terms         = array();
     $sschp_test_post_revisions     = array();
     $sschp_test_post_autosaves     = array();
+    $sschp_test_acf_fields         = array();
     $_POST                    = array();
     $_REQUEST                 = array();
     $_SERVER                  = array();
@@ -354,6 +355,95 @@ function sschp_test_chip_engine_filter_by_tags() {
 
     sschp_assert_same( 1, count( $filtered ), 'filter_by_tags should require all active tags to be present' );
     sschp_assert_same( 1, $filtered[0]['id'], 'filter_by_tags should keep the matching item' );
+}
+
+function sschp_test_field_normalizer_handles_acf_checkbox_array() {
+    $value = SSCHP_Field_Normalizer::normalize( array( ' Waterproof ', 'Dimmable', 'waterproof' ) );
+
+    sschp_assert_same( 'Waterproof; Dimmable', $value, 'field normalizer should flatten ACF checkbox arrays and dedupe values case-insensitively' );
+}
+
+function sschp_test_field_normalizer_handles_acf_relationship_posts() {
+    $value = SSCHP_Field_Normalizer::normalize(
+        array(
+            (object) array(
+                'ID'         => 12,
+                'post_title' => 'Signal Beacon',
+            ),
+            (object) array(
+                'ID'         => 13,
+                'post_title' => 'Safety Relay',
+            ),
+        )
+    );
+
+    sschp_assert_same( 'Signal Beacon; Safety Relay', $value, 'field normalizer should use post titles from ACF relationship post objects' );
+}
+
+function sschp_test_field_normalizer_handles_taxonomy_terms() {
+    $value = SSCHP_Field_Normalizer::normalize(
+        array(
+            (object) array(
+                'term_id' => 4,
+                'name'    => 'Outdoor',
+            ),
+            (object) array(
+                'term_id' => 5,
+                'name'    => 'Industrial',
+            ),
+        )
+    );
+
+    sschp_assert_same( 'Outdoor; Industrial', $value, 'field normalizer should use term names from taxonomy term objects' );
+}
+
+function sschp_test_field_normalizer_handles_numeric_fields() {
+    sschp_assert_same( '42.5', SSCHP_Field_Normalizer::normalize( 42.5 ), 'field normalizer should keep numeric field values as strings' );
+}
+
+function sschp_test_field_normalizer_ignores_empty_null_and_plain_objects() {
+    $value = SSCHP_Field_Normalizer::normalize(
+        array(
+            null,
+            '',
+            false,
+            (object) array(
+                'unexpected' => 'ignored',
+            ),
+        )
+    );
+
+    sschp_assert_same( '', $value, 'field normalizer should ignore null, empty, booleans, and plain non-stringable objects' );
+}
+
+function sschp_test_search_handler_get_field_value_normalizes_acf_arrays() {
+    global $sschp_test_acf_fields;
+
+    sschp_reset_test_state();
+    $sschp_test_acf_fields[50]['features'] = array( 'IP65', 'Outdoor' );
+
+    $handler = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
+    $value   = sschp_invoke_private( $handler, 'get_field_value', array( 50, 'features' ) );
+
+    sschp_assert_same( 'IP65; Outdoor', $value, 'search mapped field reads should normalize ACF arrays into semicolon tags' );
+    sschp_assert_true( 'Array' !== $value, 'search mapped field reads should never return the literal Array string' );
+}
+
+function sschp_test_frontend_get_field_value_normalizes_acf_relationship_posts() {
+    global $sschp_test_acf_fields;
+
+    sschp_reset_test_state();
+    $sschp_test_acf_fields[51]['related_products'] = array(
+        (object) array(
+            'ID'         => 100,
+            'post_title' => 'Signal Beacon',
+        ),
+    );
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $value    = sschp_invoke_private( $frontend, 'get_field_value', array( 51, 'related_products' ) );
+
+    sschp_assert_same( 'Signal Beacon', $value, 'frontend mapped field reads should normalize ACF relationship post objects into titles' );
 }
 
 function sschp_test_search_handler_normalizes_active_tags_case_insensitively() {
@@ -1117,6 +1207,13 @@ sschp_test_chip_engine_all_results_tag_hidden_unless_active();
 sschp_test_chip_engine_active_tag_survives();
 sschp_test_chip_engine_active_tags_are_ordered_first();
 sschp_test_chip_engine_filter_by_tags();
+sschp_test_field_normalizer_handles_acf_checkbox_array();
+sschp_test_field_normalizer_handles_acf_relationship_posts();
+sschp_test_field_normalizer_handles_taxonomy_terms();
+sschp_test_field_normalizer_handles_numeric_fields();
+sschp_test_field_normalizer_ignores_empty_null_and_plain_objects();
+sschp_test_search_handler_get_field_value_normalizes_acf_arrays();
+sschp_test_frontend_get_field_value_normalizes_acf_relationship_posts();
 sschp_test_search_handler_normalizes_active_tags_case_insensitively();
 sschp_test_search_handler_render_chips_marks_case_insensitive_active_tag();
 sschp_test_frontend_archive_filter_url_toggles_case_insensitively();

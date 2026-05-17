@@ -149,6 +149,7 @@ define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
 require_once SSCHP_PLUGIN_DIR . 'includes/class-edition.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-language.php';
+require_once SSCHP_PLUGIN_DIR . 'includes/class-field-normalizer.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-chip-engine.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-search-handler.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-settings.php';
