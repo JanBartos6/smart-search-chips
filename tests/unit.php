@@ -573,6 +573,112 @@ function sschp_test_frontend_get_field_value_normalizes_acf_relationship_posts()
     sschp_assert_same( 'Signal Beacon', $value, 'frontend mapped field reads should normalize ACF relationship post objects into titles' );
 }
 
+function sschp_make_range_post( $post_id, array $tags, $title = '' ) {
+    return array(
+        'id'         => (int) $post_id,
+        'title'      => '' !== $title ? $title : 'Post ' . (int) $post_id,
+        'tags'       => $tags,
+        'tags_lower' => array_map( 'mb_strtolower', $tags ),
+    );
+}
+
+function sschp_test_range_filters_create_watt_slider_from_consistent_facts() {
+    $range = new SSCHP_Range_Filters();
+    $chips = $range->add_range_chips(
+        array(),
+        array(
+            sschp_make_range_post( 1, array( '100 W' ) ),
+            sschp_make_range_post( 2, array( '200 W' ) ),
+            sschp_make_range_post( 3, array( '300 wattů' ) ),
+        ),
+        array()
+    );
+
+    sschp_assert_true( isset( $chips['sschp_range|w|w'] ), 'consistent watt facts should create one watt range chip' );
+    sschp_assert_same( 100.0, $chips['sschp_range|w|w']['range']['min'], 'watt range should preserve the minimum value' );
+    sschp_assert_same( 300.0, $chips['sschp_range|w|w']['range']['max'], 'watt range should preserve the maximum value' );
+}
+
+function sschp_test_range_filters_keep_ac_dc_voltage_separate() {
+    $range = new SSCHP_Range_Filters();
+    $chips = $range->add_range_chips(
+        array(),
+        array(
+            sschp_make_range_post( 1, array( '24 V DC' ) ),
+            sschp_make_range_post( 2, array( '48 V DC' ) ),
+            sschp_make_range_post( 3, array( '230 V AC' ) ),
+            sschp_make_range_post( 4, array( '400 V AC' ) ),
+        ),
+        array()
+    );
+
+    sschp_assert_true( isset( $chips['sschp_range|v-dc|v_dc'] ), 'DC voltage facts should create a separate DC slider' );
+    sschp_assert_true( isset( $chips['sschp_range|v-ac|v_ac'] ), 'AC voltage facts should create a separate AC slider' );
+    sschp_assert_same( 24.0, $chips['sschp_range|v-dc|v_dc']['range']['min'], 'DC slider should not include AC values' );
+    sschp_assert_same( 230.0, $chips['sschp_range|v-ac|v_ac']['range']['min'], 'AC slider should not include DC values' );
+}
+
+function sschp_test_range_filters_reject_ip_ratings_as_categorical() {
+    $range = new SSCHP_Range_Filters();
+    $posts = array(
+        sschp_make_range_post( 1, array( 'IP65' ) ),
+        sschp_make_range_post( 2, array( 'IP67' ) ),
+    );
+    $chips  = $range->add_range_chips( array(), $posts, array() );
+    $report = $range->get_debug_report( $posts );
+
+    sschp_assert_same( array(), $chips, 'IP ratings should not create numeric range chips' );
+    sschp_assert_same( 'IP ratings are categorical', $report['products'][0]['rejected'][0]['reason'], 'range debug should explain rejected IP ratings' );
+}
+
+function sschp_test_range_filters_reject_model_numbers() {
+    $range = new SSCHP_Range_Filters();
+    $chips = $range->add_range_chips(
+        array(),
+        array(
+            sschp_make_range_post( 1, array( 'Model A100' ) ),
+            sschp_make_range_post( 2, array( 'Model B200' ) ),
+        ),
+        array()
+    );
+
+    sschp_assert_same( array(), $chips, 'model numbers should not create range chips' );
+}
+
+function sschp_test_range_filters_normalize_dimensions_to_common_unit() {
+    $range = new SSCHP_Range_Filters();
+    $chips = $range->add_range_chips(
+        array(),
+        array(
+            sschp_make_range_post( 1, array( 'Length: 10 cm' ) ),
+            sschp_make_range_post( 2, array( 'Length: 100 mm' ) ),
+            sschp_make_range_post( 3, array( 'Length: 20 cm' ) ),
+        ),
+        array()
+    );
+
+    sschp_assert_true( isset( $chips['sschp_range|length|mm'] ), 'cm and mm facts with the same label should normalize into one mm slider' );
+    sschp_assert_same( 100.0, $chips['sschp_range|length|mm']['range']['min'], '10 cm should normalize to 100 mm' );
+    sschp_assert_same( 200.0, $chips['sschp_range|length|mm']['range']['max'], '20 cm should normalize to 200 mm' );
+}
+
+function sschp_test_range_filters_do_not_mix_prices_with_wattage() {
+    $range = new SSCHP_Range_Filters();
+    $chips = $range->add_range_chips(
+        array(),
+        array(
+            sschp_make_range_post( 1, array( 'Price: $100', 'Power: 100 W' ) ),
+            sschp_make_range_post( 2, array( 'Price: $200', 'Power: 200 W' ) ),
+        ),
+        array()
+    );
+
+    sschp_assert_true( isset( $chips['sschp_range|price|currency_usd'] ), 'prices should create their own currency range when consistent' );
+    sschp_assert_true( isset( $chips['sschp_range|power|w'] ), 'wattage should create its own power range' );
+    sschp_assert_same( '$', $chips['sschp_range|price|currency_usd']['range']['unit'], 'price slider should keep currency as its unit' );
+    sschp_assert_same( 'W', $chips['sschp_range|power|w']['range']['unit'], 'watt slider should keep wattage as its unit' );
+}
+
 function sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_results() {
     sschp_reset_test_state();
 
@@ -1774,6 +1880,12 @@ sschp_test_field_normalizer_handles_numeric_fields();
 sschp_test_field_normalizer_ignores_empty_null_and_plain_objects();
 sschp_test_search_handler_get_field_value_normalizes_acf_arrays();
 sschp_test_frontend_get_field_value_normalizes_acf_relationship_posts();
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_watt_slider_from_consistent_facts' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_keep_ac_dc_voltage_separate' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_ip_ratings_as_categorical' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_model_numbers' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_normalize_dimensions_to_common_unit' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_do_not_mix_prices_with_wattage' );
 sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_results();
 sschp_test_search_handler_normalizes_active_tags_case_insensitively();
 sschp_test_search_handler_render_chips_marks_case_insensitive_active_tag();

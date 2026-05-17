@@ -253,6 +253,15 @@ if ( ! function_exists( 'sanitize_key' ) ) {
     }
 }
 
+if ( ! function_exists( 'sanitize_title' ) ) {
+    function sanitize_title( $title ) {
+        $title = remove_accents( (string) $title );
+        $title = strtolower( $title );
+        $title = preg_replace( '/[^a-z0-9_\-]+/', '-', $title );
+        return trim( $title, '-' );
+    }
+}
+
 if ( ! function_exists( 'wp_json_encode' ) ) {
     function wp_json_encode( $value ) {
         return json_encode( $value );
@@ -387,6 +396,12 @@ if ( ! function_exists( 'esc_html' ) ) {
 
 if ( ! function_exists( 'esc_attr' ) ) {
     function esc_attr( $text ) {
+        return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+    }
+}
+
+if ( ! function_exists( 'esc_textarea' ) ) {
+    function esc_textarea( $text ) {
         return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
     }
 }
@@ -570,6 +585,12 @@ if ( ! function_exists( 'register_setting' ) ) {
 
 if ( ! function_exists( 'add_options_page' ) ) {
     function add_options_page() {
+        return true;
+    }
+}
+
+if ( ! function_exists( 'add_submenu_page' ) ) {
+    function add_submenu_page() {
         return true;
     }
 }
@@ -1219,6 +1240,7 @@ require_once dirname( __DIR__ ) . '/includes/class-search-handler.php';
 $sschp_test_optional_requires = array(
     dirname( __DIR__ ) . '/includes/class-ai-tagger__premium_only.php',
     dirname( __DIR__ ) . '/includes/class-analytics__premium_only.php',
+    dirname( __DIR__ ) . '/includes/class-range-filters__premium_only.php',
 );
 
 foreach ( $sschp_test_optional_requires as $sschp_test_optional_require ) {

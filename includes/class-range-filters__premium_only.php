@@ -19,6 +19,7 @@ class SSCHP_Range_Filters {
      */
     public function init() {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ), 20 );
+        add_action( 'admin_menu', array( $this, 'add_debug_page' ) );
         add_filter( 'sschp_chip_tag_counts', array( $this, 'add_range_chips' ), 20, 3 );
         add_filter( 'sschp_filter_posts_by_tags', array( $this, 'filter_posts_by_range_tags' ), 10, 3 );
         add_filter( 'sschp_active_chip_fallback', array( $this, 'active_range_chip_fallback' ), 10, 5 );
@@ -46,6 +47,140 @@ class SSCHP_Range_Filters {
             file_exists( $script_path ) ? filemtime( $script_path ) : SSCHP_VERSION,
             true
         );
+    }
+
+    /**
+     * Register the admin-only range diagnostics page.
+     */
+    public function add_debug_page() {
+        if ( ! function_exists( 'add_submenu_page' ) ) {
+            return;
+        }
+
+        add_submenu_page(
+            'options-general.php',
+            __( 'Search Chips Range Debug', 'smart-search-chips' ),
+            __( 'Range Debug', 'smart-search-chips' ),
+            'manage_options',
+            'smart-search-chips-range-debug',
+            array( $this, 'render_debug_page' )
+        );
+    }
+
+    /**
+     * Render admin diagnostics for numeric fact extraction.
+     */
+    public function render_debug_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have permission to view this page.', 'smart-search-chips' ) );
+        }
+
+        $request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+        $raw_ids        = '';
+        if ( 'POST' === $request_method ) {
+            check_admin_referer( 'sschp_range_debug', 'sschp_range_debug_nonce' );
+            $raw_ids = isset( $_POST['sschp_range_debug_post_ids'] ) ? sanitize_textarea_field( wp_unslash( $_POST['sschp_range_debug_post_ids'] ) ) : '';
+        }
+
+        $post_ids   = $this->parse_debug_post_ids( $raw_ids );
+        $posts_data = $this->build_debug_posts_data( $post_ids );
+        $report     = ! empty( $posts_data ) ? $this->get_debug_report( $posts_data ) : array(
+            'products' => array(),
+            'groups'   => array(),
+        );
+        ?>
+        <div class="wrap">
+            <h1><?php esc_html_e( 'Smart Search Chips Range Debug', 'smart-search-chips' ); ?></h1>
+            <p><?php esc_html_e( 'Enter product or post IDs to inspect detected numeric facts and why range groups are accepted or rejected.', 'smart-search-chips' ); ?></p>
+            <form method="post">
+                <?php wp_nonce_field( 'sschp_range_debug', 'sschp_range_debug_nonce' ); ?>
+                <textarea name="sschp_range_debug_post_ids" rows="4" class="large-text" placeholder="123, 124, 125"><?php echo esc_textarea( $raw_ids ); ?></textarea>
+                <p><button type="submit" class="button button-primary"><?php esc_html_e( 'Inspect Numeric Facts', 'smart-search-chips' ); ?></button></p>
+            </form>
+
+            <?php if ( ! empty( $posts_data ) ) : ?>
+                <h2><?php esc_html_e( 'Detected Facts', 'smart-search-chips' ); ?></h2>
+                <?php foreach ( $report['products'] as $product ) : ?>
+                    <h3><?php echo esc_html( sprintf( __( 'Post #%d', 'smart-search-chips' ), $product['post_id'] ) ); ?></h3>
+                    <?php if ( empty( $product['facts'] ) && empty( $product['rejected'] ) ) : ?>
+                        <p><?php esc_html_e( 'No numeric facts detected.', 'smart-search-chips' ); ?></p>
+                    <?php endif; ?>
+                    <?php if ( ! empty( $product['facts'] ) ) : ?>
+                        <table class="widefat striped">
+                            <thead>
+                                <tr>
+                                    <th><?php esc_html_e( 'Label', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Value', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Unit', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Source', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Confidence', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Raw Text', 'smart-search-chips' ); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ( $product['facts'] as $fact ) : ?>
+                                    <tr>
+                                        <td><?php echo esc_html( $fact['label'] ); ?></td>
+                                        <td><?php echo esc_html( $this->format_number( $fact['value'] ) ); ?></td>
+                                        <td><?php echo esc_html( $fact['unit'] ); ?></td>
+                                        <td><?php echo esc_html( $fact['source'] . ( '' !== $fact['source_field'] ? ':' . $fact['source_field'] : '' ) ); ?></td>
+                                        <td><?php echo esc_html( (string) $fact['confidence'] ); ?></td>
+                                        <td><?php echo esc_html( $fact['raw'] ); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php endif; ?>
+                    <?php if ( ! empty( $product['rejected'] ) ) : ?>
+                        <table class="widefat striped">
+                            <thead>
+                                <tr>
+                                    <th><?php esc_html_e( 'Rejected Text', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Reason', 'smart-search-chips' ); ?></th>
+                                    <th><?php esc_html_e( 'Source', 'smart-search-chips' ); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ( $product['rejected'] as $rejected ) : ?>
+                                    <tr>
+                                        <td><?php echo esc_html( $rejected['raw'] ); ?></td>
+                                        <td><?php echo esc_html( $rejected['reason'] ); ?></td>
+                                        <td><?php echo esc_html( $rejected['source'] . ( '' !== $rejected['source_field'] ? ':' . $rejected['source_field'] : '' ) ); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+
+                <h2><?php esc_html_e( 'Range Groups', 'smart-search-chips' ); ?></h2>
+                <table class="widefat striped">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Label', 'smart-search-chips' ); ?></th>
+                            <th><?php esc_html_e( 'Unit', 'smart-search-chips' ); ?></th>
+                            <th><?php esc_html_e( 'Range', 'smart-search-chips' ); ?></th>
+                            <th><?php esc_html_e( 'Products', 'smart-search-chips' ); ?></th>
+                            <th><?php esc_html_e( 'Status', 'smart-search-chips' ); ?></th>
+                            <th><?php esc_html_e( 'Reason', 'smart-search-chips' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ( $report['groups'] as $group ) : ?>
+                            <tr>
+                                <td><?php echo esc_html( $group['label'] ); ?></td>
+                                <td><?php echo esc_html( $group['unit'] ); ?></td>
+                                <td><?php echo esc_html( $this->format_number( $group['min'] ) . ' - ' . $this->format_number( $group['max'] ) ); ?></td>
+                                <td><?php echo esc_html( (string) $group['count'] ); ?></td>
+                                <td><?php echo esc_html( $group['accepted'] ? __( 'Accepted', 'smart-search-chips' ) : __( 'Rejected', 'smart-search-chips' ) ); ?></td>
+                                <td><?php echo esc_html( implode( ', ', $group['reasons'] ) ); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </div>
+        <?php
     }
 
     /**
@@ -269,45 +404,132 @@ class SSCHP_Range_Filters {
     }
 
     /**
-     * Build range metadata by scanning tags.
+     * Return a structured diagnostics report for the admin debug page and tests.
      *
      * @param array $posts_data Posts data.
      * @return array
      */
-    private function collect_numeric_groups( $posts_data ) {
+    public function get_debug_report( $posts_data ) {
+        $report = array(
+            'products' => array(),
+            'groups'   => array(),
+        );
+        $groups = $this->collect_numeric_groups( $posts_data, $report );
+
+        foreach ( $groups as $group ) {
+            $evaluation = $this->evaluate_group( $group );
+            $report['groups'][] = array_merge(
+                $group,
+                array(
+                    'accepted' => $evaluation['accepted'],
+                    'reasons'  => $evaluation['reasons'],
+                )
+            );
+        }
+
+        return $report;
+    }
+
+    /**
+     * Parse comma/space separated debug post IDs.
+     *
+     * @param string $raw_ids Raw IDs from the admin form.
+     * @return array
+     */
+    private function parse_debug_post_ids( $raw_ids ) {
+        $ids = preg_split( '/[\s,]+/', (string) $raw_ids );
+        $ids = array_map( 'absint', (array) $ids );
+        $ids = array_filter(
+            $ids,
+            function( $id ) {
+                return $id > 0;
+            }
+        );
+
+        return array_values( array_unique( $ids ) );
+    }
+
+    /**
+     * Build minimal post data for the admin diagnostics page.
+     *
+     * @param array $post_ids Post IDs.
+     * @return array
+     */
+    private function build_debug_posts_data( $post_ids ) {
+        $posts_data = array();
+
+        foreach ( (array) $post_ids as $post_id ) {
+            $post_id = absint( $post_id );
+            if ( $post_id <= 0 ) {
+                continue;
+            }
+
+            $raw_tags = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true );
+            $tags     = $this->split_source_text( $raw_tags );
+
+            $posts_data[] = array(
+                'id'         => $post_id,
+                'tags'       => $tags,
+                'tags_lower' => array_map( 'mb_strtolower', $tags ),
+            );
+        }
+
+        return $posts_data;
+    }
+
+    /**
+     * Build range metadata by scanning conservative numeric facts.
+     *
+     * @param array      $posts_data Posts data.
+     * @param null|array $debug      Optional debug report passed by reference.
+     * @return array
+     */
+    private function collect_numeric_groups( $posts_data, &$debug = null ) {
         $groups = array();
 
         foreach ( (array) $posts_data as $post ) {
+            $post_id      = isset( $post['id'] ) ? absint( $post['id'] ) : 0;
             $seen_in_post = array();
+            $rejected     = array();
+            $facts        = $this->extract_numeric_facts_from_post( $post, $rejected );
 
-            $tags = isset( $post['tags'] ) && is_array( $post['tags'] ) ? $post['tags'] : array();
-            foreach ( $tags as $tag ) {
-                $parsed = $this->parse_numeric_tag( $tag );
-                if ( ! $parsed ) {
-                    continue;
-                }
+            if ( is_array( $debug ) ) {
+                $debug['products'][] = array(
+                    'post_id'  => $post_id,
+                    'facts'    => $facts,
+                    'rejected' => $rejected,
+                );
+            }
 
-                $group_id = $parsed['group_key'] . '|' . $parsed['unit_key'];
+            foreach ( $facts as $fact ) {
+                $group_id = $fact['group_key'] . '|' . $fact['unit_key'];
                 if ( ! isset( $groups[ $group_id ] ) ) {
                     $groups[ $group_id ] = array(
-                        'label'     => $parsed['label'],
-                        'group_key' => $parsed['group_key'],
-                        'unit'      => $parsed['unit'],
-                        'unit_key'  => $parsed['unit_key'],
-                        'min'       => $parsed['value'],
-                        'max'       => $parsed['value'],
-                        'count'     => 0,
-                        'precision' => $parsed['precision'],
-                        'values'    => array(),
-                        'tag_keys'  => array(),
+                        'label'            => $fact['label'],
+                        'group_key'        => $fact['group_key'],
+                        'unit'             => $fact['unit'],
+                        'unit_key'         => $fact['unit_key'],
+                        'min'              => $fact['value'],
+                        'max'              => $fact['value'],
+                        'count'            => 0,
+                        'precision'        => $fact['precision'],
+                        'values'           => array(),
+                        'tag_keys'         => array(),
+                        'sources'          => array(),
+                        'confidence_total' => 0,
                     );
                 }
 
-                $groups[ $group_id ]['min']       = min( $groups[ $group_id ]['min'], $parsed['value'] );
-                $groups[ $group_id ]['max']       = max( $groups[ $group_id ]['max'], $parsed['value'] );
-                $groups[ $group_id ]['precision'] = max( $groups[ $group_id ]['precision'], $parsed['precision'] );
-                $groups[ $group_id ]['values'][]  = $parsed['value'];
-                $groups[ $group_id ]['tag_keys'][ mb_strtolower( $tag ) ] = mb_strtolower( $tag );
+                $groups[ $group_id ]['min']              = min( $groups[ $group_id ]['min'], $fact['value'] );
+                $groups[ $group_id ]['max']              = max( $groups[ $group_id ]['max'], $fact['value'] );
+                $groups[ $group_id ]['precision']        = max( $groups[ $group_id ]['precision'], $fact['precision'] );
+                $groups[ $group_id ]['values'][]         = $fact['value'];
+                $groups[ $group_id ]['confidence_total'] += (int) $fact['confidence'];
+                $groups[ $group_id ]['sources'][ $fact['source'] ] = true;
+
+                if ( ! empty( $fact['tag_key'] ) ) {
+                    $groups[ $group_id ]['tag_keys'][ $fact['tag_key'] ] = $fact['tag_key'];
+                }
 
                 if ( ! isset( $seen_in_post[ $group_id ] ) ) {
                     $groups[ $group_id ]['count']++;
@@ -315,6 +537,15 @@ class SSCHP_Range_Filters {
                 }
             }
         }
+
+        foreach ( $groups as &$group ) {
+            $value_count         = max( 1, count( $group['values'] ) );
+            $group['confidence'] = (int) round( $group['confidence_total'] / $value_count );
+            $group['sources']    = array_keys( $group['sources'] );
+            $group['tag_keys']   = array_values( $group['tag_keys'] );
+            unset( $group['confidence_total'] );
+        }
+        unset( $group );
 
         return array_values( $groups );
     }
@@ -326,13 +557,45 @@ class SSCHP_Range_Filters {
      * @return bool
      */
     private function group_is_filterable( $group ) {
-        if ( empty( $group['values'] ) || (int) $group['count'] < 2 ) {
-            return false;
+        $evaluation = $this->evaluate_group( $group );
+
+        return $evaluation['accepted'];
+    }
+
+    /**
+     * Evaluate a group and keep rejected reasons available for diagnostics.
+     *
+     * @param array $group Numeric group.
+     * @return array
+     */
+    private function evaluate_group( $group ) {
+        $reasons      = array();
+        $min_products = (int) apply_filters( 'sschp_range_min_products', 2, $group );
+        $min_products = max( 2, $min_products );
+        $min_conf     = (int) apply_filters( 'sschp_range_min_confidence', 65, $group );
+        $values       = isset( $group['values'] ) ? (array) $group['values'] : array();
+
+        if ( empty( $values ) ) {
+            $reasons[] = 'no numeric values';
         }
 
-        $distinct = array_unique( array_map( array( $this, 'format_number' ), $group['values'] ) );
+        if ( (int) $group['count'] < $min_products ) {
+            $reasons[] = 'not enough matching products';
+        }
 
-        return count( $distinct ) > 1 && $group['max'] > $group['min'];
+        $distinct = array_unique( array_map( array( $this, 'format_number' ), $values ) );
+        if ( count( $distinct ) < 2 || $group['max'] <= $group['min'] ) {
+            $reasons[] = 'range would not filter results';
+        }
+
+        if ( isset( $group['confidence'] ) && (int) $group['confidence'] < $min_conf ) {
+            $reasons[] = 'confidence below threshold';
+        }
+
+        return array(
+            'accepted' => empty( $reasons ),
+            'reasons'  => $reasons,
+        );
     }
 
     /**
@@ -403,18 +666,15 @@ class SSCHP_Range_Filters {
      * @return bool
      */
     private function post_matches_range( $post, $range_filter ) {
-        $tags = isset( $post['tags'] ) && is_array( $post['tags'] ) ? $post['tags'] : array();
-        foreach ( $tags as $tag ) {
-            $parsed = $this->parse_numeric_tag( $tag );
-            if ( ! $parsed ) {
+        $rejected = array();
+        $facts    = $this->extract_numeric_facts_from_post( $post, $rejected );
+
+        foreach ( $facts as $fact ) {
+            if ( $fact['group_key'] !== $range_filter['group_key'] || $fact['unit_key'] !== $range_filter['unit_key'] ) {
                 continue;
             }
 
-            if ( $parsed['group_key'] !== $range_filter['group_key'] || $parsed['unit_key'] !== $range_filter['unit_key'] ) {
-                continue;
-            }
-
-            if ( $parsed['value'] >= $range_filter['selected_min'] && $parsed['value'] <= $range_filter['selected_max'] ) {
+            if ( $fact['value'] >= $range_filter['selected_min'] && $fact['value'] <= $range_filter['selected_max'] ) {
                 return true;
             }
         }
@@ -429,50 +689,517 @@ class SSCHP_Range_Filters {
      * @return null|array
      */
     private function parse_numeric_tag( $tag ) {
-        $tag = trim( wp_strip_all_tags( (string) $tag ) );
-        if ( '' === $tag ) {
+        $rejected = array();
+        $facts    = $this->extract_numeric_facts_from_text(
+            $tag,
+            array(
+                'source'       => 'chip_tag',
+                'source_field' => '',
+                'confidence'   => 75,
+            ),
+            $rejected
+        );
+
+        if ( empty( $facts ) ) {
             return null;
         }
 
-        $label  = '';
-        $number = '';
-        $unit   = '';
-
-        if ( preg_match( '/^\s*([^\d\+\-][^:=]*?)\s*(?:[:=]|\s+)\s*([-+]?\d+(?:[\.,]\d+)?)\s*([^,;]+)?\s*$/u', $tag, $matches ) ) {
-            $label  = trim( $matches[1], " \t\n\r\0\x0B:-=" );
-            $number = $matches[2];
-            $unit   = isset( $matches[3] ) ? trim( $matches[3] ) : '';
-        } elseif ( preg_match( '/^\s*([-+]?\d+(?:[\.,]\d+)?)\s*([^,;]+)?\s*$/u', $tag, $matches ) ) {
-            $number = $matches[1];
-            $unit   = isset( $matches[2] ) ? trim( $matches[2] ) : '';
-            $label  = $this->get_default_numeric_label( $unit );
-        }
-
-        if ( '' === $label || '' === $number ) {
-            return null;
-        }
-
-        $unit = $this->normalize_unit( $unit );
-        if ( ! $this->is_supported_unit( $unit, $label, $tag ) ) {
-            return null;
-        }
-
-        $normalized_number = str_replace( ',', '.', $number );
-        if ( ! is_numeric( $normalized_number ) ) {
-            return null;
-        }
-
-        $value = (float) $normalized_number;
-        $parts = explode( '.', $normalized_number );
+        $fact = reset( $facts );
 
         return array(
-            'label'     => sanitize_text_field( $label ),
-            'group_key' => $this->label_to_key( $label ),
-            'unit'      => sanitize_text_field( $unit ),
-            'unit_key'  => $this->unit_to_key( $unit ),
-            'value'     => $value,
-            'precision' => isset( $parts[1] ) ? strlen( rtrim( $parts[1], '0' ) ) : 0,
+            'label'     => $fact['label'],
+            'group_key' => $fact['group_key'],
+            'unit'      => $fact['unit'],
+            'unit_key'  => $fact['unit_key'],
+            'value'     => $fact['value'],
+            'precision' => $fact['precision'],
         );
+    }
+
+    /**
+     * Extract numeric facts from all known sources for one result.
+     *
+     * @param array $post     Post data from the search pipeline.
+     * @param array $rejected Rejected candidates passed by reference.
+     * @return array
+     */
+    private function extract_numeric_facts_from_post( $post, &$rejected = array() ) {
+        $post_id = isset( $post['id'] ) ? absint( $post['id'] ) : 0;
+        $facts   = array();
+        $sources = $this->collect_numeric_sources( $post, $post_id );
+
+        foreach ( $sources as $source ) {
+            foreach ( $this->split_source_text( $source['text'] ) as $text ) {
+                $facts = array_merge(
+                    $facts,
+                    $this->extract_numeric_facts_from_text(
+                        $text,
+                        array(
+                            'post_id'      => $post_id,
+                            'source'       => $source['source'],
+                            'source_field' => $source['source_field'],
+                            'confidence'   => $source['confidence'],
+                            'raw_source'   => $source['text'],
+                        ),
+                        $rejected
+                    )
+                );
+            }
+        }
+
+        return $this->dedupe_facts( $facts );
+    }
+
+    /**
+     * Collect source texts ordered from structured to fallback content.
+     *
+     * @param array $post    Post data.
+     * @param int   $post_id Post ID.
+     * @return array
+     */
+    private function collect_numeric_sources( $post, $post_id ) {
+        $sources = array();
+
+        if ( $post_id > 0 ) {
+            $sources = array_merge( $sources, $this->collect_woocommerce_attribute_sources( $post_id ) );
+            $sources = array_merge( $sources, $this->collect_mapped_field_sources( $post_id ) );
+            $sources = array_merge( $sources, $this->collect_product_meta_sources( $post_id ) );
+            $sources = array_merge( $sources, $this->collect_taxonomy_attribute_sources( $post_id ) );
+        }
+
+        $tags = isset( $post['tags'] ) && is_array( $post['tags'] ) ? $post['tags'] : array();
+        foreach ( $tags as $tag ) {
+            $sources[] = array(
+                'text'         => $tag,
+                'source'       => 'chip_tag',
+                'source_field' => '',
+                'confidence'   => 75,
+            );
+        }
+
+        foreach ( $this->collect_fallback_text_sources( $post, $post_id ) as $source ) {
+            $sources[] = $source;
+        }
+
+        return $sources;
+    }
+
+    /**
+     * Collect WooCommerce attribute sources.
+     *
+     * @param int $post_id Post ID.
+     * @return array
+     */
+    private function collect_woocommerce_attribute_sources( $post_id ) {
+        if ( ! function_exists( 'wc_get_product' ) ) {
+            return array();
+        }
+
+        $product = wc_get_product( $post_id );
+        if ( ! $product || ! method_exists( $product, 'get_attributes' ) ) {
+            return array();
+        }
+
+        $sources = array();
+        foreach ( (array) $product->get_attributes() as $attribute ) {
+            if ( ! is_object( $attribute ) || ! method_exists( $attribute, 'get_name' ) ) {
+                continue;
+            }
+
+            $field_name = $attribute->get_name();
+            $values     = array();
+
+            if ( method_exists( $attribute, 'is_taxonomy' ) && $attribute->is_taxonomy() && function_exists( 'wp_get_post_terms' ) ) {
+                $terms = wp_get_post_terms( $post_id, $field_name, array( 'fields' => 'names' ) );
+                if ( ! is_wp_error( $terms ) ) {
+                    $values = (array) $terms;
+                }
+            } elseif ( method_exists( $attribute, 'get_options' ) ) {
+                $values = (array) $attribute->get_options();
+            }
+
+            foreach ( $values as $value ) {
+                $text = SSCHP_Field_Normalizer::normalize(
+                    $value,
+                    array(
+                        'post_id'    => $post_id,
+                        'field_name' => $field_name,
+                        'source'     => 'woocommerce_attribute',
+                    )
+                );
+
+                if ( '' !== $text ) {
+                    $sources[] = array(
+                        'text'         => $text,
+                        'source'       => 'woocommerce_attribute',
+                        'source_field' => $field_name,
+                        'confidence'   => 90,
+                    );
+                }
+            }
+        }
+
+        return $sources;
+    }
+
+    /**
+     * Collect mapped ACF/custom field sources.
+     *
+     * @param int $post_id Post ID.
+     * @return array
+     */
+    private function collect_mapped_field_sources( $post_id ) {
+        $field_names = array_filter(
+            array_unique(
+                array_map(
+                    'sanitize_key',
+                    array(
+                        get_option( 'sschp_tag_fields', '' ),
+                        get_option( 'sschp_extra_fields', '' ),
+                    )
+                )
+            )
+        );
+        $sources = array();
+
+        foreach ( $field_names as $field_name ) {
+            $value = null;
+            if ( function_exists( 'get_field' ) ) {
+                $value = get_field( $field_name, $post_id );
+            }
+
+            $text = SSCHP_Field_Normalizer::normalize(
+                $value,
+                array(
+                    'post_id'    => $post_id,
+                    'field_name' => $field_name,
+                    'source'     => 'acf',
+                )
+            );
+
+            if ( '' === $text ) {
+                $text = SSCHP_Field_Normalizer::normalize(
+                    get_post_meta( $post_id, $field_name, true ),
+                    array(
+                        'post_id'    => $post_id,
+                        'field_name' => $field_name,
+                        'source'     => 'post_meta',
+                    )
+                );
+            }
+
+            if ( '' !== $text ) {
+                $sources[] = array(
+                    'text'         => $text,
+                    'source'       => 'mapped_field',
+                    'source_field' => $field_name,
+                    'confidence'   => 92,
+                );
+            }
+        }
+
+        return $sources;
+    }
+
+    /**
+     * Collect conservative product meta sources.
+     *
+     * @param int $post_id Post ID.
+     * @return array
+     */
+    private function collect_product_meta_sources( $post_id ) {
+        if ( function_exists( 'get_post_type' ) && 'product' !== get_post_type( $post_id ) ) {
+            return array();
+        }
+
+        $sources = array();
+        foreach ( array( '_price', '_regular_price', '_sale_price' ) as $meta_key ) {
+            $value = get_post_meta( $post_id, $meta_key, true );
+            if ( '' === trim( (string) $value ) || ! is_numeric( $value ) ) {
+                continue;
+            }
+
+            $currency = function_exists( 'get_woocommerce_currency_symbol' ) ? get_woocommerce_currency_symbol() : '$';
+            $sources[] = array(
+                'text'         => $currency . $value,
+                'source'       => 'product_meta',
+                'source_field' => $meta_key,
+                'confidence'   => 88,
+            );
+        }
+
+        return $sources;
+    }
+
+    /**
+     * Collect taxonomy attribute sources, primarily pa_* product attributes.
+     *
+     * @param int $post_id Post ID.
+     * @return array
+     */
+    private function collect_taxonomy_attribute_sources( $post_id ) {
+        if ( ! function_exists( 'get_object_taxonomies' ) || ! function_exists( 'wp_get_post_terms' ) ) {
+            return array();
+        }
+
+        $post_type  = function_exists( 'get_post_type' ) ? get_post_type( $post_id ) : 'post';
+        $taxonomies = get_object_taxonomies( $post_type, 'names' );
+        $sources    = array();
+
+        foreach ( (array) $taxonomies as $taxonomy ) {
+            if ( 0 !== strpos( (string) $taxonomy, 'pa_' ) ) {
+                continue;
+            }
+
+            $terms = wp_get_post_terms( $post_id, $taxonomy, array( 'fields' => 'names' ) );
+            if ( is_wp_error( $terms ) ) {
+                continue;
+            }
+
+            foreach ( (array) $terms as $term ) {
+                $text = SSCHP_Field_Normalizer::normalize(
+                    $term,
+                    array(
+                        'post_id'    => $post_id,
+                        'field_name' => $taxonomy,
+                        'source'     => 'taxonomy_attribute',
+                    )
+                );
+
+                if ( '' !== $text ) {
+                    $sources[] = array(
+                        'text'         => $text,
+                        'source'       => 'taxonomy_attribute',
+                        'source_field' => $taxonomy,
+                        'confidence'   => 86,
+                    );
+                }
+            }
+        }
+
+        return $sources;
+    }
+
+    /**
+     * Collect title/content fallback sources.
+     *
+     * @param array $post    Post data.
+     * @param int   $post_id Post ID.
+     * @return array
+     */
+    private function collect_fallback_text_sources( $post, $post_id ) {
+        $sources = array();
+
+        if ( ! empty( $post['title'] ) ) {
+            $sources[] = array(
+                'text'         => $post['title'],
+                'source'       => 'title',
+                'source_field' => 'post_title',
+                'confidence'   => 64,
+            );
+        }
+
+        $wp_post = $post_id > 0 && function_exists( 'get_post' ) ? get_post( $post_id ) : null;
+        if ( $wp_post && isset( $wp_post->post_title ) && empty( $post['title'] ) ) {
+            $sources[] = array(
+                'text'         => $wp_post->post_title,
+                'source'       => 'title',
+                'source_field' => 'post_title',
+                'confidence'   => 64,
+            );
+        }
+
+        if ( $wp_post && ! empty( $wp_post->post_content ) ) {
+            $sources[] = array(
+                'text'         => $wp_post->post_content,
+                'source'       => 'content',
+                'source_field' => 'post_content',
+                'confidence'   => 55,
+            );
+        }
+
+        return $sources;
+    }
+
+    /**
+     * Extract numeric facts from one normalized text value.
+     *
+     * @param string $text     Source text.
+     * @param array  $context  Source context.
+     * @param array  $rejected Rejected candidates passed by reference.
+     * @return array
+     */
+    private function extract_numeric_facts_from_text( $text, $context, &$rejected = array() ) {
+        $text = trim( wp_strip_all_tags( html_entity_decode( (string) $text, ENT_QUOTES, 'UTF-8' ) ) );
+        if ( '' === $text ) {
+            return array();
+        }
+
+        $this->record_rejected_patterns( $text, $context, $rejected );
+
+        $facts      = array();
+        $candidates = array_merge(
+            $this->match_currency_candidates( $text ),
+            $this->match_unit_candidates( $text ),
+            $this->match_inferred_unit_candidates( $text, $context )
+        );
+        $seen       = array();
+
+        foreach ( $candidates as $candidate ) {
+            $seen_key = $candidate['number'] . '|' . $candidate['unit'] . '|' . $candidate['raw'];
+            if ( isset( $seen[ $seen_key ] ) ) {
+                continue;
+            }
+            $seen[ $seen_key ] = true;
+
+            $fact = $this->build_numeric_fact( $candidate, $text, $context, $rejected );
+            if ( $fact ) {
+                $facts[] = $fact;
+            }
+        }
+
+        return $facts;
+    }
+
+    /**
+     * Match prefix currency candidates.
+     *
+     * @param string $text Text.
+     * @return array
+     */
+    private function match_currency_candidates( $text ) {
+        if ( ! preg_match_all( '/(?P<unit>\$|€|£|Kč|CZK|USD|EUR)\s*(?P<number>[-+]?\d+(?:[\.,]\d+)?)/iu', $text, $matches, PREG_SET_ORDER ) ) {
+            return array();
+        }
+
+        $candidates = array();
+        foreach ( $matches as $match ) {
+            $candidates[] = array(
+                'number' => $match['number'],
+                'unit'   => $match['unit'],
+                'raw'    => $match[0],
+                'before' => $this->text_before_match( $text, $match[0] ),
+                'after'  => '',
+            );
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * Match number + explicit unit candidates.
+     *
+     * @param string $text Text.
+     * @return array
+     */
+    private function match_unit_candidates( $text ) {
+        $pattern = '/(?<![\pL\pN])(?P<number>[-+]?\d+(?:[\.,]\d+)?)\s*(?P<unit>°\s*C|°C|Kč|CZK|USD|EUR|[\pLµμ%]+(?:\s*(?:AC|DC))?)(?![\pL\pN])/iu';
+        if ( ! preg_match_all( $pattern, $text, $matches, PREG_SET_ORDER ) ) {
+            return array();
+        }
+
+        $candidates = array();
+        foreach ( $matches as $match ) {
+            $candidates[] = array(
+                'number' => $match['number'],
+                'unit'   => $match['unit'],
+                'raw'    => $match[0],
+                'before' => $this->text_before_match( $text, $match[0] ),
+                'after'  => '',
+            );
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * Match bare numeric values only when the source field implies a unit.
+     *
+     * @param string $text    Text.
+     * @param array  $context Source context.
+     * @return array
+     */
+    private function match_inferred_unit_candidates( $text, $context ) {
+        $unit_data = $this->normalize_unit_data( '', isset( $context['source_field'] ) ? $context['source_field'] : '', $text );
+        if ( empty( $unit_data['unit_key'] ) || 'none' === $unit_data['unit_key'] ) {
+            return array();
+        }
+
+        if ( ! preg_match_all( '/(?<![\pL\pN])(?P<number>[-+]?\d+(?:[\.,]\d+)?)(?![\pL\pN])/u', $text, $matches, PREG_SET_ORDER ) ) {
+            return array();
+        }
+
+        $candidates = array();
+        foreach ( $matches as $match ) {
+            $candidates[] = array(
+                'number' => $match['number'],
+                'unit'   => $unit_data['raw_unit'],
+                'raw'    => $match[0],
+                'before' => $this->text_before_match( $text, $match[0] ),
+                'after'  => '',
+            );
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * Build and validate one numeric fact.
+     *
+     * @param array  $candidate Candidate data.
+     * @param string $text      Full source text.
+     * @param array  $context   Source context.
+     * @param array  $rejected  Rejected candidates passed by reference.
+     * @return null|array
+     */
+    private function build_numeric_fact( $candidate, $text, $context, &$rejected ) {
+        $number = str_replace( ',', '.', $candidate['number'] );
+        if ( ! is_numeric( $number ) ) {
+            $this->reject_candidate( $rejected, $candidate, $context, 'invalid number' );
+            return null;
+        }
+
+        $unit_data = $this->normalize_unit_data(
+            $candidate['unit'],
+            isset( $context['source_field'] ) ? $context['source_field'] : '',
+            $text
+        );
+        if ( ! $unit_data || 'none' === $unit_data['unit_key'] ) {
+            $this->reject_candidate( $rejected, $candidate, $context, 'missing or unsupported unit' );
+            return null;
+        }
+
+        $value = (float) $number * (float) $unit_data['factor'];
+        $label = $this->derive_fact_label( $candidate, $context, $unit_data );
+        if ( '' === $label ) {
+            $this->reject_candidate( $rejected, $candidate, $context, 'missing semantic label' );
+            return null;
+        }
+
+        $reason = $this->reject_reason_for_fact( $candidate, $text, $context, $unit_data, $value, $label );
+        if ( '' !== $reason ) {
+            $this->reject_candidate( $rejected, $candidate, $context, $reason );
+            return null;
+        }
+
+        $precision = max( $this->decimal_precision( $number ), $this->decimal_precision( $this->format_number( $value ) ) );
+        $fact      = array(
+            'value'        => $value,
+            'unit'         => $unit_data['display'],
+            'unit_key'     => $unit_data['unit_key'],
+            'label'        => sanitize_text_field( $label ),
+            'group_key'    => $this->label_to_key( $label ),
+            'source'       => sanitize_key( isset( $context['source'] ) ? $context['source'] : 'unknown' ),
+            'source_field' => sanitize_key( isset( $context['source_field'] ) ? $context['source_field'] : '' ),
+            'confidence'   => $this->score_numeric_fact( $context, $unit_data, $candidate, $label ),
+            'raw'          => sanitize_text_field( $candidate['raw'] ),
+            'tag_key'      => 'chip_tag' === ( isset( $context['source'] ) ? $context['source'] : '' ) ? mb_strtolower( trim( (string) $text ) ) : '',
+            'precision'    => $precision,
+        );
+
+        $filtered = apply_filters( 'sschp_numeric_fact', $fact, $candidate, $context, $text );
+
+        return is_array( $filtered ) ? $filtered : $fact;
     }
 
     /**
@@ -482,26 +1209,159 @@ class SSCHP_Range_Filters {
      * @return string
      */
     private function normalize_unit( $unit ) {
-        $unit = trim( (string) $unit );
-        $unit = trim( $unit, ".:;()[]{}" );
-        $unit = str_replace( array( 'μ' ), 'µ', $unit );
-        $unit = preg_replace( '/\s+/', ' ', $unit );
+        $unit_data = $this->normalize_unit_data( $unit );
 
-        $normalized_key = $this->unit_to_key( $unit );
-        $display_map    = array(
-            'v'    => 'V',
-            'a'    => 'A',
-            'w'    => 'W',
-            'watt' => 'watt',
-            'volt' => 'volt',
-            'amp'  => 'amp',
-        );
+        return $unit_data ? $unit_data['display'] : trim( (string) $unit );
+    }
 
-        if ( isset( $display_map[ $normalized_key ] ) ) {
-            return $display_map[ $normalized_key ];
+    /**
+     * Normalize unit aliases and convert compatible units to a base unit.
+     *
+     * @param string $unit         Parsed unit.
+     * @param string $source_field Source field name.
+     * @param string $raw          Raw source text.
+     * @return null|array
+     */
+    private function normalize_unit_data( $unit, $source_field = '', $raw = '' ) {
+        $raw_unit = trim( (string) $unit );
+        if ( '' === $raw_unit ) {
+            $raw_unit = $this->infer_unit_from_source_field( $source_field );
         }
 
-        return $unit;
+        $raw_unit = trim( $raw_unit, ".:;()[]{}" );
+        $raw_unit = str_replace( array( 'μ' ), 'µ', $raw_unit );
+        $raw_unit = preg_replace( '/\s+/', ' ', $raw_unit );
+
+        if ( '' === $raw_unit ) {
+            return null;
+        }
+
+        $unit_lc = mb_strtolower( $raw_unit );
+        $compact = str_replace( array( ' ', '.', '-', '_' ), '', $unit_lc );
+        $compact = str_replace( array( 'µ', 'μ', '²', '³' ), array( 'u', 'u', '2', '3' ), $compact );
+
+        $currency = $this->normalize_currency_unit( $raw_unit );
+        if ( $currency ) {
+            return array(
+                'raw_unit' => $raw_unit,
+                'display'  => $currency['display'],
+                'unit_key' => $currency['unit_key'],
+                'factor'   => 1,
+            );
+        }
+
+        $map = array(
+            'w'     => array( 'W', 'w', 1 ),
+            'watt'  => array( 'W', 'w', 1 ),
+            'watts' => array( 'W', 'w', 1 ),
+            'kw'    => array( 'W', 'w', 1000 ),
+            'mw'    => array( 'W', 'w', 0.001 ),
+            'v'     => array( 'V', 'v', 1 ),
+            'vac'   => array( 'V AC', 'v_ac', 1 ),
+            'vdc'   => array( 'V DC', 'v_dc', 1 ),
+            'mm'    => array( 'mm', 'mm', 1 ),
+            'cm'    => array( 'mm', 'mm', 10 ),
+            'm'     => array( 'mm', 'mm', 1000 ),
+            'g'     => array( 'g', 'g', 1 ),
+            'kg'    => array( 'g', 'g', 1000 ),
+            'c'     => array( '°C', 'degc', 1 ),
+            'degc'  => array( '°C', 'degc', 1 ),
+            'oc'    => array( '°C', 'degc', 1 ),
+        );
+
+        if ( preg_match( '/^watt(?:s|u|ů|y|ech|ům|em)?$/u', $compact ) ) {
+            $compact = 'watt';
+        } elseif ( preg_match( '/^volt(?:s|u|ů|y|ech|ům|em)?$/u', $compact ) ) {
+            $compact = 'v';
+        } elseif ( preg_match( '/^v(?:ac)$/u', $compact ) ) {
+            $compact = 'vac';
+        } elseif ( preg_match( '/^v(?:dc)$/u', $compact ) ) {
+            $compact = 'vdc';
+        } elseif ( preg_match( '/^(?:°c|degc|celsius)$/u', $compact ) ) {
+            $compact = 'degc';
+        }
+
+        if ( ! isset( $map[ $compact ] ) ) {
+            return null;
+        }
+
+        $data = array(
+            'raw_unit' => $raw_unit,
+            'display'  => $map[ $compact ][0],
+            'unit_key' => $map[ $compact ][1],
+            'factor'   => $map[ $compact ][2],
+        );
+
+        return $this->is_supported_unit( $data['display'], '', $raw ) ? $data : null;
+    }
+
+    /**
+     * Normalize supported currency aliases.
+     *
+     * @param string $unit Unit.
+     * @return null|array
+     */
+    private function normalize_currency_unit( $unit ) {
+        $unit_lc = mb_strtolower( trim( (string) $unit ) );
+        $map     = array(
+            '$'   => array( '$', 'currency_usd' ),
+            'usd' => array( 'USD', 'currency_usd' ),
+            '€'   => array( '€', 'currency_eur' ),
+            'eur' => array( 'EUR', 'currency_eur' ),
+            '£'   => array( '£', 'currency_gbp' ),
+            'kč'  => array( 'Kč', 'currency_czk' ),
+            'czk' => array( 'CZK', 'currency_czk' ),
+        );
+
+        if ( ! isset( $map[ $unit_lc ] ) ) {
+            return null;
+        }
+
+        return array(
+            'display'  => $map[ $unit_lc ][0],
+            'unit_key' => $map[ $unit_lc ][1],
+        );
+    }
+
+    /**
+     * Infer a unit from structured field names such as power_w or length_cm.
+     *
+     * @param string $source_field Source field.
+     * @return string
+     */
+    private function infer_unit_from_source_field( $source_field ) {
+        $field = mb_strtolower( (string) $source_field );
+        $field = trim( str_replace( array( '-', ' ' ), '_', $field ), '_' );
+
+        $suffixes = array(
+            '_watt' => 'W',
+            '_watts' => 'W',
+            '_w' => 'W',
+            '_vac' => 'V AC',
+            '_v_ac' => 'V AC',
+            '_vdc' => 'V DC',
+            '_v_dc' => 'V DC',
+            '_v' => 'V',
+            '_mm' => 'mm',
+            '_cm' => 'cm',
+            '_m' => 'm',
+            '_kg' => 'kg',
+            '_g' => 'g',
+            '_c' => '°C',
+            '_degc' => '°C',
+        );
+
+        foreach ( $suffixes as $suffix => $unit ) {
+            if ( substr( $field, -1 * strlen( $suffix ) ) === $suffix ) {
+                return $unit;
+            }
+        }
+
+        if ( in_array( $field, array( '_price', 'price', 'regular_price', 'sale_price' ), true ) ) {
+            return function_exists( 'get_woocommerce_currency_symbol' ) ? get_woocommerce_currency_symbol() : '$';
+        }
+
+        return '';
     }
 
     /**
@@ -529,35 +1389,283 @@ class SSCHP_Range_Filters {
         $allowed    = apply_filters(
             'sschp_range_allowed_units',
             array(
-                'w', 'kw', 'mw',
-                'watt',
-                'v', 'kv', 'mv',
-                'volt',
-                'a', 'ma',
-                'amp',
-                'ohm',
-                'hz', 'khz', 'mhz', 'ghz',
-                'mm', 'cm', 'm', 'km',
-                'g', 'kg', 'mg', 't',
-                'ml', 'l',
-                'percent',
-                'deg', 'degc', 'c', 'f',
-                'n', 'kn', 'nm',
-                'bar', 'mbar', 'psi', 'pa', 'kpa', 'mpa',
-                'rpm',
-                'lm', 'lux',
-                'm3-h', 'm3-min', 'l-min', 'l-h',
-                'mah', 'ah',
-                'wh', 'kwh',
-                'gb', 'mb', 'kb', 'tb',
-                'px', 'em', 'rem',
+                'w',
+                'v', 'v_ac', 'v_dc',
+                'mm',
+                'g',
+                'degc',
+                'currency_usd', 'currency_eur', 'currency_gbp', 'currency_czk',
             ),
             $tag,
             $label,
             $unit
         );
 
-        return in_array( $normalized, array_map( 'sanitize_key', (array) $allowed ), true );
+        return 0 === strpos( $normalized, 'currency_' ) || in_array( $normalized, array_map( 'sanitize_key', (array) $allowed ), true );
+    }
+
+    /**
+     * Split normalized field/tag source text into candidate values.
+     *
+     * @param mixed $text Source text.
+     * @return array
+     */
+    private function split_source_text( $text ) {
+        $parts = preg_split( '/[;\r\n]+/', (string) $text );
+        $parts = array_map( 'trim', (array) $parts );
+        $parts = array_filter(
+            $parts,
+            function( $part ) {
+                return '' !== $part;
+            }
+        );
+
+        return array_values( $parts );
+    }
+
+    /**
+     * Add explicit debug entries for known unsafe numeric patterns.
+     *
+     * @param string $text     Source text.
+     * @param array  $context  Source context.
+     * @param array  $rejected Rejected candidates passed by reference.
+     * @return void
+     */
+    private function record_rejected_patterns( $text, $context, &$rejected ) {
+        if ( preg_match_all( '/\bIP\s*[-:]?\s*\d{2}\b/iu', $text, $matches ) ) {
+            foreach ( $matches[0] as $match ) {
+                $this->reject_candidate(
+                    $rejected,
+                    array(
+                        'raw'    => $match,
+                        'number' => '',
+                        'unit'   => '',
+                    ),
+                    $context,
+                    'IP ratings are categorical'
+                );
+            }
+        }
+
+        if ( preg_match_all( '/\b[A-Z]{1,6}[-_ ]?\d{2,}\b/u', $text, $matches ) ) {
+            foreach ( $matches[0] as $match ) {
+                $this->reject_candidate(
+                    $rejected,
+                    array(
+                        'raw'    => $match,
+                        'number' => '',
+                        'unit'   => '',
+                    ),
+                    $context,
+                    'model or SKU-like number'
+                );
+            }
+        }
+    }
+
+    /**
+     * Return text before the first match occurrence.
+     *
+     * @param string $text  Full text.
+     * @param string $match Matched text.
+     * @return string
+     */
+    private function text_before_match( $text, $match ) {
+        $position = strpos( $text, $match );
+        if ( false === $position ) {
+            return '';
+        }
+
+        return trim( substr( $text, 0, $position ) );
+    }
+
+    /**
+     * Derive semantic range label from field names or explicit text context.
+     *
+     * @param array $candidate Candidate.
+     * @param array $context   Source context.
+     * @param array $unit_data Unit data.
+     * @return string
+     */
+    private function derive_fact_label( $candidate, $context, $unit_data ) {
+        $source_field = isset( $context['source_field'] ) ? sanitize_key( $context['source_field'] ) : '';
+        if ( '' !== $source_field && ! in_array( $source_field, array( 'post_title', 'post_content' ), true ) ) {
+            return $this->field_name_to_label( $source_field, $unit_data );
+        }
+
+        $before = isset( $candidate['before'] ) ? trim( (string) $candidate['before'] ) : '';
+        if ( '' !== $before && preg_match( '/[:=]\s*([^:=]+)$/u', $before, $match ) ) {
+            return $this->clean_label( $match[1], $unit_data );
+        }
+
+        if ( '' !== $before && preg_match( '/^([^:=]+)\s*[:=]\s*$/u', $before, $match ) ) {
+            return $this->clean_label( $match[1], $unit_data );
+        }
+
+        return $unit_data['display'];
+    }
+
+    /**
+     * Convert a source field name into a readable label without unit suffixes.
+     *
+     * @param string $field_name Field name.
+     * @param array  $unit_data  Unit data.
+     * @return string
+     */
+    private function field_name_to_label( $field_name, $unit_data ) {
+        $field = preg_replace( '/^pa_/', '', sanitize_key( $field_name ) );
+        $field = preg_replace( '/^_+/', '', $field );
+
+        $unit_suffixes = array(
+            'watt', 'watts', 'w',
+            'vac', 'v_ac', 'vdc', 'v_dc', 'v',
+            'mm', 'cm', 'm',
+            'kg', 'g',
+            'degc', 'c',
+        );
+
+        foreach ( $unit_suffixes as $suffix ) {
+            $field = preg_replace( '/[_\-]' . preg_quote( $suffix, '/' ) . '$/u', '', $field );
+        }
+
+        if ( in_array( $field, array( 'price', 'regular_price', 'sale_price' ), true ) ) {
+            return __( 'Price', 'smart-search-chips' );
+        }
+
+        $label = trim( preg_replace( '/[_\-]+/', ' ', $field ) );
+
+        return '' !== $label ? ucwords( sanitize_text_field( $label ) ) : $unit_data['display'];
+    }
+
+    /**
+     * Clean a text-derived label.
+     *
+     * @param string $label     Label.
+     * @param array  $unit_data Unit data.
+     * @return string
+     */
+    private function clean_label( $label, $unit_data ) {
+        $label = trim( wp_strip_all_tags( (string) $label ) );
+        $label = trim( $label, " \t\n\r\0\x0B:-=,;()[]{}" );
+
+        if ( '' === $label || preg_match( '/\d/', $label ) ) {
+            return $unit_data['display'];
+        }
+
+        return sanitize_text_field( $label );
+    }
+
+    /**
+     * Decide whether a fact candidate should be rejected even if it has a unit.
+     *
+     * @param array  $candidate Candidate data.
+     * @param string $text      Source text.
+     * @param array  $context   Source context.
+     * @param array  $unit_data Unit data.
+     * @param float  $value     Normalized value.
+     * @param string $label     Label.
+     * @return string Empty string when accepted.
+     */
+    private function reject_reason_for_fact( $candidate, $text, $context, $unit_data, $value, $label ) {
+        $source_field = isset( $context['source_field'] ) ? sanitize_key( $context['source_field'] ) : '';
+        $source       = isset( $context['source'] ) ? sanitize_key( $context['source'] ) : '';
+        $raw          = isset( $candidate['raw'] ) ? (string) $candidate['raw'] : '';
+
+        if ( preg_match( '/\bIP\s*[-:]?\s*\d{2}\b/iu', $text ) || 'ip' === $this->label_to_key( $label ) ) {
+            return 'IP ratings are categorical';
+        }
+
+        if ( preg_match( '/(?:^|[_\-])(sku|model|part|code|kod|serial)(?:$|[_\-])/u', $source_field ) ) {
+            return 'model or SKU-like number';
+        }
+
+        if ( in_array( $source, array( 'title', 'content' ), true ) && preg_match( '/\b[A-Z]{1,6}[-_ ]?\d{2,}\b/u', $text ) && ! preg_match( '/\d+\s*' . preg_quote( $unit_data['raw_unit'], '/' ) . '/iu', $raw ) ) {
+            return 'model or SKU-like number';
+        }
+
+        if ( $value >= 1900 && $value <= 2099 && in_array( $source, array( 'title', 'content' ), true ) && ! in_array( $unit_data['unit_key'], array( 'w', 'v', 'v_ac', 'v_dc', 'mm', 'g', 'degc' ), true ) ) {
+            return 'year-like number';
+        }
+
+        return '';
+    }
+
+    /**
+     * Store a rejected candidate for diagnostics.
+     *
+     * @param array $rejected  Rejected candidates.
+     * @param array $candidate Candidate.
+     * @param array $context   Source context.
+     * @param string $reason   Rejection reason.
+     * @return void
+     */
+    private function reject_candidate( &$rejected, $candidate, $context, $reason ) {
+        $rejected[] = array(
+            'raw'          => sanitize_text_field( isset( $candidate['raw'] ) ? $candidate['raw'] : '' ),
+            'reason'       => sanitize_text_field( $reason ),
+            'source'       => sanitize_key( isset( $context['source'] ) ? $context['source'] : 'unknown' ),
+            'source_field' => sanitize_key( isset( $context['source_field'] ) ? $context['source_field'] : '' ),
+        );
+    }
+
+    /**
+     * Score a numeric fact based on source quality and parsing certainty.
+     *
+     * @param array $context   Source context.
+     * @param array $unit_data Unit data.
+     * @param array $candidate Candidate.
+     * @param string $label    Label.
+     * @return int
+     */
+    private function score_numeric_fact( $context, $unit_data, $candidate, $label ) {
+        $score        = isset( $context['confidence'] ) ? (int) $context['confidence'] : 60;
+        $source_field = isset( $context['source_field'] ) ? sanitize_key( $context['source_field'] ) : '';
+
+        if ( '' !== $source_field && ! in_array( $source_field, array( 'post_title', 'post_content' ), true ) ) {
+            $score += 4;
+        }
+
+        if ( isset( $candidate['before'] ) && preg_match( '/[:=]\s*$/u', (string) $candidate['before'] ) ) {
+            $score += 5;
+        }
+
+        if ( $label === $unit_data['display'] && in_array( isset( $context['source'] ) ? $context['source'] : '', array( 'title', 'content' ), true ) ) {
+            $score -= 3;
+        }
+
+        return max( 0, min( 100, $score ) );
+    }
+
+    /**
+     * Dedupe equivalent facts inside one post.
+     *
+     * @param array $facts Facts.
+     * @return array
+     */
+    private function dedupe_facts( $facts ) {
+        $deduped = array();
+        $seen    = array();
+
+        foreach ( (array) $facts as $fact ) {
+            $key = implode(
+                '|',
+                array(
+                    isset( $fact['group_key'] ) ? $fact['group_key'] : '',
+                    isset( $fact['unit_key'] ) ? $fact['unit_key'] : '',
+                    isset( $fact['value'] ) ? $this->format_number( $fact['value'] ) : '',
+                    isset( $fact['source_field'] ) ? $fact['source_field'] : '',
+                )
+            );
+
+            if ( isset( $seen[ $key ] ) ) {
+                continue;
+            }
+
+            $seen[ $key ] = true;
+            $deduped[]    = $fact;
+        }
+
+        return $deduped;
     }
 
     /**
@@ -701,11 +1809,24 @@ class SSCHP_Range_Filters {
     private function unit_to_key( $unit ) {
         $unit = str_replace( array( 'µ', 'μ' ), 'u', mb_strtolower( trim( (string) $unit ) ) );
         $unit = str_replace( array( '²', '³' ), array( '2', '3' ), $unit );
-        $unit = str_replace( array( '%', '°', '/', '\\' ), array( 'percent', 'deg', '-', '-' ), $unit );
+        $unit = str_replace( array( '/', '\\' ), array( '-', '-' ), $unit );
         $unit = preg_replace( '/\s+/', ' ', $unit );
 
         $compact_unit = str_replace( array( ' ', '.', '-' ), '', $unit );
-        if ( preg_match( '/^v(?:ac|dc)?$/u', $compact_unit ) ) {
+        $currency     = $this->normalize_currency_unit( $unit );
+        if ( $currency ) {
+            return $currency['unit_key'];
+        }
+
+        if ( preg_match( '/^v(?:ac)$/u', $compact_unit ) ) {
+            return 'v_ac';
+        }
+
+        if ( preg_match( '/^v(?:dc)$/u', $compact_unit ) ) {
+            return 'v_dc';
+        }
+
+        if ( 'v' === $compact_unit || preg_match( '/^volt(?:s|u|ů|y|ech|ům|em)?$/u', $compact_unit ) ) {
             return 'v';
         }
 
@@ -713,16 +1834,24 @@ class SSCHP_Range_Filters {
             return 'a';
         }
 
-        if ( preg_match( '/^watt(?:s|u|ů|y|ech|ům|em)?$/u', $compact_unit ) ) {
-            return 'watt';
-        }
-
-        if ( preg_match( '/^volt(?:s|u|ů|y|ech|ům|em)?$/u', $compact_unit ) ) {
-            return 'volt';
+        if ( 'w' === $compact_unit || preg_match( '/^watt(?:s|u|ů|y|ech|ům|em)?$/u', $compact_unit ) ) {
+            return 'w';
         }
 
         if ( preg_match( '/^(?:amp|amps|amp[eé]r(?:u|ů|y|ech|ům|em)?|amp[eé]ry)$/u', $compact_unit ) ) {
             return 'amp';
+        }
+
+        if ( in_array( $compact_unit, array( 'mm', 'cm', 'm' ), true ) ) {
+            return 'mm';
+        }
+
+        if ( in_array( $compact_unit, array( 'g', 'kg' ), true ) ) {
+            return 'g';
+        }
+
+        if ( in_array( $compact_unit, array( '°c', 'oc', 'c', 'degc', 'celsius' ), true ) ) {
+            return 'degc';
         }
 
         $key = trim( sanitize_key( preg_replace( '/[^a-z0-9_\-]+/i', '-', $unit ) ), '-' );
