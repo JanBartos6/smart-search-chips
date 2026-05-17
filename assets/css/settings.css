@@ -26,6 +26,20 @@
 .ssc-settings-card__body { padding: 0 20px 12px; }
 .ssc-settings-card .form-table th { width: 140px; padding: 10px 8px; font-weight: 500; }
 .ssc-settings-card .form-table td { padding: 10px 8px; }
+.ssc-compat-config { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin: 14px 0; }
+.ssc-compat-config div { min-width: 0; padding: 10px 12px; border: 1px solid #ebecef; border-radius: 8px; background: #fcfcfd; }
+.ssc-compat-config dt { margin: 0 0 5px; color: #646970; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.ssc-compat-config dd { margin: 0; min-width: 0; }
+.ssc-compat-config code { display: block; white-space: normal; word-break: break-word; }
+.ssc-diagnostic-list { display: grid; gap: 8px; margin: 14px 0; }
+.ssc-diagnostic-row, .ssc-compat-result { display: grid; grid-template-columns: minmax(140px, auto) minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 9px 11px; border: 1px solid #dcdcde; border-radius: 8px; background: #fff; }
+.ssc-diagnostic-row strong { color: #1d2327; }
+.ssc-diagnostic-row span, .ssc-compat-result span { color: #3c434a; }
+.ssc-diagnostic-row em, .ssc-compat-result strong { display: inline-flex; align-items: center; justify-content: center; min-width: 54px; padding: 2px 8px; border-radius: 999px; font-style: normal; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.ssc-diagnostic-row--pass em, .ssc-compat-result--pass strong { background: #e7f7ed; color: #116329; }
+.ssc-diagnostic-row--warn em, .ssc-compat-result--warn strong { background: #fff4ce; color: #7a4d00; }
+.ssc-compat-results { display: grid; gap: 8px; margin-top: 14px; }
+.ssc-compat-result { grid-template-columns: auto minmax(0, 1fr); }
 .ssc-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
 .ssc-badge--pro { background: #e74c3c; color: #fff; }
 .ssc-badge--free { background: #eee; color: #666; }
@@ -105,6 +119,8 @@
     #ssc-settings-layout { flex-direction: column; }
     #ssc-settings-right { width: 100%; }
     #ssc-preview-panel { position: static; }
+    .ssc-compat-config { grid-template-columns: 1fr; }
+    .ssc-diagnostic-row { grid-template-columns: 1fr; }
     .ssc-analytics-stats, .ssc-analytics-panels { grid-template-columns: 1fr; }
     .ssc-ai-picker { grid-template-columns: 1fr; }
     .ssc-ai-browser-results, .ssc-ai-selected-items { max-height: none; }

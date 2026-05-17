@@ -430,6 +430,37 @@ function sschp_test_settings_invalid_selector_falls_back_to_default() {
     sschp_assert_true( ! empty( $sschp_test_settings_errors ), 'invalid result container selector should register a settings error' );
 }
 
+function sschp_test_settings_theme_compatibility_diagnostics_report_invalid_selector() {
+    global $sschp_test_options;
+
+    sschp_reset_test_state();
+    $sschp_test_options['sschp_search_input_selector']      = '.broken[';
+    $sschp_test_options['sschp_result_container_selector']  = '.theme-results';
+    $sschp_test_options['sschp_override_ajax']              = 'search_processing';
+    $sschp_test_options['sschp_ajax_keyword_field']         = 'keyword';
+
+    $settings    = new SSCHP_Settings();
+    $diagnostics = $settings->get_theme_compatibility_diagnostics();
+
+    sschp_assert_same( false, $diagnostics['inputSelectorValid'], 'theme compatibility diagnostics should flag invalid input selectors' );
+    sschp_assert_same( true, $diagnostics['resultSelectorValid'], 'theme compatibility diagnostics should pass valid result selectors' );
+    sschp_assert_same( true, $diagnostics['ajaxActionConfigured'], 'theme compatibility diagnostics should report configured AJAX actions' );
+}
+
+function sschp_test_settings_theme_compatibility_diagnostics_report_valid_defaults() {
+    sschp_reset_test_state();
+
+    $settings    = new SSCHP_Settings();
+    $diagnostics = $settings->get_theme_compatibility_diagnostics();
+
+    sschp_assert_same( true, $diagnostics['inputSelectorValid'], 'default input selector should be diagnostic-valid' );
+    sschp_assert_same( true, $diagnostics['resultSelectorValid'], 'default result selector should be diagnostic-valid' );
+    sschp_assert_same( true, $diagnostics['defaultInputValid'], 'diagnostics should confirm the default input selector is valid' );
+    sschp_assert_same( true, $diagnostics['defaultResultValid'], 'diagnostics should confirm the default result selector is valid' );
+    sschp_assert_same( 'sschp_search', $diagnostics['ajaxActionLabel'], 'diagnostics should show the built-in AJAX action when no override is set' );
+    sschp_assert_same( true, $diagnostics['shortcodeAvailable'], 'diagnostics should report shortcode availability in the lightweight test context' );
+}
+
 function sschp_test_ai_prompt_manual_mode() {
     $tagger = new SSCHP_AI_Tagger( new SSCHP_Test_Settings() );
     $posts  = array(
@@ -747,6 +778,8 @@ sschp_test_settings_duplicate_field_rejected();
 sschp_test_settings_valid_selector_is_preserved();
 sschp_test_settings_invalid_selector_keeps_previous_value();
 sschp_test_settings_invalid_selector_falls_back_to_default();
+sschp_test_settings_theme_compatibility_diagnostics_report_invalid_selector();
+sschp_test_settings_theme_compatibility_diagnostics_report_valid_defaults();
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_manual_mode' );
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_rest_mode' );
 sschp_test_language_request_prefers_explicit_request_value();

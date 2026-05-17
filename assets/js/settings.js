@@ -4,6 +4,90 @@
         return el ? el.value : null;
     }
 
+    function diagnosticConfig() {
+        return (window.sschpSettingsDiagnostics && window.sschpSettingsDiagnostics.diagnostics) || {};
+    }
+
+    function diagnosticStrings() {
+        return (window.sschpSettingsDiagnostics && window.sschpSettingsDiagnostics.strings) || {};
+    }
+
+    function isValidSelector(selector) {
+        if (!selector) {
+            return false;
+        }
+
+        try {
+            document.createDocumentFragment().querySelector(selector);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function countMatches(selector) {
+        if (!isValidSelector(selector)) {
+            return 0;
+        }
+
+        try {
+            return document.querySelectorAll(selector).length;
+        } catch (error) {
+            return 0;
+        }
+    }
+
+    function appendDiagnostic(container, label, pass, detail) {
+        var row = document.createElement('div');
+        row.className = 'ssc-compat-result ssc-compat-result--' + (pass ? 'pass' : 'warn');
+
+        var badge = document.createElement('strong');
+        badge.textContent = pass ? (diagnosticStrings().pass || 'Pass') : (diagnosticStrings().warning || 'Warning');
+
+        var body = document.createElement('span');
+        body.textContent = label + ': ' + detail;
+
+        row.appendChild(badge);
+        row.appendChild(body);
+        container.appendChild(row);
+    }
+
+    function runCompatibilityTest() {
+        var output = document.getElementById('sschp-compat-results');
+        if (!output) {
+            return;
+        }
+
+        var config = diagnosticConfig();
+        var strings = diagnosticStrings();
+        var inputSelector = val('sschp_search_input_selector') || config.inputSelector || '';
+        var resultSelector = val('sschp_result_container_selector') || config.resultSelector || '';
+        var ajaxAction = val('sschp_override_ajax') || '';
+        var keywordField = val('sschp_ajax_keyword_field') || config.keywordField || '';
+        var inputValid = isValidSelector(inputSelector);
+        var resultValid = isValidSelector(resultSelector);
+        var defaultSelectorsValid = !!(config.defaultInputValid && config.defaultResultValid);
+        var keywordSane = /^[a-z0-9_-]+$/i.test(keywordField);
+        var inputMatches = countMatches(inputSelector);
+        var resultMatches = countMatches(resultSelector);
+
+        output.innerHTML = '';
+        appendDiagnostic(output, 'Search input selector', inputValid, inputValid ? (strings.selectorValid || 'Selector syntax is valid.') : (strings.selectorInvalid || 'Selector is invalid.'));
+        appendDiagnostic(output, 'Result container selector', resultValid, resultValid ? (strings.selectorValid || 'Selector syntax is valid.') : (strings.selectorInvalid || 'Selector is invalid.'));
+        appendDiagnostic(output, 'Default selectors', defaultSelectorsValid, strings.defaultSelectorsValid || 'Default selectors are valid.');
+        appendDiagnostic(output, 'AJAX action', true, ajaxAction ? (strings.actionConfigured || 'Custom AJAX action is configured.') : (strings.actionDefault || 'Using built-in action.'));
+        appendDiagnostic(output, 'Keyword field', keywordSane, keywordSane ? (strings.keywordSane || 'Keyword field looks valid.') : (strings.keywordInvalid || 'Keyword field looks invalid.'));
+        appendDiagnostic(output, 'WooCommerce', !!config.woocommerceActive, config.woocommerceActive ? 'WooCommerce is active.' : 'WooCommerce is not active.');
+        appendDiagnostic(output, 'Relevanssi', !!config.relevanssiActive, config.relevanssiActive ? 'Relevanssi is active.' : 'Relevanssi is not active.');
+        appendDiagnostic(output, 'Shortcode', !!config.shortcodeAvailable, config.shortcodeAvailable ? 'The [sschp_search] shortcode is available.' : 'Shortcode registration was not detected.');
+        appendDiagnostic(output, 'Current page input matches', inputMatches > 0, (strings.inputMatches || 'Matching search inputs found on this page:') + ' ' + inputMatches);
+        appendDiagnostic(output, 'Current page result matches', resultMatches > 0, (strings.resultMatches || 'Matching result containers found on this page:') + ' ' + resultMatches);
+
+        if (resultMatches < 1) {
+            appendDiagnostic(output, 'Shortcode recommendation', false, strings.resultMissingRecommendation || 'No result container found. Use [sschp_search] or configure the result container selector.');
+        }
+    }
+
     function renderPreview() {
         var color = val('sschp_chip_color') || '#e74c3c';
         var textColor = val('sschp_chip_text_color') || '#ffffff';
@@ -50,6 +134,11 @@
     });
 
     renderPreview();
+
+    var compatButton = document.getElementById('sschp-run-compat-test');
+    if (compatButton) {
+        compatButton.addEventListener('click', runCompatibilityTest);
+    }
 
     // Wire up delete-data confirmation (replaces inline onclick)
     var deleteBtn = document.getElementById('ssc-delete-data-btn');

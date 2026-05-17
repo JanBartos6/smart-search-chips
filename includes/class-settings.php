@@ -207,6 +207,24 @@ class SSCHP_Settings {
                 SSCHP_VERSION,
                 true
             );
+            wp_localize_script( 'smart-search-chips-settings', 'sschpSettingsDiagnostics', array(
+                'diagnostics' => $this->get_theme_compatibility_diagnostics(),
+                'strings'     => array(
+                    'pass'                       => __( 'Pass', 'smart-search-chips' ),
+                    'warning'                    => __( 'Warning', 'smart-search-chips' ),
+                    'notFound'                   => __( 'Not found on this page', 'smart-search-chips' ),
+                    'selectorInvalid'            => __( 'This selector is invalid and should be corrected before testing theme integration.', 'smart-search-chips' ),
+                    'selectorValid'              => __( 'Selector syntax is valid.', 'smart-search-chips' ),
+                    'defaultSelectorsValid'      => __( 'Default selectors are valid.', 'smart-search-chips' ),
+                    'actionConfigured'           => __( 'Custom AJAX action is configured.', 'smart-search-chips' ),
+                    'actionDefault'              => __( 'No theme AJAX action is configured. The shortcode will use the built-in sschp_search action.', 'smart-search-chips' ),
+                    'keywordSane'                => __( 'Keyword field looks valid.', 'smart-search-chips' ),
+                    'keywordInvalid'             => __( 'Keyword field should be a simple request key such as keyword, s, query, or search.', 'smart-search-chips' ),
+                    'resultMissingRecommendation' => __( 'No result container was found on this admin page. If your theme search cannot be detected on the frontend, use the [sschp_search] shortcode or configure the result container selector.', 'smart-search-chips' ),
+                    'inputMatches'               => __( 'Matching search inputs found on this page:', 'smart-search-chips' ),
+                    'resultMatches'              => __( 'Matching result containers found on this page:', 'smart-search-chips' ),
+                ),
+            ) );
         }
 
         if ( $is_analytics ) {
@@ -263,6 +281,151 @@ class SSCHP_Settings {
                 ),
             ) );
         }
+    }
+
+    /**
+     * Build diagnostics for the theme compatibility settings card.
+     *
+     * @return array
+     */
+    public function get_theme_compatibility_diagnostics() {
+        $input_selector  = trim( (string) get_option( 'sschp_search_input_selector', $this->get_default_search_input_selector() ) );
+        $result_selector = trim( (string) get_option( 'sschp_result_container_selector', $this->get_default_result_container_selector() ) );
+        $ajax_action     = sanitize_key( get_option( 'sschp_override_ajax', '' ) );
+        $keyword_field   = trim( (string) get_option( 'sschp_ajax_keyword_field', 'keyword' ) );
+
+        if ( '' === $input_selector ) {
+            $input_selector = $this->get_default_search_input_selector();
+        }
+
+        if ( '' === $result_selector ) {
+            $result_selector = $this->get_default_result_container_selector();
+        }
+
+        $keyword_sane = '' !== $keyword_field && sanitize_key( $keyword_field ) === $keyword_field;
+
+        return array(
+            'inputSelector'        => $input_selector,
+            'resultSelector'       => $result_selector,
+            'ajaxAction'           => $ajax_action,
+            'ajaxActionLabel'      => '' !== $ajax_action ? $ajax_action : 'sschp_search',
+            'keywordField'         => $keyword_field,
+            'inputSelectorValid'   => $this->looks_like_valid_css_selector( $input_selector ),
+            'resultSelectorValid'  => $this->looks_like_valid_css_selector( $result_selector ),
+            'defaultInputValid'    => $this->looks_like_valid_css_selector( $this->get_default_search_input_selector() ),
+            'defaultResultValid'   => $this->looks_like_valid_css_selector( $this->get_default_result_container_selector() ),
+            'ajaxActionConfigured' => '' !== $ajax_action,
+            'keywordFieldSane'     => $keyword_sane,
+            'woocommerceActive'    => class_exists( 'WooCommerce' ),
+            'relevanssiActive'     => function_exists( 'relevanssi_do_query' ),
+            'shortcodeAvailable'   => ! function_exists( 'shortcode_exists' ) || shortcode_exists( 'sschp_search' ),
+            'debugUrl'             => add_query_arg( 'sschp_debug', '1', home_url( '/' ) ),
+            'shortcode'            => '[sschp_search]',
+        );
+    }
+
+    /**
+     * Render one static diagnostic row.
+     *
+     * @param string $label Row label.
+     * @param bool   $pass  Whether the diagnostic passes.
+     * @param string $text  Row detail.
+     */
+    private function render_diagnostic_row( $label, $pass, $text ) {
+        printf(
+            '<li class="ssc-diagnostic-row ssc-diagnostic-row--%1$s"><strong>%2$s</strong><span>%3$s</span><em>%4$s</em></li>',
+            $pass ? 'pass' : 'warn',
+            esc_html( $label ),
+            esc_html( $text ),
+            esc_html( $pass ? __( 'Pass', 'smart-search-chips' ) : __( 'Check', 'smart-search-chips' ) )
+        );
+    }
+
+    /**
+     * Render the theme compatibility diagnostics card.
+     */
+    private function render_theme_compatibility_card() {
+        $diagnostics = $this->get_theme_compatibility_diagnostics();
+        ?>
+        <div class="ssc-settings-card ssc-settings-card--diagnostics">
+            <h2><?php esc_html_e( 'Theme Compatibility Test', 'smart-search-chips' ); ?></h2>
+            <p class="description"><?php esc_html_e( 'Use this before assuming the plugin is broken. Most theme-search issues come from a different input selector, result container, AJAX action, or keyword field.', 'smart-search-chips' ); ?></p>
+
+            <dl class="ssc-compat-config">
+                <div>
+                    <dt><?php esc_html_e( 'Search input selector', 'smart-search-chips' ); ?></dt>
+                    <dd><code><?php echo esc_html( $diagnostics['inputSelector'] ); ?></code></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e( 'Result container selector', 'smart-search-chips' ); ?></dt>
+                    <dd><code><?php echo esc_html( $diagnostics['resultSelector'] ); ?></code></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e( 'AJAX action', 'smart-search-chips' ); ?></dt>
+                    <dd><code><?php echo esc_html( $diagnostics['ajaxActionLabel'] ); ?></code></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e( 'Keyword field', 'smart-search-chips' ); ?></dt>
+                    <dd><code><?php echo esc_html( $diagnostics['keywordField'] ); ?></code></dd>
+                </div>
+            </dl>
+
+            <ul class="ssc-diagnostic-list">
+                <?php
+                $this->render_diagnostic_row(
+                    __( 'Search input selector', 'smart-search-chips' ),
+                    $diagnostics['inputSelectorValid'],
+                    $diagnostics['inputSelectorValid'] ? __( 'Configured selector syntax looks valid.', 'smart-search-chips' ) : __( 'Configured selector syntax looks invalid.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'Result container selector', 'smart-search-chips' ),
+                    $diagnostics['resultSelectorValid'],
+                    $diagnostics['resultSelectorValid'] ? __( 'Configured selector syntax looks valid.', 'smart-search-chips' ) : __( 'Configured selector syntax looks invalid.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'Default selectors', 'smart-search-chips' ),
+                    $diagnostics['defaultInputValid'] && $diagnostics['defaultResultValid'],
+                    __( 'Built-in fallback selectors are available.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'AJAX action', 'smart-search-chips' ),
+                    true,
+                    $diagnostics['ajaxActionConfigured'] ? __( 'Theme AJAX action override is configured.', 'smart-search-chips' ) : __( 'Using the built-in shortcode AJAX action.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'Keyword field', 'smart-search-chips' ),
+                    $diagnostics['keywordFieldSane'],
+                    $diagnostics['keywordFieldSane'] ? __( 'Keyword request field looks valid.', 'smart-search-chips' ) : __( 'Keyword request field should be a simple key.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'WooCommerce', 'smart-search-chips' ),
+                    $diagnostics['woocommerceActive'],
+                    $diagnostics['woocommerceActive'] ? __( 'WooCommerce is active.', 'smart-search-chips' ) : __( 'WooCommerce is not active.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'Relevanssi', 'smart-search-chips' ),
+                    $diagnostics['relevanssiActive'],
+                    $diagnostics['relevanssiActive'] ? __( 'Relevanssi is active.', 'smart-search-chips' ) : __( 'Relevanssi is not active. Search still works, but relevance ranking may be weaker.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'Shortcode', 'smart-search-chips' ),
+                    $diagnostics['shortcodeAvailable'],
+                    $diagnostics['shortcodeAvailable'] ? __( 'The [sschp_search] shortcode is available.', 'smart-search-chips' ) : __( 'Shortcode registration was not detected.', 'smart-search-chips' )
+                );
+                ?>
+            </ul>
+
+            <p class="description">
+                <?php esc_html_e( 'Recommendation: if your theme live search cannot be detected reliably, place the shortcode where you want a known-compatible Smart Search Chips search box:', 'smart-search-chips' ); ?>
+                <code><?php echo esc_html( $diagnostics['shortcode'] ); ?></code>
+            </p>
+            <p>
+                <button type="button" class="button button-secondary" id="sschp-run-compat-test"><?php esc_html_e( 'Run frontend compatibility test', 'smart-search-chips' ); ?></button>
+                <a class="button button-link" href="<?php echo esc_url( $diagnostics['debugUrl'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open frontend debug mode', 'smart-search-chips' ); ?></a>
+            </p>
+            <div id="sschp-compat-results" class="ssc-compat-results" aria-live="polite"></div>
+        </div>
+        <?php
     }
 
     /**
@@ -380,6 +543,8 @@ class SSCHP_Settings {
                                 <?php endif; ?>
                             </table>
                         </div>
+
+                        <?php $this->render_theme_compatibility_card(); ?>
 
                         <!-- Chip Settings -->
                         <div class="ssc-settings-card">

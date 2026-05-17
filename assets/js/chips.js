@@ -30,6 +30,26 @@
         modified: false
     };
 
+    function debugEnabled() {
+        if (!config.isAdmin) {
+            return false;
+        }
+
+        try {
+            return new URLSearchParams(window.location.search).get("sschp_debug") === "1";
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function debugLog(message, data) {
+        if (!debugEnabled() || !window.console || typeof window.console.info !== "function") {
+            return;
+        }
+
+        window.console.info("[Smart Search Chips Debug] " + message, data || {});
+    }
+
     function warnInvalidSelectorOnce(label, selector) {
         var key = label + ":" + selector;
 
@@ -418,6 +438,15 @@
         if (resultsContainer) {
             resultsContainer.classList.add("ssc-loading");
         }
+
+        debugLog("Shortcode AJAX request prepared", {
+            action: getConfiguredAction(),
+            transport: "XMLHttpRequest",
+            keywordField: getKeywordField(),
+            inputFound: !!input,
+            resultContainerFound: !!resultsContainer,
+            activeTagCount: state.activeTags.length
+        });
 
         var formData = new FormData();
         var keywordField = getKeywordField();
@@ -1017,6 +1046,16 @@
 
         requestState.lastQuery = keyword;
 
+        debugLog("Theme AJAX request detected", {
+            action: action || "",
+            transport: options.transport || "",
+            method: method,
+            bodyType: bodyInfo.bodyType,
+            keywordField: getKeywordField(),
+            inputFound: !!requestInput,
+            resultContainerFound: resultContainerFound
+        });
+
         if (bodyInfo.bodyType === "formdata" || bodyInfo.bodyType === "urlsearchparams") {
             var liveEntries = bodyInfo.bodyType === "formdata" ? Array.from(options.body.entries()) : entriesFromParams(options.body);
             var appendResult = appendParams(options.body, requestState, liveEntries.concat(urlEntries), { skipAction: true, keyword: keyword });
@@ -1295,7 +1334,16 @@
         }
     });
 
-    document.addEventListener("DOMContentLoaded", function () {
+    function handleReady() {
+        debugLog("Frontend selector scan", {
+            inputSelector: getInputSelector(),
+            resultSelector: getResultsSelector(),
+            inputCount: safeQuerySelectorAll(document, getInputSelector()).length,
+            resultContainerCount: safeQuerySelectorAll(document, getResultsSelector()).length,
+            action: getConfiguredAction(),
+            keywordField: getKeywordField()
+        });
+
         var archiveChipLabels = Array.prototype.map.call(
             safeQuerySelectorAll(document, ".ssc-loop-filters .ssc-chip[data-tag]"),
             function (chipNode) {
@@ -1307,5 +1355,11 @@
             searchQuery: getCurrentSearchQuery(),
             resultCount: getArchiveResultCount()
         });
-    });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", handleReady);
+    } else {
+        handleReady();
+    }
 })();
