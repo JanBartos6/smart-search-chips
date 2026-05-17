@@ -19,6 +19,17 @@
     var DEFAULT_INPUT_SELECTOR = '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]';
     var DEFAULT_RESULTS_SELECTOR = ".js-ssc-results, .js-search__results, .ssc-search__results";
 
+    window.sschpDiagnostics = window.sschpDiagnostics || {
+        lastDetectedRequestMethod: "",
+        transport: "",
+        bodyType: "",
+        actionDetected: false,
+        nonceAttached: false,
+        keywordFound: false,
+        resultContainerFound: false,
+        modified: false
+    };
+
     function warnInvalidSelectorOnce(label, selector) {
         var key = label + ":" + selector;
 
@@ -115,6 +126,14 @@
 
     function getKeywordField() {
         return config.keywordField || "keyword";
+    }
+
+    function getConfiguredAction() {
+        return config.action || "sschp_search";
+    }
+
+    function getConfiguredAjaxUrl() {
+        return config.ajaxUrl || "/wp-admin/admin-ajax.php";
     }
 
     function getInputSelector() {
@@ -386,7 +405,7 @@
 
         var formData = new FormData();
         var keywordField = getKeywordField();
-        formData.append("action", config.action || "sschp_search");
+        formData.append("action", getConfiguredAction());
         formData.append(keywordField, input.value);
         if (keywordField !== "keyword") {
             formData.append("keyword", input.value);
@@ -406,7 +425,7 @@
 
         var xhr = new XMLHttpRequest();
         xhr._sscManagedRequest = true;
-        xhr.open("POST", config.ajaxUrl || "/wp-admin/admin-ajax.php", true);
+        xhr.open("POST", getConfiguredAjaxUrl(), true);
         xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
 
         xhr.onreadystatechange = function () {
@@ -647,72 +666,538 @@
      */
     document.addEventListener("click", handleChipActivation, true);
 
-    /**
-     * Intercept existing AJAX search requests (from theme's search.js)
-     * to append active tags.
-     */
-    var origSend = XMLHttpRequest.prototype.send;
+    function toUrl(url) {
+        var value = String(url || "");
 
-    XMLHttpRequest.prototype.send = function (data) {
-        if (data instanceof FormData) {
-            var hasAction = false;
-            var keyword = "";
-            var keywordField = getKeywordField();
-            if (data.entries) {
-                for (var pair of data.entries()) {
-                    if (pair[0] === "action" && pair[1] === (config.action || "sschp_search")) {
-                        hasAction = true;
-                    }
-                    if (pair[0] === keywordField || pair[0] === "keyword" || pair[0] === "s" || pair[0] === "query") {
-                        keyword = pair[1];
-                    }
+        try {
+            return new URL(value, window.location.href);
+        } catch (error) {
+            try {
+                return new URL(value, window.location.origin && window.location.origin !== "null" ? window.location.origin : "http://localhost");
+            } catch (fallbackError) {
+                return null;
+            }
+        }
+    }
+
+    function sameAjaxPath(left, right) {
+        if (!left || !right) {
+            return false;
+        }
+
+        try {
+            return decodeURIComponent(left.pathname) === decodeURIComponent(right.pathname);
+        } catch (error) {
+            return left.pathname === right.pathname;
+        }
+    }
+
+    function isAdminAjaxUrl(url) {
+        var parsed = toUrl(url);
+        var configured = toUrl(getConfiguredAjaxUrl());
+
+        if (!parsed) {
+            return false;
+        }
+
+        if (configured && sameAjaxPath(parsed, configured)) {
+            return true;
+        }
+
+        return /\/admin-ajax\.php$/i.test(parsed.pathname);
+    }
+
+    function entriesFromParams(params) {
+        var entries = [];
+
+        if (!params || !params.forEach) {
+            return entries;
+        }
+
+        params.forEach(function (value, key) {
+            entries.push([key, value]);
+        });
+
+        return entries;
+    }
+
+    function entriesFromObject(object) {
+        var entries = [];
+
+        if (!object || typeof object !== "object") {
+            return entries;
+        }
+
+        Object.keys(object).forEach(function (key) {
+            var value = object[key];
+
+            if (Array.isArray(value)) {
+                value.forEach(function (item) {
+                    entries.push([key, item]);
+                });
+            } else if (value !== null && typeof value !== "object") {
+                entries.push([key, value]);
+            }
+        });
+
+        return entries;
+    }
+
+    function getBodyInfo(body) {
+        var info = {
+            body: body,
+            bodyType: "none",
+            entries: [],
+            parsedObject: null,
+            supported: false
+        };
+
+        if (!body) {
+            return info;
+        }
+
+        if (window.FormData && body instanceof FormData) {
+            info.bodyType = "formdata";
+            info.entries = Array.from(body.entries());
+            info.supported = true;
+            return info;
+        }
+
+        if (window.URLSearchParams && body instanceof URLSearchParams) {
+            info.bodyType = "urlsearchparams";
+            info.entries = entriesFromParams(body);
+            info.supported = true;
+            return info;
+        }
+
+        if (typeof body === "string") {
+            var trimmed = body.trim();
+
+            if (trimmed.charAt(0) === "{" || trimmed.charAt(0) === "[") {
+                try {
+                    info.parsedObject = JSON.parse(trimmed);
+                    info.bodyType = "json";
+                    info.entries = entriesFromObject(info.parsedObject);
+                    info.supported = info.parsedObject && !Array.isArray(info.parsedObject) && typeof info.parsedObject === "object";
+                    return info;
+                } catch (error) {
+                    info.bodyType = "string";
+                    return info;
                 }
             }
 
-            if (hasAction) {
-                if (!this._sscManagedRequest) {
-                    var requestInput = findInputForKeyword(keyword);
-                    var requestState = getState(requestInput || document.documentElement);
-                    requestState.lastQuery = keyword;
+            info.bodyType = "urlencoded-string";
+            info.parsedObject = new URLSearchParams(body);
+            info.entries = entriesFromParams(info.parsedObject);
+            info.supported = true;
+            return info;
+        }
 
-                    if (!data.has("sschp_managed")) {
-                        data.append("sschp_managed", "1");
-                    }
+        info.bodyType = "unsupported";
+        return info;
+    }
 
-                    if (config.lang && !data.has("sschp_lang")) {
-                        data.append("sschp_lang", config.lang);
-                    }
-
-                    if (config.nonce && !data.has("sschp_nonce")) {
-                        data.append("sschp_nonce", config.nonce);
-                    }
-
-                    requestState.activeTags.forEach(function (t) {
-                        data.append("active_tags[]", t);
-                    });
-
-                    this.addEventListener("loadend", function () {
-                        if (this.status !== 200 || !keyword || keyword.length < (config.minChars || 2)) {
-                            return;
-                        }
-
-                        var resultCount = parseInt(this.getResponseHeader("X-SSC-Results-Count"), 10);
-                        if (isNaN(resultCount)) {
-                            resultCount = -1;
-                        }
-
-                        trackEvent({
-                            eventType: "search",
-                            searchQuery: keyword,
-                            resultCount: resultCount
-                        }, requestInput);
-                    }, { once: true });
-                }
+    function getEntry(entries, key) {
+        for (var i = 0; i < entries.length; i++) {
+            if (entries[i][0] === key) {
+                return String(entries[i][1] || "");
             }
         }
 
-        return origSend.apply(this, arguments);
+        return "";
+    }
+
+    function hasEntry(entries, key) {
+        for (var i = 0; i < entries.length; i++) {
+            if (entries[i][0] === key) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function hasActiveTagEntries(entries) {
+        return hasEntry(entries, "active_tags[]") || hasEntry(entries, "active_tags");
+    }
+
+    function getKeywordFromEntries(entries) {
+        var fields = [getKeywordField(), "keyword", "s", "query", "search"];
+        var seen = {};
+
+        for (var i = 0; i < fields.length; i++) {
+            var field = fields[i];
+            if (!field || seen[field]) {
+                continue;
+            }
+
+            seen[field] = true;
+
+            var value = getEntry(entries, field);
+            if (value) {
+                return value;
+            }
+        }
+
+        return "";
+    }
+
+    function appendParams(params, state, entries, options) {
+        var result = {
+            activeTagsAttached: false,
+            nonceAttached: false,
+            managedAttached: false
+        };
+
+        options = options || {};
+
+        if (!params.has("sschp_managed")) {
+            params.append("sschp_managed", "1");
+            result.managedAttached = true;
+        }
+
+        if (config.nonce && !params.has("sschp_nonce")) {
+            params.append("sschp_nonce", config.nonce);
+            result.nonceAttached = true;
+        }
+
+        if (config.lang && !params.has("sschp_lang")) {
+            params.append("sschp_lang", config.lang);
+        }
+
+        if (!options.skipAction && !params.has("action")) {
+            params.append("action", getConfiguredAction());
+        }
+
+        if (options.keyword && !params.has(getKeywordField()) && !params.has("keyword")) {
+            params.append(getKeywordField(), options.keyword);
+        }
+
+        if (!hasActiveTagEntries(entries)) {
+            state.activeTags.forEach(function (tag) {
+                params.append("active_tags[]", tag);
+                result.activeTagsAttached = true;
+            });
+        }
+
+        return result;
+    }
+
+    function appendObjectFields(object, state, entries, keyword, options) {
+        var result = {
+            activeTagsAttached: false,
+            nonceAttached: false,
+            managedAttached: false
+        };
+
+        options = options || {};
+
+        if (!object.sschp_managed) {
+            object.sschp_managed = "1";
+            result.managedAttached = true;
+        }
+
+        if (config.nonce && !object.sschp_nonce) {
+            object.sschp_nonce = config.nonce;
+            result.nonceAttached = true;
+        }
+
+        if (config.lang && !object.sschp_lang) {
+            object.sschp_lang = config.lang;
+        }
+
+        if (keyword && !object[getKeywordField()] && !object.keyword) {
+            object[getKeywordField()] = keyword;
+        }
+
+        if (!options.skipActiveTags && !hasActiveTagEntries(entries)) {
+            object.active_tags = state.activeTags.slice();
+            result.activeTagsAttached = object.active_tags.length > 0;
+        }
+
+        return result;
+    }
+
+    function updateIntegrationDiagnostics(data) {
+        window.sschpDiagnostics = Object.assign(window.sschpDiagnostics || {}, {
+            lastDetectedRequestMethod: data.method || "",
+            transport: data.transport || "",
+            bodyType: data.bodyType || "",
+            actionDetected: !!data.actionDetected,
+            nonceAttached: !!data.nonceAttached,
+            keywordFound: !!data.keywordFound,
+            resultContainerFound: !!data.resultContainerFound,
+            modified: !!data.modified
+        });
+    }
+
+    function trackIntegrationResponse(response, keyword, input) {
+        if (!keyword || keyword.length < (config.minChars || 2)) {
+            return;
+        }
+
+        var resultCount = -1;
+
+        if (response && response.headers && typeof response.headers.get === "function") {
+            resultCount = parseInt(response.headers.get("X-SSC-Results-Count"), 10);
+        } else if (response && typeof response.getResponseHeader === "function") {
+            resultCount = parseInt(response.getResponseHeader("X-SSC-Results-Count"), 10);
+        }
+
+        if (isNaN(resultCount)) {
+            resultCount = -1;
+        }
+
+        trackEvent({
+            eventType: "search",
+            searchQuery: keyword,
+            resultCount: resultCount
+        }, input);
+    }
+
+    function prepareIntegratedRequest(options) {
+        var method = String(options.method || "GET").toUpperCase();
+        var url = options.url || getConfiguredAjaxUrl();
+        var parsedUrl = toUrl(url);
+        var bodyInfo = getBodyInfo(options.body);
+        var urlEntries = parsedUrl ? entriesFromParams(parsedUrl.searchParams) : [];
+        var entries = bodyInfo.entries.concat(urlEntries);
+        var action = getEntry(entries, "action");
+        var actionDetected = action === getConfiguredAction();
+        var keyword = getKeywordFromEntries(entries);
+        var requestInput = findInputForKeyword(keyword);
+        var requestState = getState(requestInput || document.documentElement);
+        var resultContainerFound = !!(requestInput && findResults(requestInput));
+        var diagnostic = {
+            method: method,
+            transport: options.transport || "",
+            bodyType: bodyInfo.bodyType,
+            actionDetected: actionDetected,
+            nonceAttached: hasEntry(entries, "sschp_nonce"),
+            keywordFound: !!keyword,
+            resultContainerFound: resultContainerFound,
+            modified: false
+        };
+        var result = {
+            url: url,
+            body: options.body,
+            bodyChanged: false,
+            urlChanged: false,
+            modified: false,
+            keyword: keyword,
+            input: requestInput,
+            diagnostic: diagnostic
+        };
+
+        if (!isAdminAjaxUrl(url)) {
+            return result;
+        }
+
+        if (!actionDetected) {
+            updateIntegrationDiagnostics(diagnostic);
+            return result;
+        }
+
+        requestState.lastQuery = keyword;
+
+        if (bodyInfo.bodyType === "formdata" || bodyInfo.bodyType === "urlsearchparams") {
+            var liveEntries = bodyInfo.bodyType === "formdata" ? Array.from(options.body.entries()) : entriesFromParams(options.body);
+            var appendResult = appendParams(options.body, requestState, liveEntries.concat(urlEntries), { skipAction: true, keyword: keyword });
+            result.bodyChanged = true;
+            result.modified = true;
+            diagnostic.nonceAttached = diagnostic.nonceAttached || appendResult.nonceAttached;
+        } else if (bodyInfo.bodyType === "urlencoded-string") {
+            var params = new URLSearchParams(options.body);
+            appendResult = appendParams(params, requestState, entriesFromParams(params), { skipAction: true, keyword: keyword });
+            result.body = params.toString();
+            result.bodyChanged = true;
+            result.modified = true;
+            diagnostic.nonceAttached = diagnostic.nonceAttached || appendResult.nonceAttached;
+        } else if (bodyInfo.bodyType === "json" && bodyInfo.supported) {
+            appendResult = appendObjectFields(bodyInfo.parsedObject, requestState, bodyInfo.entries.concat(urlEntries), keyword, {
+                skipActiveTags: !!(options.allowUrlMutation && parsedUrl)
+            });
+            result.body = JSON.stringify(bodyInfo.parsedObject);
+            result.bodyChanged = true;
+            result.modified = true;
+            diagnostic.nonceAttached = diagnostic.nonceAttached || appendResult.nonceAttached;
+
+            if (options.allowUrlMutation && parsedUrl) {
+                appendParams(parsedUrl.searchParams, requestState, bodyInfo.entries.concat(urlEntries), { keyword: keyword });
+                result.url = parsedUrl.toString();
+                result.urlChanged = true;
+            }
+        } else if (options.allowUrlMutation && parsedUrl) {
+            appendResult = appendParams(parsedUrl.searchParams, requestState, urlEntries, { keyword: keyword });
+            result.url = parsedUrl.toString();
+            result.urlChanged = true;
+            result.modified = true;
+            diagnostic.nonceAttached = diagnostic.nonceAttached || appendResult.nonceAttached;
+        }
+
+        diagnostic.modified = result.modified;
+        updateIntegrationDiagnostics(diagnostic);
+
+        return result;
+    }
+
+    /**
+     * Intercept existing AJAX search requests (from theme search scripts)
+     * to append active tags.
+     */
+    var origOpen = XMLHttpRequest.prototype.open;
+    var origSend = XMLHttpRequest.prototype.send;
+
+    XMLHttpRequest.prototype.open = function (method, url) {
+        var args = Array.prototype.slice.call(arguments);
+        var prepared = prepareIntegratedRequest({
+            transport: "xhr",
+            method: method,
+            url: url,
+            body: null,
+            allowUrlMutation: true
+        });
+
+        this._sschpRequestMethod = String(method || "GET").toUpperCase();
+        this._sschpRequestUrl = prepared.url;
+
+        if (prepared.urlChanged) {
+            args[1] = prepared.url;
+        }
+
+        return origOpen.apply(this, args);
     };
+
+    XMLHttpRequest.prototype.send = function (data) {
+        if (this._sscManagedRequest) {
+            return origSend.apply(this, arguments);
+        }
+
+        var method = this._sschpRequestMethod || "GET";
+        var prepared = prepareIntegratedRequest({
+            transport: "xhr",
+            method: method,
+            url: this._sschpRequestUrl || getConfiguredAjaxUrl(),
+            body: data,
+            allowUrlMutation: false
+        });
+        var args = Array.prototype.slice.call(arguments);
+
+        if (prepared.bodyChanged) {
+            args[0] = prepared.body;
+        }
+
+        if (prepared.modified) {
+            this.addEventListener("loadend", function () {
+                if (this.status !== 200) {
+                    return;
+                }
+
+                trackIntegrationResponse(this, prepared.keyword, prepared.input);
+            }, { once: true });
+        }
+
+        return origSend.apply(this, args);
+    };
+
+    if (window.fetch) {
+        var origFetch = window.fetch;
+
+        window.fetch = function (input, init) {
+            var requestUrl = "";
+            var requestMethod = "GET";
+            var requestBody = null;
+            var nextInput = input;
+            var nextInit = init ? Object.assign({}, init) : {};
+            var isRequestInput = typeof Request !== "undefined" && input instanceof Request;
+
+            if (typeof input === "string" || input instanceof URL) {
+                requestUrl = String(input);
+            } else if (isRequestInput || (input && input.url)) {
+                requestUrl = input.url;
+                requestMethod = input.method || requestMethod;
+            }
+
+            if (isRequestInput) {
+                if (!nextInit.method) {
+                    nextInit.method = input.method;
+                }
+                if (!nextInit.headers) {
+                    nextInit.headers = input.headers;
+                }
+                if (!nextInit.credentials) {
+                    nextInit.credentials = input.credentials;
+                }
+                if (!nextInit.mode) {
+                    nextInit.mode = input.mode;
+                }
+                if (!nextInit.cache) {
+                    nextInit.cache = input.cache;
+                }
+                if (!nextInit.redirect) {
+                    nextInit.redirect = input.redirect;
+                }
+                if (!nextInit.referrer) {
+                    nextInit.referrer = input.referrer;
+                }
+                if (!nextInit.referrerPolicy) {
+                    nextInit.referrerPolicy = input.referrerPolicy;
+                }
+                if (!nextInit.integrity) {
+                    nextInit.integrity = input.integrity;
+                }
+                if (!nextInit.keepalive) {
+                    nextInit.keepalive = input.keepalive;
+                }
+                if (!nextInit.signal) {
+                    nextInit.signal = input.signal;
+                }
+            }
+
+            if (nextInit.method) {
+                requestMethod = nextInit.method;
+            }
+
+            if (Object.prototype.hasOwnProperty.call(nextInit, "body")) {
+                requestBody = nextInit.body;
+            }
+
+            var prepared = prepareIntegratedRequest({
+                transport: "fetch",
+                method: requestMethod,
+                url: requestUrl,
+                body: requestBody,
+                allowUrlMutation: true
+            });
+
+            if (!prepared.modified) {
+                return origFetch.apply(this, arguments);
+            }
+
+            if (
+                prepared.urlChanged &&
+                isRequestInput &&
+                !Object.prototype.hasOwnProperty.call(nextInit, "body") &&
+                requestMethod !== "GET" &&
+                requestMethod !== "HEAD"
+            ) {
+                return origFetch.apply(this, arguments);
+            }
+
+            if (prepared.urlChanged) {
+                nextInput = prepared.url;
+            }
+
+            if (prepared.bodyChanged) {
+                nextInit.body = prepared.body;
+            }
+
+            return origFetch.call(this, nextInput, nextInit).then(function (response) {
+                trackIntegrationResponse(response, prepared.keyword, prepared.input);
+                return response;
+            });
+        };
+    }
 
     /**
      * Reset active tags when search is cleared.
