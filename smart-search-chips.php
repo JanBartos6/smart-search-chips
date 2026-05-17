@@ -132,6 +132,7 @@ if ( function_exists( 'sschp_fs' ) ) {
         }
 
         delete_metadata( 'post', 0, 'sschp_tags', '', true );
+        delete_metadata( 'post', 0, '_sschp_generated_tags', '', true );
 
         $table_name = $wpdb->prefix . 'sschp_events';
         $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -274,6 +275,7 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_chip_padding_x'          => 12,
             'sschp_chip_padding_y'          => 4,
             'sschp_woo_enabled'             => '1',
+            'sschp_woo_include_sku'         => '0',
             'sschp_override_ajax'           => '',
             'sschp_ajax_keyword_field'       => 'keyword',
             'sschp_result_container_selector'=> '.js-ssc-results, .js-search__results, .ssc-search__results',
@@ -331,6 +333,7 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_chip_padding_x',
             'sschp_chip_padding_y',
             'sschp_woo_enabled',
+            'sschp_woo_include_sku',
             'sschp_override_ajax',
             'sschp_ajax_keyword_field',
             'sschp_result_container_selector',
@@ -368,6 +371,7 @@ if ( function_exists( 'sschp_fs' ) ) {
         }
 
         delete_metadata( 'post', 0, 'sschp_tags', '', true );
+        delete_metadata( 'post', 0, '_sschp_generated_tags', '', true );
 
         if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) {
             if ( $drop_analytics_table ) {

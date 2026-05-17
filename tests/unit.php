@@ -69,8 +69,20 @@ function sschp_make_archive_query( array $posts, $args = array() ) {
     );
 }
 
+function sschp_register_test_product( $post_id, $attributes = array(), $sku = '', $terms = array(), $type = 'simple', $variation_prices = array() ) {
+    global $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms;
+
+    $post_id = (int) $post_id;
+    $sschp_test_products[ $post_id ]   = new SSCHP_Test_Product( $attributes, $sku, $type, $variation_prices );
+    $sschp_test_post_types[ $post_id ] = 'product';
+
+    foreach ( $terms as $taxonomy => $values ) {
+        $sschp_test_post_terms[ $post_id . '|' . $taxonomy ] = $values;
+    }
+}
+
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -90,6 +102,11 @@ function sschp_reset_test_state() {
     $sschp_test_current_url        = '/';
     $sschp_test_is_admin           = false;
     $sschp_test_is_search          = false;
+    $sschp_test_products           = array();
+    $sschp_test_post_types         = array();
+    $sschp_test_post_terms         = array();
+    $sschp_test_post_revisions     = array();
+    $sschp_test_post_autosaves     = array();
     $_POST                    = array();
     $_REQUEST                 = array();
     $_SERVER                  = array();
@@ -804,6 +821,153 @@ function sschp_test_meta_auth_callback_requires_edit_post_capability() {
     sschp_assert_true( ! sschp_can_edit_post_meta( false, 'sschp_tags', 0 ), 'sschp_can_edit_post_meta should reject requests that do not target a concrete post object' );
 }
 
+function sschp_test_woocommerce_bulk_generation_skips_uneditable_products() {
+    global $sschp_test_current_user_can, $sschp_test_post_meta, $sschp_test_transients;
+
+    sschp_reset_test_state();
+    $sschp_test_current_user_can['edit_post|10'] = true;
+    $sschp_test_current_user_can['edit_post|11'] = false;
+
+    sschp_register_test_product(
+        10,
+        array( new SSCHP_Test_Product_Attribute( 'material', array( 'Steel' ) ) )
+    );
+    sschp_register_test_product(
+        11,
+        array( new SSCHP_Test_Product_Attribute( 'material', array( 'Plastic' ) ) )
+    );
+
+    $woo = new SSCHP_WooCommerce();
+    $woo->handle_bulk_action( '/wp-admin/edit.php?post_type=product', 'sschp_generate_tags', array( '10', '11' ) );
+
+    sschp_assert_same( 'Steel', $sschp_test_post_meta[10][SSCHP_WooCommerce::GENERATED_META_KEY], 'bulk generation should store generated tags for editable products' );
+    sschp_assert_true( empty( $sschp_test_post_meta[11][SSCHP_WooCommerce::GENERATED_META_KEY] ), 'bulk generation should skip products the current user cannot edit' );
+    sschp_assert_same( 1, $sschp_test_transients['sschp_tags_generated_1'], 'bulk generation count should include only products that were generated' );
+}
+
+function sschp_test_woocommerce_auto_generation_preserves_manual_tags() {
+    global $sschp_test_current_user_can, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    $sschp_test_current_user_can['edit_post|20'] = true;
+    $sschp_test_post_meta[20][SSCHP_Meta_Box::META_KEY] = 'Manual Tag';
+
+    sschp_register_test_product(
+        20,
+        array( new SSCHP_Test_Product_Attribute( 'material', array( 'Aluminum' ) ) )
+    );
+
+    $woo = new SSCHP_WooCommerce();
+    $woo->auto_populate_tags( 20, (object) array( 'post_type' => 'product', 'post_status' => 'publish' ) );
+
+    sschp_assert_same( 'Manual Tag', $sschp_test_post_meta[20][SSCHP_Meta_Box::META_KEY], 'WooCommerce auto generation should not overwrite manual Search Chips Tags' );
+    sschp_assert_same( 'Aluminum', $sschp_test_post_meta[20][SSCHP_WooCommerce::GENERATED_META_KEY], 'WooCommerce auto generation should store generated tags separately' );
+}
+
+function sschp_test_woocommerce_generated_tags_update_when_attributes_change() {
+    global $sschp_test_current_user_can, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    $sschp_test_current_user_can['edit_post|21'] = true;
+
+    sschp_register_test_product(
+        21,
+        array( new SSCHP_Test_Product_Attribute( 'material', array( 'Old Material' ) ) )
+    );
+
+    $woo = new SSCHP_WooCommerce();
+    $woo->auto_populate_tags( 21, (object) array( 'post_type' => 'product', 'post_status' => 'publish' ) );
+
+    sschp_register_test_product(
+        21,
+        array( new SSCHP_Test_Product_Attribute( 'material', array( 'New Material' ) ) )
+    );
+    $woo->auto_populate_tags( 21, (object) array( 'post_type' => 'product', 'post_status' => 'publish' ) );
+
+    sschp_assert_same( 'New Material', $sschp_test_post_meta[21][SSCHP_WooCommerce::GENERATED_META_KEY], 'generated WooCommerce tags should be regenerated when product attributes change' );
+}
+
+function sschp_test_woocommerce_auto_generation_skips_revisions() {
+    global $sschp_test_current_user_can, $sschp_test_post_meta, $sschp_test_post_revisions;
+
+    sschp_reset_test_state();
+    $sschp_test_current_user_can['edit_post|22'] = true;
+    $sschp_test_post_revisions[22] = true;
+
+    sschp_register_test_product(
+        22,
+        array( new SSCHP_Test_Product_Attribute( 'material', array( 'Steel' ) ) )
+    );
+
+    $woo = new SSCHP_WooCommerce();
+    $woo->auto_populate_tags( 22, (object) array( 'post_type' => 'product', 'post_status' => 'publish' ) );
+
+    sschp_assert_true( empty( $sschp_test_post_meta[22][SSCHP_WooCommerce::GENERATED_META_KEY] ), 'WooCommerce auto generation should skip post revisions' );
+}
+
+function sschp_test_woocommerce_sku_inclusion_is_disabled_by_default_and_opt_in() {
+    global $sschp_test_options;
+
+    sschp_reset_test_state();
+    sschp_register_test_product(
+        30,
+        array( new SSCHP_Test_Product_Attribute( 'material', array( 'Steel' ) ) ),
+        'SKU-123'
+    );
+
+    $woo          = new SSCHP_WooCommerce();
+    $default_tags = $woo->extract_product_tags( 30 );
+
+    sschp_assert_true( in_array( 'Steel', $default_tags, true ), 'WooCommerce extraction should include useful attribute values' );
+    sschp_assert_true( ! in_array( 'SKU-123', $default_tags, true ), 'WooCommerce extraction should not include noisy SKU values by default' );
+
+    $sschp_test_options['sschp_woo_include_sku'] = '1';
+    $sku_tags = $woo->extract_product_tags( 30 );
+
+    sschp_assert_true( in_array( 'SKU-123', $sku_tags, true ), 'WooCommerce SKU tags should be opt-in through the SKU setting' );
+}
+
+function sschp_test_woocommerce_price_range_tags_are_disabled_by_default() {
+    sschp_reset_test_state();
+    sschp_register_test_product(
+        31,
+        array( new SSCHP_Test_Product_Attribute( 'material', array( 'Steel' ) ) ),
+        '',
+        array(),
+        'variable',
+        array(
+            'min' => 10,
+            'max' => 20,
+        )
+    );
+
+    $woo  = new SSCHP_WooCommerce();
+    $tags = $woo->extract_product_tags( 31 );
+
+    sschp_assert_true( ! in_array( '$10 - $20', $tags, true ), 'WooCommerce price range text tags should be disabled by default' );
+}
+
+function sschp_test_woocommerce_runtime_tags_merge_manual_and_generated_without_duplicates() {
+    global $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    sschp_register_test_product( 40 );
+    $sschp_test_post_meta[40][SSCHP_WooCommerce::GENERATED_META_KEY] = 'Steel; Outdoor; outdoor';
+
+    $woo    = new SSCHP_WooCommerce();
+    $source = $woo->add_runtime_product_tags(
+        array(
+            'primary' => 'Manual; Steel',
+            'extra'   => 'Indoor',
+        ),
+        40,
+        array( 'context' => 'ajax' )
+    );
+
+    sschp_assert_same( 'Manual; Steel', $source['primary'], 'runtime WooCommerce tags should preserve manual primary tags' );
+    sschp_assert_same( 'Indoor; Outdoor', $source['extra'], 'runtime WooCommerce tags should merge generated tags without case-insensitive duplicates' );
+}
+
 function sschp_test_frontend_uses_configured_ajax_action() {
     $frontend = new SSCHP_Frontend(
         new SSCHP_Test_Settings(
@@ -982,6 +1146,13 @@ sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_appends_ctr_
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_escape_csv_value_neutralizes_spreadsheet_formulas' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_guard_tracking_rejects_immediate_replays' );
 sschp_test_meta_auth_callback_requires_edit_post_capability();
+sschp_test_woocommerce_bulk_generation_skips_uneditable_products();
+sschp_test_woocommerce_auto_generation_preserves_manual_tags();
+sschp_test_woocommerce_generated_tags_update_when_attributes_change();
+sschp_test_woocommerce_auto_generation_skips_revisions();
+sschp_test_woocommerce_sku_inclusion_is_disabled_by_default_and_opt_in();
+sschp_test_woocommerce_price_range_tags_are_disabled_by_default();
+sschp_test_woocommerce_runtime_tags_merge_manual_and_generated_without_duplicates();
 sschp_test_frontend_uses_configured_ajax_action();
 sschp_test_search_handler_normalizes_active_tag_payload_shapes();
 sschp_test_search_handler_builtin_action_without_nonce_fails();

@@ -222,6 +222,7 @@ function sschp_activate() {
         'sschp_chip_padding_x'           => 12,
         'sschp_chip_padding_y'           => 4,
         'sschp_woo_enabled'              => '1',
+        'sschp_woo_include_sku'          => '0',
         'sschp_override_ajax'            => '',
         'sschp_ajax_keyword_field'        => 'keyword',
         'sschp_result_container_selector' => '.js-ssc-results, .js-search__results, .ssc-search__results',
@@ -262,6 +263,7 @@ function sschp_get_option_keys() {
         'sschp_chip_padding_x',
         'sschp_chip_padding_y',
         'sschp_woo_enabled',
+        'sschp_woo_include_sku',
         'sschp_override_ajax',
         'sschp_ajax_keyword_field',
         'sschp_result_container_selector',
@@ -285,6 +287,7 @@ function sschp_delete_plugin_data() {
     }
 
     delete_metadata( 'post', 0, 'sschp_tags', '', true );
+    delete_metadata( 'post', 0, '_sschp_generated_tags', '', true );
 }
 
 /**
@@ -423,6 +426,7 @@ class SSCHP_Settings {
         register_setting( 'smart-search-chips', 'sschp_max_chips', array( 'sanitize_callback' => array( $this, 'sanitize_max_chips' ) ) );
         register_setting( 'smart-search-chips', 'sschp_max_tag_length', array( 'sanitize_callback' => array( $this, 'sanitize_max_tag_length' ) ) );
         register_setting( 'smart-search-chips', 'sschp_woo_enabled', array( 'sanitize_callback' => array( $this, 'sanitize_checkbox' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_woo_include_sku', array( 'sanitize_callback' => array( $this, 'sanitize_checkbox' ) ) );
         register_setting( 'smart-search-chips', 'sschp_chip_color', array( 'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ) ) );
         register_setting( 'smart-search-chips', 'sschp_chip_text_color', array( 'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ) ) );
         register_setting( 'smart-search-chips', 'sschp_chip_inactive_color', array( 'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ) ) );
@@ -539,8 +543,15 @@ class SSCHP_Settings {
                                         <label>
                                             <input type="hidden" name="sschp_woo_enabled" value="0" />
                                             <input type="checkbox" name="sschp_woo_enabled" value="1" <?php checked( get_option( 'sschp_woo_enabled', '1' ), '1' ); ?> />
-                                            <?php esc_html_e( 'Auto-populate tags from product attributes, categories, and SKU', 'smart-search-chips' ); ?>
+                                            <?php esc_html_e( 'Generate helper tags from product attributes, categories, and WooCommerce product tags', 'smart-search-chips' ); ?>
                                         </label>
+                                        <p class="description"><?php esc_html_e( 'Generated tags are stored separately from manual Search Chips Tags and are merged at runtime.', 'smart-search-chips' ); ?></p>
+                                        <label>
+                                            <input type="hidden" name="sschp_woo_include_sku" value="0" />
+                                            <input type="checkbox" name="sschp_woo_include_sku" value="1" <?php checked( get_option( 'sschp_woo_include_sku', '0' ), '1' ); ?> />
+                                            <?php esc_html_e( 'Include SKU values as chips', 'smart-search-chips' ); ?>
+                                        </label>
+                                        <p class="description"><?php esc_html_e( 'SKU chips are disabled by default because SKUs are often unique and noisy in search results.', 'smart-search-chips' ); ?></p>
                                     </td>
                                 </tr>
                                 <?php endif; ?>
@@ -875,8 +886,8 @@ function Patch-WpOrgCoreFiles {
     $readme = $readme -replace '1\. Create a custom field on your posts/products \(e\.g\. `search_tags`\) with semicolon-separated tags\s*\r?\n2\. In plugin settings, set "Primary Tag Field" to your field name\s*\r?\n3\. Add `\[sschp_search\]` shortcode to any page, or set "Override AJAX Action" to hook into your theme''s existing search', "1. Add semicolon-separated tags to the built-in Search Chips Tags field on your posts/products`r`n2. Select which post types to search in Settings > Search Chips`r`n3. Add ``[sschp_search]`` shortcode to any page, or set ""Override AJAX Action"" to hook into your theme's existing search"
     $readme = $readme -replace 'You can use ACF \(Advanced Custom Fields\), regular WordPress custom fields, or populate them programmatically via the REST API\. Tags should be semicolon-separated in the primary field and comma-separated in the extra field\.', 'Use the built-in Search Chips Tags meta box on each post/product. Tags should be semicolon-separated. ACF/custom field connectors are available separately in Smart Search Chips Pro.'
     $readme = $readme -replace 'Free uses the built-in Search Chips Tags field\. Pro can map existing ACF or regular WordPress custom fields and can expose authenticated REST workflows for chip rules and AI-assisted tagging\.', 'Use the built-in Search Chips Tags meta box on each post/product. Tags should be semicolon-separated. ACF/custom field connectors are available separately in Smart Search Chips Pro.'
-    $readme = $readme -replace 'Yes\. Set "Post Types" to include "product" and use WooCommerce product attributes or ACF fields as your tag source\.', 'Yes. Set "Post Types" to include "product". The WooCommerce helper can populate the built-in Search Chips Tags field from product attributes, categories, tags, and SKU.'
-    $readme = $readme -replace 'Yes\. Set "Post Types" to include "product"\. Free can use the built-in Search Chips Tags field and WooCommerce helper tags; Pro can also map ACF or regular custom fields\.', 'Yes. Set "Post Types" to include "product". The WooCommerce helper can populate the built-in Search Chips Tags field from product attributes, categories, tags, and SKU.'
+    $readme = $readme -replace 'Yes\. Set "Post Types" to include "product" and use WooCommerce product attributes or ACF fields as your tag source\.', 'Yes. Set "Post Types" to include "product". The WooCommerce helper can generate separate helper tags from product attributes, categories, and product tags. SKU chips are optional and disabled by default.'
+    $readme = $readme -replace 'Yes\. Set "Post Types" to include "product"\. Free can use the built-in Search Chips Tags field and WooCommerce helper tags; Pro can also map ACF or regular custom fields\.', 'Yes. Set "Post Types" to include "product". The WooCommerce helper can generate separate helper tags from product attributes, categories, and product tags. SKU chips are optional and disabled by default.'
     $readme = $readme -replace '(?s)== Privacy Policy ==.*?== Upgrade Notice ==', @'
 == Smart Search Chips Pro ==
 

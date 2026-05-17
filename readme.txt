@@ -80,7 +80,7 @@ The algorithm ranks tags by frequency, then for each candidate chip checks if it
 
 = Can I use this with WooCommerce? =
 
-Yes. Set "Post Types" to include "product". Free can use the built-in Search Chips Tags field and WooCommerce helper tags; Pro can also map ACF or regular custom fields.
+Yes. Set "Post Types" to include "product". Free can use the built-in Search Chips Tags field and WooCommerce helper tags from attributes, categories, and product tags. SKU chips are optional and disabled by default; Pro can also map ACF or regular custom fields.
 
 = Can external automation manage Pro chip rules? =
 
@@ -137,7 +137,7 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 * Improved frontend input discovery for theme search forms that use keyword, s, or query fields.
 
 = 1.0.5 =
-* Added runtime WooCommerce tag fallback so chips can appear from product attributes, categories, tags, and SKU before stored chip tags are generated.
+* Added runtime WooCommerce tag fallback so chips can appear from product attributes, categories, and product tags before generated helper tags are stored. SKU chips are optional and disabled by default.
 
 = 1.0.4 =
 * Fixed post type settings persistence when selecting products or other custom post types.

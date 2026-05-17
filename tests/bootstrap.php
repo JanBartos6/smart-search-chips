@@ -27,6 +27,11 @@ $sschp_test_post_meta       = array();
 $sschp_test_current_url     = '/';
 $sschp_test_is_admin        = false;
 $sschp_test_is_search       = false;
+$sschp_test_products        = array();
+$sschp_test_post_types      = array();
+$sschp_test_post_terms      = array();
+$sschp_test_post_revisions  = array();
+$sschp_test_post_autosaves  = array();
 
 if ( ! function_exists( '__' ) ) {
     function __( $text, $domain = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
@@ -435,6 +440,14 @@ if ( ! function_exists( 'post_type_exists' ) ) {
     }
 }
 
+if ( ! function_exists( 'get_post_type' ) ) {
+    function get_post_type( $post_id ) {
+        global $sschp_test_post_types;
+
+        return isset( $sschp_test_post_types[ $post_id ] ) ? $sschp_test_post_types[ $post_id ] : 'post';
+    }
+}
+
 if ( ! function_exists( 'register_post_meta' ) ) {
     function register_post_meta( $post_type, $meta_key, $args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         return true;
@@ -459,7 +472,68 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 
 if ( ! function_exists( 'update_post_meta' ) ) {
     function update_post_meta( $post_id, $meta_key, $meta_value ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $sschp_test_post_meta;
+
+        $sschp_test_post_meta[ $post_id ][ $meta_key ] = $meta_value;
         return true;
+    }
+}
+
+if ( ! function_exists( 'delete_post_meta' ) ) {
+    function delete_post_meta( $post_id, $meta_key, $meta_value = '' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $sschp_test_post_meta;
+
+        unset( $sschp_test_post_meta[ $post_id ][ $meta_key ] );
+        return true;
+    }
+}
+
+if ( ! function_exists( 'wp_is_post_revision' ) ) {
+    function wp_is_post_revision( $post_id ) {
+        global $sschp_test_post_revisions;
+
+        return ! empty( $sschp_test_post_revisions[ $post_id ] );
+    }
+}
+
+if ( ! function_exists( 'wp_is_post_autosave' ) ) {
+    function wp_is_post_autosave( $post_id ) {
+        global $sschp_test_post_autosaves;
+
+        return ! empty( $sschp_test_post_autosaves[ $post_id ] );
+    }
+}
+
+if ( ! function_exists( 'is_wp_error' ) ) {
+    function is_wp_error( $thing ) {
+        return $thing instanceof WP_Error;
+    }
+}
+
+if ( ! class_exists( 'WP_Error' ) ) {
+    class WP_Error {}
+}
+
+if ( ! function_exists( 'wc_get_product' ) ) {
+    function wc_get_product( $product_id ) {
+        global $sschp_test_products;
+
+        return isset( $sschp_test_products[ $product_id ] ) ? $sschp_test_products[ $product_id ] : null;
+    }
+}
+
+if ( ! function_exists( 'wp_get_post_terms' ) ) {
+    function wp_get_post_terms( $post_id, $taxonomy, $args = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $sschp_test_post_terms;
+
+        $key = (int) $post_id . '|' . (string) $taxonomy;
+        return isset( $sschp_test_post_terms[ $key ] ) ? $sschp_test_post_terms[ $key ] : array();
+    }
+}
+
+if ( ! function_exists( 'get_woocommerce_currency_symbol' ) ) {
+    function get_woocommerce_currency_symbol() {
+        return '$';
     }
 }
 
@@ -699,6 +773,7 @@ if ( ! class_exists( 'WP_Query' ) ) {
 
 require_once dirname( __DIR__ ) . '/includes/class-license.php';
 require_once dirname( __DIR__ ) . '/includes/class-meta-box.php';
+require_once dirname( __DIR__ ) . '/includes/class-woocommerce.php';
 require_once dirname( __DIR__ ) . '/includes/class-language.php';
 require_once dirname( __DIR__ ) . '/includes/class-chip-engine.php';
 require_once dirname( __DIR__ ) . '/includes/class-settings.php';
@@ -737,5 +812,59 @@ class SSCHP_Test_Settings extends SSCHP_Settings {
 
     public function get( $key, $default = '' ) {
         return array_key_exists( $key, $this->values ) ? $this->values[ $key ] : $default;
+    }
+}
+
+class SSCHP_Test_Product_Attribute {
+    private $name;
+    private $options;
+    private $taxonomy;
+
+    public function __construct( $name, $options = array(), $taxonomy = false ) {
+        $this->name     = $name;
+        $this->options  = $options;
+        $this->taxonomy = (bool) $taxonomy;
+    }
+
+    public function is_taxonomy() {
+        return $this->taxonomy;
+    }
+
+    public function get_name() {
+        return $this->name;
+    }
+
+    public function get_options() {
+        return $this->options;
+    }
+}
+
+class SSCHP_Test_Product {
+    private $attributes;
+    private $sku;
+    private $type;
+    private $variation_prices;
+
+    public function __construct( $attributes = array(), $sku = '', $type = 'simple', $variation_prices = array() ) {
+        $this->attributes       = $attributes;
+        $this->sku              = $sku;
+        $this->type             = $type;
+        $this->variation_prices = $variation_prices;
+    }
+
+    public function get_attributes() {
+        return $this->attributes;
+    }
+
+    public function get_sku() {
+        return $this->sku;
+    }
+
+    public function is_type( $type ) {
+        return $this->type === $type;
+    }
+
+    public function get_variation_price( $type ) {
+        return isset( $this->variation_prices[ $type ] ) ? $this->variation_prices[ $type ] : '';
     }
 }

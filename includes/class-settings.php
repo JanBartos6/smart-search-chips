@@ -92,6 +92,9 @@ class SSCHP_Settings {
         register_setting( 'smart-search-chips', 'sschp_woo_enabled', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
+        register_setting( 'smart-search-chips', 'sschp_woo_include_sku', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
         register_setting( 'smart-search-chips', 'sschp_chip_color', array(
             'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ),
         ) );
@@ -535,9 +538,17 @@ class SSCHP_Settings {
                                     <th><?php esc_html_e( 'WooCommerce Auto-Tags', 'smart-search-chips' ); ?></th>
                                     <td>
                                         <label>
+                                            <input type="hidden" name="sschp_woo_enabled" value="0" />
                                             <input type="checkbox" name="sschp_woo_enabled" value="1" <?php checked( get_option( 'sschp_woo_enabled', '1' ), '1' ); ?> />
-                                            <?php esc_html_e( 'Auto-populate tags from product attributes, categories, and SKU', 'smart-search-chips' ); ?>
+                                            <?php esc_html_e( 'Generate helper tags from product attributes, categories, and WooCommerce product tags', 'smart-search-chips' ); ?>
                                         </label>
+                                        <p class="description"><?php esc_html_e( 'Generated tags are stored separately from manual Search Chips Tags and are merged at runtime.', 'smart-search-chips' ); ?></p>
+                                        <label>
+                                            <input type="hidden" name="sschp_woo_include_sku" value="0" />
+                                            <input type="checkbox" name="sschp_woo_include_sku" value="1" <?php checked( get_option( 'sschp_woo_include_sku', '0' ), '1' ); ?> />
+                                            <?php esc_html_e( 'Include SKU values as chips', 'smart-search-chips' ); ?>
+                                        </label>
+                                        <p class="description"><?php esc_html_e( 'SKU chips are disabled by default because SKUs are often unique and noisy in search results.', 'smart-search-chips' ); ?></p>
                                     </td>
                                 </tr>
                                 <?php endif; ?>
