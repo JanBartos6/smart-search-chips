@@ -52,6 +52,52 @@
         container.appendChild(row);
     }
 
+    function copyText(text, button) {
+        var strings = diagnosticStrings();
+
+        function setStatus(message) {
+            if (!button) {
+                return;
+            }
+
+            button.setAttribute('data-sschp-copy-status', message);
+            button.textContent = message;
+            window.setTimeout(function () {
+                button.textContent = button.getAttribute('data-sschp-copy-label') || 'Copy shortcode';
+                button.removeAttribute('data-sschp-copy-status');
+            }, 1500);
+        }
+
+        if (!text) {
+            setStatus(strings.copyFailed || 'Copy failed.');
+            return;
+        }
+
+        if (window.navigator && window.navigator.clipboard && window.navigator.clipboard.writeText) {
+            window.navigator.clipboard.writeText(text).then(function () {
+                setStatus(strings.copied || 'Copied.');
+            }).catch(function () {
+                setStatus(strings.copyFailed || 'Copy failed.');
+            });
+            return;
+        }
+
+        try {
+            var textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', 'readonly');
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            setStatus(strings.copied || 'Copied.');
+        } catch (error) {
+            setStatus(strings.copyFailed || 'Copy failed.');
+        }
+    }
+
     function runCompatibilityTest() {
         var output = document.getElementById('sschp-compat-results');
         if (!output) {
@@ -139,6 +185,21 @@
     if (compatButton) {
         compatButton.addEventListener('click', runCompatibilityTest);
     }
+
+    document.addEventListener('click', function (event) {
+        var button = event.target && event.target.closest ? event.target.closest('[data-sschp-copy]') : null;
+        if (!button) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (!button.getAttribute('data-sschp-copy-label')) {
+            button.setAttribute('data-sschp-copy-label', button.textContent);
+        }
+
+        copyText(button.getAttribute('data-sschp-copy'), button);
+    });
 
     // Wire up delete-data confirmation (replaces inline onclick)
     var deleteBtn = document.getElementById('ssc-delete-data-btn');

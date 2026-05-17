@@ -226,6 +226,8 @@ class SSCHP_Settings {
                     'resultMissingRecommendation' => __( 'No result container was found on this admin page. If your theme search cannot be detected on the frontend, use the [sschp_search] shortcode or configure the result container selector.', 'smart-search-chips' ),
                     'inputMatches'               => __( 'Matching search inputs found on this page:', 'smart-search-chips' ),
                     'resultMatches'              => __( 'Matching result containers found on this page:', 'smart-search-chips' ),
+                    'copied'                     => __( 'Copied.', 'smart-search-chips' ),
+                    'copyFailed'                 => __( 'Copy failed. Copy the snippet manually.', 'smart-search-chips' ),
                 ),
             ) );
         }
@@ -325,6 +327,86 @@ class SSCHP_Settings {
             'debugUrl'             => add_query_arg( 'sschp_debug', '1', home_url( '/' ) ),
             'shortcode'            => '[sschp_search]',
         );
+    }
+
+    /**
+     * Build first-run setup guidance from the current site state.
+     *
+     * @return array
+     */
+    public function get_setup_wizard_data() {
+        $selected_post_types = $this->sanitize_post_types( get_option( 'sschp_post_types', array( 'post' ) ) );
+        $post_type_objects   = get_post_types( array( 'public' => true ), 'objects' );
+        $selected_labels     = array();
+
+        foreach ( $selected_post_types as $post_type ) {
+            if ( isset( $post_type_objects[ $post_type ] ) ) {
+                $selected_labels[] = $post_type_objects[ $post_type ]->label;
+            } else {
+                $selected_labels[] = $post_type;
+            }
+        }
+
+        $diagnostics = $this->get_theme_compatibility_diagnostics();
+
+        return array(
+            'woocommerceActive'       => class_exists( 'WooCommerce' ),
+            'selectedPostTypes'       => $selected_post_types,
+            'selectedPostTypeLabels'  => $selected_labels,
+            'shortcode'               => '[sschp_search]',
+            'shortcodeBlockLabel'     => __( 'Add a WordPress Shortcode block and paste [sschp_search].', 'smart-search-chips' ),
+            'guaranteedModeLabel'     => __( 'Guaranteed Search Mode uses the Smart Search Chips endpoint and does not depend on theme AJAX.', 'smart-search-chips' ),
+            'themeEnhancementStatus'  => $diagnostics['ajaxActionConfigured'] ? __( 'Configured', 'smart-search-chips' ) : __( 'Passive by default', 'smart-search-chips' ),
+            'themeEnhancementMessage' => $diagnostics['ajaxActionConfigured']
+                ? __( 'Existing theme search enhancement is configured. Requests are only replaced when Smart Search Chips marks them as managed.', 'smart-search-chips' )
+                : __( 'No existing theme AJAX action is configured. Theme search will not be intercepted; use the shortcode path below for a guaranteed working search.', 'smart-search-chips' ),
+        );
+    }
+
+    /**
+     * Render first-run setup guidance.
+     */
+    private function render_setup_wizard_card() {
+        $setup       = $this->get_setup_wizard_data();
+        $post_labels = ! empty( $setup['selectedPostTypeLabels'] ) ? implode( ', ', $setup['selectedPostTypeLabels'] ) : __( 'No public post types selected', 'smart-search-chips' );
+        ?>
+        <div class="ssc-settings-card ssc-settings-card--setup">
+            <h2><?php esc_html_e( 'First-run Setup Wizard', 'smart-search-chips' ); ?></h2>
+            <p class="description"><?php esc_html_e( 'For the most reliable setup, add the Smart Search Chips search block or shortcode to your search page.', 'smart-search-chips' ); ?></p>
+            <p class="description"><?php esc_html_e( 'Existing theme search enhancement is automatic when compatible and configurable when needed.', 'smart-search-chips' ); ?></p>
+
+            <div class="ssc-setup-grid">
+                <div class="ssc-setup-step">
+                    <strong><?php esc_html_e( '1. Site content', 'smart-search-chips' ); ?></strong>
+                    <p><?php echo esc_html( $setup['woocommerceActive'] ? __( 'WooCommerce detected.', 'smart-search-chips' ) : __( 'WooCommerce not detected.', 'smart-search-chips' ) ); ?></p>
+                    <p class="description">
+                        <?php esc_html_e( 'Selected post types:', 'smart-search-chips' ); ?>
+                        <code><?php echo esc_html( $post_labels ); ?></code>
+                    </p>
+                </div>
+
+                <div class="ssc-setup-step">
+                    <strong><?php esc_html_e( '2. Guaranteed Search Mode', 'smart-search-chips' ); ?></strong>
+                    <p><?php echo esc_html( $setup['guaranteedModeLabel'] ); ?></p>
+                    <label class="screen-reader-text" for="sschp-guaranteed-shortcode"><?php esc_html_e( 'Smart Search Chips shortcode', 'smart-search-chips' ); ?></label>
+                    <div class="ssc-copy-row">
+                        <input id="sschp-guaranteed-shortcode" type="text" class="regular-text code" value="<?php echo esc_attr( $setup['shortcode'] ); ?>" readonly />
+                        <button type="button" class="button button-secondary" data-sschp-copy="<?php echo esc_attr( $setup['shortcode'] ); ?>"><?php esc_html_e( 'Copy shortcode', 'smart-search-chips' ); ?></button>
+                    </div>
+                    <p class="description"><?php echo esc_html( $setup['shortcodeBlockLabel'] ); ?></p>
+                </div>
+
+                <div class="ssc-setup-step">
+                    <strong><?php esc_html_e( '3. Enhance Existing Theme Search', 'smart-search-chips' ); ?></strong>
+                    <p>
+                        <span class="ssc-badge ssc-badge--neutral"><?php echo esc_html( $setup['themeEnhancementStatus'] ); ?></span>
+                    </p>
+                    <p><?php echo esc_html( $setup['themeEnhancementMessage'] ); ?></p>
+                    <p class="description"><?php esc_html_e( 'If detection fails, leave theme enhancement passive and use the guaranteed shortcode/block path.', 'smart-search-chips' ); ?></p>
+                </div>
+            </div>
+        </div>
+        <?php
     }
 
     /**
@@ -474,7 +556,8 @@ class SSCHP_Settings {
             <?php if ( ! get_user_meta( get_current_user_id(), 'sschp_onboarding_dismissed', true ) ) : ?>
                 <div class="notice notice-info ssc-onboarding-panel">
                     <p><strong><?php esc_html_e( 'Set up Smart Search Chips', 'smart-search-chips' ); ?></strong></p>
-                    <p><?php esc_html_e( 'Free setup: choose searchable post types, add Search Chips Tags to products or posts, then use the shortcode or archive chips to show filters.', 'smart-search-chips' ); ?></p>
+                    <p><?php esc_html_e( 'For the most reliable setup, add the Smart Search Chips search block or shortcode to your search page.', 'smart-search-chips' ); ?></p>
+                    <p class="description"><?php esc_html_e( 'Existing theme search enhancement is automatic when compatible and configurable when needed.', 'smart-search-chips' ); ?></p>
                     <p class="description"><?php esc_html_e( 'Pro is a separate upgrade for ACF/custom field mapping, numeric slider chips, analytics, synonym rules, manual curation, AI-assisted tag workflows, and commercial support.', 'smart-search-chips' ); ?></p>
                     <p>
                         <a class="button button-secondary" href="<?php echo esc_url( $this->get_pro_features_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Pro Features', 'smart-search-chips' ); ?></a>
@@ -513,6 +596,8 @@ class SSCHP_Settings {
                                 <p class="description"><?php esc_html_e( 'Install the Freemius SDK in `vendor/freemius` to enable activation and billing on this screen.', 'smart-search-chips' ); ?></p>
                             <?php endif; ?>
                         </div>
+
+                        <?php $this->render_setup_wizard_card(); ?>
 
                         <!-- Search Settings -->
                         <div class="ssc-settings-card">

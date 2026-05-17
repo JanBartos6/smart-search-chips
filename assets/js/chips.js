@@ -149,8 +149,22 @@
         return config.keywordField || "keyword";
     }
 
-    function getConfiguredAction() {
+    function getSearchAction() {
         return config.action || "sschp_search";
+    }
+
+    function getThemeAction() {
+        var themeAction = config.themeAction || config.overrideAction || "";
+
+        if (!themeAction && config.action && config.action !== "sschp_search") {
+            themeAction = config.action;
+        }
+
+        return themeAction;
+    }
+
+    function themeEnhancementEnabled() {
+        return !!getThemeAction();
     }
 
     function getConfiguredAjaxUrl() {
@@ -547,6 +561,7 @@
      */
     function doSearch(input, resultsContainer, meta) {
         var state = getState(input || resultsContainer);
+        var requestAction = safeClosest(input, ".ssc-search") ? getSearchAction() : (getThemeAction() || getSearchAction());
 
         if (!input || input.value.length < (config.minChars || 2)) {
             closeSearchUi(input, resultsContainer);
@@ -562,8 +577,8 @@
             setResultsBusy(resultsContainer, true);
         }
 
-        debugLog("Shortcode AJAX request prepared", {
-            action: getConfiguredAction(),
+        debugLog("Managed AJAX request prepared", {
+            action: requestAction,
             transport: "XMLHttpRequest",
             keywordField: getKeywordField(),
             inputFound: !!input,
@@ -573,7 +588,7 @@
 
         var formData = new FormData();
         var keywordField = getKeywordField();
-        formData.append("action", getConfiguredAction());
+        formData.append("action", requestAction);
         formData.append(keywordField, input.value);
         if (keywordField !== "keyword") {
             formData.append("keyword", input.value);
@@ -1048,7 +1063,7 @@
         }
 
         if (!options.skipAction && !params.has("action")) {
-            params.append("action", getConfiguredAction());
+            params.append("action", getThemeAction() || getSearchAction());
         }
 
         if (options.keyword && !params.has(getKeywordField()) && !params.has("keyword")) {
@@ -1145,7 +1160,8 @@
         var urlEntries = parsedUrl ? entriesFromParams(parsedUrl.searchParams) : [];
         var entries = bodyInfo.entries.concat(urlEntries);
         var action = getEntry(entries, "action");
-        var actionDetected = action === getConfiguredAction();
+        var themeAction = getThemeAction();
+        var actionDetected = !!themeAction && action === themeAction;
         var keyword = getKeywordFromEntries(entries);
         var requestInput = findInputForKeyword(keyword);
         var requestState = getState(requestInput || document.documentElement);
@@ -1175,7 +1191,7 @@
             return result;
         }
 
-        if (!actionDetected) {
+        if (!themeAction || !actionDetected) {
             updateIntegrationDiagnostics(diagnostic);
             return result;
         }
@@ -1426,6 +1442,35 @@
      */
     function handleSearchInputChange(input) {
         var results = findResults(input);
+        var isGuaranteedSearch = !!safeClosest(input, ".ssc-search");
+
+        if (!isGuaranteedSearch && !themeEnhancementEnabled()) {
+            updateIntegrationDiagnostics({
+                method: "DOM",
+                transport: "input",
+                bodyType: "none",
+                actionDetected: false,
+                nonceAttached: false,
+                keywordFound: !!input.value,
+                resultContainerFound: !!results,
+                modified: false
+            });
+            return;
+        }
+
+        if (!isGuaranteedSearch && !results) {
+            updateIntegrationDiagnostics({
+                method: "DOM",
+                transport: "input",
+                bodyType: "none",
+                actionDetected: false,
+                nonceAttached: false,
+                keywordFound: !!input.value,
+                resultContainerFound: false,
+                modified: false
+            });
+            return;
+        }
 
         if (input.value.length >= (config.minChars || 2)) {
             debouncedSearch(input, results);
@@ -1476,7 +1521,8 @@
             resultSelector: getResultsSelector(),
             inputCount: safeQuerySelectorAll(document, getInputSelector()).length,
             resultContainerCount: safeQuerySelectorAll(document, getResultsSelector()).length,
-            action: getConfiguredAction(),
+            action: getSearchAction(),
+            themeAction: getThemeAction(),
             keywordField: getKeywordField()
         });
 

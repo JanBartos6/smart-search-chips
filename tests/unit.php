@@ -216,6 +216,7 @@ function sschp_test_wporg_settings_source_keeps_selector_safety() {
     sschp_assert_contains( 'sanitize_search_input_selector', $contents, 'WP.org settings source should validate custom input selectors' );
     sschp_assert_contains( 'sanitize_result_container_selector', $contents, 'WP.org settings source should validate custom result selectors' );
     sschp_assert_contains( 'get_theme_compatibility_diagnostics', $contents, 'WP.org settings source should keep the compatibility diagnostics card' );
+    sschp_assert_contains( 'get_setup_wizard_data', $contents, 'WP.org settings source should keep the first-run setup wizard data' );
     sschp_assert_contains( 'sschp-run-compat-test', $contents, 'WP.org settings source should render the frontend compatibility test control' );
 }
 
@@ -556,6 +557,7 @@ function sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_res
     sschp_assert_contains( 'aria-label="Search"', $markup, 'shortcode search button should have an accessible label' );
     sschp_assert_contains( 'aria-live="polite"', $markup, 'shortcode results container should politely announce AJAX updates' );
     sschp_assert_contains( 'aria-busy="false"', $markup, 'shortcode results container should expose an initial not-busy state' );
+    sschp_assert_contains( 'data-sschp-mode="guaranteed"', $markup, 'shortcode search should identify the guaranteed integration mode' );
 }
 
 function sschp_test_search_handler_normalizes_active_tags_case_insensitively() {
@@ -1211,7 +1213,7 @@ function sschp_test_woocommerce_runtime_tags_merge_manual_and_generated_without_
     sschp_assert_same( 'Indoor; Outdoor', $source['extra'], 'runtime WooCommerce tags should merge generated tags without case-insensitive duplicates' );
 }
 
-function sschp_test_frontend_uses_configured_ajax_action() {
+function sschp_test_frontend_shortcode_uses_guaranteed_ajax_action() {
     $frontend = new SSCHP_Frontend(
         new SSCHP_Test_Settings(
             array(
@@ -1223,7 +1225,38 @@ function sschp_test_frontend_uses_configured_ajax_action() {
 
     $action = sschp_invoke_private( $frontend, 'get_ajax_action_name' );
 
-    sschp_assert_same( 'search_processing', $action, 'frontend should honor the configured AJAX action because theme compatibility is not Pro-gated' );
+    sschp_assert_same( 'sschp_search', $action, 'shortcode search should always use the guaranteed SSC endpoint' );
+}
+
+function sschp_test_frontend_exposes_theme_ajax_action_separately() {
+    $frontend = new SSCHP_Frontend(
+        new SSCHP_Test_Settings(
+            array(
+                'override_ajax' => 'search_processing',
+            )
+        ),
+        new SSCHP_Chip_Engine()
+    );
+
+    $action = sschp_invoke_private( $frontend, 'get_theme_ajax_action_name' );
+
+    sschp_assert_same( 'search_processing', $action, 'theme AJAX enhancement should remain configurable without changing shortcode requests' );
+}
+
+function sschp_test_settings_setup_wizard_recommends_guaranteed_shortcode() {
+    global $sschp_test_options;
+
+    sschp_reset_test_state();
+    $sschp_test_options['sschp_post_types'] = array( 'post', 'product' );
+
+    $settings = new SSCHP_Settings();
+    $setup    = $settings->get_setup_wizard_data();
+
+    sschp_assert_same( '[sschp_search]', $setup['shortcode'], 'setup wizard should expose the guaranteed shortcode' );
+    sschp_assert_contains( 'Shortcode block', $setup['shortcodeBlockLabel'], 'setup wizard should recommend the WordPress Shortcode block path' );
+    sschp_assert_contains( 'Smart Search Chips endpoint', $setup['guaranteedModeLabel'], 'setup wizard should explain that guaranteed mode uses the SSC endpoint' );
+    sschp_assert_same( 'Passive by default', $setup['themeEnhancementStatus'], 'theme enhancement should be passive when no override action is configured' );
+    sschp_assert_same( array( 'Posts', 'Products' ), $setup['selectedPostTypeLabels'], 'setup wizard should show selected post type labels' );
 }
 
 function sschp_test_search_handler_normalizes_active_tag_payload_shapes() {
@@ -1406,7 +1439,9 @@ sschp_test_woocommerce_auto_generation_skips_revisions();
 sschp_test_woocommerce_sku_inclusion_is_disabled_by_default_and_opt_in();
 sschp_test_woocommerce_price_range_tags_are_disabled_by_default();
 sschp_test_woocommerce_runtime_tags_merge_manual_and_generated_without_duplicates();
-sschp_test_frontend_uses_configured_ajax_action();
+sschp_test_frontend_shortcode_uses_guaranteed_ajax_action();
+sschp_test_frontend_exposes_theme_ajax_action_separately();
+sschp_test_settings_setup_wizard_recommends_guaranteed_shortcode();
 sschp_test_search_handler_normalizes_active_tag_payload_shapes();
 sschp_test_search_handler_builtin_action_without_nonce_fails();
 sschp_test_search_handler_override_without_marker_returns_early();

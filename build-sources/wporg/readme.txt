@@ -30,7 +30,8 @@ Smart Search Chips adds dynamic, clickable filter chips to your WordPress search
 * Uses the built-in Search Chips Tags field as the free tag source
 * AJAX-powered live search with instant filtering
 * Fully customizable colors, limits, and thresholds
-* Override existing theme AJAX search handlers
+* Guaranteed shortcode search mode that does not depend on theme AJAX
+* Safely enhance existing theme AJAX search handlers when compatible
 * Theme template overrides for custom result rendering
 * Shortcode [sschp_search] for easy integration
 
@@ -53,7 +54,8 @@ Smart Search Chips adds dynamic, clickable filter chips to your WordPress search
 
 1. Add semicolon-separated tags to the built-in Search Chips Tags field on your posts/products
 2. Select which post types to search in Settings > Search Chips
-3. Add `[sschp_search]` shortcode to any page, or set "Override AJAX Action" to hook into your theme's existing search
+3. For the most reliable setup, add `[sschp_search]` to any page or paste it into a WordPress Shortcode block
+4. Optional: use "Override AJAX Action" only when you want to enhance a compatible existing theme search
 
 == Frequently Asked Questions ==
 
@@ -90,6 +92,8 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 == Changelog ==
 
 = 1.0.15 =
+* Added first-run setup guidance with a guaranteed shortcode/block integration path.
+* Split shortcode search from optional theme AJAX enhancement so the shortcode always uses the built-in endpoint.
 * Made theme AJAX compatibility settings available without Pro gating.
 * Added configurable search input selector, keyword field, result container, and result image handling to the compatibility settings.
 * Hardened internal feature checks to avoid direct-install fatals when optional billing components are unavailable.
@@ -158,7 +162,7 @@ Smart Search Chips processes search queries entered by visitors to generate dyna
 == Upgrade Notice ==
 
 = 1.0.15 =
-Improves theme live-search compatibility settings and hardens internal feature checks.
+Adds a guaranteed shortcode setup path and improves theme live-search compatibility settings.
 
 = 1.0.14 =
 Adds factual admin-only Pro feature links and setup guidance.

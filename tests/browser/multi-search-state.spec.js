@@ -62,6 +62,7 @@ async function installCustomSelectorFixture(page) {
   `);
 
   await installFakeAjax(page, {
+    action: "search_processing",
     inputSelector: ".custom-search-input",
     resultSelector: ".custom-search-results"
   });
@@ -74,7 +75,8 @@ async function installFakeAjax(page, options = {}) {
     window.__sschpFetchCalls = [];
     window.__sschpBeaconCalls = [];
     window.sschpConfig = {
-      action: config.action || "sschp_search",
+      action: config.searchAction || "sschp_search",
+      themeAction: config.themeAction || config.action || "",
       ajaxUrl: "/wp-admin/admin-ajax.php",
       minChars: 2,
       nonce: "test-nonce",

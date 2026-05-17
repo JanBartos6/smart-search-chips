@@ -112,6 +112,7 @@ class SSCHP_Frontend {
         wp_localize_script( 'smart-search-chips', 'sschpConfig', array(
             'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
             'action'        => $this->get_ajax_action_name(),
+            'themeAction'   => $this->get_theme_ajax_action_name(),
             'keywordField'  => $this->get_ajax_keyword_field_name(),
             'inputSelector' => $this->get_search_input_selector(),
             'resultSelector' => $this->get_result_container_selector(),
@@ -128,17 +129,23 @@ class SSCHP_Frontend {
     }
 
     /**
-     * Resolve the AJAX action name that the frontend should call.
+     * Resolve the guaranteed AJAX action used by the shortcode.
      *
      * @return string
      */
     private function get_ajax_action_name() {
-        $ajax_action = sanitize_key( $this->settings->get( 'override_ajax', '' ) );
-        if ( '' !== $ajax_action ) {
-            return $ajax_action;
-        }
-
         return 'sschp_search';
+    }
+
+    /**
+     * Resolve the optional theme AJAX action used for enhancement mode.
+     *
+     * @return string
+     */
+    private function get_theme_ajax_action_name() {
+        $ajax_action = sanitize_key( $this->settings->get( 'override_ajax', '' ) );
+
+        return 'sschp_search' !== $ajax_action ? $ajax_action : '';
     }
 
     /**
@@ -197,7 +204,7 @@ class SSCHP_Frontend {
 
         ob_start();
         ?>
-        <div class="ssc-search <?php echo esc_attr( $atts['class'] ); ?>">
+        <div class="ssc-search <?php echo esc_attr( $atts['class'] ); ?>" data-sschp-mode="guaranteed">
             <form class="ssc-search__form js-ssc-search" role="search" method="get" action="<?php echo esc_url( home_url( '/' ) ); ?>">
                 <input type="search"
                        class="ssc-search__input"

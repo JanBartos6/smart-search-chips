@@ -104,7 +104,8 @@ async function installCompatFixture(page, options = {}) {
     window.__compatRequests = [];
     window.__compatThemeRuns = [];
     window.sschpConfig = {
-      action: config.action || "search_processing",
+      action: config.searchAction || "sschp_search",
+      themeAction: Object.prototype.hasOwnProperty.call(config, "themeAction") ? config.themeAction : (config.action || "search_processing"),
       ajaxUrl: "/wp-admin/admin-ajax.php",
       keywordField: config.keywordField || "keyword",
       inputSelector: config.inputSelector || config.defaultInputSelector,
@@ -179,6 +180,10 @@ async function installCompatFixture(page, options = {}) {
 
     function responseFor(request) {
       if (request.action === "raw_theme_search" && !request.managed && !request.nonce) {
+        return '<div class="theme-original-result">Original theme search response</div>';
+      }
+
+      if (request.action === "search_processing" && !request.managed && !request.nonce) {
         return '<div class="theme-original-result">Original theme search response</div>';
       }
 
@@ -385,6 +390,23 @@ function last(items) {
 }
 
 test.describe("Theme compatibility matrix", () => {
+  test("fresh site with no theme integration still has working shortcode search", async ({ page }) => {
+    await installCompatFixture(page, {
+      themeAction: "",
+    });
+
+    const shortcode = page.getByTestId("shortcode-search");
+    await shortcode.locator(".ssc-search__input").fill("Steel");
+    await shortcode.locator(".ssc-search__input").dispatchEvent("input");
+
+    await expect(shortcode.getByRole("button", { name: /Filter by Steel/i })).toBeVisible();
+
+    const request = last(await requests(page));
+    expect(request.action).toBe("sschp_search");
+    expect(request.managed).toBe("1");
+    expect(request.nonce).toBe("compat-nonce");
+  });
+
   test("renders chips across shortcode and ugly theme request shapes", async ({ page }) => {
     await installCompatFixture(page);
 
@@ -392,6 +414,10 @@ test.describe("Theme compatibility matrix", () => {
     await shortcode.locator(".ssc-search__input").fill("Steel");
     await shortcode.locator(".ssc-search__input").dispatchEvent("input");
     await expect(shortcode.getByRole("button", { name: /Filter by Steel/i })).toBeVisible();
+
+    const shortcodeRequest = last(await requests(page));
+    expect(shortcodeRequest.action).toBe("sschp_search");
+    expect(shortcodeRequest.managed).toBe("1");
 
     const cases = [
       ["header-xhr-formdata", "xhr"],
@@ -479,7 +505,7 @@ test.describe("Theme compatibility matrix", () => {
 
   test("original theme search is not blocked when SSC marker and nonce are missing", async ({ page }) => {
     await installCompatFixture(page, {
-      action: "different_action",
+      themeAction: "different_action",
     });
 
     await runSearch(page, "raw-theme-search", "Steel");
@@ -489,6 +515,23 @@ test.describe("Theme compatibility matrix", () => {
 
     const request = last(await requests(page));
     expect(request.action).toBe("raw_theme_search");
+    expect(request.managed).toBe("");
+    expect(request.nonce).toBe("");
+    expect(request.activeTags).toEqual([]);
+  });
+
+  test("theme detection failure keeps existing theme search passive", async ({ page }) => {
+    await installCompatFixture(page, {
+      themeAction: "",
+    });
+
+    await runSearch(page, "header-xhr-formdata", "Steel");
+
+    const root = page.getByTestId("header-xhr-formdata");
+    await expect(root.locator(".theme-original-result")).toHaveText("Original theme search response");
+
+    const request = last(await requests(page));
+    expect(request.action).toBe("search_processing");
     expect(request.managed).toBe("");
     expect(request.nonce).toBe("");
     expect(request.activeTags).toEqual([]);

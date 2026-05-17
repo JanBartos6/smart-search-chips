@@ -10,6 +10,18 @@ async function installSettingsFixture(page, values = {}, body = "") {
       <input type="text" name="sschp_result_container_selector" value="${values.resultSelector || ".theme-search-results"}" />
       <input type="text" name="sschp_override_ajax" value="${values.ajaxAction || ""}" />
       <input type="text" name="sschp_ajax_keyword_field" value="${values.keywordField || "keyword"}" />
+      <section class="ssc-settings-card ssc-settings-card--setup">
+        <h2>First-run Setup Wizard</h2>
+        <p>For the most reliable setup, add the Smart Search Chips search block or shortcode to your search page.</p>
+        <p>Existing theme search enhancement is automatic when compatible and configurable when needed.</p>
+        <div>
+          <strong>2. Guaranteed Search Mode</strong>
+          <p>Guaranteed Search Mode uses the Smart Search Chips endpoint and does not depend on theme AJAX.</p>
+          <input id="sschp-guaranteed-shortcode" type="text" value="[sschp_search]" readonly />
+          <button type="button" data-sschp-copy="[sschp_search]">Copy shortcode</button>
+          <p>Add a WordPress Shortcode block and paste [sschp_search].</p>
+        </div>
+      </section>
       <button type="button" id="sschp-run-compat-test">Run frontend compatibility test</button>
       <div id="sschp-compat-results" aria-live="polite"></div>
       ${body}
@@ -41,7 +53,9 @@ async function installSettingsFixture(page, values = {}, body = "") {
         keywordInvalid: "Keyword field should be a simple request key such as keyword, s, query, or search.",
         inputMatches: "Matching search inputs found on this page:",
         resultMatches: "Matching result containers found on this page:",
-        resultMissingRecommendation: "No result container was found on this admin page. If your theme search cannot be detected on the frontend, use the [sschp_search] shortcode or configure the result container selector."
+        resultMissingRecommendation: "No result container was found on this admin page. If your theme search cannot be detected on the frontend, use the [sschp_search] shortcode or configure the result container selector.",
+        copied: "Copied.",
+        copyFailed: "Copy failed. Copy the snippet manually."
       }
     };
   }, values);
@@ -95,5 +109,16 @@ test.describe("Settings compatibility diagnostics", () => {
 
     await expect(page.locator("#sschp-compat-results")).toContainText("Matching result containers found on this page: 0");
     await expect(page.locator("#sschp-compat-results")).toContainText("use the [sschp_search] shortcode");
+  });
+
+  test("setup wizard provides guaranteed shortcode and block recommendation", async ({ page }) => {
+    await installSettingsFixture(page);
+
+    await expect(page.getByRole("heading", { name: /first-run setup wizard/i })).toBeVisible();
+    await expect(page.locator(".ssc-settings-card--setup")).toContainText("For the most reliable setup");
+    await expect(page.locator(".ssc-settings-card--setup")).toContainText("Existing theme search enhancement is automatic");
+    await expect(page.locator("#sschp-guaranteed-shortcode")).toHaveValue("[sschp_search]");
+    await expect(page.locator(".ssc-settings-card--setup")).toContainText("Shortcode block");
+    await expect(page.locator(".ssc-settings-card--setup")).toContainText("does not depend on theme AJAX");
   });
 });
