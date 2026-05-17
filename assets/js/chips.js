@@ -744,12 +744,10 @@
     }, true);
 
     /**
-     * Built-in search form handler (for [ssc_search] shortcode) - with debounce.
+     * Handle live search input changes from typing, paste, clear buttons,
+     * mobile keyboards, speech input, autofill, and script-dispatched input.
      */
-    document.addEventListener("keyup", function (e) {
-        var input = e.target;
-        if (!safeMatches(input, getInputSelector())) return;
-
+    function handleSearchInputChange(input) {
         var results = findResults(input);
 
         if (input.value.length >= (config.minChars || 2)) {
@@ -757,6 +755,27 @@
         } else if (results) {
             getState(input).activeTags = [];
             closeSearchUi(input, results);
+        }
+    }
+
+    document.addEventListener("input", function (e) {
+        var input = e.target;
+        if (!safeMatches(input, getInputSelector())) return;
+
+        handleSearchInputChange(input);
+    });
+
+    document.addEventListener("keydown", function (e) {
+        var input = e.target;
+        if (!safeMatches(input, getInputSelector())) return;
+
+        if (e.key === "Escape" || e.key === "Esc") {
+            closeSearchUi(input, findResults(input));
+            return;
+        }
+
+        if (e.key === "Enter" && !safeClosest(input, "form")) {
+            doSearch(input, findResults(input), { trigger: "submit" });
         }
     });
 

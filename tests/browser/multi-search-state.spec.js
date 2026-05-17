@@ -175,6 +175,100 @@ function lastRequest(requests) {
 }
 
 test.describe("Multiple search box state", () => {
+  test("runs live search for paste-style input events", async ({ page }) => {
+    await installSearchFixture(page);
+
+    const first = page.getByTestId("first-search");
+    const input = first.locator(".ssc-search__input");
+
+    await input.evaluate((el) => {
+      el.focus();
+      el.value = "Trapped";
+      el.dispatchEvent(new InputEvent("input", {
+        bubbles: true,
+        data: "Trapped",
+        inputType: "insertFromPaste"
+      }));
+    });
+
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
+
+    const requests = await readRequests(page);
+    expect(lastRequest(requests).keyword).toBe("Trapped");
+  });
+
+  test("runs live search after Playwright fill and explicit input dispatch", async ({ page }) => {
+    await installSearchFixture(page);
+
+    const first = page.getByTestId("first-search");
+    const input = first.locator(".ssc-search__input");
+
+    await input.fill("Trapped");
+    await input.dispatchEvent("input");
+
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
+
+    const requests = await readRequests(page);
+    expect(lastRequest(requests).keyword).toBe("Trapped");
+  });
+
+  test("clearing input resets only that search root", async ({ page }) => {
+    await installSearchFixture(page);
+
+    const first = page.getByTestId("first-search");
+    const second = page.getByTestId("second-search");
+    const firstInput = first.locator(".ssc-search__input");
+    const secondInput = second.locator(".ssc-search__input");
+
+    await firstInput.fill("Trapped");
+    await firstInput.dispatchEvent("input");
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
+
+    await first.getByRole("button", { name: /spring handle/i }).click();
+    await expect(first.locator(".ssc-chip--active")).toHaveCount(1);
+
+    await secondInput.fill("Trapped");
+    await secondInput.dispatchEvent("input");
+    await expect(second.locator(".ssc-results .ssc-result")).toHaveCount(1);
+
+    await firstInput.fill("");
+    await firstInput.dispatchEvent("input");
+
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(0);
+    await expect(first.locator(".ssc-chips .ssc-chip")).toHaveCount(0);
+    await expect(second.locator(".ssc-results .ssc-result")).toHaveCount(1);
+
+    await firstInput.fill("Trapped");
+    await firstInput.dispatchEvent("input");
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
+
+    const requests = await readRequests(page);
+    expect(lastRequest(requests).activeTags).toEqual([]);
+  });
+
+  test("Escape closes only the current search panel", async ({ page }) => {
+    await installSearchFixture(page);
+
+    const first = page.getByTestId("first-search");
+    const second = page.getByTestId("second-search");
+    const firstInput = first.locator(".ssc-search__input");
+    const secondInput = second.locator(".ssc-search__input");
+
+    await firstInput.fill("Trapped");
+    await firstInput.dispatchEvent("input");
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
+
+    await secondInput.fill("Trapped");
+    await secondInput.dispatchEvent("input");
+    await expect(second.locator(".ssc-results .ssc-result")).toHaveCount(1);
+
+    await firstInput.focus();
+    await firstInput.press("Escape");
+
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(0);
+    await expect(second.locator(".ssc-results .ssc-result")).toHaveCount(1);
+  });
+
   test("falls back to defaults when configured selectors are invalid", async ({ page }) => {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
