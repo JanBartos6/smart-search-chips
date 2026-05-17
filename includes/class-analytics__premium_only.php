@@ -11,6 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SSCHP_Analytics {
 
+    /** @var string Cron hook for scheduled analytics digest emails */
+    const DIGEST_HOOK = 'sschp_send_analytics_digest';
+
+    /** @var string Admin-post action for sending a test digest */
+    const TEST_DIGEST_ACTION = 'sschp_send_test_analytics_digest';
+
     /** @var string Database version option */
     const DB_VERSION_OPTION = 'sschp_analytics_db_version';
 
@@ -37,6 +43,13 @@ class SSCHP_Analytics {
         add_action( 'wp_ajax_sschp_track_event', array( $this, 'ajax_track_event' ) );
         add_action( 'wp_ajax_nopriv_sschp_track_event', array( $this, 'ajax_track_event' ) );
         add_action( 'admin_post_sschp_export_analytics', array( $this, 'handle_export' ) );
+        add_action( 'admin_post_' . self::TEST_DIGEST_ACTION, array( $this, 'handle_send_test_digest' ) );
+        add_action( self::DIGEST_HOOK, array( __CLASS__, 'send_scheduled_digest' ) );
+        add_action( 'updated_option', array( __CLASS__, 'handle_digest_option_changed' ), 10, 3 );
+        add_action( 'added_option', array( __CLASS__, 'handle_digest_option_added' ), 10, 2 );
+        add_action( 'deleted_option', array( __CLASS__, 'handle_digest_option_deleted' ), 10, 1 );
+
+        self::schedule_digest();
     }
 
     /**
@@ -124,6 +137,623 @@ class SSCHP_Analytics {
      */
     public static function is_enabled() {
         return SSCHP_License::is_pro() && get_option( 'sschp_analytics_enabled', '0' ) === '1';
+    }
+
+    /**
+     * Whether scheduled analytics digest emails are enabled.
+     *
+     * @return bool
+     */
+    public static function is_digest_enabled() {
+        return self::is_enabled() && get_option( 'sschp_analytics_digest_enabled', '0' ) === '1';
+    }
+
+    /**
+     * Return option keys that affect digest scheduling or content.
+     *
+     * @return array
+     */
+    public static function digest_option_keys() {
+        return array(
+            'sschp_analytics_enabled',
+            'sschp_analytics_digest_enabled',
+            'sschp_analytics_digest_recipients',
+            'sschp_analytics_digest_frequency',
+            'sschp_analytics_digest_day',
+            'sschp_analytics_digest_time',
+            'sschp_analytics_digest_date_range',
+            'sschp_analytics_digest_include_csv',
+            'sschp_analytics_digest_include_zero_results',
+            'sschp_analytics_digest_include_top_chips',
+            'sschp_analytics_digest_include_low_ctr',
+        );
+    }
+
+    /**
+     * Reschedule digest when a relevant option changes.
+     *
+     * @param string $option    Option name.
+     * @param mixed  $old_value Old value.
+     * @param mixed  $value     New value.
+     */
+    public static function handle_digest_option_changed( $option, $old_value, $value ) {
+        if ( $old_value === $value ) {
+            return;
+        }
+
+        if ( in_array( $option, self::digest_option_keys(), true ) ) {
+            self::schedule_digest( true );
+        }
+    }
+
+    /**
+     * Schedule digest when a relevant option is first added.
+     *
+     * @param string $option Option name.
+     * @param mixed  $value  Option value.
+     */
+    public static function handle_digest_option_added( $option, $value ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        if ( in_array( $option, self::digest_option_keys(), true ) ) {
+            self::schedule_digest( true );
+        }
+    }
+
+    /**
+     * Unschedule or reschedule digest when a relevant option is removed.
+     *
+     * @param string $option Option name.
+     */
+    public static function handle_digest_option_deleted( $option ) {
+        if ( in_array( $option, self::digest_option_keys(), true ) ) {
+            self::schedule_digest( true );
+        }
+    }
+
+    /**
+     * Schedule the next digest email if enabled.
+     *
+     * @param bool $force Clear existing scheduled event first.
+     * @return bool
+     */
+    public static function schedule_digest( $force = false ) {
+        if ( ! function_exists( 'wp_next_scheduled' ) || ! function_exists( 'wp_schedule_single_event' ) ) {
+            return false;
+        }
+
+        if ( ! self::is_digest_enabled() ) {
+            self::unschedule_digest();
+            return false;
+        }
+
+        if ( $force ) {
+            self::unschedule_digest();
+        } elseif ( wp_next_scheduled( self::DIGEST_HOOK ) ) {
+            return true;
+        }
+
+        return (bool) wp_schedule_single_event( self::calculate_next_run_timestamp(), self::DIGEST_HOOK );
+    }
+
+    /**
+     * Remove any scheduled digest event.
+     *
+     * @return void
+     */
+    public static function unschedule_digest() {
+        if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+            wp_clear_scheduled_hook( self::DIGEST_HOOK );
+            return;
+        }
+
+        if ( function_exists( 'wp_next_scheduled' ) && function_exists( 'wp_unschedule_event' ) ) {
+            $timestamp = wp_next_scheduled( self::DIGEST_HOOK );
+            if ( $timestamp ) {
+                wp_unschedule_event( $timestamp, self::DIGEST_HOOK );
+            }
+        }
+    }
+
+    /**
+     * Calculate the next scheduled digest timestamp in the site timezone.
+     *
+     * @param int|null $from_timestamp Optional base timestamp for tests.
+     * @return int
+     */
+    public static function calculate_next_run_timestamp( $from_timestamp = null ) {
+        $timezone  = wp_timezone();
+        $base      = null === $from_timestamp
+            ? new DateTimeImmutable( 'now', $timezone )
+            : ( new DateTimeImmutable( '@' . (int) $from_timestamp ) )->setTimezone( $timezone );
+        $time      = self::get_digest_time_parts();
+        $frequency = self::get_digest_frequency();
+        $day       = self::get_digest_day();
+
+        if ( 'monthly' === $frequency ) {
+            $day_number = ctype_digit( $day ) ? max( 1, min( 28, (int) $day ) ) : 1;
+            $candidate  = $base->setDate( (int) $base->format( 'Y' ), (int) $base->format( 'm' ), $day_number )->setTime( $time['hour'], $time['minute'] );
+
+            if ( $candidate <= $base ) {
+                $candidate = $candidate->modify( 'first day of next month' )->setDate(
+                    (int) $candidate->modify( 'first day of next month' )->format( 'Y' ),
+                    (int) $candidate->modify( 'first day of next month' )->format( 'm' ),
+                    $day_number
+                )->setTime( $time['hour'], $time['minute'] );
+            }
+
+            return $candidate->getTimestamp();
+        }
+
+        $weekdays = self::get_weekday_map();
+        $target   = isset( $weekdays[ $day ] ) ? $weekdays[ $day ] : 1;
+        $current  = (int) $base->format( 'N' );
+        $days     = ( $target - $current + 7 ) % 7;
+        $candidate = $base->modify( '+' . $days . ' days' )->setTime( $time['hour'], $time['minute'] );
+
+        if ( $candidate <= $base ) {
+            $candidate = $candidate->modify( '+7 days' );
+        }
+
+        return $candidate->getTimestamp();
+    }
+
+    /**
+     * Send a scheduled digest and queue the next one.
+     *
+     * @return bool
+     */
+    public static function send_scheduled_digest() {
+        if ( ! self::is_digest_enabled() ) {
+            self::unschedule_digest();
+            return false;
+        }
+
+        $sent = self::send_digest_email( false );
+        self::schedule_digest( true );
+
+        return $sent;
+    }
+
+    /**
+     * Handle the admin "Send test email" action.
+     */
+    public function handle_send_test_digest() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have permission to send analytics emails.', 'smart-search-chips' ) );
+        }
+
+        check_admin_referer( self::TEST_DIGEST_ACTION );
+
+        $sent = self::send_digest_email( true );
+        wp_safe_redirect(
+            add_query_arg(
+                'sschp_digest_test',
+                $sent ? 'sent' : 'failed',
+                admin_url( 'options-general.php?page=smart-search-chips-analytics' )
+            )
+        );
+        exit;
+    }
+
+    /**
+     * Send an analytics digest email to configured recipients.
+     *
+     * @param bool $is_test Whether this is a manual test email.
+     * @return bool
+     */
+    public static function send_digest_email( $is_test = false ) {
+        if ( ! self::is_enabled() ) {
+            return false;
+        }
+
+        if ( ! $is_test && ! self::is_digest_enabled() ) {
+            return false;
+        }
+
+        $recipients = self::get_digest_recipients();
+        if ( empty( $recipients ) ) {
+            return false;
+        }
+
+        $range     = self::get_digest_range_args();
+        $analytics = self::get_dashboard_data( $range );
+        $subject   = self::build_digest_subject( $analytics, $is_test );
+        $message   = self::build_digest_message( $analytics, $is_test );
+        $headers   = array( 'Content-Type: text/html; charset=UTF-8' );
+        $files     = array();
+
+        if ( self::get_digest_checkbox( 'sschp_analytics_digest_include_csv', '0' ) ) {
+            $csv_file = self::create_digest_csv_attachment( $range );
+            if ( '' !== $csv_file ) {
+                $files[] = $csv_file;
+            }
+        }
+
+        $sent = false;
+        if ( function_exists( 'wp_mail' ) ) {
+            $sent = (bool) wp_mail( $recipients, $subject, $message, $headers, $files );
+        }
+
+        foreach ( $files as $file ) {
+            if ( is_string( $file ) && file_exists( $file ) ) {
+                unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- temporary email attachment cleanup.
+            }
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Build the analytics digest email subject.
+     *
+     * @param array $analytics Dashboard data.
+     * @param bool  $is_test   Whether this is a test email.
+     * @return string
+     */
+    private static function build_digest_subject( $analytics, $is_test ) {
+        $host   = parse_url( home_url( '/' ), PHP_URL_HOST );
+        $prefix = $is_test ? __( '[Test] ', 'smart-search-chips' ) : '';
+        $range  = isset( $analytics['range']['from'], $analytics['range']['to'] )
+            ? $analytics['range']['from'] . ' to ' . $analytics['range']['to']
+            : '';
+
+        return sprintf(
+            /* translators: %1$s: optional test prefix, %2$s: site host, %3$s: date range */
+            __( '%1$sSmart Search Chips analytics for %2$s (%3$s)', 'smart-search-chips' ),
+            $prefix,
+            $host ? $host : home_url( '/' ),
+            $range
+        );
+    }
+
+    /**
+     * Build the analytics digest email body.
+     *
+     * @param array $analytics Dashboard data.
+     * @param bool  $is_test   Whether this is a test email.
+     * @return string
+     */
+    private static function build_digest_message( $analytics, $is_test ) {
+        $summary         = isset( $analytics['summary'] ) && is_array( $analytics['summary'] ) ? $analytics['summary'] : array();
+        $range           = isset( $analytics['range'] ) && is_array( $analytics['range'] ) ? $analytics['range'] : array();
+        $include_zero    = self::get_digest_checkbox( 'sschp_analytics_digest_include_zero_results', '1' );
+        $include_chips   = self::get_digest_checkbox( 'sschp_analytics_digest_include_top_chips', '1' );
+        $include_low_ctr = self::get_digest_checkbox( 'sschp_analytics_digest_include_low_ctr', '1' );
+        $recommendations = self::build_digest_recommendations( $analytics );
+
+        ob_start();
+        ?>
+        <div style="font-family:Arial,sans-serif;color:#1d2327;line-height:1.5">
+            <h1><?php echo esc_html( $is_test ? __( 'Smart Search Chips test analytics digest', 'smart-search-chips' ) : __( 'Smart Search Chips analytics digest', 'smart-search-chips' ) ); ?></h1>
+            <p>
+                <?php
+                printf(
+                    /* translators: %1$s: start date, %2$s: end date */
+                    esc_html__( 'Local analytics report for %1$s to %2$s.', 'smart-search-chips' ),
+                    esc_html( isset( $range['from'] ) ? $range['from'] : '' ),
+                    esc_html( isset( $range['to'] ) ? $range['to'] : '' )
+                );
+                ?>
+            </p>
+            <p><?php esc_html_e( 'This email is generated by your WordPress site. Smart Search Chips does not send this analytics data to the plugin author or any external service.', 'smart-search-chips' ); ?></p>
+
+            <h2><?php esc_html_e( 'Summary', 'smart-search-chips' ); ?></h2>
+            <table cellpadding="8" cellspacing="0" border="1" style="border-collapse:collapse;border-color:#dcdcde">
+                <tr><th align="left"><?php esc_html_e( 'Total searches', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_number( $summary['total_searches'] ?? 0 ) ); ?></td></tr>
+                <tr><th align="left"><?php esc_html_e( 'Chip clicks', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_number( $summary['chip_clicks'] ?? 0 ) ); ?></td></tr>
+                <tr><th align="left"><?php esc_html_e( 'Search-to-click rate', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_percent( $summary['search_to_click_rate'] ?? 0 ) ); ?></td></tr>
+                <tr><th align="left"><?php esc_html_e( 'Zero-result searches', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_number( $summary['zero_result_search'] ?? 0 ) ); ?></td></tr>
+            </table>
+
+            <h2><?php esc_html_e( 'Top queries', 'smart-search-chips' ); ?></h2>
+            <?php echo self::render_email_table( $analytics['top_queries'] ?? array(), array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'searches' => __( 'Searches', 'smart-search-chips' ), 'chip_clicks' => __( 'Chip clicks', 'smart-search-chips' ), 'click_rate' => __( 'Click rate', 'smart-search-chips' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- table renderer escapes cells. ?>
+
+            <?php if ( $include_chips ) : ?>
+                <h2><?php esc_html_e( 'Top clicked chips', 'smart-search-chips' ); ?></h2>
+                <?php echo self::render_email_table( $analytics['top_chips'] ?? array(), array( 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'clicks' => __( 'Clicks', 'smart-search-chips' ), 'visitors' => __( 'Visitors', 'smart-search-chips' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- table renderer escapes cells. ?>
+            <?php endif; ?>
+
+            <?php if ( $include_zero ) : ?>
+                <h2><?php esc_html_e( 'Top zero-result queries', 'smart-search-chips' ); ?></h2>
+                <?php echo self::render_email_table( $analytics['zero_queries'] ?? array(), array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'misses' => __( 'Misses', 'smart-search-chips' ), 'last_seen' => __( 'Last seen', 'smart-search-chips' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- table renderer escapes cells. ?>
+            <?php endif; ?>
+
+            <?php if ( $include_low_ctr ) : ?>
+                <h2><?php esc_html_e( 'Low CTR chips', 'smart-search-chips' ); ?></h2>
+                <?php echo self::render_email_table( $analytics['low_chip_ctr'] ?? array(), array( 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'impressions' => __( 'Impressions', 'smart-search-chips' ), 'clicks' => __( 'Clicks', 'smart-search-chips' ), 'click_through_rate' => __( 'CTR', 'smart-search-chips' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- table renderer escapes cells. ?>
+            <?php endif; ?>
+
+            <h2><?php esc_html_e( 'Recommendations', 'smart-search-chips' ); ?></h2>
+            <ul>
+                <?php foreach ( $recommendations as $recommendation ) : ?>
+                    <li><?php echo esc_html( $recommendation ); ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+        <?php
+
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * Render a compact HTML table for email.
+     *
+     * @param array $rows    Row data.
+     * @param array $columns Column key => label map.
+     * @return string
+     */
+    private static function render_email_table( $rows, $columns ) {
+        if ( empty( $rows ) || empty( $columns ) ) {
+            return '<p>' . esc_html__( 'No data for this period.', 'smart-search-chips' ) . '</p>';
+        }
+
+        ob_start();
+        ?>
+        <table cellpadding="8" cellspacing="0" border="1" style="border-collapse:collapse;border-color:#dcdcde">
+            <thead>
+                <tr>
+                    <?php foreach ( $columns as $label ) : ?>
+                        <th align="left"><?php echo esc_html( $label ); ?></th>
+                    <?php endforeach; ?>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ( array_slice( (array) $rows, 0, 10 ) as $row ) : ?>
+                    <tr>
+                        <?php foreach ( $columns as $key => $label ) : ?>
+                            <td><?php echo esc_html( self::format_email_cell( $row[ $key ] ?? '', $key ) ); ?></td>
+                        <?php endforeach; ?>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php
+
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * Format one email table value.
+     *
+     * @param mixed  $value Raw value.
+     * @param string $key   Column key.
+     * @return string
+     */
+    private static function format_email_cell( $value, $key = '' ) {
+        if ( is_numeric( $value ) ) {
+            return false !== strpos( (string) $key, 'rate' ) || false !== strpos( (string) $key, 'ctr' )
+                ? self::format_percent( $value )
+                : self::format_number( $value );
+        }
+
+        return (string) $value;
+    }
+
+    /**
+     * Build recommendation bullets from analytics results.
+     *
+     * @param array $analytics Dashboard data.
+     * @return array
+     */
+    private static function build_digest_recommendations( $analytics ) {
+        $summary = isset( $analytics['summary'] ) && is_array( $analytics['summary'] ) ? $analytics['summary'] : array();
+        $items   = array();
+
+        if ( (int) ( $summary['zero_result_search'] ?? 0 ) > 0 ) {
+            $items[] = __( 'Review zero-result queries and add missing content, synonyms, or chip tags where the catalog has matching items.', 'smart-search-chips' );
+        }
+
+        if ( (float) ( $summary['search_to_click_rate'] ?? 0 ) < 10 && (int) ( $summary['total_searches'] ?? 0 ) >= 20 ) {
+            $items[] = __( 'Search-to-click rate is low. Review whether the first chips are specific enough and whether low CTR chips should be renamed or hidden.', 'smart-search-chips' );
+        }
+
+        if ( ! empty( $analytics['low_chip_ctr'] ) ) {
+            $items[] = __( 'Low CTR chips are getting impressions without many clicks. Consider renaming, hiding, or replacing them with more buyer-oriented labels.', 'smart-search-chips' );
+        }
+
+        if ( empty( $items ) ) {
+            $items[] = __( 'No urgent issues detected for this period. Keep monitoring zero-result queries and chip click-through rate as search traffic grows.', 'smart-search-chips' );
+        }
+
+        return $items;
+    }
+
+    /**
+     * Create a temporary CSV attachment for digest emails.
+     *
+     * @param array $range Date range args.
+     * @return string Temporary file path or empty string.
+     */
+    private static function create_digest_csv_attachment( $range ) {
+        $events = self::get_recent_events( array_merge( $range, array( 'limit' => 0 ) ) );
+        $file   = function_exists( 'wp_tempnam' ) ? wp_tempnam( 'sschp-analytics-digest.csv' ) : tempnam( sys_get_temp_dir(), 'sschp-analytics-' );
+
+        if ( ! is_string( $file ) || '' === $file ) {
+            return '';
+        }
+
+        $handle = fopen( $file, 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- temporary CSV attachment.
+        if ( ! $handle ) {
+            return '';
+        }
+
+        self::write_csv_row( $handle, array( 'created_at_utc', 'event_type', 'language_code', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'page_url', 'visitor_id' ) );
+
+        foreach ( $events as $event ) {
+            self::write_csv_row(
+                $handle,
+                self::escape_csv_row(
+                    array(
+                        $event['created_at'] ?? '',
+                        $event['event_type'] ?? '',
+                        $event['language_code'] ?? '',
+                        $event['search_query'] ?? '',
+                        $event['chip_label'] ?? '',
+                        $event['result_count'] ?? '',
+                        $event['active_tag_count'] ?? '',
+                        $event['page_url'] ?? '',
+                        $event['visitor_id'] ?? '',
+                    )
+                )
+            );
+        }
+
+        fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- temporary CSV attachment.
+
+        return $file;
+    }
+
+    /**
+     * Return sanitized digest recipients.
+     *
+     * @return array
+     */
+    public static function get_digest_recipients() {
+        $raw = (string) get_option( 'sschp_analytics_digest_recipients', '' );
+
+        if ( '' === trim( $raw ) ) {
+            $raw = (string) get_option( 'admin_email', '' );
+        }
+
+        $parts      = preg_split( '/[\s,;]+/', $raw );
+        $recipients = array();
+
+        foreach ( (array) $parts as $part ) {
+            $email = sanitize_email( $part );
+            if ( '' !== $email && is_email( $email ) && ! in_array( $email, $recipients, true ) ) {
+                $recipients[] = $email;
+            }
+        }
+
+        return $recipients;
+    }
+
+    /**
+     * Return digest date range args for dashboard queries.
+     *
+     * @return array
+     */
+    private static function get_digest_range_args() {
+        $days     = self::get_digest_date_range_days();
+        $timezone = wp_timezone();
+        $to       = new DateTimeImmutable( 'now', $timezone );
+        $from     = $to->sub( new DateInterval( 'P' . max( 0, $days - 1 ) . 'D' ) );
+
+        return array(
+            'from' => $from->format( 'Y-m-d' ),
+            'to'   => $to->format( 'Y-m-d' ),
+        );
+    }
+
+    /**
+     * Return digest date range in days.
+     *
+     * @return int
+     */
+    private static function get_digest_date_range_days() {
+        $days = absint( get_option( 'sschp_analytics_digest_date_range', 30 ) );
+
+        return in_array( $days, array( 7, 30, 90 ), true ) ? $days : 30;
+    }
+
+    /**
+     * Return sanitized digest frequency.
+     *
+     * @return string
+     */
+    private static function get_digest_frequency() {
+        $frequency = sanitize_key( get_option( 'sschp_analytics_digest_frequency', 'weekly' ) );
+
+        return in_array( $frequency, array( 'weekly', 'monthly' ), true ) ? $frequency : 'weekly';
+    }
+
+    /**
+     * Return sanitized digest day.
+     *
+     * @return string
+     */
+    private static function get_digest_day() {
+        $day = sanitize_key( get_option( 'sschp_analytics_digest_day', 'monday' ) );
+
+        if ( isset( self::get_weekday_map()[ $day ] ) || preg_match( '/^(?:[1-9]|1[0-9]|2[0-8])$/', $day ) ) {
+            return $day;
+        }
+
+        return 'monday';
+    }
+
+    /**
+     * Return digest send time parts.
+     *
+     * @return array
+     */
+    private static function get_digest_time_parts() {
+        $time = (string) get_option( 'sschp_analytics_digest_time', '09:00' );
+
+        if ( ! preg_match( '/^([01]\d|2[0-3]):([0-5]\d)$/', $time, $match ) ) {
+            return array(
+                'hour'   => 9,
+                'minute' => 0,
+            );
+        }
+
+        return array(
+            'hour'   => (int) $match[1],
+            'minute' => (int) $match[2],
+        );
+    }
+
+    /**
+     * Return weekday map using ISO-8601 weekday numbers.
+     *
+     * @return array
+     */
+    private static function get_weekday_map() {
+        return array(
+            'monday'    => 1,
+            'tuesday'   => 2,
+            'wednesday' => 3,
+            'thursday'  => 4,
+            'friday'    => 5,
+            'saturday'  => 6,
+            'sunday'    => 7,
+        );
+    }
+
+    /**
+     * Return a digest checkbox value.
+     *
+     * @param string $option  Option key.
+     * @param string $default Default option value.
+     * @return bool
+     */
+    private static function get_digest_checkbox( $option, $default = '0' ) {
+        return get_option( $option, $default ) === '1';
+    }
+
+    /**
+     * Format a number for emails without requiring admin-only helpers in tests.
+     *
+     * @param mixed $number Number.
+     * @return string
+     */
+    private static function format_number( $number ) {
+        return function_exists( 'number_format_i18n' )
+            ? number_format_i18n( (float) $number )
+            : number_format( (float) $number );
+    }
+
+    /**
+     * Format a percentage for emails.
+     *
+     * @param mixed $number Number.
+     * @return string
+     */
+    private static function format_percent( $number ) {
+        $formatted = function_exists( 'number_format_i18n' )
+            ? number_format_i18n( (float) $number, 1 )
+            : number_format( (float) $number, 1 );
+
+        return $formatted . '%';
     }
 
     /**
@@ -314,6 +944,7 @@ class SSCHP_Analytics {
             ARRAY_A
         );
         $top_chip_ctr = self::get_top_chip_ctr_rows( $range );
+        $low_chip_ctr = self::get_low_chip_ctr_rows( $range );
 
         return array(
             'range'         => $range,
@@ -321,6 +952,7 @@ class SSCHP_Analytics {
             'timeseries'    => self::get_time_series( $range ),
             'top_chips'     => is_array( $top_chips ) ? $top_chips : array(),
             'top_chip_ctr'  => $top_chip_ctr,
+            'low_chip_ctr'  => $low_chip_ctr,
             'top_queries'   => is_array( $top_queries ) ? $top_queries : array(),
             'zero_queries'  => is_array( $zero_queries ) ? $zero_queries : array(),
         );
@@ -479,10 +1111,10 @@ class SSCHP_Analytics {
         header( 'Content-Disposition: attachment; filename=ssc-analytics-' . $range['from'] . '-to-' . $range['to'] . '.csv' );
 
         $out = fopen( 'php://output', 'w' );
-        fputcsv( $out, array( 'created_at_utc', 'event_type', 'language_code', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'page_url', 'visitor_id' ) );
+        self::write_csv_row( $out, array( 'created_at_utc', 'event_type', 'language_code', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'page_url', 'visitor_id' ) );
 
         foreach ( $events as $event ) {
-            fputcsv(
+            self::write_csv_row(
                 $out,
                 self::escape_csv_row(
                     array(
@@ -617,6 +1249,17 @@ class SSCHP_Analytics {
         $value = preg_replace( '/[^A-Za-z0-9_-]/', '', $value );
 
         return substr( (string) $value, 0, 64 );
+    }
+
+    /**
+     * Write a CSV row with explicit escape handling for PHP 8.4+.
+     *
+     * @param resource $handle CSV output handle.
+     * @param array    $row    Row data.
+     * @return int|false
+     */
+    private static function write_csv_row( $handle, $row ) {
+        return fputcsv( $handle, $row, ',', '"', '' );
     }
 
     /**
@@ -837,6 +1480,45 @@ class SSCHP_Analytics {
                 LIMIT 10",
                 'chip_impression',
                 'chip_click',
+                'chip_click',
+                'chip_impression',
+                'chip_click',
+                $range['from_gmt'],
+                $range['to_gmt'],
+                'chip_click',
+                'chip_impression'
+            ),
+            ARRAY_A
+        );
+
+        return self::append_percentage_to_rows( is_array( $rows ) ? $rows : array(), 'clicks', 'impressions', 'click_through_rate' );
+    }
+
+    /**
+     * Return chips that are shown often but clicked rarely.
+     *
+     * @param array $range Date range.
+     * @return array
+     */
+    private static function get_low_chip_ctr_rows( $range ) {
+        global $wpdb;
+
+        $table = self::table_name();
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $table is from $wpdb->prefix, not user input.
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT chip_label,
+                    SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS impressions,
+                    SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS clicks
+                FROM {$table}
+                WHERE event_type IN (%s, %s)
+                    AND created_at BETWEEN %s AND %s
+                    AND chip_label <> ''
+                GROUP BY chip_label
+                HAVING impressions >= 3
+                ORDER BY ( SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) / SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) ) ASC, impressions DESC
+                LIMIT 10",
+                'chip_impression',
                 'chip_click',
                 'chip_impression',
                 'chip_click',

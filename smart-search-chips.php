@@ -137,6 +137,12 @@ if ( function_exists( 'sschp_fs' ) ) {
         $table_name = $wpdb->prefix . 'sschp_events';
         $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
+        if ( class_exists( 'SSCHP_Analytics' ) ) {
+            SSCHP_Analytics::unschedule_digest();
+        } elseif ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+            wp_clear_scheduled_hook( 'sschp_send_analytics_digest' );
+        }
+
         $index_table_name = $wpdb->prefix . 'sschp_search_index';
         $wpdb->query( "DROP TABLE IF EXISTS {$index_table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
     }
@@ -300,6 +306,16 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_hidden_chips'             => '',
             'sschp_renamed_chips'            => '',
             'sschp_analytics_enabled'       => '0',
+            'sschp_analytics_digest_enabled' => '0',
+            'sschp_analytics_digest_recipients' => '',
+            'sschp_analytics_digest_frequency' => 'weekly',
+            'sschp_analytics_digest_day'     => 'monday',
+            'sschp_analytics_digest_time'    => '09:00',
+            'sschp_analytics_digest_date_range' => 30,
+            'sschp_analytics_digest_include_csv' => '0',
+            'sschp_analytics_digest_include_zero_results' => '1',
+            'sschp_analytics_digest_include_top_chips' => '1',
+            'sschp_analytics_digest_include_low_ctr' => '1',
             'sschp_ai_custom_read_fields'   => '',
             'sschp_ai_target_field'         => 'built_in',
             'sschp_ai_rest_enabled'         => '1',
@@ -317,6 +333,7 @@ if ( function_exists( 'sschp_fs' ) ) {
 
         if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) {
             SSCHP_Analytics::create_table();
+            SSCHP_Analytics::schedule_digest( true );
         }
 
         SSCHP_Search_Index::create_table();
@@ -365,6 +382,16 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_license_key',
             'sschp_license_status',
             'sschp_analytics_enabled',
+            'sschp_analytics_digest_enabled',
+            'sschp_analytics_digest_recipients',
+            'sschp_analytics_digest_frequency',
+            'sschp_analytics_digest_day',
+            'sschp_analytics_digest_time',
+            'sschp_analytics_digest_date_range',
+            'sschp_analytics_digest_include_csv',
+            'sschp_analytics_digest_include_zero_results',
+            'sschp_analytics_digest_include_top_chips',
+            'sschp_analytics_digest_include_low_ctr',
             'sschp_ai_custom_read_fields',
             'sschp_ai_target_field',
             'sschp_ai_rest_enabled',
@@ -396,6 +423,8 @@ if ( function_exists( 'sschp_fs' ) ) {
         delete_metadata( 'post', 0, '_sschp_generated_tags', '', true );
 
         if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) {
+            SSCHP_Analytics::unschedule_digest();
+
             if ( $drop_analytics_table ) {
                 SSCHP_Analytics::drop_table();
                 delete_option( SSCHP_Analytics::DB_VERSION_OPTION );
@@ -418,6 +447,7 @@ if ( function_exists( 'sschp_fs' ) ) {
         $content = '<h2>' . __( 'Smart Search Chips', 'smart-search-chips' ) . '</h2>'
             . '<p>' . __( 'This plugin processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this server and are not stored or sent to any third-party service.', 'smart-search-chips' ) . '</p>'
             . '<p>' . __( 'If the site owner enables the optional analytics feature, the plugin stores anonymous search and chip interaction events on this WordPress site so administrators can review popular queries, chip usage, click-through rates, and zero-result searches. This analytics feature is designed for aggregate reporting and does not require LLM-provider credentials.', 'smart-search-chips' ) . '</p>'
+            . '<p>' . __( 'If the site owner enables optional analytics email digests, reports are generated and emailed by this WordPress site only to the recipients configured by the administrator. These reports are not sent to Smart Search Chips, Freemius, or any other third party by the plugin.', 'smart-search-chips' ) . '</p>'
             . '<p>' . __( 'If an administrator uses the optional AI Prompt Builder, the plugin prepares instructions for an external AI tool. The plugin itself does not send content or credentials to an AI provider and does not request LLM-provider API keys. If the site owner enables REST write-back, they may choose to paste their own WordPress REST credentials into an external service outside this plugin.', 'smart-search-chips' ) . '</p>'
             . '<p>' . __( 'No personal data is collected, stored, or shared by this plugin beyond the site owner\'s own WordPress configuration and any actions they choose to take with external tools.', 'smart-search-chips' ) . '</p>';
 

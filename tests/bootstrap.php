@@ -8,6 +8,9 @@ define( 'SSCHP_VERSION', 'test' );
 define( 'SSCHP_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 define( 'SSCHP_PLUGIN_URL', 'http://example.test/wp-content/plugins/smart-search-chips/' );
 define( 'SSCHP_PLUGIN_BASENAME', 'smart-search-chips/smart-search-chips.php' );
+if ( ! defined( 'ARRAY_A' ) ) {
+    define( 'ARRAY_A', 'ARRAY_A' );
+}
 
 $sschp_test_options         = array();
 $sschp_test_settings_errors = array();
@@ -38,6 +41,7 @@ $sschp_test_index_rows      = array();
 $sschp_test_db_queries      = array();
 $sschp_test_db_delta_sql    = array();
 $sschp_test_scheduled_events = array();
+$sschp_test_mail            = array();
 $sschp_test_wp_query_count  = 0;
 $sschp_test_post_terms_calls = array();
 
@@ -238,6 +242,18 @@ if ( ! function_exists( 'sanitize_text_field' ) ) {
 if ( ! function_exists( 'sanitize_textarea_field' ) ) {
     function sanitize_textarea_field( $value ) {
         return trim( (string) $value );
+    }
+}
+
+if ( ! function_exists( 'sanitize_email' ) ) {
+    function sanitize_email( $value ) {
+        return filter_var( trim( (string) $value ), FILTER_SANITIZE_EMAIL );
+    }
+}
+
+if ( ! function_exists( 'is_email' ) ) {
+    function is_email( $value ) {
+        return false !== filter_var( (string) $value, FILTER_VALIDATE_EMAIL );
     }
 }
 
@@ -1016,7 +1032,17 @@ if ( ! function_exists( 'wp_next_scheduled' ) ) {
     function wp_next_scheduled( $hook ) {
         global $sschp_test_scheduled_events;
 
-        return in_array( $hook, $sschp_test_scheduled_events, true ) ? time() + 30 : false;
+        foreach ( $sschp_test_scheduled_events as $event ) {
+            if ( is_array( $event ) && isset( $event['hook'] ) && $event['hook'] === $hook ) {
+                return $event['timestamp'];
+            }
+
+            if ( $event === $hook ) {
+                return time() + 30;
+            }
+        }
+
+        return false;
     }
 }
 
@@ -1024,7 +1050,62 @@ if ( ! function_exists( 'wp_schedule_single_event' ) ) {
     function wp_schedule_single_event( $timestamp, $hook, $args = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         global $sschp_test_scheduled_events;
 
-        $sschp_test_scheduled_events[] = $hook;
+        $sschp_test_scheduled_events[] = array(
+            'timestamp' => (int) $timestamp,
+            'hook'      => $hook,
+            'args'      => $args,
+        );
+        return true;
+    }
+}
+
+if ( ! function_exists( 'wp_clear_scheduled_hook' ) ) {
+    function wp_clear_scheduled_hook( $hook ) {
+        global $sschp_test_scheduled_events;
+
+        $removed = 0;
+        foreach ( $sschp_test_scheduled_events as $index => $event ) {
+            $event_hook = is_array( $event ) && isset( $event['hook'] ) ? $event['hook'] : $event;
+            if ( $event_hook === $hook ) {
+                unset( $sschp_test_scheduled_events[ $index ] );
+                $removed++;
+            }
+        }
+
+        $sschp_test_scheduled_events = array_values( $sschp_test_scheduled_events );
+
+        return $removed;
+    }
+}
+
+if ( ! function_exists( 'wp_unschedule_event' ) ) {
+    function wp_unschedule_event( $timestamp, $hook, $args = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $sschp_test_scheduled_events;
+
+        foreach ( $sschp_test_scheduled_events as $index => $event ) {
+            if ( is_array( $event ) && isset( $event['timestamp'], $event['hook'] ) && (int) $event['timestamp'] === (int) $timestamp && $event['hook'] === $hook ) {
+                unset( $sschp_test_scheduled_events[ $index ] );
+                $sschp_test_scheduled_events = array_values( $sschp_test_scheduled_events );
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+if ( ! function_exists( 'wp_mail' ) ) {
+    function wp_mail( $to, $subject, $message, $headers = '', $attachments = array() ) {
+        global $sschp_test_mail;
+
+        $sschp_test_mail[] = array(
+            'to'          => $to,
+            'subject'     => $subject,
+            'message'     => $message,
+            'headers'     => $headers,
+            'attachments' => $attachments,
+        );
+
         return true;
     }
 }

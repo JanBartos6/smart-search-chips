@@ -36,6 +36,7 @@ Smart Search Chips adds dynamic, clickable filter chips to your WordPress search
 * Numeric range slider chips for values like 100 W, 200 W, or mapped numeric fields
 * Manual chip curation with pinned chips, hidden chips, and display label overrides
 * Search analytics for query, chip-click, impression, and zero-result insights
+* Optional local analytics email digests for configured site recipients
 * AI prompt builder for external agent-assisted tag workflows
 * Theme template overrides for custom result rendering
 * Shortcode [sschp_search] for easy integration
@@ -101,6 +102,7 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 * Split shortcode search from optional theme AJAX enhancement so the shortcode always uses the built-in endpoint.
 * Made theme AJAX compatibility settings available without Pro gating.
 * Added configurable search input selector, keyword field, result container, and result image handling to the compatibility settings.
+* Added optional Pro analytics email digests with local-only reporting and CSV attachment support.
 * Hardened internal feature checks to avoid direct-install fatals when optional billing components are unavailable.
 
 = 1.0.14 =
@@ -158,7 +160,7 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 
 == Privacy Policy ==
 
-Smart Search Chips uses [Freemius](https://freemius.com/) for license management and optional usage tracking. When you opt in during activation, basic diagnostic data (WordPress version, PHP version, site URL) is shared with Freemius. You can opt out at any time. The Pro analytics feature stores search data locally in your WordPress database — it is never sent externally. Full policy: https://smartsearchchips.app/privacy-policy/
+Smart Search Chips uses [Freemius](https://freemius.com/) for license management and optional usage tracking. When you opt in during activation, basic diagnostic data (WordPress version, PHP version, site URL) is shared with Freemius. You can opt out at any time. The Pro analytics feature stores search data locally in your WordPress database. Optional analytics email digests are sent only by your WordPress site to recipients configured by the administrator; the plugin does not send analytics reports to Smart Search Chips or any third party. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
 

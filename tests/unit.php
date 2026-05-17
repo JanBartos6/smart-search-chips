@@ -100,8 +100,19 @@ function sschp_register_test_product( $post_id, $attributes = array(), $sku = ''
     }
 }
 
+function sschp_test_scheduled_hooks() {
+    global $sschp_test_scheduled_events;
+
+    return array_map(
+        function( $event ) {
+            return is_array( $event ) && isset( $event['hook'] ) ? $event['hook'] : $event;
+        },
+        $sschp_test_scheduled_events
+    );
+}
+
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_wp_query_count, $sschp_test_post_terms_calls;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -132,6 +143,7 @@ function sschp_reset_test_state() {
     $sschp_test_db_queries         = array();
     $sschp_test_db_delta_sql       = array();
     $sschp_test_scheduled_events   = array();
+    $sschp_test_mail               = array();
     $sschp_test_wp_query_count     = 0;
     $sschp_test_post_terms_calls   = array();
     $_POST                    = array();
@@ -1200,6 +1212,97 @@ function sschp_test_analytics_guard_tracking_rejects_immediate_replays() {
     sschp_assert_same( 'duplicate', $second, 'guard_tracking_request should reject immediate duplicate analytics events' );
 }
 
+function sschp_enable_pro_for_analytics_tests() {
+    global $sschp_test_freemius;
+
+    $sschp_test_freemius          = new SSCHP_Test_Freemius();
+    $sschp_test_freemius->premium = true;
+    update_option( SSCHP_Analytics::DB_VERSION_OPTION, SSCHP_Analytics::DB_VERSION );
+}
+
+function sschp_test_analytics_digest_schedules_when_enabled() {
+    global $sschp_test_scheduled_events;
+
+    sschp_reset_test_state();
+    sschp_enable_pro_for_analytics_tests();
+    update_option( 'sschp_analytics_enabled', '1' );
+    update_option( 'sschp_analytics_digest_enabled', '1' );
+    update_option( 'sschp_analytics_digest_frequency', 'weekly' );
+    update_option( 'sschp_analytics_digest_day', 'monday' );
+    update_option( 'sschp_analytics_digest_time', '09:00' );
+
+    SSCHP_Analytics::handle_digest_option_changed( 'sschp_analytics_digest_enabled', '0', '1' );
+
+    sschp_assert_same( 1, count( $sschp_test_scheduled_events ), 'analytics digest should schedule one cron event when enabled' );
+    sschp_assert_same( SSCHP_Analytics::DIGEST_HOOK, $sschp_test_scheduled_events[0]['hook'], 'analytics digest should use the expected cron hook' );
+}
+
+function sschp_test_analytics_digest_unschedules_when_disabled() {
+    global $sschp_test_scheduled_events;
+
+    sschp_reset_test_state();
+    sschp_enable_pro_for_analytics_tests();
+    update_option( 'sschp_analytics_enabled', '1' );
+    update_option( 'sschp_analytics_digest_enabled', '1' );
+    SSCHP_Analytics::schedule_digest( true );
+
+    update_option( 'sschp_analytics_digest_enabled', '0' );
+    SSCHP_Analytics::handle_digest_option_changed( 'sschp_analytics_digest_enabled', '1', '0' );
+
+    sschp_assert_same( array(), $sschp_test_scheduled_events, 'analytics digest should remove scheduled cron events when disabled' );
+}
+
+function sschp_test_analytics_digest_test_email_uses_wp_mail() {
+    global $sschp_test_mail;
+
+    sschp_reset_test_state();
+    sschp_enable_pro_for_analytics_tests();
+    update_option( 'sschp_analytics_enabled', '1' );
+    update_option( 'sschp_analytics_digest_recipients', 'owner@example.test' );
+    update_option( 'sschp_analytics_digest_include_csv', '0' );
+
+    $sent = SSCHP_Analytics::send_digest_email( true );
+
+    sschp_assert_true( $sent, 'test analytics digest should report successful send when wp_mail succeeds' );
+    sschp_assert_same( 1, count( $sschp_test_mail ), 'test analytics digest should call wp_mail once' );
+    sschp_assert_same( array( 'owner@example.test' ), $sschp_test_mail[0]['to'], 'test analytics digest should use configured recipients' );
+    sschp_assert_contains( '[Test]', $sschp_test_mail[0]['subject'], 'test analytics digest subject should be clearly marked' );
+    sschp_assert_contains( 'does not send this analytics data to the plugin author', $sschp_test_mail[0]['message'], 'analytics digest email should include local-data privacy copy' );
+}
+
+function sschp_test_analytics_digest_can_attach_csv_export() {
+    global $sschp_test_mail;
+
+    sschp_reset_test_state();
+    sschp_enable_pro_for_analytics_tests();
+    update_option( 'sschp_analytics_enabled', '1' );
+    update_option( 'sschp_analytics_digest_recipients', 'owner@example.test' );
+    update_option( 'sschp_analytics_digest_include_csv', '1' );
+
+    $sent = SSCHP_Analytics::send_digest_email( true );
+
+    sschp_assert_true( $sent, 'analytics digest should send when CSV attachment is enabled' );
+    sschp_assert_same( 1, count( $sschp_test_mail[0]['attachments'] ), 'analytics digest should attach one CSV export when requested' );
+}
+
+function sschp_test_analytics_digest_does_not_send_when_analytics_disabled() {
+    global $sschp_test_mail, $sschp_test_scheduled_events;
+
+    sschp_reset_test_state();
+    sschp_enable_pro_for_analytics_tests();
+    update_option( 'sschp_analytics_enabled', '0' );
+    update_option( 'sschp_analytics_digest_enabled', '1' );
+    update_option( 'sschp_analytics_digest_recipients', 'owner@example.test' );
+
+    $sent      = SSCHP_Analytics::send_digest_email( true );
+    $scheduled = SSCHP_Analytics::schedule_digest( true );
+
+    sschp_assert_true( ! $sent, 'analytics digest should not send email when analytics tracking is disabled' );
+    sschp_assert_true( ! $scheduled, 'analytics digest should not schedule when analytics tracking is disabled' );
+    sschp_assert_same( array(), $sschp_test_mail, 'analytics digest should not call wp_mail when analytics is disabled' );
+    sschp_assert_same( array(), $sschp_test_scheduled_events, 'analytics digest should leave cron unscheduled when analytics is disabled' );
+}
+
 function sschp_test_meta_auth_callback_requires_edit_post_capability() {
     global $sschp_test_current_user_can, $sschp_test_current_user_calls;
 
@@ -1468,7 +1571,7 @@ function sschp_test_search_index_queue_initial_index_schedules_batch() {
 
     sschp_assert_same( 'queued', $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION], 'initial indexing should enter queued status' );
     sschp_assert_same( 2, $sschp_test_options[SSCHP_Search_Index::TOTAL_OPTION], 'initial indexing should count eligible posts' );
-    sschp_assert_true( in_array( SSCHP_Search_Index::CRON_HOOK, $sschp_test_scheduled_events, true ), 'initial indexing should schedule a background batch' );
+    sschp_assert_true( in_array( SSCHP_Search_Index::CRON_HOOK, sschp_test_scheduled_hooks(), true ), 'initial indexing should schedule a background batch' );
 }
 
 function sschp_test_search_index_settings_change_queues_rebuild() {
@@ -2038,6 +2141,11 @@ sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_sanitizes_ne
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_appends_ctr_percentages' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_escape_csv_value_neutralizes_spreadsheet_formulas' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_guard_tracking_rejects_immediate_replays' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_schedules_when_enabled' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_unschedules_when_disabled' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_test_email_uses_wp_mail' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_can_attach_csv_export' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_does_not_send_when_analytics_disabled' );
 sschp_test_meta_auth_callback_requires_edit_post_capability();
 sschp_test_woocommerce_bulk_generation_skips_uneditable_products();
 sschp_test_woocommerce_auto_generation_preserves_manual_tags();

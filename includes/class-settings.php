@@ -172,6 +172,36 @@ class SSCHP_Settings {
         register_setting( 'smart-search-chips', 'sschp_analytics_enabled', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_digest_enabled', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_digest_recipients', array(
+            'sanitize_callback' => array( $this, 'sanitize_email_recipients' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_digest_frequency', array(
+            'sanitize_callback' => array( $this, 'sanitize_digest_frequency' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_digest_day', array(
+            'sanitize_callback' => array( $this, 'sanitize_digest_day' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_digest_time', array(
+            'sanitize_callback' => array( $this, 'sanitize_digest_time' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_digest_date_range', array(
+            'sanitize_callback' => array( $this, 'sanitize_digest_date_range' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_digest_include_csv', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_digest_include_zero_results', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_digest_include_top_chips', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_digest_include_low_ctr', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
         register_setting( 'smart-search-chips', 'sschp_delete_data_on_uninstall', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
@@ -582,6 +612,16 @@ class SSCHP_Settings {
         $ai_rest_mode  = get_option( 'sschp_ai_rest_enabled', '1' );
         $ai_target     = $this->sanitize_ai_target_field( get_option( 'sschp_ai_target_field', 'built_in' ) );
         $analytics_on  = get_option( 'sschp_analytics_enabled', '0' );
+        $digest_on     = get_option( 'sschp_analytics_digest_enabled', '0' );
+        $digest_recipients = get_option( 'sschp_analytics_digest_recipients', get_option( 'admin_email', '' ) );
+        $digest_frequency  = $this->sanitize_digest_frequency( get_option( 'sschp_analytics_digest_frequency', 'weekly' ) );
+        $digest_day        = $this->sanitize_digest_day( get_option( 'sschp_analytics_digest_day', 'monday' ) );
+        $digest_time       = $this->sanitize_digest_time( get_option( 'sschp_analytics_digest_time', '09:00' ) );
+        $digest_range      = $this->sanitize_digest_date_range( get_option( 'sschp_analytics_digest_date_range', 30 ) );
+        $digest_csv        = get_option( 'sschp_analytics_digest_include_csv', '0' );
+        $digest_zero       = get_option( 'sschp_analytics_digest_include_zero_results', '1' );
+        $digest_top_chips  = get_option( 'sschp_analytics_digest_include_top_chips', '1' );
+        $digest_low_ctr    = get_option( 'sschp_analytics_digest_include_low_ctr', '1' );
         $delete_on_uninstall = get_option( 'sschp_delete_data_on_uninstall', '0' );
         $render_limit  = $this->get_numeric_option_value( 'sschp_max_results', 10, 1 );
         $analyze_limit = $this->get_numeric_option_value( 'sschp_search_results_count', 50, 5 );
@@ -857,6 +897,69 @@ class SSCHP_Settings {
                                             <p class="description"><?php esc_html_e( 'Stores aggregate search and chip interaction events on this WordPress site. Uses anonymous visitor IDs for unique-visitor counts.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Email Digest', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <label>
+                                                <input type="hidden" name="sschp_analytics_digest_enabled" value="0" />
+                                                <input type="checkbox" name="sschp_analytics_digest_enabled" value="1" <?php checked( $digest_on, '1' ); ?> />
+                                                <?php esc_html_e( 'Send scheduled analytics email reports', 'smart-search-chips' ); ?>
+                                            </label>
+                                            <p class="description"><?php esc_html_e( 'Opt-in only. Digest emails are sent by this WordPress site to the recipients below; analytics data is not sent to Smart Search Chips or any external service.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Digest Recipients', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <textarea name="sschp_analytics_digest_recipients" rows="3" class="large-text code"><?php echo esc_textarea( $digest_recipients ); ?></textarea>
+                                            <p class="description"><?php esc_html_e( 'Comma, space, or newline-separated email addresses. Leave empty to use the site admin email.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Frequency', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <select name="sschp_analytics_digest_frequency">
+                                                <option value="weekly" <?php selected( $digest_frequency, 'weekly' ); ?>><?php esc_html_e( 'Weekly', 'smart-search-chips' ); ?></option>
+                                                <option value="monthly" <?php selected( $digest_frequency, 'monthly' ); ?>><?php esc_html_e( 'Monthly', 'smart-search-chips' ); ?></option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Day / Time', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <input type="text" name="sschp_analytics_digest_day" value="<?php echo esc_attr( $digest_day ); ?>" class="regular-text" />
+                                            <input type="time" name="sschp_analytics_digest_time" value="<?php echo esc_attr( $digest_time ); ?>" />
+                                            <p class="description"><?php esc_html_e( 'For weekly digests, use monday through sunday. For monthly digests, use a day number from 1 to 28. Time uses the site timezone.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Date Range', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <select name="sschp_analytics_digest_date_range">
+                                                <option value="7" <?php selected( $digest_range, 7 ); ?>><?php esc_html_e( 'Last 7 days', 'smart-search-chips' ); ?></option>
+                                                <option value="30" <?php selected( $digest_range, 30 ); ?>><?php esc_html_e( 'Last 30 days', 'smart-search-chips' ); ?></option>
+                                                <option value="90" <?php selected( $digest_range, 90 ); ?>><?php esc_html_e( 'Last 90 days', 'smart-search-chips' ); ?></option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Digest Content', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <label style="display:block;margin-bottom:6px;"><input type="hidden" name="sschp_analytics_digest_include_csv" value="0" /><input type="checkbox" name="sschp_analytics_digest_include_csv" value="1" <?php checked( $digest_csv, '1' ); ?> /> <?php esc_html_e( 'Attach CSV export', 'smart-search-chips' ); ?></label>
+                                            <label style="display:block;margin-bottom:6px;"><input type="hidden" name="sschp_analytics_digest_include_zero_results" value="0" /><input type="checkbox" name="sschp_analytics_digest_include_zero_results" value="1" <?php checked( $digest_zero, '1' ); ?> /> <?php esc_html_e( 'Include top zero-result searches', 'smart-search-chips' ); ?></label>
+                                            <label style="display:block;margin-bottom:6px;"><input type="hidden" name="sschp_analytics_digest_include_top_chips" value="0" /><input type="checkbox" name="sschp_analytics_digest_include_top_chips" value="1" <?php checked( $digest_top_chips, '1' ); ?> /> <?php esc_html_e( 'Include top clicked chips', 'smart-search-chips' ); ?></label>
+                                            <label style="display:block;margin-bottom:6px;"><input type="hidden" name="sschp_analytics_digest_include_low_ctr" value="0" /><input type="checkbox" name="sschp_analytics_digest_include_low_ctr" value="1" <?php checked( $digest_low_ctr, '1' ); ?> /> <?php esc_html_e( 'Include low CTR chips', 'smart-search-chips' ); ?></label>
+                                        </td>
+                                    </tr>
+                                    <?php if ( class_exists( 'SSCHP_Analytics' ) ) : ?>
+                                        <tr>
+                                            <th><?php esc_html_e( 'Test Email', 'smart-search-chips' ); ?></th>
+                                            <td>
+                                                <a class="button" href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'action', SSCHP_Analytics::TEST_DIGEST_ACTION, admin_url( 'admin-post.php' ) ), SSCHP_Analytics::TEST_DIGEST_ACTION ) ); ?>"><?php esc_html_e( 'Send test analytics email', 'smart-search-chips' ); ?></a>
+                                                <p class="description"><?php esc_html_e( 'Sends the current digest to the configured recipients. Analytics must be enabled, but the scheduled digest toggle can remain off while testing.', 'smart-search-chips' ); ?></p>
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
                                 </table>
                                 <?php if ( $analytics_on === '1' && SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) : ?>
                                     <?php $analytics = SSCHP_Analytics::get_dashboard_data(); ?>
@@ -1601,6 +1704,110 @@ class SSCHP_Settings {
      */
     public function sanitize_checkbox( $value ) {
         return ! empty( $value ) ? '1' : '0';
+    }
+
+    /**
+     * Sanitize newline/comma separated digest recipients.
+     *
+     * @param mixed $value Raw recipients value.
+     * @return string
+     */
+    public function sanitize_email_recipients( $value ) {
+        $parts  = preg_split( '/[\s,;]+/', (string) $value );
+        $emails = array();
+
+        foreach ( (array) $parts as $part ) {
+            $email = sanitize_email( $part );
+            if ( '' === $email ) {
+                continue;
+            }
+
+            if ( is_email( $email ) ) {
+                if ( ! in_array( $email, $emails, true ) ) {
+                    $emails[] = $email;
+                }
+            } else {
+                add_settings_error(
+                    'smart-search-chips',
+                    'sschp_digest_invalid_email',
+                    __( 'One or more analytics digest recipient emails were invalid and were removed.', 'smart-search-chips' ),
+                    'warning'
+                );
+            }
+        }
+
+        return implode( "\n", $emails );
+    }
+
+    /**
+     * Sanitize digest frequency.
+     *
+     * @param mixed $value Raw value.
+     * @return string
+     */
+    public function sanitize_digest_frequency( $value ) {
+        $value = sanitize_key( $value );
+
+        return in_array( $value, array( 'weekly', 'monthly' ), true ) ? $value : 'weekly';
+    }
+
+    /**
+     * Sanitize digest day.
+     *
+     * @param mixed $value Raw value.
+     * @return string
+     */
+    public function sanitize_digest_day( $value ) {
+        $value    = sanitize_key( $value );
+        $weekdays = array( 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' );
+
+        if ( in_array( $value, $weekdays, true ) || preg_match( '/^(?:[1-9]|1[0-9]|2[0-8])$/', $value ) ) {
+            return $value;
+        }
+
+        add_settings_error(
+            'smart-search-chips',
+            'sschp_digest_invalid_day',
+            __( 'Analytics digest day must be a weekday name or a monthly day from 1 to 28.', 'smart-search-chips' ),
+            'warning'
+        );
+
+        return 'monday';
+    }
+
+    /**
+     * Sanitize digest send time.
+     *
+     * @param mixed $value Raw value.
+     * @return string
+     */
+    public function sanitize_digest_time( $value ) {
+        $value = trim( (string) $value );
+
+        if ( preg_match( '/^([01]\d|2[0-3]):([0-5]\d)$/', $value ) ) {
+            return $value;
+        }
+
+        add_settings_error(
+            'smart-search-chips',
+            'sschp_digest_invalid_time',
+            __( 'Analytics digest time must use HH:MM 24-hour format.', 'smart-search-chips' ),
+            'warning'
+        );
+
+        return '09:00';
+    }
+
+    /**
+     * Sanitize digest date range.
+     *
+     * @param mixed $value Raw value.
+     * @return int
+     */
+    public function sanitize_digest_date_range( $value ) {
+        $value = absint( $value );
+
+        return in_array( $value, array( 7, 30, 90 ), true ) ? $value : 30;
     }
 
     /**
