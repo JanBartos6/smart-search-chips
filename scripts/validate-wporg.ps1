@@ -94,7 +94,12 @@ $patterns = [ordered]@{
     'isset( <?php'                     = 'Corrupted PHP fragment is present.'
     'Free: max 5'                      = 'Old free chip cap wording is present.'
     'free version limit'               = 'Old free version cap comment is present.'
+    'free limit'                       = 'Free-limit wording is present.'
     'Upgrade to Pro to unlock'         = 'Unlock wording suggests restricted included functionality.'
+    'unlock included feature'          = 'Misleading included-feature unlock wording is present.'
+    'unlock included functionality'    = 'Misleading included-functionality unlock wording is present.'
+    'included functionality requires payment' = 'Misleading payment requirement wording is present.'
+    'locked premium'                   = 'Locked premium wording is present.'
     'becomes available in Pro'         = 'Locked-feature wording is present.'
     '$_REQUEST'                        = 'Raw $_REQUEST access is present.'
     '$_GET['                           = 'Raw $_GET array access is present.'
@@ -124,6 +129,28 @@ foreach ($entry in $patterns.GetEnumerator()) {
     foreach ($match in $matches) {
         $relative = Get-RelativePath -BasePath $PackageDir -Path $match.Path
         Add-Failure "$($entry.Value) ${relative}:$($match.LineNumber)"
+    }
+}
+
+$allowedProLinkFiles = @(
+    'readme.txt',
+    'smart-search-chips.php',
+    'includes\class-edition.php',
+    'includes\class-settings.php'
+)
+$proLinkPatterns = @(
+    'smartsearchchips.app',
+    'View Pro Features',
+    'Smart Search Chips Pro'
+)
+
+foreach ($pattern in $proLinkPatterns) {
+    $matches = $files | Select-String -Pattern $pattern -SimpleMatch -CaseSensitive:$false
+    foreach ($match in $matches) {
+        $relative = Get-RelativePath -BasePath $PackageDir -Path $match.Path
+        if ($allowedProLinkFiles -notcontains $relative) {
+            Add-Failure "Pro/product link or wording appears outside admin/settings/readme context. ${relative}:$($match.LineNumber)"
+        }
     }
 }
 

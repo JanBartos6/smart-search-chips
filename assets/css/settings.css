@@ -15,6 +15,11 @@
 .ssc-sidebar-card .button + .button { margin-left: 6px; }
 .ssc-settings-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 0 20px 12px; margin-bottom: 16px; }
 .ssc-settings-card h2 { font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+.ssc-pro-context-card { margin: 14px 0 4px; padding: 14px 16px; border: 1px solid #e2d7bf; border-radius: 10px; background: #fffaf0; }
+.ssc-pro-context-card h3 { margin: 0 0 8px; font-size: 13px; color: #5d3f09; text-transform: uppercase; letter-spacing: 0.04em; }
+.ssc-pro-context-card p { margin: 0 0 10px; color: #3c434a; }
+.ssc-pro-context-card ul { margin: 0 0 12px 18px; list-style: disc; }
+.ssc-pro-context-card li { margin-bottom: 5px; }
 .ssc-settings-card--danger { border-color: #f0c2c2; }
 .ssc-settings-card--collapsible { padding: 0; overflow: hidden; }
 .ssc-settings-card__summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; cursor: pointer; list-style: none; font-size: 16px; font-weight: 600; }

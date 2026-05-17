@@ -123,6 +123,28 @@ $forbidden_patterns = array(
 	'SSCHP_Analytics',
 	'SSCHP_AI_Tagger',
 	'[ssc' . '_search]',
+	'trial',
+	'quota',
+	'free limit',
+	'free version limit',
+	'Upgrade to Pro to unlock',
+	'unlock included feature',
+	'unlock included functionality',
+	'included functionality requires payment',
+	'locked premium',
+	'becomes available in Pro',
+);
+
+$allowed_pro_link_files = array(
+	'readme.txt'                    => true,
+	'smart-search-chips.php'        => true,
+	'includes/class-edition.php'    => true,
+	'includes/class-settings.php'   => true,
+);
+$pro_link_patterns = array(
+	'smartsearchchips.app',
+	'View Pro Features',
+	'Smart Search Chips Pro',
 );
 
 foreach ( $files as $file ) {
@@ -131,6 +153,7 @@ foreach ( $files as $file ) {
 	}
 
 	$contents = sschp_wporg_read_file( $file->getPathname() );
+	$relative = sschp_wporg_relative_path( $package_path, $file->getPathname() );
 
 	foreach ( $forbidden_patterns as $pattern ) {
 		$position = stripos( $contents, $pattern );
@@ -143,7 +166,22 @@ foreach ( $files as $file ) {
 		$failures[] = sprintf(
 			'Forbidden reference "%s" found in %s:%d',
 			$pattern,
-			sschp_wporg_relative_path( $package_path, $file->getPathname() ),
+			$relative,
+			$line
+		);
+	}
+
+	foreach ( $pro_link_patterns as $pattern ) {
+		$position = stripos( $contents, $pattern );
+
+		if ( false === $position || isset( $allowed_pro_link_files[ $relative ] ) ) {
+			continue;
+		}
+
+		$line = 1 + substr_count( substr( $contents, 0, $position ), "\n" );
+		$failures[] = sprintf(
+			'Pro/product link or wording appears outside admin/settings/readme context in %s:%d',
+			$relative,
 			$line
 		);
 	}

@@ -261,6 +261,35 @@ function sschp_test_wporg_settings_source_keeps_selector_safety() {
     sschp_assert_contains( 'sanitize_debounce_ms', $contents, 'WP.org settings source should keep the configurable debounce setting' );
 }
 
+function sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant() {
+    $root           = dirname( __DIR__ ) . '/build-sources/wporg';
+    $readme         = $root . '/readme.txt';
+    $settings       = $root . '/includes/class-settings.php';
+    $frontend       = $root . '/includes/class-frontend.php';
+    $search_handler = $root . '/includes/class-search-handler.php';
+
+    $readme_contents   = is_file( $readme ) ? file_get_contents( $readme ) : '';
+    $settings_contents = is_file( $settings ) ? file_get_contents( $settings ) : '';
+    $frontend_contents = is_file( $frontend ) ? file_get_contents( $frontend ) : '';
+    $search_contents   = is_file( $search_handler ) ? file_get_contents( $search_handler ) : '';
+
+    foreach ( array( $readme_contents, $settings_contents ) as $contents ) {
+        foreach ( array( 'trial', 'quota', 'free limit', 'unlock included feature', 'unlock included functionality', 'Upgrade to Pro to unlock', 'becomes available in Pro' ) as $forbidden ) {
+            sschp_assert_true(
+                false === stripos( $contents, $forbidden ),
+                'WP.org Pro promotion copy should not use misleading wording: ' . $forbidden
+            );
+        }
+    }
+
+    foreach ( array( 'Custom Fields and ACF', 'Numeric Range Chips', 'Analytics and Reporting', 'Support and Diagnostics' ) as $expected_card ) {
+        sschp_assert_contains( $expected_card, $settings_contents, 'WP.org settings should keep contextual Pro card: ' . $expected_card );
+    }
+
+    sschp_assert_true( false === stripos( $frontend_contents, 'smartsearchchips.app' ), 'WP.org frontend source should not contain public Pro links' );
+    sschp_assert_true( false === stripos( $search_contents, 'smartsearchchips.app' ), 'WP.org search handler should not contain public Pro links' );
+}
+
 function sschp_test_premium_ajax_numeric_inputs_are_unslashed() {
     $root  = dirname( __DIR__ );
     $files = array(
@@ -2306,6 +2335,7 @@ sschp_test_search_handler_override_with_marker_and_invalid_nonce_fails();
 sschp_test_frontend_registers_loop_fallback_for_block_themes();
 sschp_test_no_legacy_public_interface_references_in_fixtures();
 sschp_test_wporg_settings_source_keeps_selector_safety();
+sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant();
 sschp_test_premium_ajax_numeric_inputs_are_unslashed();
 
 if ( $sschp_test_failures > 0 ) {

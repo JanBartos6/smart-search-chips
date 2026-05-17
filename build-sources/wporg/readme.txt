@@ -27,7 +27,7 @@ Smart Search Chips adds dynamic, clickable filter chips to your WordPress search
 * Dynamic chip generation from search results - no predefined facets needed
 * Smart redundancy elimination - chips that don't help narrow results are hidden
 * Works with Relevanssi (recommended) for relevance-based scoring
-* Uses the built-in Search Chips Tags field as the free tag source
+* Uses the built-in Search Chips Tags field as the included tag source
 * AJAX-powered live search with instant filtering
 * Fully customizable colors, limits, and thresholds
 * Guaranteed shortcode search mode that does not depend on theme AJAX
@@ -65,7 +65,7 @@ No, but it's recommended. Without Relevanssi, the plugin uses default WordPress 
 
 = How do I populate the tag fields? =
 
-Use the built-in Search Chips Tags meta box on each post/product. Tags should be semicolon-separated. ACF/custom field connectors are available separately in Smart Search Chips Pro.
+Use the built-in Search Chips Tags meta box on each post/product. Tags should be semicolon-separated. ACF/custom field connectors are available separately in Smart Search Chips Pro as a Pro add-on feature for teams that already maintain structured product fields.
 
 = Can I override the search result HTML? =
 
@@ -77,11 +77,11 @@ The algorithm ranks tags by frequency, then for each candidate chip checks if it
 
 = Can I use this with WooCommerce? =
 
-Yes. Set "Post Types" to include "product". Free can use the built-in Search Chips Tags field and WooCommerce helper tags from attributes, categories, and product tags. SKU chips are optional and disabled by default; Pro can also map ACF or regular custom fields.
+Yes. Set "Post Types" to include "product". This WordPress.org edition can use the built-in Search Chips Tags field and WooCommerce helper tags from attributes, categories, and product tags. SKU chips are optional and disabled by default. ACF and regular custom field mapping is available separately in Smart Search Chips Pro.
 
-= Can external automation manage Pro chip rules? =
+= What is available separately in Smart Search Chips Pro? =
 
-Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at `/wp-json/smart-search-chips/v1/chip-rules`. Administrators can read or update `synonym_rules`, `pinned_chips`, `hidden_chips`, and `renamed_chips` using standard WordPress REST authentication.
+Smart Search Chips Pro is a separate add-on for advanced workflows such as ACF/custom field mapping, numeric range slider chips, local search analytics/reporting, synonym rules, manual chip curation, AI-assisted tag workflows, commercial support, and authenticated REST access for managing Pro chip rules.
 
 == Screenshots ==
 
@@ -97,10 +97,11 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 * Made theme AJAX compatibility settings available without Pro gating.
 * Added configurable search input selector, keyword field, result container, and result image handling to the compatibility settings.
 * Hardened internal feature checks to avoid direct-install fatals when optional billing components are unavailable.
+* Added contextual, admin-only Smart Search Chips Pro information cards for relevant advanced workflows.
 
 = 1.0.14 =
-* Added compliant admin-only Pro feature links on the plugin row, settings sidebar, and setup panel.
-* Clarified contextual Pro messaging without fake locked controls.
+* Added factual admin-only Smart Search Chips Pro links on the plugin row and relevant settings sections.
+* Clarified contextual Pro messaging without disabled controls or blocked setup steps.
 
 = 1.0.13 =
 * Restored chip generation to use the currently filtered result set after chip selection.
@@ -110,26 +111,6 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 * Fixed theme search close buttons leaving an empty active results strip.
 * Keeps chip suggestions available from the base search set after a chip is selected.
 * Increased the default AJAX result image display size.
-
-= 1.0.11 =
-* Removed the clear button from Pro numeric range chips.
-* Matched numeric range value text styling to normal chip text.
-
-= 1.0.10 =
-* Simplified Pro numeric range chips so the unit appears only next to the min/max values.
-* Aligned range value and unit typography.
-
-= 1.0.9 =
-* Pro numeric range sliders now use labels from the catalog unit/text itself instead of inferred English concepts.
-* Groups simple unit variants such as W, V AC/V DC, watt, watts, wattu, and wattÅ¯ into stable range chips.
-
-= 1.0.8 =
-* Improved Pro numeric range parsing for electrical values such as 24 V DC and 230 V AC.
-* Keeps unitless model/title numbers out of sliders while still allowing real unit-bearing measurements.
-
-= 1.0.7 =
-* Made Pro numeric range chips more conservative so random product title/model numbers do not become sliders.
-* Compact range chip styling and removed the Apply button; range changes now auto-apply.
 
 = 1.0.6 =
 * Improved chip-click behavior inside third-party AJAX search panels so selecting a chip keeps the search UI open.
@@ -153,7 +134,7 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 
 == Smart Search Chips Pro ==
 
-Smart Search Chips Pro is available separately from https://smartsearchchips.app/ for teams that want ACF/custom field connectors, numeric range slider chips, search analytics, synonym rules, manual chip curation, AI-assisted tag workflows, and commercial support. The WordPress.org plugin is fully functional with its built-in Search Chips Tags field and does not require accounts or payment.
+Smart Search Chips Pro is available separately from https://smartsearchchips.app/ for teams that want advanced workflows: ACF/custom field connectors, numeric range slider chips, local search analytics/reporting, synonym rules, manual chip curation, AI-assisted tag workflows, commercial support, and authenticated REST access for Pro chip rules. The WordPress.org plugin is fully functional with its built-in Search Chips Tags field and does not require accounts or payment.
 
 == Privacy Policy ==
 
@@ -162,31 +143,16 @@ Smart Search Chips processes search queries entered by visitors to generate dyna
 == Upgrade Notice ==
 
 = 1.0.15 =
-Adds a guaranteed shortcode setup path and improves theme live-search compatibility settings.
+Adds a guaranteed shortcode setup path, improves theme live-search compatibility settings, and keeps Pro information contextual/admin-only.
 
 = 1.0.14 =
-Adds factual admin-only Pro feature links and setup guidance.
+Adds factual admin-only Pro feature links in relevant settings locations.
 
 = 1.0.13 =
 Restores filtered-set chip generation and makes AJAX result thumbnail display sizing opt-in.
 
 = 1.0.12 =
 Improves live-search close behavior, chip continuity after selection, and default result image size.
-
-= 1.0.11 =
-Removes the range chip clear button and aligns range text styling with normal chips.
-
-= 1.0.10 =
-Simplifies numeric range chip labels and typography.
-
-= 1.0.9 =
-Range chips now display unit/common text from your catalog instead of inferred labels.
-
-= 1.0.8 =
-Restores useful unit-bearing sliders such as V AC/V DC while avoiding unitless junk sliders.
-
-= 1.0.7 =
-Improves Pro numeric slider relevance and switches sliders to auto-apply.
 
 = 1.0.6 =
 Keeps live search panels open when visitors click chips in theme autocomplete integrations.

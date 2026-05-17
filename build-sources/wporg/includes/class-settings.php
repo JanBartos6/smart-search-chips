@@ -43,7 +43,7 @@ class SSCHP_Settings {
         $link = '<a href="' . esc_url( $url ) . '">' . __( 'Settings', 'smart-search-chips' ) . '</a>';
         array_unshift( $links, $link );
         $links[] = '<a href="' . esc_url( SSCHP_Edition::get_product_url() ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View Pro Features', 'smart-search-chips' ) . '</a>';
-        $links[] = '<a href="' . esc_url( SSCHP_Edition::get_product_url() ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Upgrade to Pro', 'smart-search-chips' ) . '</a>';
+        $links[] = '<a href="' . esc_url( SSCHP_Edition::get_product_url() ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Smart Search Chips Pro', 'smart-search-chips' ) . '</a>';
         return $links;
     }
 
@@ -384,7 +384,40 @@ class SSCHP_Settings {
                 <button type="button" class="button button-secondary" id="sschp-run-compat-test"><?php esc_html_e( 'Run frontend compatibility test', 'smart-search-chips' ); ?></button>
                 <a class="button button-link" href="<?php echo esc_url( $diagnostics['debugUrl'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open frontend debug mode', 'smart-search-chips' ); ?></a>
             </p>
+            <?php
+            $this->render_pro_context_card(
+                __( 'Support and Diagnostics', 'smart-search-chips' ),
+                __( 'The compatibility test above is included here. Smart Search Chips Pro is available separately for teams that want commercial support and deeper diagnostic handoff tools.', 'smart-search-chips' ),
+                array(),
+                __( 'View Pro Support Options', 'smart-search-chips' )
+            );
+            ?>
             <div id="sschp-compat-results" class="ssc-compat-results" aria-live="polite"></div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render a contextual, admin-only Pro information card.
+     *
+     * @param string $title     Card title.
+     * @param string $body      Card body.
+     * @param array  $items     Optional bullet points.
+     * @param string $link_text Link label.
+     */
+    private function render_pro_context_card( $title, $body, $items = array(), $link_text = '' ) {
+        ?>
+        <div class="ssc-pro-context-card">
+            <h3><?php echo esc_html( $title ); ?></h3>
+            <p><?php echo esc_html( $body ); ?></p>
+            <?php if ( ! empty( $items ) ) : ?>
+                <ul>
+                    <?php foreach ( $items as $item ) : ?>
+                        <li><?php echo esc_html( $item ); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+            <p><a class="button button-secondary" href="<?php echo esc_url( SSCHP_Edition::get_product_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $link_text ? $link_text : __( 'View Smart Search Chips Pro', 'smart-search-chips' ) ); ?></a></p>
         </div>
         <?php
     }
@@ -431,9 +464,7 @@ class SSCHP_Settings {
                     <p><strong><?php esc_html_e( 'Set up Smart Search Chips', 'smart-search-chips' ); ?></strong></p>
                     <p><?php esc_html_e( 'For the most reliable setup, add the Smart Search Chips search block or shortcode to your search page.', 'smart-search-chips' ); ?></p>
                     <p class="description"><?php esc_html_e( 'Existing theme search enhancement is automatic when compatible and configurable when needed.', 'smart-search-chips' ); ?></p>
-                    <p class="description"><?php esc_html_e( 'Pro is a separate upgrade for ACF/custom field mapping, numeric slider chips, analytics, synonym rules, manual curation, AI-assisted tag workflows, and commercial support.', 'smart-search-chips' ); ?></p>
                     <p>
-                        <a class="button button-secondary" href="<?php echo esc_url( SSCHP_Edition::get_product_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Pro Features', 'smart-search-chips' ); ?></a>
                         <a class="button-link" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sschp_dismiss_onboarding' ), 'sschp_dismiss_onboarding' ) ); ?>"><?php esc_html_e( 'Dismiss setup panel', 'smart-search-chips' ); ?></a>
                     </p>
                 </div>
@@ -447,7 +478,7 @@ class SSCHP_Settings {
 
                         <div class="ssc-settings-card">
                             <h2><?php esc_html_e( 'WordPress.org Edition', 'smart-search-chips' ); ?></h2>
-                            <div class="ssc-badge ssc-badge--free"><?php esc_html_e( 'Free', 'smart-search-chips' ); ?></div>
+                            <div class="ssc-badge ssc-badge--free"><?php esc_html_e( 'Included', 'smart-search-chips' ); ?></div>
                             <p><strong><?php echo esc_html( SSCHP_Edition::get_status_label() ); ?></strong></p>
                             <p class="description"><?php echo esc_html( SSCHP_Edition::get_status_description() ); ?></p>
                         </div>
@@ -485,6 +516,21 @@ class SSCHP_Settings {
                         </div>
 
                         <div class="ssc-settings-card">
+                            <h2><?php esc_html_e( 'Custom Fields and ACF', 'smart-search-chips' ); ?></h2>
+                            <p class="description"><?php esc_html_e( 'This WordPress.org edition uses the built-in Search Chips Tags field and optional WooCommerce helper tags. If your catalog already stores search labels in ACF or custom fields, field mapping is available separately in Smart Search Chips Pro.', 'smart-search-chips' ); ?></p>
+                            <?php
+                            $this->render_pro_context_card(
+                                __( 'ACF/custom field mapping', 'smart-search-chips' ),
+                                __( 'Pro add-on feature for sites that already maintain searchable labels in ACF, product meta, or other structured fields.', 'smart-search-chips' ),
+                                array(
+                                    __( 'Map an existing field as a chip source.', 'smart-search-chips' ),
+                                    __( 'Use structured product fields in advanced tagging workflows.', 'smart-search-chips' ),
+                                )
+                            );
+                            ?>
+                        </div>
+
+                        <div class="ssc-settings-card">
                             <h2><?php esc_html_e( 'Chips', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr>
@@ -496,6 +542,31 @@ class SSCHP_Settings {
                                     <td><input type="number" name="sschp_max_tag_length" value="<?php echo esc_attr( get_option( 'sschp_max_tag_length', '40' ) ); ?>" class="small-text" min="5" /></td>
                                 </tr>
                             </table>
+                            <?php
+                            $this->render_pro_context_card(
+                                __( 'Advanced chip rules', 'smart-search-chips' ),
+                                __( 'Synonym rules, manual chip curation, pinned chips, hidden chips, and display-label overrides are available separately in Smart Search Chips Pro.', 'smart-search-chips' ),
+                                array(
+                                    __( 'Normalize related tags into one canonical chip.', 'smart-search-chips' ),
+                                    __( 'Curate which chips appear first for important searches.', 'smart-search-chips' ),
+                                )
+                            );
+                            ?>
+                        </div>
+
+                        <div class="ssc-settings-card">
+                            <h2><?php esc_html_e( 'Numeric Range Chips', 'smart-search-chips' ); ?></h2>
+                            <p class="description"><?php esc_html_e( 'The WordPress.org edition displays normal clickable chips. Numeric range slider chips are available separately in Smart Search Chips Pro for catalogs with structured values such as wattage, voltage, dimensions, weight, or other comparable measurements.', 'smart-search-chips' ); ?></p>
+                            <?php
+                            $this->render_pro_context_card(
+                                __( 'Range slider workflow', 'smart-search-chips' ),
+                                __( 'Pro add-on feature that can group compatible numeric chip variants into a slider when the values are structured enough to compare safely.', 'smart-search-chips' ),
+                                array(
+                                    __( 'Uses conservative grouping to avoid model numbers and unrelated values.', 'smart-search-chips' ),
+                                    __( 'Works best with WooCommerce attributes or mapped fields.', 'smart-search-chips' ),
+                                )
+                            );
+                            ?>
                         </div>
 
                         <div class="ssc-settings-card">
@@ -520,6 +591,21 @@ class SSCHP_Settings {
                                 <tr><th><?php esc_html_e( 'Live Search Debounce', 'smart-search-chips' ); ?></th><td><input type="number" name="sschp_debounce_ms" value="<?php echo esc_attr( $debounce_ms ); ?>" class="small-text" min="50" max="2000" step="50" /> ms<p class="description"><?php esc_html_e( 'Delay before live search runs while typing. Lower feels faster; higher reduces server load. Recommended: 300 ms.', 'smart-search-chips' ); ?></p></td></tr>
                                 <tr><th><?php esc_html_e( 'Relevance Threshold', 'smart-search-chips' ); ?></th><td><input type="range" name="sschp_relevance_threshold" value="<?php echo esc_attr( get_option( 'sschp_relevance_threshold', '0.3' ) ); ?>" min="0" max="1" step="0.05" /><span class="ssc-range-val"><?php echo esc_html( get_option( 'sschp_relevance_threshold', '0.3' ) ); ?></span><p class="description"><?php esc_html_e( 'Requires Relevanssi. 0 = all results, 1 = exact matches only.', 'smart-search-chips' ); ?></p></td></tr>
                             </table>
+                        </div>
+
+                        <div class="ssc-settings-card">
+                            <h2><?php esc_html_e( 'Analytics and Reporting', 'smart-search-chips' ); ?></h2>
+                            <p class="description"><?php esc_html_e( 'This WordPress.org edition does not track visitor searches. Local analytics, reporting, CSV export, and optional scheduled email digests are available separately in Smart Search Chips Pro.', 'smart-search-chips' ); ?></p>
+                            <?php
+                            $this->render_pro_context_card(
+                                __( 'Pro analytics/reporting', 'smart-search-chips' ),
+                                __( 'Advanced workflow for teams that want to review search demand, zero-result queries, chip impressions, chip clicks, and result-click performance inside WordPress.', 'smart-search-chips' ),
+                                array(
+                                    __( 'Stores analytics locally on the WordPress site.', 'smart-search-chips' ),
+                                    __( 'Does not send reports to the plugin author or third parties.', 'smart-search-chips' ),
+                                )
+                            );
+                            ?>
                         </div>
 
                         <details class="ssc-settings-card ssc-settings-card--collapsible">
@@ -562,20 +648,6 @@ class SSCHP_Settings {
                                 <div class="ssc-preview-result"><div class="ssc-preview-thumb"></div><span>Product result 3</span></div>
                             </div>
                             <p class="ssc-preview-save"><button type="submit" class="button button-primary"><?php esc_html_e( 'Save Settings', 'smart-search-chips' ); ?></button></p>
-                        </div>
-
-                        <div class="ssc-sidebar-card ssc-sidebar-card--pro">
-                            <h3><?php esc_html_e( 'Need Pro Features?', 'smart-search-chips' ); ?></h3>
-                            <p><?php esc_html_e( 'Pro is a separate upgrade for ACF/custom fields, numeric sliders, analytics, synonyms, manual curation, AI-assisted tag workflows, and commercial support.', 'smart-search-chips' ); ?></p>
-                            <ul>
-                                <li><?php esc_html_e( 'Map existing ACF or custom tag fields.', 'smart-search-chips' ); ?></li>
-                                <li><?php esc_html_e( 'Turn numeric chip variants into range sliders.', 'smart-search-chips' ); ?></li>
-                                <li><?php esc_html_e( 'Review local search analytics and curate chip labels.', 'smart-search-chips' ); ?></li>
-                            </ul>
-                            <p>
-                                <a class="button button-primary" href="<?php echo esc_url( SSCHP_Edition::get_product_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Upgrade to Pro', 'smart-search-chips' ); ?></a>
-                                <a class="button button-secondary" href="<?php echo esc_url( SSCHP_Edition::get_product_url() ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View Features', 'smart-search-chips' ); ?></a>
-                            </p>
                         </div>
                     </div>
                 </div>
