@@ -12,6 +12,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SSCHP_Chip_Engine {
 
     /**
+     * Determine whether a tag value is active using case-insensitive matching.
+     *
+     * Display labels and URL values are kept unchanged elsewhere; this helper
+     * is only for comparisons.
+     *
+     * @param string $value       Tag value to check.
+     * @param array  $active_tags Active tag values.
+     * @return bool
+     */
+    public function is_tag_active( $value, $active_tags ) {
+        $value_lower = mb_strtolower( (string) $value );
+        if ( '' === $value_lower ) {
+            return false;
+        }
+
+        foreach ( (array) $active_tags as $active_tag ) {
+            $active_tag_lower = mb_strtolower( (string) $active_tag );
+            if ( '' !== $active_tag_lower && $value_lower === $active_tag_lower ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Generate chips from a set of posts with tags.
      *
      * @param array $posts_data  Array of posts, each with 'tags' and 'tags_lower' keys.
@@ -90,11 +116,15 @@ class SSCHP_Chip_Engine {
                     continue;
                 }
 
-                $count = isset( $tag_counts[ $at_lower ] ) ? $tag_counts[ $at_lower ]['count'] : $total;
+                if ( isset( $tag_counts[ $at_lower ] ) ) {
+                    $chips[ $at_lower ] = $tag_counts[ $at_lower ];
+                    continue;
+                }
+
                 $chips[ $at_lower ] = array(
                     'label' => $at,
                     'value' => $at,
-                    'count' => $count,
+                    'count' => $total,
                 );
             }
         }
@@ -114,7 +144,7 @@ class SSCHP_Chip_Engine {
         foreach ( $chips as $key => $chip ) {
             $value = isset( $chip['value'] ) ? $chip['value'] : $key;
 
-            if ( in_array( $key, $active_tags_lower, true ) || in_array( $value, $active_tags, true ) ) {
+            if ( in_array( $key, $active_tags_lower, true ) || $this->is_tag_active( $value, $active_tags ) ) {
                 $ordered[ $key ] = $chip;
             }
         }
@@ -266,6 +296,24 @@ class SSCHP_Chip_Engine {
             $active_tags = array();
         }
 
-        return apply_filters( 'sschp_active_tags', array_values( $active_tags ) );
+        $normalized = array();
+        $seen       = array();
+
+        foreach ( $active_tags as $active_tag ) {
+            $active_tag = trim( (string) $active_tag );
+            if ( '' === $active_tag ) {
+                continue;
+            }
+
+            $key = mb_strtolower( $active_tag );
+            if ( isset( $seen[ $key ] ) ) {
+                continue;
+            }
+
+            $seen[ $key ]  = true;
+            $normalized[] = $active_tag;
+        }
+
+        return apply_filters( 'sschp_active_tags', array_values( $normalized ) );
     }
 }

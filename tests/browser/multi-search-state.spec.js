@@ -80,6 +80,7 @@ async function installFakeAjax(page, options = {}) {
       inputSelector: config.inputSelector || "",
       resultSelector: config.resultSelector || "",
       isAdmin: !!config.isAdmin,
+      primaryChipTag: config.primaryChipTag || "spring handle",
       analytics: { enabled: false }
     };
 
@@ -188,13 +189,14 @@ async function installFakeAjax(page, options = {}) {
       send(data) {
         const request = recordRequest("xhr", this.method || "GET", this.url || "", data);
         const activeTags = request.activeTags;
-        const activeClass = activeTags.includes("spring handle") ? " ssc-chip--active" : "";
+        const primaryChipTag = window.sschpConfig.primaryChipTag;
+        const activeClass = activeTags.some((tag) => tag.toLowerCase() === primaryChipTag.toLowerCase()) ? " ssc-chip--active" : "";
 
         this.status = 200;
         this.readyState = 4;
         this.responseText = `
           <div class="ssc-chips">
-            <button type="button" class="ssc-chip${activeClass}" data-tag="spring handle">spring handle (4)</button>
+            <button type="button" class="ssc-chip${activeClass}" data-tag="${primaryChipTag}">${primaryChipTag} (4)</button>
             <button type="button" class="ssc-chip" data-tag="trapped key interlock">trapped key interlock (2)</button>
           </div>
           <ul class="ssc-results">
@@ -417,6 +419,31 @@ test.describe("Multiple search box state", () => {
     await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(0);
     await expect(second.locator(".ssc-results .ssc-result")).toHaveCount(1);
     await expect(second.locator(".ssc-chip--active")).toHaveCount(0);
+  });
+
+  test("toggles active shortcode chips case-insensitively", async ({ page }) => {
+    await installSearchFixture(page, {
+      primaryChipTag: "Spring Handle"
+    });
+
+    const search = page.getByTestId("first-search");
+    const input = search.locator("input[type='search']");
+
+    await input.fill("Trapped");
+    await input.dispatchEvent("input");
+    await expect(search.getByRole("button", { name: /spring handle/i })).toBeVisible();
+
+    await search.getByRole("button", { name: /spring handle/i }).click();
+    let requests = await readRequests(page);
+    expect(lastRequest(requests).activeTags).toEqual(["Spring Handle"]);
+
+    await search.getByRole("button", { name: /spring handle/i }).evaluate((chip) => {
+      chip.setAttribute("data-tag", "spring handle");
+    });
+    await search.getByRole("button", { name: /spring handle/i }).click();
+
+    requests = await readRequests(page);
+    expect(lastRequest(requests).activeTags).toEqual([]);
   });
 
   test("does not leak header search chips into a separate mobile theme AJAX request", async ({ page }) => {

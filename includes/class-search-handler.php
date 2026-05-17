@@ -267,7 +267,20 @@ class SSCHP_Search_Handler {
             }
         } );
 
-        return apply_filters( 'sschp_active_tags', array_values( array_unique( $tags ) ) );
+        $normalized = array();
+        $seen       = array();
+
+        foreach ( $tags as $tag ) {
+            $key = mb_strtolower( $tag );
+            if ( isset( $seen[ $key ] ) ) {
+                continue;
+            }
+
+            $seen[ $key ]  = true;
+            $normalized[] = $tag;
+        }
+
+        return apply_filters( 'sschp_active_tags', array_values( $normalized ) );
     }
 
     /**
@@ -517,7 +530,7 @@ class SSCHP_Search_Handler {
 
         foreach ( $chips as $key => $chip ) {
             $value     = isset( $chip['value'] ) ? $chip['value'] : $chip['label'];
-            $is_active = in_array( $value, $active_tags, true );
+            $is_active = $this->engine->is_tag_active( $value, $active_tags );
             $bg        = $is_active ? esc_attr( $color ) : esc_attr( $inactive_color );
             $fg        = $is_active ? esc_attr( $text_color ) : esc_attr( $inactive_text );
             $border    = esc_attr( $color );

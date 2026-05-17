@@ -480,7 +480,66 @@ if ( ! function_exists( 'wp_safe_redirect' ) ) {
 
 if ( ! function_exists( 'add_query_arg' ) ) {
     function add_query_arg( $args, $url = '' ) {
-        return rtrim( (string) $url, '?' ) . '?' . http_build_query( (array) $args );
+        $function_args = func_get_args();
+
+        if ( is_array( $args ) ) {
+            $params = $args;
+            $url    = isset( $function_args[1] ) ? (string) $function_args[1] : '/';
+        } else {
+            $params = array(
+                (string) $args => isset( $function_args[1] ) ? $function_args[1] : '',
+            );
+            $url = isset( $function_args[2] ) ? (string) $function_args[2] : '/';
+        }
+
+        if ( '' === $url ) {
+            $url = '/';
+        }
+
+        $parts = parse_url( $url );
+        $query = array();
+
+        if ( ! empty( $parts['query'] ) ) {
+            parse_str( $parts['query'], $query );
+        }
+
+        foreach ( $params as $key => $value ) {
+            $query[ $key ] = $value;
+        }
+
+        $path = isset( $parts['path'] ) ? $parts['path'] : $url;
+        if ( isset( $parts['scheme'], $parts['host'] ) ) {
+            $path = $parts['scheme'] . '://' . $parts['host'] . $path;
+        }
+
+        return $path . ( empty( $query ) ? '' : '?' . http_build_query( $query ) );
+    }
+}
+
+if ( ! function_exists( 'remove_query_arg' ) ) {
+    function remove_query_arg( $key, $url = '' ) {
+        if ( '' === $url ) {
+            $url = '/';
+        }
+
+        $keys  = (array) $key;
+        $parts = parse_url( (string) $url );
+        $query = array();
+
+        if ( ! empty( $parts['query'] ) ) {
+            parse_str( $parts['query'], $query );
+        }
+
+        foreach ( $keys as $query_key ) {
+            unset( $query[ $query_key ] );
+        }
+
+        $path = isset( $parts['path'] ) ? $parts['path'] : (string) $url;
+        if ( isset( $parts['scheme'], $parts['host'] ) ) {
+            $path = $parts['scheme'] . '://' . $parts['host'] . $path;
+        }
+
+        return $path . ( empty( $query ) ? '' : '?' . http_build_query( $query ) );
     }
 }
 

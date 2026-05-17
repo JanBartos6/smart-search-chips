@@ -183,6 +183,22 @@
         return searchStates.get(root);
     }
 
+    function normalizeTag(tag) {
+        return String(tag || "").toLowerCase();
+    }
+
+    function findActiveTagIndex(activeTags, tag) {
+        var normalized = normalizeTag(tag);
+
+        for (var i = 0; i < activeTags.length; i++) {
+            if (normalizeTag(activeTags[i]) === normalized) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     function isSearchInput(el) {
         return safeMatches(el, getInputSelector());
     }
@@ -561,13 +577,14 @@
         options = options || {};
 
         if (options.replacePrefix) {
+            var normalizedPrefix = normalizeTag(options.replacePrefix);
             state.activeTags = state.activeTags.filter(function (activeTag) {
-                return activeTag.indexOf(options.replacePrefix) !== 0;
+                return normalizeTag(activeTag).indexOf(normalizedPrefix) !== 0;
             });
         }
 
         if (tag) {
-            var idx = state.activeTags.indexOf(tag);
+            var idx = findActiveTagIndex(state.activeTags, tag);
 
             if (idx > -1 && options.mode !== "replace") {
                 state.activeTags.splice(idx, 1);

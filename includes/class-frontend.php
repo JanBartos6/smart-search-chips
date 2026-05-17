@@ -392,7 +392,7 @@ class SSCHP_Frontend {
         foreach ( $chips as $chip ) {
             $label     = $chip['label'];
             $value     = isset( $chip['value'] ) ? $chip['value'] : $label;
-            $is_active = in_array( $value, $active_tags, true );
+            $is_active = $this->engine->is_tag_active( $value, $active_tags );
             $styles    = $this->get_chip_style_values( $is_active );
             $url       = $this->build_archive_filter_url( $value, $active_tags );
 
@@ -588,10 +588,13 @@ class SSCHP_Frontend {
         }
 
         $tags = array();
+        $seen = array();
         foreach ( $values as $value ) {
             $value = sanitize_text_field( trim( (string) $value ) );
-            if ( '' !== $value && ! in_array( $value, $tags, true ) ) {
-                $tags[] = $value;
+            $key   = mb_strtolower( $value );
+            if ( '' !== $value && ! isset( $seen[ $key ] ) ) {
+                $seen[ $key ] = true;
+                $tags[]       = $value;
             }
         }
 
@@ -610,9 +613,9 @@ class SSCHP_Frontend {
         $next_tags = array_values( $active_tags );
 
         if ( null !== $tag ) {
-            if ( in_array( $tag, $next_tags, true ) ) {
+            if ( $this->engine->is_tag_active( $tag, $next_tags ) ) {
                 $next_tags = array_values( array_filter( $next_tags, function( $active_tag ) use ( $tag ) {
-                    return $active_tag !== $tag;
+                    return ! $this->engine->is_tag_active( $tag, array( $active_tag ) );
                 } ) );
             } else {
                 $next_tags[] = $tag;

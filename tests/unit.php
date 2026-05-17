@@ -132,6 +132,35 @@ function sschp_test_chip_engine_generate_chips() {
     sschp_assert_true( isset( $chips['beta'] ), 'generate_chips should keep useful differentiating tags from the other half of the set' );
 }
 
+function sschp_test_chip_engine_is_tag_active_case_insensitive() {
+    $engine = new SSCHP_Chip_Engine();
+
+    sschp_assert_true(
+        $engine->is_tag_active( 'Spring Handle', array( 'spring handle' ) ),
+        'lower-case active tag should match a mixed-case stored chip value'
+    );
+    sschp_assert_true(
+        $engine->is_tag_active( 'spring handle', array( 'Spring Handle' ) ),
+        'mixed-case active tag should match a lower-case stored chip value'
+    );
+}
+
+function sschp_test_chip_engine_active_fallback_preserves_stored_label_case() {
+    sschp_reset_test_state();
+
+    $engine = new SSCHP_Chip_Engine();
+    $posts  = array(
+        sschp_make_chip_post( array( 'Spring Handle', 'Shared' ) ),
+        sschp_make_chip_post( array( 'Spring Handle', 'Shared' ) ),
+    );
+
+    $chips = $engine->generate_chips( $posts, array( 'spring handle' ), 8, 40 );
+
+    sschp_assert_true( isset( $chips['spring handle'] ), 'case-insensitive active fallback should restore the stored chip' );
+    sschp_assert_same( 'Spring Handle', $chips['spring handle']['label'], 'active fallback should preserve the stored label case for display' );
+    sschp_assert_same( 'Spring Handle', $chips['spring handle']['value'], 'active fallback should preserve the stored value case for URLs' );
+}
+
 function sschp_test_chip_engine_small_result_sets_show_one_off_tags() {
     sschp_reset_test_state();
 
@@ -277,6 +306,44 @@ function sschp_test_chip_engine_filter_by_tags() {
 
     sschp_assert_same( 1, count( $filtered ), 'filter_by_tags should require all active tags to be present' );
     sschp_assert_same( 1, $filtered[0]['id'], 'filter_by_tags should keep the matching item' );
+}
+
+function sschp_test_search_handler_normalizes_active_tags_case_insensitively() {
+    $handler = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
+
+    sschp_assert_same(
+        array( 'Spring Handle', 'Outdoor' ),
+        sschp_invoke_private( $handler, 'normalize_active_tags', array( array( 'Spring Handle', 'spring handle', 'Outdoor' ) ) ),
+        'AJAX active tags should be deduplicated case-insensitively while preserving first labels'
+    );
+}
+
+function sschp_test_search_handler_render_chips_marks_case_insensitive_active_tag() {
+    $handler = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
+    $chips   = array(
+        'spring handle' => array(
+            'label' => 'Spring Handle',
+            'value' => 'Spring Handle',
+            'count' => 2,
+        ),
+    );
+
+    ob_start();
+    sschp_invoke_private( $handler, 'render_chips', array( $chips, array( 'spring handle' ) ) );
+    $markup = ob_get_clean();
+
+    sschp_assert_contains( 'ssc-chip--active', $markup, 'AJAX chip rendering should mark mixed-case chips active from lower-case active values' );
+    sschp_assert_contains( 'data-tag="Spring Handle"', $markup, 'AJAX chip rendering should preserve the stored chip value case' );
+}
+
+function sschp_test_frontend_archive_filter_url_toggles_case_insensitively() {
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $url      = sschp_invoke_private( $frontend, 'build_archive_filter_url', array( 'Spring Handle', array( 'spring handle' ) ) );
+    $query    = array();
+
+    parse_str( (string) parse_url( $url, PHP_URL_QUERY ), $query );
+
+    sschp_assert_true( ! isset( $query['sschp_tags'] ), 'archive URL toggling should remove an active chip case-insensitively instead of adding a duplicate' );
 }
 
 function sschp_test_license_is_pro_false_without_freemius() {
@@ -660,6 +727,8 @@ function sschp_test_frontend_registers_loop_fallback_for_block_themes() {
 sschp_test_chip_engine_extract_tags();
 sschp_test_chip_engine_extract_tags_supports_comma_delimited_primary_field();
 sschp_test_chip_engine_generate_chips();
+sschp_test_chip_engine_is_tag_active_case_insensitive();
+sschp_test_chip_engine_active_fallback_preserves_stored_label_case();
 sschp_test_chip_engine_small_result_sets_show_one_off_tags();
 sschp_test_chip_engine_large_result_sets_hide_one_off_tags();
 sschp_test_chip_engine_min_count_filter_can_force_two();
@@ -668,6 +737,9 @@ sschp_test_chip_engine_all_results_tag_hidden_unless_active();
 sschp_test_chip_engine_active_tag_survives();
 sschp_test_chip_engine_active_tags_are_ordered_first();
 sschp_test_chip_engine_filter_by_tags();
+sschp_test_search_handler_normalizes_active_tags_case_insensitively();
+sschp_test_search_handler_render_chips_marks_case_insensitive_active_tag();
+sschp_test_frontend_archive_filter_url_toggles_case_insensitively();
 sschp_test_license_is_pro_false_without_freemius();
 sschp_test_settings_numeric_sanitizers();
 sschp_test_settings_reserved_custom_field_rejected();
