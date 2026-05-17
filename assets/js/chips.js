@@ -11,9 +11,8 @@
 (function () {
     "use strict";
 
-    var activeTags = [];
     var config = window.sschpConfig || {};
-    var debounceTimer = null;
+    var searchStates = new WeakMap();
     var DEBOUNCE_MS = 300;
     var VISITOR_STORAGE_KEY = "sschp_visitor_id";
 
@@ -27,6 +26,69 @@
 
     function getInputSelector() {
         return config.inputSelector || '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]';
+    }
+
+    function getSearchRoot(el) {
+        if (!el || !el.closest) {
+            return document.documentElement;
+        }
+
+        var shortcodeRoot = el.closest(".ssc-search");
+        if (shortcodeRoot) {
+            return shortcodeRoot;
+        }
+
+        var themeRoot = el.closest(".js-search, .js-ssc-search");
+        if (themeRoot) {
+            return themeRoot;
+        }
+
+        var results = el.closest(getResultsSelector());
+        if (results) {
+            return results.parentElement || document.documentElement;
+        }
+
+        var form = el.closest("form");
+        if (form) {
+            return form;
+        }
+
+        return document.documentElement;
+    }
+
+    function getState(el) {
+        var root = getSearchRoot(el);
+
+        if (!searchStates.has(root)) {
+            searchStates.set(root, {
+                activeTags: [],
+                debounceTimer: null,
+                lastQuery: "",
+                lastResultsContainer: null
+            });
+        }
+
+        return searchStates.get(root);
+    }
+
+    function isSearchInput(el) {
+        return !!(el && el.matches && el.matches(getInputSelector()));
+    }
+
+    function findInputForKeyword(keyword) {
+        var active = document.activeElement;
+        if (isSearchInput(active) && (!keyword || active.value === keyword)) {
+            return active;
+        }
+
+        var inputs = document.querySelectorAll(getInputSelector());
+        for (var i = 0; i < inputs.length; i++) {
+            if (!keyword || inputs[i].value === keyword) {
+                return inputs[i];
+            }
+        }
+
+        return isSearchInput(active) ? active : null;
     }
 
     function markSearchUiActive(input, resultsContainer) {
@@ -46,7 +108,7 @@
             resultsContainer.setAttribute("aria-expanded", "true");
         }
 
-        var root = input ? input.closest("form, .ssc-search, .js-search, .js-ssc-search") : null;
+        var root = getSearchRoot(input || resultsContainer);
         if (root && root.classList) {
             root.classList.add("ssc-search-root-active");
             root.setAttribute("aria-expanded", "true");
@@ -54,7 +116,13 @@
     }
 
     function closeSearchUi(input, resultsContainer) {
-        clearTimeout(debounceTimer);
+        var state = getState(input || resultsContainer);
+        clearTimeout(state.debounceTimer);
+        state.debounceTimer = null;
+
+        if (resultsContainer) {
+            state.lastResultsContainer = resultsContainer;
+        }
 
         if (resultsContainer && resultsContainer.classList) {
             resultsContainer.classList.remove("ssc-loading");
@@ -66,7 +134,7 @@
             resultsContainer.setAttribute("aria-expanded", "false");
         }
 
-        var root = input ? input.closest("form, .ssc-search, .js-search, .js-ssc-search") : null;
+        var root = getSearchRoot(input || resultsContainer);
         if (root && root.classList) {
             root.classList.remove("ssc-search-root-active");
             root.setAttribute("aria-expanded", "false");
@@ -119,11 +187,12 @@
         return !!(config.analytics && config.analytics.enabled && config.analytics.nonce);
     }
 
-    function trackEvent(payload) {
+    function trackEvent(payload, source) {
         if (!analyticsEnabled()) {
             return;
         }
 
+        var state = source ? getState(source) : null;
         var data = new FormData();
         data.append("action", "sschp_track_event");
         data.append("nonce", config.analytics.nonce);
@@ -134,7 +203,7 @@
         data.append("chip_label", payload.chipLabel || "");
         data.append("page_url", window.location.href);
         data.append("result_count", String(typeof payload.resultCount === "number" ? payload.resultCount : -1));
-        data.append("active_tag_count", String(activeTags.length));
+        data.append("active_tag_count", String(state ? state.activeTags.length : 0));
 
         if (Array.isArray(payload.chipLabels)) {
             payload.chipLabels.forEach(function (label) {
@@ -190,7 +259,7 @@
         return -1;
     }
 
-    function trackChipImpressions(labels, context) {
+    function trackChipImpressions(labels, context, source) {
         if (!labels || !labels.length) {
             return;
         }
@@ -200,17 +269,22 @@
             searchQuery: context && context.searchQuery ? context.searchQuery : "",
             resultCount: context && typeof context.resultCount === "number" ? context.resultCount : -1,
             chipLabels: labels
-        });
+        }, source);
     }
 
     /**
      * Send search request with active tags.
      */
     function doSearch(input, resultsContainer, meta) {
+        var state = getState(input || resultsContainer);
+
         if (!input || input.value.length < (config.minChars || 2)) {
             closeSearchUi(input, resultsContainer);
             return;
         }
+
+        state.lastQuery = input.value;
+        state.lastResultsContainer = resultsContainer || null;
 
         // Show loading
         if (resultsContainer) {
@@ -233,7 +307,7 @@
             formData.append("sschp_nonce", config.nonce);
         }
 
-        activeTags.forEach(function (t) {
+        state.activeTags.forEach(function (t) {
             formData.append("active_tags[]", t);
         });
 
@@ -262,7 +336,7 @@
                         eventType: "search",
                         searchQuery: input.value,
                         resultCount: resultCount
-                    });
+                    }, input);
 
                     if (resultsContainer) {
                         var visibleChips = Array.prototype.map.call(
@@ -275,7 +349,7 @@
                         trackChipImpressions(visibleChips, {
                             searchQuery: input.value,
                             resultCount: resultCount
-                        });
+                        }, input);
                     }
 
                     if (meta && meta.trigger === "chip" && meta.chipLabel) {
@@ -284,7 +358,7 @@
                             searchQuery: input.value,
                             chipLabel: meta.chipLabel,
                             resultCount: resultCount
-                        });
+                        }, input);
                     }
                 }
             }
@@ -297,8 +371,10 @@
      * Debounced search - waits for user to stop typing.
      */
     function debouncedSearch(input, resultsContainer) {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function () {
+        var state = getState(input || resultsContainer);
+        clearTimeout(state.debounceTimer);
+        state.debounceTimer = setTimeout(function () {
+            state.debounceTimer = null;
             doSearch(input, resultsContainer, { trigger: "search" });
         }, DEBOUNCE_MS);
     }
@@ -307,19 +383,30 @@
      * Find the results container relative to an element.
      */
     function findResults(el) {
-        var selector = getResultsSelector();
-        var container = el.closest(".ssc-search") || el.closest(selector);
-        if (container) {
-            var parent = container.closest(".ssc-search") || container.parentElement;
-            return parent ? parent.querySelector(selector) : null;
+        if (!el || !el.closest || el.closest(".ssc-loop-filters")) {
+            return null;
         }
-        // Fallback
-        var form = document.querySelector(".js-ssc-search, .js-search");
-        if (form) {
-            var results = form.querySelector(selector);
-            if (!results) results = form.parentElement.querySelector(selector);
+
+        var selector = getResultsSelector();
+        var root = getSearchRoot(el);
+        var results = root && root.matches && root.matches(selector) ? root : null;
+
+        if (!results && root && root.querySelector) {
+            results = root.querySelector(selector);
+        }
+
+        if (!results && root && root.nextElementSibling && root.nextElementSibling.matches && root.nextElementSibling.matches(selector)) {
+            results = root.nextElementSibling;
+        }
+
+        if (!results && root && root.parentElement) {
+            results = root.parentElement.querySelector(selector);
+        }
+
+        if (results) {
             return results;
         }
+
         return null;
     }
 
@@ -327,31 +414,27 @@
      * Find the search input relative to an element.
      */
     function findInput(el) {
-        var container = el.closest(".ssc-search");
-        if (container) {
-            return container.querySelector(getInputSelector());
+        if (!el || !el.closest || el.closest(".ssc-loop-filters")) {
+            return null;
         }
 
-        var results = el.closest(getResultsSelector());
-        if (results) {
-            var scopedRoot = results.closest("form, .js-search, .js-ssc-search") || results.parentElement;
-            if (scopedRoot) {
-                var scopedInput = scopedRoot.querySelector(getInputSelector());
-                if (scopedInput) {
-                    return scopedInput;
-                }
-            }
+        var selector = getInputSelector();
+        var root = getSearchRoot(el);
+        var scopedInput = root && root.matches && root.matches(selector) ? root : null;
+
+        if (!scopedInput && root && root.querySelector) {
+            scopedInput = root.querySelector(selector);
         }
 
-        var form = document.querySelector(".js-ssc-search, .js-search");
-        if (form) {
-            var formInput = form.querySelector(getInputSelector());
-            if (formInput) {
-                return formInput;
-            }
+        if (!scopedInput && root && root.parentElement) {
+            scopedInput = root.parentElement.querySelector(selector);
         }
 
-        return document.querySelector(getInputSelector());
+        if (scopedInput) {
+            return scopedInput;
+        }
+
+        return isSearchInput(document.activeElement) ? document.activeElement : null;
     }
 
     function applyTagSelection(source, tag, options, meta) {
@@ -362,21 +445,22 @@
             return false;
         }
 
+        var state = getState(input);
         options = options || {};
 
         if (options.replacePrefix) {
-            activeTags = activeTags.filter(function (activeTag) {
+            state.activeTags = state.activeTags.filter(function (activeTag) {
                 return activeTag.indexOf(options.replacePrefix) !== 0;
             });
         }
 
         if (tag) {
-            var idx = activeTags.indexOf(tag);
+            var idx = state.activeTags.indexOf(tag);
 
             if (idx > -1 && options.mode !== "replace") {
-                activeTags.splice(idx, 1);
+                state.activeTags.splice(idx, 1);
             } else if (idx === -1) {
-                activeTags.push(tag);
+                state.activeTags.push(tag);
             }
         }
 
@@ -494,6 +578,10 @@
 
             if (hasAction) {
                 if (!this._sscManagedRequest) {
+                    var requestInput = findInputForKeyword(keyword);
+                    var requestState = getState(requestInput || document.documentElement);
+                    requestState.lastQuery = keyword;
+
                     if (!data.has("sschp_managed")) {
                         data.append("sschp_managed", "1");
                     }
@@ -506,7 +594,7 @@
                         data.append("sschp_nonce", config.nonce);
                     }
 
-                    activeTags.forEach(function (t) {
+                    requestState.activeTags.forEach(function (t) {
                         data.append("active_tags[]", t);
                     });
 
@@ -524,7 +612,7 @@
                             eventType: "search",
                             searchQuery: keyword,
                             resultCount: resultCount
-                        });
+                        }, requestInput);
                     }, { once: true });
                 }
             }
@@ -544,11 +632,22 @@
 
         var input = findInput(control);
         var results = findResults(control);
-        activeTags = [];
+        getState(input || control).activeTags = [];
         closeSearchUi(input, results);
         window.setTimeout(function () {
             closeSearchUi(input, results);
         }, 0);
+    }, true);
+
+    document.addEventListener("reset", function (e) {
+        if (!e.target.matches || !e.target.matches(".ssc-search__form, .js-ssc-search, .js-search")) {
+            return;
+        }
+
+        var input = findInput(e.target);
+        var results = findResults(e.target);
+        getState(input || e.target).activeTags = [];
+        closeSearchUi(input, results);
     }, true);
 
     /**
@@ -563,7 +662,7 @@
         if (input.value.length >= (config.minChars || 2)) {
             debouncedSearch(input, results);
         } else if (results) {
-            activeTags = [];
+            getState(input).activeTags = [];
             closeSearchUi(input, results);
         }
     });
