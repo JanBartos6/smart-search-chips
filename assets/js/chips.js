@@ -224,6 +224,7 @@
         if (keywordField !== "keyword") {
             formData.append("keyword", input.value);
         }
+        formData.append("sschp_managed", "1");
         formData.append("post_type", config.postType || "post");
         formData.append("f-form--submitted", "true");
         formData.append("sschp_lang", config.lang || "");
@@ -493,6 +494,10 @@
 
             if (hasAction) {
                 if (!this._sscManagedRequest) {
+                    if (!data.has("sschp_managed")) {
+                        data.append("sschp_managed", "1");
+                    }
+
                     if (config.lang && !data.has("sschp_lang")) {
                         data.append("sschp_lang", config.lang);
                     }

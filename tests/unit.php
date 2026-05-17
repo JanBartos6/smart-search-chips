@@ -37,7 +37,7 @@ function sschp_run_if_class_exists( $class_name, $callback ) {
 }
 
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -51,6 +51,7 @@ function sschp_reset_test_state() {
     $sschp_test_current_user_can   = array();
     $sschp_test_current_user_calls = array();
     $sschp_test_transients         = array();
+    $sschp_test_nonce_valid        = true;
     $_POST                    = array();
     $_REQUEST                 = array();
     $_SERVER                  = array();
@@ -61,6 +62,29 @@ function sschp_invoke_private( $object, $method_name, array $args = array() ) {
     $reflection->setAccessible( true );
 
     return $reflection->invokeArgs( is_object( $object ) ? $object : null, $args );
+}
+
+function sschp_capture_wp_die( $callback ) {
+    ob_start();
+
+    try {
+        $callback();
+        $output = ob_get_clean();
+
+        return array(
+            'died'    => false,
+            'message' => '',
+            'output'  => $output,
+        );
+    } catch ( RuntimeException $e ) {
+        $output = ob_get_clean();
+
+        return array(
+            'died'    => true,
+            'message' => $e->getMessage(),
+            'output'  => $output,
+        );
+    }
 }
 
 function sschp_test_chip_engine_extract_tags() {
@@ -385,6 +409,83 @@ function sschp_test_search_handler_normalizes_active_tag_payload_shapes() {
     );
 }
 
+function sschp_test_search_handler_builtin_action_without_nonce_fails() {
+    sschp_reset_test_state();
+
+    $_POST['action'] = 'sschp_search';
+
+    $handler = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
+    $result  = sschp_capture_wp_die( array( $handler, 'handle_search' ) );
+
+    sschp_assert_true( $result['died'], 'built-in AJAX action without nonce should fail closed' );
+    sschp_assert_contains( 'Security check failed', $result['message'], 'built-in AJAX action without nonce should show the security failure' );
+}
+
+function sschp_test_search_handler_override_without_marker_returns_early() {
+    sschp_reset_test_state();
+
+    $_POST['action']  = 'search_processing';
+    $_POST['keyword'] = 'beacon';
+
+    $handler = new SSCHP_Search_Handler(
+        new SSCHP_Chip_Engine(),
+        new SSCHP_Test_Settings(
+            array(
+                'override_ajax' => 'search_processing',
+            )
+        )
+    );
+    $result = sschp_capture_wp_die( array( $handler, 'handle_search' ) );
+
+    sschp_assert_same( false, $result['died'], 'override AJAX action without SSC marker or nonce should not die' );
+    sschp_assert_same( '', $result['output'], 'override AJAX action without SSC marker or nonce should not output anything' );
+}
+
+function sschp_test_search_handler_override_with_marker_and_valid_nonce_runs() {
+    sschp_reset_test_state();
+
+    $_POST['action']        = 'search_processing';
+    $_POST['sschp_managed'] = '1';
+    $_POST['sschp_nonce']   = 'valid-nonce';
+
+    $handler = new SSCHP_Search_Handler(
+        new SSCHP_Chip_Engine(),
+        new SSCHP_Test_Settings(
+            array(
+                'override_ajax' => 'search_processing',
+            )
+        )
+    );
+    $result = sschp_capture_wp_die( array( $handler, 'handle_search' ) );
+
+    sschp_assert_true( $result['died'], 'override AJAX action with SSC marker and valid nonce should be handled by SSC' );
+    sschp_assert_same( '', $result['message'], 'valid marked override request should pass nonce verification before stopping on an empty keyword' );
+}
+
+function sschp_test_search_handler_override_with_marker_and_invalid_nonce_fails() {
+    global $sschp_test_nonce_valid;
+
+    sschp_reset_test_state();
+    $sschp_test_nonce_valid = false;
+
+    $_POST['action']        = 'search_processing';
+    $_POST['sschp_managed'] = '1';
+    $_POST['sschp_nonce']   = 'invalid-nonce';
+
+    $handler = new SSCHP_Search_Handler(
+        new SSCHP_Chip_Engine(),
+        new SSCHP_Test_Settings(
+            array(
+                'override_ajax' => 'search_processing',
+            )
+        )
+    );
+    $result = sschp_capture_wp_die( array( $handler, 'handle_search' ) );
+
+    sschp_assert_true( $result['died'], 'override AJAX action with SSC marker and invalid nonce should fail' );
+    sschp_assert_contains( 'Security check failed', $result['message'], 'invalid marked override request should show the security failure' );
+}
+
 function sschp_test_frontend_registers_loop_fallback_for_block_themes() {
     global $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme;
 
@@ -423,6 +524,10 @@ sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_guard_tracki
 sschp_test_meta_auth_callback_requires_edit_post_capability();
 sschp_test_frontend_uses_configured_ajax_action();
 sschp_test_search_handler_normalizes_active_tag_payload_shapes();
+sschp_test_search_handler_builtin_action_without_nonce_fails();
+sschp_test_search_handler_override_without_marker_returns_early();
+sschp_test_search_handler_override_with_marker_and_valid_nonce_runs();
+sschp_test_search_handler_override_with_marker_and_invalid_nonce_fails();
 sschp_test_frontend_registers_loop_fallback_for_block_themes();
 
 if ( $sschp_test_failures > 0 ) {

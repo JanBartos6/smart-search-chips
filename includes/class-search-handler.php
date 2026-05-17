@@ -41,9 +41,11 @@ class SSCHP_Search_Handler {
      * Handle the AJAX search request.
      */
     public function handle_search() {
-        if ( ! isset( $_POST['sschp_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['sschp_nonce'] ) ), 'sschp_search_nonce' ) ) {
-            wp_die( esc_html__( 'Security check failed.', 'smart-search-chips' ) );
+        if ( ! $this->is_sschp_managed_request() ) {
+            return;
         }
+
+        $this->verify_search_nonce_or_fail();
 
         $keyword          = $this->get_search_keyword();
         $active_tags      = $this->normalize_active_tags( $this->get_active_tags_request_input() );
@@ -143,6 +145,93 @@ class SSCHP_Search_Handler {
         $this->render_results( $posts_data, $display_count );
 
         wp_die();
+    }
+
+    /**
+     * Determine whether the current AJAX request should be handled by SSC.
+     *
+     * The built-in endpoint is always SSC-managed and must fail closed. For
+     * third-party override actions, only take over when our JS marked the
+     * request, or when an SSC nonce is present from an older intercepted request.
+     *
+     * @return bool
+     */
+    private function is_sschp_managed_request() {
+        if ( 'sschp_search' === $this->get_ajax_action_name_from_request() ) {
+            return true;
+        }
+
+        return $this->has_sschp_request_field();
+    }
+
+    /**
+     * Verify the AJAX nonce or stop the SSC-managed request.
+     */
+    private function verify_search_nonce_or_fail() {
+        $nonce = $this->get_scalar_request_value( 'sschp_nonce' );
+
+        if ( '' === $nonce || ! wp_verify_nonce( $nonce, 'sschp_search_nonce' ) ) {
+            wp_die( esc_html__( 'Security check failed.', 'smart-search-chips' ) );
+        }
+    }
+
+    /**
+     * Read the current admin-ajax action from the request or WP hook context.
+     *
+     * @return string
+     */
+    private function get_ajax_action_name_from_request() {
+        $action = sanitize_key( $this->get_scalar_request_value( 'action' ) );
+
+        if ( '' !== $action ) {
+            return $action;
+        }
+
+        if ( function_exists( 'current_filter' ) ) {
+            $hook = (string) current_filter();
+
+            if ( 0 === strpos( $hook, 'wp_ajax_nopriv_' ) ) {
+                return sanitize_key( substr( $hook, strlen( 'wp_ajax_nopriv_' ) ) );
+            }
+
+            if ( 0 === strpos( $hook, 'wp_ajax_' ) ) {
+                return sanitize_key( substr( $hook, strlen( 'wp_ajax_' ) ) );
+            }
+        }
+
+        return 'sschp_search';
+    }
+
+    /**
+     * Check for known SSC request fields without treating generic theme payload
+     * fields as ours.
+     *
+     * @return bool
+     */
+    private function has_sschp_request_field() {
+        return '' !== $this->get_scalar_request_value( 'sschp_managed' )
+            || '' !== $this->get_scalar_request_value( 'sschp_nonce' )
+            || '' !== $this->get_scalar_request_value( 'sschp_lang' );
+    }
+
+    /**
+     * Read a scalar request value from POST or GET with early sanitization.
+     *
+     * @param string $key Request key.
+     * @return string
+     */
+    private function get_scalar_request_value( $key ) {
+        if ( isset( $_POST[ $key ] ) && ! is_array( $_POST[ $key ] ) ) {
+            return sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
+        }
+
+        $value = filter_input( INPUT_GET, $key, FILTER_UNSAFE_RAW );
+
+        if ( null === $value || false === $value || is_array( $value ) ) {
+            return '';
+        }
+
+        return sanitize_text_field( wp_unslash( $value ) );
     }
 
     /**

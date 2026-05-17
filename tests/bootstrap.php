@@ -21,6 +21,7 @@ $sschp_test_is_block_theme  = false;
 $sschp_test_current_user_can = array();
 $sschp_test_current_user_calls = array();
 $sschp_test_transients      = array();
+$sschp_test_nonce_valid     = true;
 
 if ( ! function_exists( '__' ) ) {
     function __( $text, $domain = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
@@ -417,7 +418,9 @@ if ( ! function_exists( 'wp_nonce_field' ) ) {
 
 if ( ! function_exists( 'wp_verify_nonce' ) ) {
     function wp_verify_nonce( $nonce, $action = -1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-        return true;
+        global $sschp_test_nonce_valid;
+
+        return $sschp_test_nonce_valid ? 1 : false;
     }
 }
 
