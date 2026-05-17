@@ -72,6 +72,7 @@ async function installFakeAjax(page, options = {}) {
   await page.evaluate((config) => {
     window.__sschpRequests = [];
     window.__sschpFetchCalls = [];
+    window.__sschpBeaconCalls = [];
     window.sschpConfig = {
       action: config.action || "sschp_search",
       ajaxUrl: "/wp-admin/admin-ajax.php",
@@ -82,7 +83,7 @@ async function installFakeAjax(page, options = {}) {
       isAdmin: !!config.isAdmin,
       primaryChipTag: config.primaryChipTag || "spring handle",
       responseDelay: config.responseDelay || 0,
-      analytics: { enabled: false }
+      analytics: config.analytics || { enabled: false, nonce: "" }
     };
 
     function entriesFromParams(params) {
@@ -142,9 +143,16 @@ async function installFakeAjax(page, options = {}) {
         method,
         url: String(url || ""),
         action: (entries.find((entry) => entry[0] === "action") || [null, ""])[1],
+        eventType: (entries.find((entry) => entry[0] === "event_type") || [null, ""])[1],
         keyword: (entries.find((entry) => entry[0] === "keyword") || entries.find((entry) => entry[0] === "query") || [null, ""])[1],
+        searchQuery: (entries.find((entry) => entry[0] === "search_query") || [null, ""])[1],
         managed: (entries.find((entry) => entry[0] === "sschp_managed") || [null, ""])[1],
         nonce: (entries.find((entry) => entry[0] === "sschp_nonce") || [null, ""])[1],
+        analyticsNonce: (entries.find((entry) => entry[0] === "nonce") || [null, ""])[1],
+        activeTagCount: (entries.find((entry) => entry[0] === "active_tag_count") || [null, ""])[1],
+        chipLabels: entries
+          .filter((entry) => entry[0] === "chip_labels[]" || entry[0] === "chip_labels")
+          .map((entry) => entry[1]),
         activeTags
       };
 
@@ -155,6 +163,31 @@ async function installFakeAjax(page, options = {}) {
       }
 
       return request;
+    }
+
+    if (config.sendBeaconMode) {
+      Object.defineProperty(window.navigator, "sendBeacon", {
+        configurable: true,
+        value: (url, body) => {
+          const request = recordRequest("beacon", "POST", url, body);
+          window.__sschpBeaconCalls.push(request);
+
+          if (config.sendBeaconMode === "throw") {
+            throw new Error("sendBeacon failed");
+          }
+
+          return config.sendBeaconMode === "true";
+        }
+      });
+    } else {
+      try {
+        delete window.navigator.sendBeacon;
+      } catch (error) {
+        Object.defineProperty(window.navigator, "sendBeacon", {
+          configurable: true,
+          value: undefined
+        });
+      }
     }
 
     class FakeXMLHttpRequest {
@@ -239,7 +272,11 @@ async function installFakeAjax(page, options = {}) {
       const method = init.method || (input && input.method) || "GET";
       const body = Object.prototype.hasOwnProperty.call(init, "body") ? init.body : null;
 
-      recordRequest("fetch", method, url, body);
+      const request = recordRequest("fetch", method, url, body);
+
+      if (config.analyticsFetchMode === "reject" && request.action === "sschp_track_event") {
+        return Promise.reject(new Error("analytics endpoint failed"));
+      }
 
       return Promise.resolve(new Response("", {
         status: 200,
@@ -255,8 +292,20 @@ async function readRequests(page) {
   return page.evaluate(() => window.__sschpRequests);
 }
 
+async function readBeaconCalls(page) {
+  return page.evaluate(() => window.__sschpBeaconCalls);
+}
+
+async function readFetchCalls(page) {
+  return page.evaluate(() => window.__sschpFetchCalls);
+}
+
 function lastRequest(requests) {
   return requests[requests.length - 1];
+}
+
+function analyticsEvents(requests, eventType) {
+  return requests.filter((request) => request.action === "sschp_track_event" && request.eventType === eventType);
 }
 
 async function activateHeaderChipAndResetRequests(page) {
@@ -314,6 +363,95 @@ test.describe("Multiple search box state", () => {
     await expect(results).toHaveAttribute("aria-busy", "true");
     await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
     await expect(results).toHaveAttribute("aria-busy", "false");
+  });
+
+  test("falls back to fetch when sendBeacon returns false", async ({ page }) => {
+    await installSearchFixture(page, {
+      analytics: { enabled: true, nonce: "analytics-nonce" },
+      sendBeaconMode: "false"
+    });
+
+    const first = page.getByTestId("first-search");
+    const input = first.locator(".ssc-search__input");
+
+    await input.fill("Trapped");
+    await input.dispatchEvent("input");
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
+    await page.waitForFunction(() => window.__sschpFetchCalls.some((request) => request.action === "sschp_track_event"));
+
+    const beaconCalls = await readBeaconCalls(page);
+    const fetchCalls = await readFetchCalls(page);
+
+    expect(analyticsEvents(beaconCalls, "search")).toHaveLength(1);
+    expect(analyticsEvents(fetchCalls, "search")).toHaveLength(1);
+    expect(analyticsEvents(fetchCalls, "search")[0].analyticsNonce).toBe("analytics-nonce");
+  });
+
+  test("does not send analytics requests when analytics is disabled", async ({ page }) => {
+    await installSearchFixture(page, {
+      sendBeaconMode: "false"
+    });
+
+    const first = page.getByTestId("first-search");
+    const input = first.locator(".ssc-search__input");
+
+    await input.fill("Trapped");
+    await input.dispatchEvent("input");
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
+
+    const requests = await readRequests(page);
+    const beaconCalls = await readBeaconCalls(page);
+    const fetchCalls = await readFetchCalls(page);
+
+    expect(analyticsEvents(requests, "search")).toHaveLength(0);
+    expect(beaconCalls).toHaveLength(0);
+    expect(analyticsEvents(fetchCalls, "search")).toHaveLength(0);
+  });
+
+  test("suppresses duplicate chip impression batches per search root and query", async ({ page }) => {
+    await installSearchFixture(page, {
+      analytics: { enabled: true, nonce: "analytics-nonce" },
+      sendBeaconMode: "false"
+    });
+
+    const first = page.getByTestId("first-search");
+    const input = first.locator(".ssc-search__input");
+
+    await input.fill("Trapped");
+    await input.dispatchEvent("input");
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
+
+    await input.dispatchEvent("input");
+    await page.waitForFunction(() => window.__sschpRequests.filter((request) => request.action === "sschp_search").length >= 2);
+    await page.waitForTimeout(100);
+
+    const fetchCalls = await readFetchCalls(page);
+    const impressionEvents = analyticsEvents(fetchCalls, "chip_impression");
+
+    expect(impressionEvents).toHaveLength(1);
+    expect(impressionEvents[0].searchQuery).toBe("Trapped");
+    expect(impressionEvents[0].chipLabels).toEqual(["spring handle", "trapped key interlock"]);
+  });
+
+  test("keeps search working when analytics fetch rejects", async ({ page }) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+
+    await installSearchFixture(page, {
+      analytics: { enabled: true, nonce: "analytics-nonce" },
+      sendBeaconMode: "false",
+      analyticsFetchMode: "reject"
+    });
+
+    const first = page.getByTestId("first-search");
+    const input = first.locator(".ssc-search__input");
+
+    await input.fill("Trapped");
+    await input.dispatchEvent("input");
+
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
+    await page.waitForTimeout(100);
+    expect(pageErrors).toEqual([]);
   });
 
   test("runs live search for paste-style input events", async ({ page }) => {

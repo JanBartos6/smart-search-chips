@@ -15,6 +15,7 @@
     var searchStates = new WeakMap();
     var selectorWarnings = {};
     var DEBOUNCE_MS = 300;
+    var IMPRESSION_DEDUP_MS = 10000;
     var VISITOR_STORAGE_KEY = "sschp_visitor_id";
     var DEFAULT_INPUT_SELECTOR = '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]';
     var DEFAULT_RESULTS_SELECTOR = ".js-ssc-results, .js-search__results, .ssc-search__results";
@@ -197,7 +198,9 @@
                 debounceTimer: null,
                 lastQuery: "",
                 lastResultsContainer: null,
-                pendingFocusTag: ""
+                pendingFocusTag: "",
+                lastImpressionKey: "",
+                lastImpressionAt: 0
             });
         }
 
@@ -386,44 +389,125 @@
         return !!(config.analytics && config.analytics.enabled && config.analytics.nonce);
     }
 
-    function trackEvent(payload, source) {
-        if (!analyticsEnabled()) {
+    function sendAnalyticsWithFetch(url, data) {
+        if (!window.fetch) {
             return;
         }
 
-        var state = source ? getState(source) : null;
-        var data = new FormData();
-        data.append("action", "sschp_track_event");
-        data.append("nonce", config.analytics.nonce);
-        data.append("sschp_lang", config.lang || "");
-        data.append("visitor_id", getVisitorId());
-        data.append("event_type", payload.eventType || "");
-        data.append("search_query", payload.searchQuery || "");
-        data.append("chip_label", payload.chipLabel || "");
-        data.append("page_url", window.location.href);
-        data.append("result_count", String(typeof payload.resultCount === "number" ? payload.resultCount : -1));
-        data.append("active_tag_count", String(state ? state.activeTags.length : 0));
-
-        if (Array.isArray(payload.chipLabels)) {
-            payload.chipLabels.forEach(function (label) {
-                if (label) {
-                    data.append("chip_labels[]", label);
-                }
+        try {
+            window.fetch(url, {
+                method: "POST",
+                credentials: "same-origin",
+                body: data
+            }).catch(function () {
+                // Analytics should never interrupt search UX.
             });
+        } catch (error) {
+            // Analytics should never interrupt search UX.
+        }
+    }
+
+    function trackEvent(payload, source) {
+        try {
+            if (!analyticsEnabled()) {
+                return;
+            }
+
+            var state = source ? getState(source) : null;
+            var url = config.ajaxUrl || "/wp-admin/admin-ajax.php";
+            var data = new FormData();
+            data.append("action", "sschp_track_event");
+            data.append("nonce", config.analytics.nonce);
+            data.append("sschp_lang", config.lang || "");
+            data.append("visitor_id", getVisitorId());
+            data.append("event_type", payload.eventType || "");
+            data.append("search_query", payload.searchQuery || "");
+            data.append("chip_label", payload.chipLabel || "");
+            data.append("page_url", window.location.href);
+            data.append("result_count", String(typeof payload.resultCount === "number" ? payload.resultCount : -1));
+            data.append("active_tag_count", String(state ? state.activeTags.length : 0));
+
+            if (Array.isArray(payload.chipLabels)) {
+                payload.chipLabels.forEach(function (label) {
+                    if (label) {
+                        data.append("chip_labels[]", label);
+                    }
+                });
+            }
+
+            if (window.navigator && typeof window.navigator.sendBeacon === "function") {
+                try {
+                    if (window.navigator.sendBeacon(url, data)) {
+                        return;
+                    }
+                } catch (error) {
+                    // Fall through to fetch.
+                }
+            }
+
+            sendAnalyticsWithFetch(url, data);
+        } catch (error) {
+            // Analytics should never interrupt search UX.
+        }
+    }
+
+    function normalizeImpressionLabels(labels) {
+        var seen = {};
+        var normalized = [];
+
+        labels.forEach(function (label) {
+            var value = String(label || "").trim();
+            var key = normalizeTag(value);
+
+            if (!value || seen[key]) {
+                return;
+            }
+
+            seen[key] = true;
+            normalized.push(key);
+        });
+
+        normalized.sort();
+        return normalized;
+    }
+
+    function shouldTrackImpressionBatch(labels, context, source) {
+        var normalizedLabels = normalizeImpressionLabels(labels);
+
+        if (!normalizedLabels.length) {
+            return false;
         }
 
-        if (navigator.sendBeacon) {
-            navigator.sendBeacon(config.ajaxUrl || "/wp-admin/admin-ajax.php", data);
+        var state = getState(source || document.documentElement);
+        var query = context && context.searchQuery ? String(context.searchQuery) : "";
+        var key = query + "|" + normalizedLabels.join("|");
+        var now = Date.now ? Date.now() : new Date().getTime();
+
+        if (state.lastImpressionKey === key && now - state.lastImpressionAt < IMPRESSION_DEDUP_MS) {
+            return false;
+        }
+
+        state.lastImpressionKey = key;
+        state.lastImpressionAt = now;
+
+        return true;
+    }
+
+    function trackChipImpressions(labels, context, source) {
+        if (!labels || !labels.length || !analyticsEnabled()) {
             return;
         }
 
-        fetch(config.ajaxUrl || "/wp-admin/admin-ajax.php", {
-            method: "POST",
-            credentials: "same-origin",
-            body: data
-        }).catch(function () {
-            // Analytics should never interrupt search UX.
-        });
+        if (!shouldTrackImpressionBatch(labels, context, source)) {
+            return;
+        }
+
+        trackEvent({
+            eventType: "chip_impression",
+            searchQuery: context && context.searchQuery ? context.searchQuery : "",
+            resultCount: context && typeof context.resultCount === "number" ? context.resultCount : -1,
+            chipLabels: labels
+        }, source);
     }
 
     function getQueryParam(name) {
@@ -456,19 +540,6 @@
         }
 
         return -1;
-    }
-
-    function trackChipImpressions(labels, context, source) {
-        if (!labels || !labels.length) {
-            return;
-        }
-
-        trackEvent({
-            eventType: "chip_impression",
-            searchQuery: context && context.searchQuery ? context.searchQuery : "",
-            resultCount: context && typeof context.resultCount === "number" ? context.resultCount : -1,
-            chipLabels: labels
-        }, source);
     }
 
     /**

@@ -578,8 +578,21 @@ class SSCHP_Analytics {
      * @return array
      */
     private static function sanitize_chip_labels( $raw_labels ) {
-        $labels = is_array( $raw_labels ) ? $raw_labels : array();
+        $labels = array();
         $clean  = array();
+
+        if ( is_array( $raw_labels ) ) {
+            array_walk_recursive(
+                $raw_labels,
+                function( $label ) use ( &$labels ) {
+                    if ( is_scalar( $label ) ) {
+                        $labels[] = $label;
+                    }
+                }
+            );
+        } elseif ( is_scalar( $raw_labels ) ) {
+            $labels[] = $raw_labels;
+        }
 
         foreach ( $labels as $label ) {
             $label = sanitize_text_field( (string) $label );

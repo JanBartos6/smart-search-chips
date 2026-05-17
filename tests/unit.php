@@ -883,6 +883,25 @@ function sschp_test_analytics_sanitizes_chip_impression_labels() {
     sschp_assert_same( array( 'spring handle', 'IP67' ), $labels, 'sanitize_chip_labels should trim, deduplicate, and discard empty impression labels' );
 }
 
+function sschp_test_analytics_sanitizes_nested_chip_impression_labels() {
+    $labels = sschp_invoke_private(
+        'SSCHP_Analytics',
+        'sanitize_chip_labels',
+        array(
+            array(
+                'Outdoor',
+                array(
+                    'IP67',
+                    array( ' Outdoor ', '' ),
+                ),
+                (object) array( 'label' => 'ignored' ),
+            ),
+        )
+    );
+
+    sschp_assert_same( array( 'Outdoor', 'IP67' ), $labels, 'sanitize_chip_labels should recursively flatten scalar labels and ignore objects' );
+}
+
 function sschp_test_analytics_appends_ctr_percentages() {
     $rows = sschp_invoke_private( 'SSCHP_Analytics', 'append_percentage_to_rows', array(
         array(
@@ -1274,6 +1293,7 @@ sschp_test_language_request_prefers_explicit_request_value();
 sschp_test_language_detects_polylang_slug();
 sschp_test_language_applies_wpml_query_args();
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_sanitizes_chip_impression_labels' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_sanitizes_nested_chip_impression_labels' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_appends_ctr_percentages' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_escape_csv_value_neutralizes_spreadsheet_formulas' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_guard_tracking_rejects_immediate_replays' );
