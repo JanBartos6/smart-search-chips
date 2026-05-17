@@ -42,6 +42,19 @@ function Add-Failure {
     $script:failures.Add($Message) | Out-Null
 }
 
+$requiredFiles = @(
+    'smart-search-chips.php',
+    'readme.txt',
+    'includes\class-edition.php'
+)
+
+foreach ($path in $requiredFiles) {
+    $fullPath = Join-Path $PackageDir $path
+    if (-not (Test-Path $fullPath)) {
+        Add-Failure "Required file is missing: $path"
+    }
+}
+
 $forbiddenPaths = @(
     'vendor',
     'includes\class-license.php',
@@ -78,6 +91,7 @@ $patterns = [ordered]@{
     'quota'                            = 'Quota wording is present.'
     'if ( true )'                      = 'Build-stripping placeholder condition is present.'
     'isset( <?php'                     = 'Corrupted PHP fragment is present.'
+    '[ssc_search]'                     = 'Old [ssc_search] shortcode is present.'
     'Free: max 5'                      = 'Old free chip cap wording is present.'
     'free version limit'               = 'Old free version cap comment is present.'
     'Upgrade to Pro to unlock'         = 'Unlock wording suggests restricted included functionality.'
@@ -111,6 +125,9 @@ foreach ($entry in $patterns.GetEnumerator()) {
     }
 }
 
+$pluginVersion = $null
+$stableTag = $null
+
 $mainFile = Join-Path $PackageDir 'smart-search-chips.php'
 if (-not (Test-Path $mainFile)) {
     Add-Failure 'Main plugin file is missing.'
@@ -125,6 +142,13 @@ if (-not (Test-Path $mainFile)) {
             Add-Failure "Main plugin header missing: $required"
         }
     }
+
+    $versionMatch = [regex]::Match($main, '(?im)^\s*\*?\s*Version:\s*([^\r\n]+)')
+    if ($versionMatch.Success) {
+        $pluginVersion = $versionMatch.Groups[1].Value.Trim()
+    } else {
+        Add-Failure 'Main plugin header missing: Version'
+    }
 }
 
 $readmeFile = Join-Path $PackageDir 'readme.txt'
@@ -138,6 +162,17 @@ if (-not (Test-Path $readmeFile)) {
     if ($readme -match '\[ssc_search\]') {
         Add-Failure 'readme.txt still references the old [ssc_search] shortcode.'
     }
+
+    $stableMatch = [regex]::Match($readme, '(?im)^Stable tag:\s*([^\r\n]+)')
+    if ($stableMatch.Success) {
+        $stableTag = $stableMatch.Groups[1].Value.Trim()
+    } else {
+        Add-Failure 'readme.txt missing Stable tag.'
+    }
+}
+
+if ($null -ne $pluginVersion -and $null -ne $stableTag -and $pluginVersion -ne $stableTag) {
+    Add-Failure "readme.txt Stable tag ($stableTag) does not match plugin header Version ($pluginVersion)."
 }
 
 if ($failures.Count -gt 0) {

@@ -16,6 +16,8 @@ build/smart-search-chips-wporg/smart-search-chips
 
 Only copy the contents of that generated package directory into SVN `trunk`. Never copy the raw GitHub repository, the Pro build, `vendor`, Freemius files, or premium-only files to WordPress.org SVN.
 
+WordPress.org-specific source files live in `build-sources/wporg/` and are overlaid during `npm run build:wporg`. If a file must differ between the Pro/dev build and the WordPress.org build, update the explicit file in `build-sources/wporg/` instead of adding regex patching to the release script.
+
 Useful individual checks:
 
 ```bash
