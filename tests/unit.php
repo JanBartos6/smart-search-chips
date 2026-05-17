@@ -43,8 +43,34 @@ function sschp_make_chip_post( array $tags ) {
     );
 }
 
+function sschp_make_frontend_post( $post_id, array $tags ) {
+    global $sschp_test_post_meta;
+
+    $post_id = (int) $post_id;
+    $sschp_test_post_meta[ $post_id ][ SSCHP_Meta_Box::META_KEY ] = implode( '; ', $tags );
+
+    return (object) array(
+        'ID'         => $post_id,
+        'post_title' => 'Post ' . $post_id,
+    );
+}
+
+function sschp_make_archive_query( array $posts, $args = array() ) {
+    return new WP_Query(
+        array_merge(
+            array(
+                'posts'         => $posts,
+                'found_posts'   => 25,
+                'max_num_pages' => 5,
+                'is_search'     => true,
+            ),
+            $args
+        )
+    );
+}
+
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -59,6 +85,11 @@ function sschp_reset_test_state() {
     $sschp_test_current_user_calls = array();
     $sschp_test_transients         = array();
     $sschp_test_nonce_valid        = true;
+    $sschp_test_query_vars         = array();
+    $sschp_test_post_meta          = array();
+    $sschp_test_current_url        = '/';
+    $sschp_test_is_admin           = false;
+    $sschp_test_is_search          = false;
     $_POST                    = array();
     $_REQUEST                 = array();
     $_SERVER                  = array();
@@ -344,6 +375,160 @@ function sschp_test_frontend_archive_filter_url_toggles_case_insensitively() {
     parse_str( (string) parse_url( $url, PHP_URL_QUERY ), $query );
 
     sschp_assert_true( ! isset( $query['sschp_tags'] ), 'archive URL toggling should remove an active chip case-insensitively instead of adding a duplicate' );
+}
+
+function sschp_test_frontend_archive_filters_current_page_posts() {
+    global $sschp_test_query_vars;
+
+    sschp_reset_test_state();
+    $sschp_test_query_vars['sschp_tags'] = 'Steel';
+
+    $posts = array(
+        sschp_make_frontend_post( 1, array( 'Steel', 'Outdoor' ) ),
+        sschp_make_frontend_post( 2, array( 'Steel', 'Indoor' ) ),
+        sschp_make_frontend_post( 3, array( 'Plastic', 'Outdoor' ) ),
+    );
+    $query = sschp_make_archive_query( $posts );
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $filtered = $frontend->filter_archive_posts( $posts, $query );
+
+    sschp_assert_same( array( 1, 2 ), wp_list_pluck( $filtered, 'ID' ), 'active archive chips should filter only the currently loaded posts' );
+    sschp_assert_same( 2, $query->post_count, 'filtered archive query should expose the current-page result count' );
+    sschp_assert_same( 2, $query->found_posts, 'filtered archive query should not keep the original full-query found count' );
+    sschp_assert_same( 1, $query->max_num_pages, 'filtered archive query should collapse stale pagination' );
+}
+
+function sschp_test_frontend_archive_filters_multiple_tags_with_and_logic() {
+    global $sschp_test_query_vars;
+
+    sschp_reset_test_state();
+    $sschp_test_query_vars['sschp_tags'] = 'Steel,Outdoor';
+
+    $posts = array(
+        sschp_make_frontend_post( 1, array( 'Steel', 'Outdoor' ) ),
+        sschp_make_frontend_post( 2, array( 'Steel', 'Indoor' ) ),
+        sschp_make_frontend_post( 3, array( 'Plastic', 'Outdoor' ) ),
+    );
+    $query = sschp_make_archive_query( $posts );
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $filtered = $frontend->filter_archive_posts( $posts, $query );
+
+    sschp_assert_same( array( 1 ), wp_list_pluck( $filtered, 'ID' ), 'multiple active archive chips should use AND filtering' );
+    sschp_assert_same( array( 1 ), wp_list_pluck( $query->posts, 'ID' ), 'query posts should match the AND-filtered current page' );
+}
+
+function sschp_test_frontend_archive_chip_toggle_removes_pagination_params() {
+    global $sschp_test_current_url;
+
+    sschp_reset_test_state();
+    $sschp_test_current_url = '/shop/?s=beacon&paged=3&product-page=2';
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $url      = sschp_invoke_private( $frontend, 'build_archive_filter_url', array( 'Outdoor', array() ) );
+    $query    = array();
+
+    parse_str( (string) parse_url( $url, PHP_URL_QUERY ), $query );
+
+    sschp_assert_same( 'beacon', $query['s'], 'archive chip URL should preserve the search query' );
+    sschp_assert_same( 'Outdoor', $query['sschp_tags'], 'archive chip URL should add the selected chip tag' );
+    sschp_assert_true( ! isset( $query['paged'] ), 'archive chip URL should remove normal pagination params' );
+    sschp_assert_true( ! isset( $query['product-page'] ), 'archive chip URL should remove WooCommerce pagination params' );
+}
+
+function sschp_test_frontend_archive_clear_filters_restores_url_without_chip_params() {
+    global $sschp_test_current_url;
+
+    sschp_reset_test_state();
+    $sschp_test_current_url = '/shop/?s=beacon&sschp_tags=Outdoor&paged=3&product-page=2';
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $url      = sschp_invoke_private( $frontend, 'build_archive_filter_url', array( null, array() ) );
+    $query    = array();
+
+    parse_str( (string) parse_url( $url, PHP_URL_QUERY ), $query );
+
+    sschp_assert_same( 'beacon', $query['s'], 'clear filters URL should preserve the search query' );
+    sschp_assert_true( ! isset( $query['sschp_tags'] ), 'clear filters URL should remove active chip params' );
+    sschp_assert_true( ! isset( $query['paged'] ), 'clear filters URL should remove normal pagination params' );
+    sschp_assert_true( ! isset( $query['product-page'] ), 'clear filters URL should remove WooCommerce pagination params' );
+}
+
+function sschp_test_frontend_archive_markup_describes_current_page_scope() {
+    sschp_reset_test_state();
+
+    $posts = array(
+        sschp_make_frontend_post( 1, array( 'Alpha', 'Shared' ) ),
+        sschp_make_frontend_post( 2, array( 'Beta', 'Shared' ) ),
+        sschp_make_frontend_post( 3, array( 'Gamma', 'Shared' ) ),
+    );
+    $query = sschp_make_archive_query( $posts );
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $markup   = sschp_invoke_private( $frontend, 'get_archive_chips_markup', array( $query ) );
+
+    sschp_assert_contains( 'currently loaded on this page', $markup, 'archive chip markup should describe current-page filtering scope' );
+}
+
+function sschp_test_frontend_woocommerce_and_loop_do_not_render_archive_chips_twice() {
+    global $wp_query;
+
+    sschp_reset_test_state();
+
+    $posts = array(
+        sschp_make_frontend_post( 1, array( 'Alpha', 'Shared' ) ),
+        sschp_make_frontend_post( 2, array( 'Beta', 'Shared' ) ),
+        sschp_make_frontend_post( 3, array( 'Gamma', 'Shared' ) ),
+    );
+    $wp_query = sschp_make_archive_query( $posts, array( 'is_post_type_archive' => true, 'is_search' => false ) );
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+
+    ob_start();
+    $frontend->render_woocommerce_loop_chips();
+    $woocommerce_markup = ob_get_clean();
+
+    ob_start();
+    $frontend->render_archive_chips_before_loop( $wp_query );
+    $loop_markup = ob_get_clean();
+
+    sschp_assert_contains( 'ssc-loop-filters', $woocommerce_markup, 'WooCommerce loop hook should render archive chips once' );
+    sschp_assert_same( '', $loop_markup, 'loop_start fallback should not duplicate chips after WooCommerce rendering' );
+}
+
+function sschp_test_frontend_block_theme_and_loop_do_not_render_archive_chips_twice() {
+    global $wp_query;
+
+    sschp_reset_test_state();
+
+    $posts = array(
+        sschp_make_frontend_post( 1, array( 'Alpha', 'Shared' ) ),
+        sschp_make_frontend_post( 2, array( 'Beta', 'Shared' ) ),
+        sschp_make_frontend_post( 3, array( 'Gamma', 'Shared' ) ),
+    );
+    $wp_query = sschp_make_archive_query( $posts );
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $content  = $frontend->inject_archive_chips_into_query_block(
+        '<main class="wp-block-query">CONTENT</main>',
+        array(
+            'blockName' => 'core/query',
+            'attrs'     => array(
+                'query' => array(
+                    'inherit' => true,
+                ),
+            ),
+        )
+    );
+
+    ob_start();
+    $frontend->render_archive_chips_before_loop( $wp_query );
+    $loop_markup = ob_get_clean();
+
+    sschp_assert_contains( 'ssc-loop-filters', $content, 'block theme query injection should render archive chips once' );
+    sschp_assert_contains( 'CONTENT', $content, 'block theme query injection should preserve the original block content' );
+    sschp_assert_same( '', $loop_markup, 'loop_start fallback should not duplicate chips after block query injection' );
 }
 
 function sschp_test_license_is_pro_false_without_freemius() {
@@ -771,6 +956,13 @@ sschp_test_chip_engine_filter_by_tags();
 sschp_test_search_handler_normalizes_active_tags_case_insensitively();
 sschp_test_search_handler_render_chips_marks_case_insensitive_active_tag();
 sschp_test_frontend_archive_filter_url_toggles_case_insensitively();
+sschp_test_frontend_archive_filters_current_page_posts();
+sschp_test_frontend_archive_filters_multiple_tags_with_and_logic();
+sschp_test_frontend_archive_chip_toggle_removes_pagination_params();
+sschp_test_frontend_archive_clear_filters_restores_url_without_chip_params();
+sschp_test_frontend_archive_markup_describes_current_page_scope();
+sschp_test_frontend_woocommerce_and_loop_do_not_render_archive_chips_twice();
+sschp_test_frontend_block_theme_and_loop_do_not_render_archive_chips_twice();
 sschp_test_license_is_pro_false_without_freemius();
 sschp_test_settings_numeric_sanitizers();
 sschp_test_settings_reserved_custom_field_rejected();

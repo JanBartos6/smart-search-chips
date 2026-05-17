@@ -21,7 +21,7 @@ class SSCHP_Frontend {
     private $archive_chips_rendered = false;
 
     /** @var array */
-    private $loop_source_posts = array();
+    private $current_page_unfiltered_posts = array();
 
     public function __construct( SSCHP_Settings $settings, SSCHP_Chip_Engine $engine ) {
         $this->settings = $settings;
@@ -220,6 +220,10 @@ class SSCHP_Frontend {
     /**
      * Filter supported archive/search loops by active chip tags.
      *
+     * Archive chips intentionally filter only the posts already loaded into the
+     * current WP_Query page. They do not run a second full-site query, because
+     * doing so would be unpredictable on large catalogs and custom theme loops.
+     *
      * @param array    $posts Posts for the current query.
      * @param WP_Query $query Query object.
      * @return array
@@ -229,8 +233,8 @@ class SSCHP_Frontend {
             return $posts;
         }
 
-        $query_hash                       = spl_object_hash( $query );
-        $this->loop_source_posts[ $query_hash ] = $posts;
+        $query_hash = spl_object_hash( $query );
+        $this->current_page_unfiltered_posts[ $query_hash ] = $posts;
 
         $active_tags = $this->get_active_archive_tags();
         if ( empty( $active_tags ) ) {
@@ -242,6 +246,8 @@ class SSCHP_Frontend {
         $filtered_ids = wp_list_pluck( $filtered, 'id' );
 
         if ( empty( $filtered_ids ) ) {
+            // Current-page filtering means pagination from the original query
+            // no longer applies once a chip filter is active.
             $query->post_count    = 0;
             $query->found_posts   = 0;
             $query->max_num_pages = 0;
@@ -253,6 +259,8 @@ class SSCHP_Frontend {
             return in_array( (int) $post->ID, $filtered_ids, true );
         } ) );
 
+        // Expose the filtered current-page count and prevent stale pagination
+        // links from implying that the full result set was filtered.
         $query->post_count    = count( $filtered_posts );
         $query->found_posts   = count( $filtered_posts );
         $query->max_num_pages = 1;
@@ -351,15 +359,20 @@ class SSCHP_Frontend {
             return '';
         }
 
-        $query_hash   = spl_object_hash( $query );
-        $source_posts = isset( $this->loop_source_posts[ $query_hash ] ) ? $this->loop_source_posts[ $query_hash ] : $query->posts;
-        $posts_data   = $this->collect_posts_data( $query->posts );
-        $active_tags  = $this->get_active_archive_tags();
-        $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_License::max_chips() );
-        $max_length   = (int) $this->settings->get( 'max_tag_length', 40 );
-        $chips        = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_length );
+        $query_hash = spl_object_hash( $query );
+        $unfiltered_current_page_posts = isset( $this->current_page_unfiltered_posts[ $query_hash ] )
+            ? $this->current_page_unfiltered_posts[ $query_hash ]
+            : $query->posts;
+        // Generate suggestions from the currently visible page state. The
+        // unfiltered current page is only kept so active zero-match chips can
+        // still be displayed and removed.
+        $posts_data  = $this->collect_posts_data( $query->posts );
+        $active_tags = $this->get_active_archive_tags();
+        $max_chips   = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_License::max_chips() );
+        $max_length  = (int) $this->settings->get( 'max_tag_length', 40 );
+        $chips       = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_length );
 
-        if ( empty( $chips ) && ! empty( $active_tags ) && ! empty( $source_posts ) ) {
+        if ( empty( $chips ) && ! empty( $active_tags ) && ! empty( $unfiltered_current_page_posts ) ) {
             foreach ( $active_tags as $tag ) {
                 $chips[ mb_strtolower( $tag ) ] = array(
                     'label' => $tag,
@@ -388,6 +401,7 @@ class SSCHP_Frontend {
             echo '<a class="ssc-loop-filters__clear" href="' . esc_url( $this->build_archive_filter_url( null, array() ) ) . '">' . esc_html__( 'Clear filters', 'smart-search-chips' ) . '</a>';
         }
         echo '</div>';
+        echo '<p class="ssc-loop-filters__description">' . esc_html__( 'These chips refine the results currently loaded on this page. Changing filters resets pagination.', 'smart-search-chips' ) . '</p>';
         echo '<div class="ssc-chips">';
         foreach ( $chips as $chip ) {
             $label     = $chip['label'];
@@ -456,6 +470,9 @@ class SSCHP_Frontend {
                 'aria-live'             => true,
             ),
             'strong' => array(
+                'class' => true,
+            ),
+            'p'      => array(
                 'class' => true,
             ),
             'a'      => array(

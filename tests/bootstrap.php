@@ -22,6 +22,11 @@ $sschp_test_current_user_can = array();
 $sschp_test_current_user_calls = array();
 $sschp_test_transients      = array();
 $sschp_test_nonce_valid     = true;
+$sschp_test_query_vars      = array();
+$sschp_test_post_meta       = array();
+$sschp_test_current_url     = '/';
+$sschp_test_is_admin        = false;
+$sschp_test_is_search       = false;
 
 if ( ! function_exists( '__' ) ) {
     function __( $text, $domain = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
@@ -79,6 +84,20 @@ if ( ! function_exists( 'wp_parse_args' ) ) {
     }
 }
 
+if ( ! function_exists( 'map_deep' ) ) {
+    function map_deep( $value, $callback ) {
+        if ( is_array( $value ) ) {
+            foreach ( $value as $key => $item ) {
+                $value[ $key ] = map_deep( $item, $callback );
+            }
+
+            return $value;
+        }
+
+        return call_user_func( $callback, $value );
+    }
+}
+
 if ( ! function_exists( 'wp_unslash' ) ) {
     function wp_unslash( $value ) {
         return $value;
@@ -124,6 +143,12 @@ if ( ! function_exists( 'esc_html' ) ) {
 if ( ! function_exists( 'esc_attr' ) ) {
     function esc_attr( $text ) {
         return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+    }
+}
+
+if ( ! function_exists( 'wp_kses' ) ) {
+    function wp_kses( $content, $allowed_html = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        return $content;
     }
 }
 
@@ -220,6 +245,30 @@ if ( ! function_exists( 'add_settings_error' ) ) {
 if ( ! function_exists( 'add_shortcode' ) ) {
     function add_shortcode( $tag, $callback ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         return true;
+    }
+}
+
+if ( ! function_exists( 'is_admin' ) ) {
+    function is_admin() {
+        global $sschp_test_is_admin;
+
+        return (bool) $sschp_test_is_admin;
+    }
+}
+
+if ( ! function_exists( 'is_search' ) ) {
+    function is_search() {
+        global $sschp_test_is_search;
+
+        return (bool) $sschp_test_is_search;
+    }
+}
+
+if ( ! function_exists( 'get_query_var' ) ) {
+    function get_query_var( $query_var, $default = '' ) {
+        global $sschp_test_query_vars;
+
+        return array_key_exists( $query_var, $sschp_test_query_vars ) ? $sschp_test_query_vars[ $query_var ] : $default;
     }
 }
 
@@ -394,6 +443,16 @@ if ( ! function_exists( 'register_post_meta' ) ) {
 
 if ( ! function_exists( 'get_post_meta' ) ) {
     function get_post_meta( $post_id, $key = '', $single = false ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $sschp_test_post_meta;
+
+        if ( '' === $key ) {
+            return isset( $sschp_test_post_meta[ $post_id ] ) ? $sschp_test_post_meta[ $post_id ] : array();
+        }
+
+        if ( isset( $sschp_test_post_meta[ $post_id ] ) && array_key_exists( $key, $sschp_test_post_meta[ $post_id ] ) ) {
+            return $sschp_test_post_meta[ $post_id ][ $key ];
+        }
+
         return '';
     }
 }
@@ -480,16 +539,18 @@ if ( ! function_exists( 'wp_safe_redirect' ) ) {
 
 if ( ! function_exists( 'add_query_arg' ) ) {
     function add_query_arg( $args, $url = '' ) {
+        global $sschp_test_current_url;
+
         $function_args = func_get_args();
 
         if ( is_array( $args ) ) {
             $params = $args;
-            $url    = isset( $function_args[1] ) ? (string) $function_args[1] : '/';
+            $url    = isset( $function_args[1] ) ? (string) $function_args[1] : $sschp_test_current_url;
         } else {
             $params = array(
                 (string) $args => isset( $function_args[1] ) ? $function_args[1] : '',
             );
-            $url = isset( $function_args[2] ) ? (string) $function_args[2] : '/';
+            $url = isset( $function_args[2] ) ? (string) $function_args[2] : $sschp_test_current_url;
         }
 
         if ( '' === $url ) {
@@ -513,6 +574,22 @@ if ( ! function_exists( 'add_query_arg' ) ) {
         }
 
         return $path . ( empty( $query ) ? '' : '?' . http_build_query( $query ) );
+    }
+}
+
+if ( ! function_exists( 'wp_list_pluck' ) ) {
+    function wp_list_pluck( $input_list, $field ) {
+        $values = array();
+
+        foreach ( (array) $input_list as $item ) {
+            if ( is_array( $item ) && array_key_exists( $field, $item ) ) {
+                $values[] = $item[ $field ];
+            } elseif ( is_object( $item ) && isset( $item->{$field} ) ) {
+                $values[] = $item->{$field};
+            }
+        }
+
+        return $values;
     }
 }
 
@@ -566,6 +643,57 @@ if ( ! function_exists( 'selected' ) ) {
             echo $result;
         }
         return $result;
+    }
+}
+
+if ( ! class_exists( 'WP_Query' ) ) {
+    class WP_Query {
+        public $posts = array();
+        public $post_count = 0;
+        public $found_posts = 0;
+        public $max_num_pages = 0;
+
+        private $flags = array();
+
+        public function __construct( $args = array() ) {
+            $this->posts         = isset( $args['posts'] ) ? (array) $args['posts'] : array();
+            $this->post_count    = count( $this->posts );
+            $this->found_posts   = isset( $args['found_posts'] ) ? (int) $args['found_posts'] : $this->post_count;
+            $this->max_num_pages = isset( $args['max_num_pages'] ) ? (int) $args['max_num_pages'] : 1;
+            $this->flags         = (array) $args;
+        }
+
+        public function is_main_query() {
+            return ! array_key_exists( 'is_main_query', $this->flags ) || (bool) $this->flags['is_main_query'];
+        }
+
+        public function is_feed() {
+            return ! empty( $this->flags['is_feed'] );
+        }
+
+        public function is_singular() {
+            return ! empty( $this->flags['is_singular'] );
+        }
+
+        public function is_search() {
+            return ! empty( $this->flags['is_search'] );
+        }
+
+        public function is_post_type_archive() {
+            return ! empty( $this->flags['is_post_type_archive'] );
+        }
+
+        public function is_tax() {
+            return ! empty( $this->flags['is_tax'] );
+        }
+
+        public function is_category() {
+            return ! empty( $this->flags['is_category'] );
+        }
+
+        public function is_tag() {
+            return ! empty( $this->flags['is_tag'] );
+        }
     }
 }
 
