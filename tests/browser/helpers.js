@@ -1,6 +1,6 @@
 function escapedChipRegexp(label) {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp("^" + escaped + "(?:\\s*\\(\\d+\\))?$", "i");
+  return new RegExp("^(?:(?:Filter by|Remove filter)\\s+)?" + escaped + "(?:(?:,\\s*\\d+\\s+results?)|(?:\\s*\\(\\d+\\)))?$", "i");
 }
 
 async function loginAsAdmin(page) {

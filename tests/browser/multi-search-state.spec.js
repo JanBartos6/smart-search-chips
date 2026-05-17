@@ -11,7 +11,7 @@ async function installSearchFixture(page, options = {}) {
           <input type="search" class="ssc-search__input" name="keyword" />
           <button type="button" class="ssc-search__clear">Clear</button>
         </form>
-        <div class="ssc-search__results js-ssc-results"></div>
+        <div class="ssc-search__results js-ssc-results" aria-live="polite" aria-busy="false"></div>
       </div>
 
       <div class="ssc-search" data-testid="second-search">
@@ -19,7 +19,7 @@ async function installSearchFixture(page, options = {}) {
           <input type="search" class="ssc-search__input" name="keyword" />
           <button type="button" class="ssc-search__clear">Clear</button>
         </form>
-        <div class="ssc-search__results js-ssc-results"></div>
+        <div class="ssc-search__results js-ssc-results" aria-live="polite" aria-busy="false"></div>
       </div>
     </main>
   `);
@@ -81,6 +81,7 @@ async function installFakeAjax(page, options = {}) {
       resultSelector: config.resultSelector || "",
       isAdmin: !!config.isAdmin,
       primaryChipTag: config.primaryChipTag || "spring handle",
+      responseDelay: config.responseDelay || 0,
       analytics: { enabled: false }
     };
 
@@ -190,25 +191,37 @@ async function installFakeAjax(page, options = {}) {
         const request = recordRequest("xhr", this.method || "GET", this.url || "", data);
         const activeTags = request.activeTags;
         const primaryChipTag = window.sschpConfig.primaryChipTag;
-        const activeClass = activeTags.some((tag) => tag.toLowerCase() === primaryChipTag.toLowerCase()) ? " ssc-chip--active" : "";
+        const isPrimaryActive = activeTags.some((tag) => tag.toLowerCase() === primaryChipTag.toLowerCase());
+        const activeClass = isPrimaryActive ? " ssc-chip--active" : "";
+        const pressed = isPrimaryActive ? "true" : "false";
+        const primaryAction = isPrimaryActive ? "Remove filter" : "Filter by";
 
-        this.status = 200;
-        this.readyState = 4;
-        this.responseText = `
-          <div class="ssc-chips">
-            <button type="button" class="ssc-chip${activeClass}" data-tag="${primaryChipTag}">${primaryChipTag} (4)</button>
-            <button type="button" class="ssc-chip" data-tag="trapped key interlock">trapped key interlock (2)</button>
-          </div>
-          <ul class="ssc-results">
-            <li class="ssc-result"><a href="#"><span class="ssc-result__title">Trapped Key Guard Door Interlock</span></a></li>
-          </ul>
-        `;
+        const complete = () => {
+          this.status = 200;
+          this.readyState = 4;
+          this.responseText = `
+            <div class="ssc-chips">
+              <button type="button" class="ssc-chip${activeClass}" data-tag="${primaryChipTag}" aria-pressed="${pressed}" aria-label="${primaryAction} ${primaryChipTag}, 4 results">${primaryChipTag} (4)</button>
+              <button type="button" class="ssc-chip" data-tag="trapped key interlock" aria-pressed="false" aria-label="Filter by trapped key interlock, 2 results">trapped key interlock (2)</button>
+            </div>
+            <ul class="ssc-results">
+              <li class="ssc-result"><a href="#"><span class="ssc-result__title">Trapped Key Guard Door Interlock</span></a></li>
+            </ul>
+          `;
 
-        if (typeof this.onreadystatechange === "function") {
-          this.onreadystatechange();
+          if (typeof this.onreadystatechange === "function") {
+            this.onreadystatechange();
+          }
+
+          this.dispatch("loadend");
+        };
+
+        if (window.sschpConfig.responseDelay > 0) {
+          window.setTimeout(complete, window.sschpConfig.responseDelay);
+          return;
         }
 
-        this.dispatch("loadend");
+        complete();
       }
 
       dispatch(type) {
@@ -259,6 +272,50 @@ async function activateHeaderChipAndResetRequests(page) {
 }
 
 test.describe("Multiple search box state", () => {
+  test("exposes chip controls with accessible names and pressed state", async ({ page }) => {
+    await installSearchFixture(page, {
+      responseDelay: 50
+    });
+
+    const first = page.getByTestId("first-search");
+    const input = first.locator(".ssc-search__input");
+    const results = first.locator(".ssc-search__results");
+
+    await expect(results).toHaveAttribute("aria-live", "polite");
+    await expect(results).toHaveAttribute("aria-busy", "false");
+
+    await input.fill("Trapped");
+    await input.dispatchEvent("input");
+
+    const chip = first.getByRole("button", { name: /Filter by spring handle, 4 results/i });
+    await expect(chip).toBeVisible();
+    await expect(chip).toHaveAttribute("aria-pressed", "false");
+
+    await chip.focus();
+    await chip.press("Enter");
+
+    const activeChip = first.getByRole("button", { name: /Remove filter spring handle, 4 results/i });
+    await expect(activeChip).toHaveAttribute("aria-pressed", "true");
+    await expect(activeChip).toBeFocused();
+  });
+
+  test("toggles aria-busy while AJAX results update", async ({ page }) => {
+    await installSearchFixture(page, {
+      responseDelay: 600
+    });
+
+    const first = page.getByTestId("first-search");
+    const input = first.locator(".ssc-search__input");
+    const results = first.locator(".ssc-search__results");
+
+    await input.fill("Trapped");
+    await input.dispatchEvent("input");
+
+    await expect(results).toHaveAttribute("aria-busy", "true");
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
+    await expect(results).toHaveAttribute("aria-busy", "false");
+  });
+
   test("runs live search for paste-style input events", async ({ page }) => {
     await installSearchFixture(page);
 

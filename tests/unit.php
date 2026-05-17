@@ -446,6 +446,17 @@ function sschp_test_frontend_get_field_value_normalizes_acf_relationship_posts()
     sschp_assert_same( 'Signal Beacon', $value, 'frontend mapped field reads should normalize ACF relationship post objects into titles' );
 }
 
+function sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_results() {
+    sschp_reset_test_state();
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $markup   = $frontend->render_search_form();
+
+    sschp_assert_contains( 'aria-label="Search"', $markup, 'shortcode search button should have an accessible label' );
+    sschp_assert_contains( 'aria-live="polite"', $markup, 'shortcode results container should politely announce AJAX updates' );
+    sschp_assert_contains( 'aria-busy="false"', $markup, 'shortcode results container should expose an initial not-busy state' );
+}
+
 function sschp_test_search_handler_normalizes_active_tags_case_insensitively() {
     $handler = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
 
@@ -472,6 +483,8 @@ function sschp_test_search_handler_render_chips_marks_case_insensitive_active_ta
 
     sschp_assert_contains( 'ssc-chip--active', $markup, 'AJAX chip rendering should mark mixed-case chips active from lower-case active values' );
     sschp_assert_contains( 'data-tag="Spring Handle"', $markup, 'AJAX chip rendering should preserve the stored chip value case' );
+    sschp_assert_contains( 'aria-pressed="true"', $markup, 'AJAX chip rendering should expose active chip state to assistive technology' );
+    sschp_assert_contains( 'aria-label="Remove filter Spring Handle, 2 results"', $markup, 'active AJAX chip labels should describe the remove action' );
 }
 
 function sschp_test_frontend_archive_filter_url_toggles_case_insensitively() {
@@ -576,6 +589,26 @@ function sschp_test_frontend_archive_markup_describes_current_page_scope() {
     $markup   = sschp_invoke_private( $frontend, 'get_archive_chips_markup', array( $query ) );
 
     sschp_assert_contains( 'currently loaded on this page', $markup, 'archive chip markup should describe current-page filtering scope' );
+}
+
+function sschp_test_frontend_archive_active_chip_has_current_state() {
+    global $sschp_test_query_vars;
+
+    sschp_reset_test_state();
+    $sschp_test_query_vars['sschp_tags'] = 'Alpha';
+
+    $posts = array(
+        sschp_make_frontend_post( 1, array( 'Alpha', 'Shared' ) ),
+        sschp_make_frontend_post( 2, array( 'Beta', 'Shared' ) ),
+        sschp_make_frontend_post( 3, array( 'Gamma', 'Shared' ) ),
+    );
+    $query = sschp_make_archive_query( $posts );
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $markup   = sschp_invoke_private( $frontend, 'get_archive_chips_markup', array( $query ) );
+
+    sschp_assert_contains( 'aria-current="true"', $markup, 'active archive chip links should expose current filter state' );
+    sschp_assert_contains( 'aria-label="Remove filter Alpha, 1 result"', $markup, 'active archive chip links should describe the remove action' );
 }
 
 function sschp_test_frontend_woocommerce_and_loop_do_not_render_archive_chips_twice() {
@@ -1214,6 +1247,7 @@ sschp_test_field_normalizer_handles_numeric_fields();
 sschp_test_field_normalizer_ignores_empty_null_and_plain_objects();
 sschp_test_search_handler_get_field_value_normalizes_acf_arrays();
 sschp_test_frontend_get_field_value_normalizes_acf_relationship_posts();
+sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_results();
 sschp_test_search_handler_normalizes_active_tags_case_insensitively();
 sschp_test_search_handler_render_chips_marks_case_insensitive_active_tag();
 sschp_test_frontend_archive_filter_url_toggles_case_insensitively();
@@ -1222,6 +1256,7 @@ sschp_test_frontend_archive_filters_multiple_tags_with_and_logic();
 sschp_test_frontend_archive_chip_toggle_removes_pagination_params();
 sschp_test_frontend_archive_clear_filters_restores_url_without_chip_params();
 sschp_test_frontend_archive_markup_describes_current_page_scope();
+sschp_test_frontend_archive_active_chip_has_current_state();
 sschp_test_frontend_woocommerce_and_loop_do_not_render_archive_chips_twice();
 sschp_test_frontend_block_theme_and_loop_do_not_render_archive_chips_twice();
 sschp_test_license_is_pro_false_without_freemius();

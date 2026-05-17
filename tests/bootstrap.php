@@ -40,6 +40,12 @@ if ( ! function_exists( '__' ) ) {
     }
 }
 
+if ( ! function_exists( '_n' ) ) {
+    function _n( $single, $plural, $number, $domain = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        return 1 === (int) $number ? $single : $plural;
+    }
+}
+
 if ( ! function_exists( 'sanitize_text_field' ) ) {
     function sanitize_text_field( $value ) {
         return trim( (string) $value );

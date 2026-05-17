@@ -205,13 +205,13 @@ class SSCHP_Frontend {
                        placeholder="<?php echo esc_attr( $atts['placeholder'] ); ?>"
                        autocomplete="off"
                        required />
-                <button type="submit" class="ssc-search__button">
+                <button type="submit" class="ssc-search__button" aria-label="<?php echo esc_attr__( 'Search', 'smart-search-chips' ); ?>">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                     </svg>
                 </button>
             </form>
-            <div class="ssc-search__results js-ssc-results"></div>
+            <div class="ssc-search__results js-ssc-results" aria-live="polite" aria-busy="false"></div>
         </div>
         <?php
         return ob_get_clean();
@@ -409,6 +409,23 @@ class SSCHP_Frontend {
             $is_active = $this->engine->is_tag_active( $value, $active_tags );
             $styles    = $this->get_chip_style_values( $is_active );
             $url       = $this->build_archive_filter_url( $value, $active_tags );
+            $count     = (int) $chip['count'];
+
+            if ( $is_active ) {
+                /* translators: 1: chip label, 2: matching result count. */
+                $aria_label = sprintf(
+                    _n( 'Remove filter %1$s, %2$d result', 'Remove filter %1$s, %2$d results', $count, 'smart-search-chips' ),
+                    $label,
+                    $count
+                );
+            } else {
+                /* translators: 1: chip label, 2: matching result count. */
+                $aria_label = sprintf(
+                    _n( 'Filter by %1$s, %2$d result', 'Filter by %1$s, %2$d results', $count, 'smart-search-chips' ),
+                    $label,
+                    $count
+                );
+            }
 
             $custom_html = apply_filters(
                 'sschp_render_chip_html',
@@ -428,10 +445,12 @@ class SSCHP_Frontend {
             }
 
             printf(
-                '<a class="ssc-chip%s" href="%s" data-tag="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;text-decoration:none;">%s (%d)</a>',
+                '<a class="ssc-chip%s" href="%s" data-tag="%s"%s aria-label="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;text-decoration:none;">%s (%d)</a>',
                 $is_active ? ' ssc-chip--active' : '',
                 esc_url( $url ),
                 esc_attr( $value ),
+                $is_active ? ' aria-current="true"' : '',
+                esc_attr( $aria_label ),
                 esc_attr( $styles['background'] ),
                 esc_attr( $styles['color'] ),
                 esc_attr( $styles['border'] ),
@@ -440,7 +459,7 @@ class SSCHP_Frontend {
                 esc_attr( $styles['pad_y'] ),
                 esc_attr( $styles['pad_x'] ),
                 esc_html( $label ),
-                (int) $chip['count']
+                $count
             );
         }
         echo '</div>';
@@ -476,10 +495,12 @@ class SSCHP_Frontend {
                 'class' => true,
             ),
             'a'      => array(
-                'class'    => true,
-                'href'     => true,
-                'data-tag' => true,
-                'style'    => true,
+                'class'        => true,
+                'href'         => true,
+                'data-tag'     => true,
+                'aria-current' => true,
+                'aria-label'   => true,
+                'style'        => true,
             ),
             'span'   => array(
                 'class'           => true,

@@ -551,6 +551,23 @@ class SSCHP_Search_Handler {
             $bg        = $is_active ? esc_attr( $color ) : esc_attr( $inactive_color );
             $fg        = $is_active ? esc_attr( $text_color ) : esc_attr( $inactive_text );
             $border    = esc_attr( $color );
+            $count     = (int) $chip['count'];
+
+            if ( $is_active ) {
+                /* translators: 1: chip label, 2: matching result count. */
+                $aria_label = sprintf(
+                    _n( 'Remove filter %1$s, %2$d result', 'Remove filter %1$s, %2$d results', $count, 'smart-search-chips' ),
+                    $chip['label'],
+                    $count
+                );
+            } else {
+                /* translators: 1: chip label, 2: matching result count. */
+                $aria_label = sprintf(
+                    _n( 'Filter by %1$s, %2$d result', 'Filter by %1$s, %2$d results', $count, 'smart-search-chips' ),
+                    $chip['label'],
+                    $count
+                );
+            }
 
             $custom_html = apply_filters(
                 'sschp_render_chip_html',
@@ -577,14 +594,16 @@ class SSCHP_Search_Handler {
             }
 
             printf(
-                '<button type="button" class="ssc-chip%s" data-tag="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;">%s (%d)</button>',
+                '<button type="button" class="ssc-chip%s" data-tag="%s" aria-pressed="%s" aria-label="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;">%s (%d)</button>',
                 $is_active ? ' ssc-chip--active' : '',
                 esc_attr( $value ),
+                $is_active ? 'true' : 'false',
+                esc_attr( $aria_label ),
                 esc_attr( $bg ), esc_attr( $fg ), esc_attr( $border ),
                 esc_attr( $radius ), esc_attr( $font_size ),
                 esc_attr( $pad_y ), esc_attr( $pad_x ),
                 esc_html( $chip['label'] ),
-                (int) $chip['count']
+                $count
             );
         }
 
@@ -628,10 +647,12 @@ class SSCHP_Search_Handler {
                     'aria-label'      => true,
                 ),
                 'button' => array(
-                    'class'    => true,
-                    'type'     => true,
-                    'data-tag' => true,
-                    'style'    => true,
+                    'class'        => true,
+                    'type'         => true,
+                    'data-tag'     => true,
+                    'aria-pressed' => true,
+                    'aria-label'   => true,
+                    'style'        => true,
                 ),
             )
         );

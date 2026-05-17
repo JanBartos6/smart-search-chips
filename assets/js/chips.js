@@ -196,7 +196,8 @@
                 activeTags: [],
                 debounceTimer: null,
                 lastQuery: "",
-                lastResultsContainer: null
+                lastResultsContainer: null,
+                pendingFocusTag: ""
             });
         }
 
@@ -239,16 +240,65 @@
         return isSearchInput(active) ? active : null;
     }
 
-    function markSearchUiActive(input, resultsContainer) {
-        if (input && typeof input.focus === "function" && document.activeElement !== input) {
-            try {
-                input.focus({ preventScroll: true });
-            } catch (error) {
-                input.focus();
+    function ensureResultsAccessibility(resultsContainer) {
+        if (!resultsContainer) {
+            return;
+        }
+
+        if (!resultsContainer.hasAttribute("aria-live")) {
+            resultsContainer.setAttribute("aria-live", "polite");
+        }
+
+        if (!resultsContainer.hasAttribute("aria-busy")) {
+            resultsContainer.setAttribute("aria-busy", "false");
+        }
+    }
+
+    function setResultsBusy(resultsContainer, isBusy) {
+        if (!resultsContainer) {
+            return;
+        }
+
+        ensureResultsAccessibility(resultsContainer);
+        resultsContainer.setAttribute("aria-busy", isBusy ? "true" : "false");
+    }
+
+    function focusWithoutScroll(el) {
+        if (!el || typeof el.focus !== "function") {
+            return false;
+        }
+
+        try {
+            el.focus({ preventScroll: true });
+        } catch (error) {
+            el.focus();
+        }
+
+        return true;
+    }
+
+    function restoreChipFocus(resultsContainer, tag) {
+        if (!resultsContainer || !tag) {
+            return false;
+        }
+
+        var chips = safeQuerySelectorAll(resultsContainer, ".ssc-chip[data-tag]");
+        for (var i = 0; i < chips.length; i++) {
+            if (normalizeTag(chips[i].getAttribute("data-tag")) === normalizeTag(tag)) {
+                return focusWithoutScroll(chips[i]);
             }
         }
 
+        return false;
+    }
+
+    function markSearchUiActive(input, resultsContainer) {
+        if (input && document.activeElement !== input) {
+            focusWithoutScroll(input);
+        }
+
         if (resultsContainer && resultsContainer.classList) {
+            ensureResultsAccessibility(resultsContainer);
             resultsContainer.classList.add("ssc-search-active");
             resultsContainer.style.display = "";
             resultsContainer.removeAttribute("hidden");
@@ -274,6 +324,7 @@
 
         if (resultsContainer && resultsContainer.classList) {
             resultsContainer.classList.remove("ssc-loading");
+            setResultsBusy(resultsContainer, false);
             resultsContainer.classList.remove("ssc-search-active");
             resultsContainer.innerHTML = "";
             resultsContainer.style.display = "none";
@@ -437,6 +488,7 @@
         // Show loading
         if (resultsContainer) {
             resultsContainer.classList.add("ssc-loading");
+            setResultsBusy(resultsContainer, true);
         }
 
         debugLog("Shortcode AJAX request prepared", {
@@ -477,10 +529,18 @@
             if (xhr.readyState === 4) {
                 if (resultsContainer) {
                     resultsContainer.classList.remove("ssc-loading");
+                    setResultsBusy(resultsContainer, false);
                 }
                 if (xhr.status === 200 && resultsContainer) {
                     resultsContainer.innerHTML = xhr.responseText;
                     markSearchUiActive(input, resultsContainer);
+
+                    if (state.pendingFocusTag) {
+                        restoreChipFocus(resultsContainer, state.pendingFocusTag);
+                        state.pendingFocusTag = "";
+                    }
+                } else if (xhr.status !== 200) {
+                    state.pendingFocusTag = "";
                 }
 
                 if (xhr.status === 200) {
@@ -561,6 +621,7 @@
         }
 
         if (results) {
+            ensureResultsAccessibility(results);
             return results;
         }
 
@@ -622,6 +683,10 @@
             }
         }
 
+        if (tag && meta && meta.preserveFocus) {
+            state.pendingFocusTag = tag;
+        }
+
         doSearch(input, results, {
             trigger: "chip",
             chipLabel: meta && meta.chipLabel ? meta.chipLabel : tag
@@ -675,7 +740,7 @@
             e.stopImmediatePropagation();
         }
 
-        applyTagSelection(chip, tag, {}, { chipLabel: tag });
+        applyTagSelection(chip, tag, {}, { chipLabel: tag, preserveFocus: true });
     }
 
     /**
