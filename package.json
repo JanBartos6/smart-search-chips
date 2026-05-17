@@ -5,6 +5,7 @@
     "build:release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-release.ps1 -Target all",
     "build:pro": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-release.ps1 -Target pro",
     "build:wporg": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-release.ps1 -Target wporg",
+    "test:unit": "php tests/unit.php",
     "validate:wporg": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/validate-wporg.ps1",
     "local:wp:start": "docker compose -f ./local-wp/compose.yml up -d db wordpress && docker compose -f ./local-wp/compose.yml run --rm wpcli sh /seed/seed.sh",
     "local:wp:seed": "docker compose -f ./local-wp/compose.yml run --rm wpcli sh /seed/seed.sh",
