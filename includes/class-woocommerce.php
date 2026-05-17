@@ -24,6 +24,7 @@ class SSCHP_WooCommerce {
         }
 
         // Auto-populate hidden generated tags when a product is saved.
+        add_action( 'save_post_product', array( $this, 'invalidate_product_tag_cache' ), 5, 1 );
         add_action( 'save_post_product', array( $this, 'auto_populate_tags' ), 20, 2 );
         add_filter( 'sschp_post_tag_source', array( $this, 'add_runtime_product_tags' ), 10, 3 );
 
@@ -55,6 +56,7 @@ class SSCHP_WooCommerce {
 
         $tags = $this->extract_product_tags( $post_id );
         $this->store_generated_tags( $post_id, $tags );
+        $this->invalidate_product_tag_cache( $post_id );
     }
 
     /**
@@ -183,7 +185,7 @@ class SSCHP_WooCommerce {
         $tags    = $this->get_generated_tags( $post_id );
 
         if ( empty( $tags ) ) {
-            $tags = $this->extract_product_tags( $post_id );
+            $tags = $this->get_cached_product_tags( $post_id );
         }
 
         if ( empty( $tags ) ) {
@@ -215,6 +217,7 @@ class SSCHP_WooCommerce {
      */
     private function store_generated_tags( $post_id, $tags ) {
         $tags = $this->normalize_tags( $tags );
+        $this->invalidate_product_tag_cache( $post_id );
 
         if ( empty( $tags ) ) {
             delete_post_meta( $post_id, self::GENERATED_META_KEY );
@@ -232,6 +235,61 @@ class SSCHP_WooCommerce {
      */
     private function get_generated_tags( $post_id ) {
         return $this->parse_tag_string( get_post_meta( $post_id, self::GENERATED_META_KEY, true ) );
+    }
+
+    /**
+     * Read product-derived tags from a short-lived cache or extract them.
+     *
+     * @param int $post_id Product ID.
+     * @return array
+     */
+    private function get_cached_product_tags( $post_id ) {
+        $post_id = absint( $post_id );
+        if ( $post_id <= 0 ) {
+            return array();
+        }
+
+        $cache_key = $this->get_product_tag_cache_key( $post_id );
+        $cached    = get_transient( $cache_key );
+        if ( is_array( $cached ) ) {
+            return $cached;
+        }
+
+        $tags = $this->extract_product_tags( $post_id );
+        set_transient(
+            $cache_key,
+            $tags,
+            max( 60, (int) apply_filters( 'sschp_woocommerce_product_tags_cache_ttl', HOUR_IN_SECONDS, $post_id ) )
+        );
+
+        return $tags;
+    }
+
+    /**
+     * Delete cached runtime product tags after product changes.
+     *
+     * @param int $post_id Product ID.
+     * @return void
+     */
+    public function invalidate_product_tag_cache( $post_id ) {
+        $post_id = absint( $post_id );
+        if ( $post_id <= 0 ) {
+            return;
+        }
+
+        delete_transient( $this->get_product_tag_cache_key( $post_id ) );
+    }
+
+    /**
+     * Build a product tag cache key.
+     *
+     * @param int $post_id Product ID.
+     * @return string
+     */
+    private function get_product_tag_cache_key( $post_id ) {
+        $sku_mode = get_option( 'sschp_woo_include_sku', '0' ) === '1' ? 'sku1' : 'sku0';
+
+        return 'sschp_product_tags_' . absint( $post_id ) . '_' . $sku_mode;
     }
 
     /**
@@ -368,9 +426,11 @@ class SSCHP_WooCommerce {
             $tags = $this->extract_product_tags( $post_id );
             if ( ! empty( $tags ) ) {
                 $this->store_generated_tags( $post_id, $tags );
+                $this->invalidate_product_tag_cache( $post_id );
                 $count++;
             } else {
                 $this->store_generated_tags( $post_id, array() );
+                $this->invalidate_product_tag_cache( $post_id );
             }
         }
 

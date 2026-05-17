@@ -113,6 +113,8 @@ function sschp_activate() {
         'sschp_result_image_size'         => 'medium',
         'sschp_result_image_display_size' => '',
         'sschp_search_results_count'     => 50,
+        'sschp_debounce_ms'              => 300,
+        'sschp_cache_version'            => '1',
         'sschp_delete_data_on_uninstall' => '0',
     );
 
@@ -157,6 +159,8 @@ function sschp_get_option_keys() {
         'sschp_result_image_size',
         'sschp_result_image_display_size',
         'sschp_search_results_count',
+        'sschp_debounce_ms',
+        SSCHP_Search_Handler::CACHE_VERSION_OPTION,
         'sschp_delete_data_on_uninstall',
         SSCHP_Search_Index::DB_VERSION_OPTION,
         SSCHP_Search_Index::STATUS_OPTION,

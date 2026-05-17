@@ -15,6 +15,7 @@
     var searchStates = new WeakMap();
     var selectorWarnings = {};
     var DEBOUNCE_MS = 300;
+    var SEARCH_EVENT_DEDUP_MS = 1000;
     var IMPRESSION_DEDUP_MS = 10000;
     var VISITOR_STORAGE_KEY = "sschp_visitor_id";
     var DEFAULT_INPUT_SELECTOR = '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]';
@@ -213,12 +214,27 @@
                 lastQuery: "",
                 lastResultsContainer: null,
                 pendingFocusTag: "",
+                currentXhr: null,
+                requestId: 0,
+                lastRenderedHtml: "",
+                lastSearchEventKey: "",
+                lastSearchEventAt: 0,
                 lastImpressionKey: "",
                 lastImpressionAt: 0
             });
         }
 
         return searchStates.get(root);
+    }
+
+    function getDebounceMs() {
+        var value = parseInt(config.debounceMs, 10);
+
+        if (isNaN(value)) {
+            value = DEBOUNCE_MS;
+        }
+
+        return Math.max(50, Math.min(2000, value));
     }
 
     function normalizeTag(tag) {
@@ -335,6 +351,16 @@
         clearTimeout(state.debounceTimer);
         state.debounceTimer = null;
 
+        if (state.currentXhr && state.currentXhr.readyState !== 4) {
+            try {
+                state.currentXhr.abort();
+            } catch (error) {
+                // Ignore abort failures from mocked or legacy transports.
+            }
+        }
+        state.currentXhr = null;
+        state.requestId += 1;
+
         if (resultsContainer) {
             state.lastResultsContainer = resultsContainer;
         }
@@ -344,6 +370,7 @@
             setResultsBusy(resultsContainer, false);
             resultsContainer.classList.remove("ssc-search-active");
             resultsContainer.innerHTML = "";
+            state.lastRenderedHtml = "";
             resultsContainer.style.display = "none";
             resultsContainer.setAttribute("hidden", "hidden");
             resultsContainer.setAttribute("aria-hidden", "true");
@@ -507,6 +534,21 @@
         return true;
     }
 
+    function shouldTrackSearchEvent(query, resultCount, source) {
+        var state = getState(source || document.documentElement);
+        var key = String(query || "") + "|" + String(resultCount) + "|" + state.activeTags.map(normalizeTag).sort().join("|");
+        var now = Date.now ? Date.now() : new Date().getTime();
+
+        if (state.lastSearchEventKey === key && now - state.lastSearchEventAt < SEARCH_EVENT_DEDUP_MS) {
+            return false;
+        }
+
+        state.lastSearchEventKey = key;
+        state.lastSearchEventAt = now;
+
+        return true;
+    }
+
     function trackChipImpressions(labels, context, source) {
         if (!labels || !labels.length || !analyticsEnabled()) {
             return;
@@ -570,6 +612,16 @@
 
         state.lastQuery = input.value;
         state.lastResultsContainer = resultsContainer || null;
+        state.requestId += 1;
+        var requestId = state.requestId;
+
+        if (state.currentXhr && state.currentXhr.readyState !== 4) {
+            try {
+                state.currentXhr.abort();
+            } catch (error) {
+                // Ignore abort failures from mocked or legacy transports.
+            }
+        }
 
         // Show loading
         if (resultsContainer) {
@@ -607,18 +659,28 @@
         });
 
         var xhr = new XMLHttpRequest();
+        state.currentXhr = xhr;
         xhr._sscManagedRequest = true;
         xhr.open("POST", getConfiguredAjaxUrl(), true);
         xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
 
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4) {
+                if (requestId !== state.requestId) {
+                    return;
+                }
+
+                state.currentXhr = null;
+
                 if (resultsContainer) {
                     resultsContainer.classList.remove("ssc-loading");
                     setResultsBusy(resultsContainer, false);
                 }
                 if (xhr.status === 200 && resultsContainer) {
-                    resultsContainer.innerHTML = xhr.responseText;
+                    if (state.lastRenderedHtml !== xhr.responseText) {
+                        resultsContainer.innerHTML = xhr.responseText;
+                        state.lastRenderedHtml = xhr.responseText;
+                    }
                     markSearchUiActive(input, resultsContainer);
 
                     if (state.pendingFocusTag) {
@@ -635,11 +697,13 @@
                         resultCount = -1;
                     }
 
-                    trackEvent({
-                        eventType: "search",
-                        searchQuery: input.value,
-                        resultCount: resultCount
-                    }, input);
+                    if (shouldTrackSearchEvent(input.value, resultCount, input)) {
+                        trackEvent({
+                            eventType: "search",
+                            searchQuery: input.value,
+                            resultCount: resultCount
+                        }, input);
+                    }
 
                     if (resultsContainer) {
                         var visibleChips = Array.prototype.map.call(
@@ -667,6 +731,13 @@
             }
         };
 
+        xhr.onabort = function () {
+            if (requestId === state.requestId && resultsContainer) {
+                resultsContainer.classList.remove("ssc-loading");
+                setResultsBusy(resultsContainer, false);
+            }
+        };
+
         xhr.send(formData);
     }
 
@@ -679,7 +750,7 @@
         state.debounceTimer = setTimeout(function () {
             state.debounceTimer = null;
             doSearch(input, resultsContainer, { trigger: "search" });
-        }, DEBOUNCE_MS);
+        }, getDebounceMs());
     }
 
     /**

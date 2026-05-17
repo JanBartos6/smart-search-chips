@@ -11,6 +11,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SSCHP_Search_Handler {
 
+    const CACHE_GROUP          = 'smart-search-chips';
+    const CACHE_VERSION_OPTION = 'sschp_cache_version';
+    const DEFAULT_CACHE_TTL    = 300;
+
     /** @var SSCHP_Chip_Engine */
     private $engine;
 
@@ -43,6 +47,10 @@ class SSCHP_Search_Handler {
         // Always register our own action
         add_action( 'wp_ajax_sschp_search', array( $this, 'handle_search' ) );
         add_action( 'wp_ajax_nopriv_sschp_search', array( $this, 'handle_search' ) );
+
+        add_action( 'save_post', array( $this, 'handle_cache_post_changed' ), 70, 3 );
+        add_action( 'deleted_post', array( $this, 'handle_cache_post_deleted' ) );
+        add_action( 'updated_option', array( $this, 'handle_cache_option_changed' ), 20, 3 );
     }
 
     /**
@@ -70,10 +78,10 @@ class SSCHP_Search_Handler {
         SSCHP_Language::switch_ajax_language( $language );
 
         $post_types     = $this->normalize_post_types( $this->settings->get( 'post_types', array( 'post' ) ) );
-        $max_results    = (int) $this->settings->get( 'search_results_count', 50 );
+        $max_results    = $this->limit_analyzed_results( (int) $this->settings->get( 'search_results_count', 50 ) );
         $threshold_pct  = (float) $this->settings->get( 'relevance_threshold', 0.3 );
         $max_tag_length = (int) $this->settings->get( 'max_tag_length', 40 );
-        $display_count  = (int) $this->settings->get( 'max_results', 10 );
+        $display_count  = $this->limit_rendered_results( (int) $this->settings->get( 'max_results', 10 ) );
 
         $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_License::max_chips() );
 
@@ -86,15 +94,13 @@ class SSCHP_Search_Handler {
         }
 
         // Filter by active tags
-        if ( ! empty( $active_tags ) ) {
-            $posts_data = $this->engine->filter_by_tags( $posts_data, $active_tags );
-        }
+        $posts_data = $this->get_cached_filtered_posts( $posts_data, $active_tags );
 
         $total = count( $posts_data );
         header( 'X-SSC-Results-Count: ' . (int) $total );
 
         // Generate chips
-        $chips = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_tag_length );
+        $chips = $this->get_cached_chips( $posts_data, $active_tags, $max_chips, $max_tag_length );
 
         // Allow themes/plugins to modify chips
         $chips = apply_filters( 'sschp_chips', $chips, $posts_data, $active_tags );
@@ -120,6 +126,40 @@ class SSCHP_Search_Handler {
      * @return array
      */
     private function get_posts_data_for_keyword( $keyword, $post_types, $active_tags, $language, $max_results, $threshold_pct ) {
+        $cache_key = $this->build_cache_key(
+            'search',
+            array(
+                'keyword'       => $keyword,
+                'post_types'    => array_values( (array) $post_types ),
+                'active_tags'   => $this->normalize_cache_tags( $active_tags ),
+                'language'      => $language,
+                'max_results'   => $max_results,
+                'threshold_pct' => $threshold_pct,
+            )
+        );
+        $cached = $this->cache_get( $cache_key );
+        if ( is_array( $cached ) ) {
+            return $cached;
+        }
+
+        $posts_data = $this->query_posts_data_for_keyword( $keyword, $post_types, $active_tags, $language, $max_results, $threshold_pct );
+        $this->cache_set( $cache_key, $posts_data );
+
+        return $posts_data;
+    }
+
+    /**
+     * Query post data without cache.
+     *
+     * @param string $keyword       Search keyword.
+     * @param array  $post_types    Post types.
+     * @param array  $active_tags   Active tags.
+     * @param string $language      Language code.
+     * @param int    $max_results   Search result limit.
+     * @param float  $threshold_pct Relevance threshold.
+     * @return array
+     */
+    private function query_posts_data_for_keyword( $keyword, $post_types, $active_tags, $language, $max_results, $threshold_pct ) {
         if (
             $this->search_index
             && apply_filters( 'sschp_use_search_index', true, $keyword, $post_types, $language )
@@ -185,6 +225,295 @@ class SSCHP_Search_Handler {
         }
 
         return $this->collect_posts_data( $relevant_posts );
+    }
+
+    /**
+     * Return filtered posts from cache when possible.
+     *
+     * @param array $posts_data  Base posts data.
+     * @param array $active_tags Active tags.
+     * @return array
+     */
+    private function get_cached_filtered_posts( $posts_data, $active_tags ) {
+        if ( empty( $active_tags ) ) {
+            return $posts_data;
+        }
+
+        $cache_key = $this->build_cache_key(
+            'filtered',
+            array(
+                'posts'       => $this->posts_data_signature( $posts_data ),
+                'active_tags' => $this->normalize_cache_tags( $active_tags ),
+            )
+        );
+        $cached = $this->cache_get( $cache_key );
+        if ( is_array( $cached ) ) {
+            return $cached;
+        }
+
+        $filtered = $this->engine->filter_by_tags( $posts_data, $active_tags );
+        $this->cache_set( $cache_key, $filtered );
+
+        return $filtered;
+    }
+
+    /**
+     * Return generated chips from cache when possible.
+     *
+     * @param array $posts_data    Posts data.
+     * @param array $active_tags   Active tags.
+     * @param int   $max_chips     Max chips.
+     * @param int   $max_tag_length Max tag length.
+     * @return array
+     */
+    private function get_cached_chips( $posts_data, $active_tags, $max_chips, $max_tag_length ) {
+        $cache_key = $this->build_cache_key(
+            'chips',
+            array(
+                'posts'          => $this->posts_data_signature( $posts_data ),
+                'active_tags'    => $this->normalize_cache_tags( $active_tags ),
+                'max_chips'      => (int) $max_chips,
+                'max_tag_length' => (int) $max_tag_length,
+            )
+        );
+        $cached = $this->cache_get( $cache_key );
+        if ( is_array( $cached ) ) {
+            return $cached;
+        }
+
+        $chips = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_tag_length );
+        $this->cache_set( $cache_key, $chips );
+
+        return $chips;
+    }
+
+    /**
+     * Create a stable signature for post data used by chip/filter caches.
+     *
+     * @param array $posts_data Posts data.
+     * @return string
+     */
+    private function posts_data_signature( $posts_data ) {
+        $signature = array();
+
+        foreach ( (array) $posts_data as $post ) {
+            $signature[] = array(
+                'id'    => isset( $post['id'] ) ? absint( $post['id'] ) : 0,
+                'tags'  => isset( $post['tags'] ) ? array_values( (array) $post['tags'] ) : array(),
+                'keys'  => isset( $post['tags_lower'] ) ? array_values( (array) $post['tags_lower'] ) : array(),
+                'score' => isset( $post['score'] ) ? (float) $post['score'] : 0,
+            );
+        }
+
+        return md5( wp_json_encode( $signature ) );
+    }
+
+    /**
+     * Normalize active tags for cache keys without changing display labels.
+     *
+     * @param array $active_tags Active tags.
+     * @return array
+     */
+    private function normalize_cache_tags( $active_tags ) {
+        $tags = array();
+
+        foreach ( (array) $active_tags as $tag ) {
+            $key = mb_strtolower( trim( (string) $tag ) );
+            if ( '' !== $key ) {
+                $tags[ $key ] = $key;
+            }
+        }
+
+        ksort( $tags );
+
+        return array_values( $tags );
+    }
+
+    /**
+     * Build a versioned cache key.
+     *
+     * @param string $scope Cache scope.
+     * @param array  $data  Cache key data.
+     * @return string
+     */
+    private function build_cache_key( $scope, $data ) {
+        $payload = array(
+            'scope'   => sanitize_key( $scope ),
+            'version' => $this->get_cache_version(),
+            'data'    => $data,
+        );
+
+        return 'sschp_' . sanitize_key( $scope ) . '_' . md5( wp_json_encode( $payload ) );
+    }
+
+    /**
+     * Read the current search cache version.
+     *
+     * @return string
+     */
+    private function get_cache_version() {
+        $version = get_option( self::CACHE_VERSION_OPTION, '' );
+
+        return '' !== (string) $version ? (string) $version : '1';
+    }
+
+    /**
+     * Get a cached value from object cache or transient fallback.
+     *
+     * @param string $key Cache key.
+     * @return mixed
+     */
+    private function cache_get( $key ) {
+        if ( $this->use_object_cache() ) {
+            return wp_cache_get( $key, self::CACHE_GROUP );
+        }
+
+        return get_transient( $key );
+    }
+
+    /**
+     * Store a cached value.
+     *
+     * @param string $key   Cache key.
+     * @param mixed  $value Value.
+     * @return void
+     */
+    private function cache_set( $key, $value ) {
+        $ttl = max( 30, (int) apply_filters( 'sschp_search_cache_ttl', self::DEFAULT_CACHE_TTL, $key, $value ) );
+
+        if ( $this->use_object_cache() ) {
+            wp_cache_set( $key, $value, self::CACHE_GROUP, $ttl );
+            return;
+        }
+
+        set_transient( $key, $value, $ttl );
+    }
+
+    /**
+     * Determine whether a persistent object cache should be used.
+     *
+     * @return bool
+     */
+    private function use_object_cache() {
+        return function_exists( 'wp_using_ext_object_cache' )
+            && wp_using_ext_object_cache()
+            && function_exists( 'wp_cache_get' )
+            && function_exists( 'wp_cache_set' );
+    }
+
+    /**
+     * Invalidate all search/chip caches by bumping the version.
+     *
+     * @param string $reason Reason for diagnostics.
+     * @return void
+     */
+    public function bump_cache_version( $reason = '' ) {
+        $version = function_exists( 'wp_generate_uuid4' )
+            ? microtime( true ) . '-' . wp_generate_uuid4()
+            : (string) microtime( true );
+
+        update_option( self::CACHE_VERSION_OPTION, $version, false );
+        do_action( 'sschp_search_cache_invalidated', $reason, $version );
+    }
+
+    /**
+     * Invalidate cache when content changes.
+     *
+     * @param int         $post_id Post ID.
+     * @param WP_Post|null $post   Post object.
+     * @param bool        $update  Whether this is an existing post update.
+     */
+    public function handle_cache_post_changed( $post_id, $post = null, $update = null ) {
+        $post_id = absint( $post_id );
+        if ( $post_id <= 0 ) {
+            return;
+        }
+
+        if ( function_exists( 'wp_is_post_revision' ) && wp_is_post_revision( $post_id ) ) {
+            return;
+        }
+
+        if ( function_exists( 'wp_is_post_autosave' ) && wp_is_post_autosave( $post_id ) ) {
+            return;
+        }
+
+        $this->bump_cache_version( 'post_changed' );
+    }
+
+    /**
+     * Invalidate cache when content is deleted.
+     *
+     * @param int $post_id Post ID.
+     */
+    public function handle_cache_post_deleted( $post_id ) {
+        if ( absint( $post_id ) > 0 ) {
+            $this->bump_cache_version( 'post_deleted' );
+        }
+    }
+
+    /**
+     * Invalidate cache when relevant settings change.
+     *
+     * @param string $option    Option name.
+     * @param mixed  $old_value Old value.
+     * @param mixed  $value     New value.
+     */
+    public function handle_cache_option_changed( $option, $old_value, $value ) {
+        if ( $old_value === $value || self::CACHE_VERSION_OPTION === $option ) {
+            return;
+        }
+
+        if ( in_array( $option, $this->get_cache_sensitive_options(), true ) ) {
+            $this->bump_cache_version( 'settings_changed' );
+        }
+    }
+
+    /**
+     * Options that affect search result or chip output.
+     *
+     * @return array
+     */
+    private function get_cache_sensitive_options() {
+        return array(
+            'sschp_post_types',
+            'sschp_tag_fields',
+            'sschp_extra_fields',
+            'sschp_max_chips',
+            'sschp_max_results',
+            'sschp_relevance_threshold',
+            'sschp_max_tag_length',
+            'sschp_search_results_count',
+            'sschp_woo_enabled',
+            'sschp_woo_include_sku',
+            'sschp_synonym_rules',
+            'sschp_pinned_chips',
+            'sschp_hidden_chips',
+            'sschp_renamed_chips',
+        );
+    }
+
+    /**
+     * Clamp analyzed results to a hard performance cap.
+     *
+     * @param int $value Requested value.
+     * @return int
+     */
+    private function limit_analyzed_results( $value ) {
+        $cap = max( 5, (int) apply_filters( 'sschp_hard_analyzed_results_cap', 200 ) );
+
+        return max( 1, min( $cap, (int) $value ) );
+    }
+
+    /**
+     * Clamp rendered results to a hard performance cap.
+     *
+     * @param int $value Requested value.
+     * @return int
+     */
+    private function limit_rendered_results( $value ) {
+        $cap = max( 1, (int) apply_filters( 'sschp_hard_rendered_results_cap', 100 ) );
+
+        return max( 1, min( $cap, (int) $value ) );
     }
 
     /**

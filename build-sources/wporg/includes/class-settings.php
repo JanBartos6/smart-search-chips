@@ -63,6 +63,7 @@ class SSCHP_Settings {
         register_setting( 'smart-search-chips', 'sschp_chip_inactive_text_color', array( 'sanitize_callback' => array( $this, 'sanitize_hex_color_setting' ) ) );
         register_setting( 'smart-search-chips', 'sschp_max_results', array( 'sanitize_callback' => array( $this, 'sanitize_max_results' ) ) );
         register_setting( 'smart-search-chips', 'sschp_search_results_count', array( 'sanitize_callback' => array( $this, 'sanitize_search_results_count' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_debounce_ms', array( 'sanitize_callback' => array( $this, 'sanitize_debounce_ms' ) ) );
         register_setting( 'smart-search-chips', 'sschp_relevance_threshold', array( 'sanitize_callback' => array( $this, 'sanitize_relevance_threshold' ) ) );
         register_setting( 'smart-search-chips', 'sschp_chip_radius', array( 'sanitize_callback' => array( $this, 'sanitize_chip_radius' ) ) );
         register_setting( 'smart-search-chips', 'sschp_chip_font_size', array( 'sanitize_callback' => array( $this, 'sanitize_chip_font_size' ) ) );
@@ -404,6 +405,9 @@ class SSCHP_Settings {
         $chip_pad_x           = $this->get_numeric_option_value( 'sschp_chip_padding_x', 12, 0 );
         $chip_pad_y           = $this->get_numeric_option_value( 'sschp_chip_padding_y', 4, 0 );
         $delete_on_uninstall  = get_option( 'sschp_delete_data_on_uninstall', '0' );
+        $render_limit         = $this->get_numeric_option_value( 'sschp_max_results', 10, 1 );
+        $analyze_limit        = $this->get_numeric_option_value( 'sschp_search_results_count', 50, 5 );
+        $debounce_ms          = $this->get_numeric_option_value( 'sschp_debounce_ms', 300, 50 );
         $data_deleted         = get_transient( 'sschp_data_deleted_' . get_current_user_id() );
         if ( $data_deleted ) {
             delete_transient( 'sschp_data_deleted_' . get_current_user_id() );
@@ -511,8 +515,9 @@ class SSCHP_Settings {
                         <div class="ssc-settings-card">
                             <h2><?php esc_html_e( 'Results', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
-                                <tr><th><?php esc_html_e( 'Results Shown', 'smart-search-chips' ); ?></th><td><input type="number" name="sschp_max_results" value="<?php echo esc_attr( get_option( 'sschp_max_results', '10' ) ); ?>" class="small-text" min="1" /></td></tr>
-                                <tr><th><?php esc_html_e( 'Results to Analyze', 'smart-search-chips' ); ?></th><td><input type="number" name="sschp_search_results_count" value="<?php echo esc_attr( get_option( 'sschp_search_results_count', '50' ) ); ?>" class="small-text" min="5" /><p class="description"><?php esc_html_e( 'More results can produce better chips but may be slower. Recommended: 50.', 'smart-search-chips' ); ?></p></td></tr>
+                                <tr><th><?php esc_html_e( 'Results Shown', 'smart-search-chips' ); ?></th><td><input type="number" name="sschp_max_results" value="<?php echo esc_attr( $render_limit ); ?>" class="small-text" min="1" max="100" /><?php if ( $render_limit > 50 ) : ?><p class="description notice-warning"><?php esc_html_e( 'High render limits can make live search feel slow. Keep this near 10-20 unless the theme really needs more visible results.', 'smart-search-chips' ); ?></p><?php endif; ?></td></tr>
+                                <tr><th><?php esc_html_e( 'Results to Analyze', 'smart-search-chips' ); ?></th><td><input type="number" name="sschp_search_results_count" value="<?php echo esc_attr( $analyze_limit ); ?>" class="small-text" min="5" max="200" /><p class="description"><?php esc_html_e( 'More results can produce better chips but may be slower. Recommended: 50.', 'smart-search-chips' ); ?></p><?php if ( $analyze_limit > 100 ) : ?><p class="description notice-warning"><?php esc_html_e( 'High analysis limits can be expensive on large catalogs. Use Relevanssi or the local index before raising this.', 'smart-search-chips' ); ?></p><?php endif; ?></td></tr>
+                                <tr><th><?php esc_html_e( 'Live Search Debounce', 'smart-search-chips' ); ?></th><td><input type="number" name="sschp_debounce_ms" value="<?php echo esc_attr( $debounce_ms ); ?>" class="small-text" min="50" max="2000" step="50" /> ms<p class="description"><?php esc_html_e( 'Delay before live search runs while typing. Lower feels faster; higher reduces server load. Recommended: 300 ms.', 'smart-search-chips' ); ?></p></td></tr>
                                 <tr><th><?php esc_html_e( 'Relevance Threshold', 'smart-search-chips' ); ?></th><td><input type="range" name="sschp_relevance_threshold" value="<?php echo esc_attr( get_option( 'sschp_relevance_threshold', '0.3' ) ); ?>" min="0" max="1" step="0.05" /><span class="ssc-range-val"><?php echo esc_html( get_option( 'sschp_relevance_threshold', '0.3' ) ); ?></span><p class="description"><?php esc_html_e( 'Requires Relevanssi. 0 = all results, 1 = exact matches only.', 'smart-search-chips' ); ?></p></td></tr>
                             </table>
                         </div>
@@ -841,11 +846,23 @@ class SSCHP_Settings {
     }
 
     public function sanitize_max_results( $value ) {
-        return $this->sanitize_numeric_setting( $value, 10, 1, 100 );
+        $value = $this->sanitize_numeric_setting( $value, 10, 1, 100 );
+        if ( $value > 50 ) {
+            add_settings_error( 'smart-search-chips', 'sschp_high_render_limit', __( 'High Results Shown values can slow down live search rendering on large result sets.', 'smart-search-chips' ), 'warning' );
+        }
+        return $value;
     }
 
     public function sanitize_search_results_count( $value ) {
-        return $this->sanitize_numeric_setting( $value, 50, 5, 200 );
+        $value = $this->sanitize_numeric_setting( $value, 50, 5, 200 );
+        if ( $value > 100 ) {
+            add_settings_error( 'smart-search-chips', 'sschp_high_analysis_limit', __( 'High Results to Analyze values can be expensive on large catalogs. Keep this near 50 unless indexing/search infrastructure can handle more.', 'smart-search-chips' ), 'warning' );
+        }
+        return $value;
+    }
+
+    public function sanitize_debounce_ms( $value ) {
+        return $this->sanitize_numeric_setting( $value, 300, 50, 2000 );
     }
 
     public function sanitize_relevance_threshold( $value ) {

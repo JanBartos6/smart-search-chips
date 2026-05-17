@@ -111,12 +111,14 @@ async function installCompatFixture(page, options = {}) {
       inputSelector: config.inputSelector || config.defaultInputSelector,
       resultSelector: config.resultSelector || config.defaultResultSelector,
       minChars: 2,
+      debounceMs: Object.prototype.hasOwnProperty.call(config, "debounceMs") ? config.debounceMs : 300,
       postType: "product",
       nonce: "compat-nonce",
       lang: "",
       isAdmin: !!config.isAdmin,
       analytics: { enabled: false, nonce: "" },
     };
+    window.__compatResponseDelays = config.responseDelays || {};
 
     function entriesFromParams(params) {
       const entries = [];
@@ -228,6 +230,19 @@ async function installCompatFixture(page, options = {}) {
         this.listeners[type].push({ callback, once: !!(listenerOptions && listenerOptions.once) });
       }
 
+      abort() {
+        this.aborted = true;
+        this.status = 0;
+        this.readyState = 4;
+
+        if (typeof this.onabort === "function") {
+          this.onabort();
+        }
+
+        this.dispatch("abort");
+        this.dispatch("loadend");
+      }
+
       dispatch(type) {
         const listeners = this.listeners[type] || [];
         this.listeners[type] = listeners.filter((listener) => {
@@ -238,19 +253,33 @@ async function installCompatFixture(page, options = {}) {
 
       send(body) {
         const request = recordRequest("xhr", this.method || "GET", this.url || "", body);
-        this.status = 200;
-        this.readyState = 4;
-        this.responseText = responseFor(request);
+        const delay = Number(window.__compatResponseDelays[request.keyword] || 0);
+        const finish = () => {
+          if (this.aborted) {
+            return;
+          }
 
-        if (typeof this.onreadystatechange === "function") {
-          this.onreadystatechange();
+          this.status = 200;
+          this.readyState = 4;
+          this.responseText = responseFor(request);
+
+          if (typeof this.onreadystatechange === "function") {
+            this.onreadystatechange();
+          }
+
+          if (typeof this.onload === "function") {
+            this.onload();
+          }
+
+          this.dispatch("loadend");
+        };
+
+        if (delay > 0) {
+          window.setTimeout(finish, delay);
+          return;
         }
 
-        if (typeof this.onload === "function") {
-          this.onload();
-        }
-
-        this.dispatch("loadend");
+        finish();
       }
     }
 
@@ -405,6 +434,34 @@ test.describe("Theme compatibility matrix", () => {
     expect(request.action).toBe("sschp_search");
     expect(request.managed).toBe("1");
     expect(request.nonce).toBe("compat-nonce");
+  });
+
+  test("rapid shortcode typing only renders the latest response", async ({ page }) => {
+    await installCompatFixture(page, {
+      themeAction: "",
+      debounceMs: 50,
+      responseDelays: {
+        Slow: 120,
+        Fast: 0,
+      },
+    });
+
+    const shortcode = page.getByTestId("shortcode-search");
+    const input = shortcode.locator(".ssc-search__input");
+
+    await input.fill("Slow");
+    await input.dispatchEvent("input");
+    await page.waitForTimeout(70);
+
+    await input.fill("Fast");
+    await input.dispatchEvent("input");
+
+    await expect(shortcode.locator(".ssc-result__title")).toHaveText("Fast result");
+    await page.waitForTimeout(160);
+    await expect(shortcode.locator(".ssc-result__title")).toHaveText("Fast result");
+
+    const allRequests = await requests(page);
+    expect(allRequests.slice(-2).map((request) => request.keyword)).toEqual(["Slow", "Fast"]);
   });
 
   test("renders chips across shortcode and ugly theme request shapes", async ({ page }) => {

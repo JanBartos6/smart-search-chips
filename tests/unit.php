@@ -101,7 +101,7 @@ function sschp_register_test_product( $post_id, $attributes = array(), $sku = ''
 }
 
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_wp_query_count, $sschp_test_post_terms_calls;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -132,6 +132,8 @@ function sschp_reset_test_state() {
     $sschp_test_db_queries         = array();
     $sschp_test_db_delta_sql       = array();
     $sschp_test_scheduled_events   = array();
+    $sschp_test_wp_query_count     = 0;
+    $sschp_test_post_terms_calls   = array();
     $_POST                    = array();
     $_REQUEST                 = array();
     $_SERVER                  = array();
@@ -243,6 +245,7 @@ function sschp_test_wporg_settings_source_keeps_selector_safety() {
     sschp_assert_contains( 'get_setup_wizard_data', $contents, 'WP.org settings source should keep the first-run setup wizard data' );
     sschp_assert_contains( 'render_search_index_card', $contents, 'WP.org settings source should show local search index progress' );
     sschp_assert_contains( 'sschp-run-compat-test', $contents, 'WP.org settings source should render the frontend compatibility test control' );
+    sschp_assert_contains( 'sanitize_debounce_ms', $contents, 'WP.org settings source should keep the configurable debounce setting' );
 }
 
 function sschp_test_premium_ajax_numeric_inputs_are_unslashed() {
@@ -582,6 +585,16 @@ function sschp_make_range_post( $post_id, array $tags, $title = '' ) {
     );
 }
 
+class SSCHP_Test_Counting_Chip_Engine extends SSCHP_Chip_Engine {
+    public $generate_calls = 0;
+
+    public function generate_chips( $posts_data, $active_tags = array(), $max_chips = 8, $max_length = 40 ) {
+        $this->generate_calls++;
+
+        return parent::generate_chips( $posts_data, $active_tags, $max_chips, $max_length );
+    }
+}
+
 function sschp_test_range_filters_create_watt_slider_from_consistent_facts() {
     $range = new SSCHP_Range_Filters();
     $chips = $range->add_range_chips(
@@ -918,6 +931,8 @@ function sschp_test_settings_numeric_sanitizers() {
     sschp_assert_same( 24, $settings->sanitize_chip_font_size( 99 ), 'chip font size should clamp to the configured maximum' );
     sschp_assert_same( 0, $settings->sanitize_chip_padding_x( -10 ), 'chip horizontal padding should clamp to zero' );
     sschp_assert_same( 24, $settings->sanitize_chip_padding_y( 24 ), 'chip vertical padding should keep valid values unchanged' );
+    sschp_assert_same( 50, $settings->sanitize_debounce_ms( 1 ), 'debounce should clamp to the safe minimum' );
+    sschp_assert_same( 2000, $settings->sanitize_debounce_ms( 5000 ), 'debounce should clamp to the safe maximum' );
 }
 
 function sschp_test_settings_reserved_custom_field_rejected() {
@@ -1344,6 +1359,36 @@ function sschp_test_woocommerce_runtime_tags_merge_manual_and_generated_without_
     sschp_assert_same( 'Indoor; Outdoor', $source['extra'], 'runtime WooCommerce tags should merge generated tags without case-insensitive duplicates' );
 }
 
+function sschp_test_woocommerce_runtime_product_tag_cache_invalidates_on_product_save() {
+    global $sschp_test_post_terms, $sschp_test_post_terms_calls;
+
+    sschp_reset_test_state();
+    sschp_register_test_product(
+        41,
+        array( new SSCHP_Test_Product_Attribute( 'pa_material', array(), true ) )
+    );
+    $sschp_test_post_terms['41|pa_material'] = array( 'Steel' );
+
+    $woo    = new SSCHP_WooCommerce();
+    $source = array(
+        'primary' => '',
+        'extra'   => '',
+    );
+
+    $woo->add_runtime_product_tags( $source, 41, array( 'context' => 'ajax' ) );
+    $calls_after_first = count( $sschp_test_post_terms_calls );
+    $woo->add_runtime_product_tags( $source, 41, array( 'context' => 'ajax' ) );
+    $calls_after_second = count( $sschp_test_post_terms_calls );
+
+    $woo->invalidate_product_tag_cache( 41 );
+    $woo->add_runtime_product_tags( $source, 41, array( 'context' => 'ajax' ) );
+    $calls_after_invalidation = count( $sschp_test_post_terms_calls );
+
+    sschp_assert_true( $calls_after_first > 0, 'first runtime WooCommerce tag read should inspect product terms' );
+    sschp_assert_same( $calls_after_first, $calls_after_second, 'second runtime WooCommerce tag read should use the product tag cache' );
+    sschp_assert_true( $calls_after_invalidation > $calls_after_second, 'invalidating the product tag cache should force fresh product term extraction' );
+}
+
 function sschp_test_frontend_shortcode_uses_guaranteed_ajax_action() {
     $frontend = new SSCHP_Frontend(
         new SSCHP_Test_Settings(
@@ -1531,6 +1576,82 @@ function sschp_test_search_handler_falls_back_before_index_complete() {
     sschp_assert_same( 1, count( $posts ), 'search handler should fall back to WP_Query before the local index is complete' );
     sschp_assert_same( 20, $posts[0]['id'], 'fallback search should return the matching post' );
     sschp_assert_same( array( 'Guide', 'Safety' ), $posts[0]['tags'], 'fallback search should still collect chip tags' );
+}
+
+function sschp_test_search_handler_caches_query_results() {
+    global $sschp_test_wp_query_count, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    $post = sschp_register_test_post_for_index( 21, 'post', 'Beacon Manual', 'Beacon installation notes.' );
+    $sschp_test_post_meta[21][SSCHP_Meta_Box::META_KEY] = 'Manual; Beacon';
+
+    $handler = new SSCHP_Search_Handler(
+        new SSCHP_Chip_Engine(),
+        new SSCHP_Test_Settings(
+            array(
+                'post_types' => array( 'post' ),
+            )
+        )
+    );
+
+    $first = sschp_invoke_private( $handler, 'get_posts_data_for_keyword', array( 'Beacon', array( 'post' ), array(), '', 50, 0.3 ) );
+    $after_first_count = $sschp_test_wp_query_count;
+    $second = sschp_invoke_private( $handler, 'get_posts_data_for_keyword', array( 'Beacon', array( 'post' ), array(), '', 50, 0.3 ) );
+
+    sschp_assert_same( 1, $after_first_count, 'first uncached search should run one WP_Query' );
+    sschp_assert_same( $after_first_count, $sschp_test_wp_query_count, 'second identical search should be served from cache without another WP_Query' );
+    sschp_assert_same( $first, $second, 'cached search results should match the original query results' );
+}
+
+function sschp_test_search_handler_caches_chip_generation_separately() {
+    sschp_reset_test_state();
+
+    $engine  = new SSCHP_Test_Counting_Chip_Engine();
+    $handler = new SSCHP_Search_Handler( $engine, new SSCHP_Test_Settings() );
+    $posts   = array(
+        array(
+            'id'         => 1,
+            'tags'       => array( 'Steel', 'Outdoor' ),
+            'tags_lower' => array( 'steel', 'outdoor' ),
+            'score'      => 1,
+        ),
+        array(
+            'id'         => 2,
+            'tags'       => array( 'Steel', 'Indoor' ),
+            'tags_lower' => array( 'steel', 'indoor' ),
+            'score'      => 1,
+        ),
+    );
+
+    $first  = sschp_invoke_private( $handler, 'get_cached_chips', array( $posts, array(), 8, 40 ) );
+    $second = sschp_invoke_private( $handler, 'get_cached_chips', array( $posts, array(), 8, 40 ) );
+
+    sschp_assert_same( 1, $engine->generate_calls, 'chip generation should run once for identical post/tag/settings input' );
+    sschp_assert_same( $first, $second, 'cached chips should match original generated chips' );
+}
+
+function sschp_test_search_handler_cache_version_changes_on_relevant_updates() {
+    global $sschp_test_options;
+
+    sschp_reset_test_state();
+    $handler = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
+    $handler->bump_cache_version( 'seed' );
+    $first = $sschp_test_options[SSCHP_Search_Handler::CACHE_VERSION_OPTION];
+
+    usleep( 1000 );
+    $handler->handle_cache_option_changed( 'sschp_search_results_count', 50, 100 );
+    $second = $sschp_test_options[SSCHP_Search_Handler::CACHE_VERSION_OPTION];
+
+    sschp_assert_true( $first !== $second, 'changing search-affecting settings should bump the cache version' );
+}
+
+function sschp_test_search_handler_hard_caps_large_catalog_limits() {
+    sschp_reset_test_state();
+
+    $handler = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
+
+    sschp_assert_same( 200, sschp_invoke_private( $handler, 'limit_analyzed_results', array( 1000 ) ), 'analyzed result count should be hard-capped by default' );
+    sschp_assert_same( 100, sschp_invoke_private( $handler, 'limit_rendered_results', array( 1000 ) ), 'rendered result count should be hard-capped by default' );
 }
 
 function sschp_test_search_index_search_after_complete_returns_ranked_results() {
@@ -1925,6 +2046,7 @@ sschp_test_woocommerce_auto_generation_skips_revisions();
 sschp_test_woocommerce_sku_inclusion_is_disabled_by_default_and_opt_in();
 sschp_test_woocommerce_price_range_tags_are_disabled_by_default();
 sschp_test_woocommerce_runtime_tags_merge_manual_and_generated_without_duplicates();
+sschp_test_woocommerce_runtime_product_tag_cache_invalidates_on_product_save();
 sschp_test_frontend_shortcode_uses_guaranteed_ajax_action();
 sschp_test_frontend_exposes_theme_ajax_action_separately();
 sschp_test_settings_setup_wizard_recommends_guaranteed_shortcode();
@@ -1935,6 +2057,10 @@ sschp_test_search_index_reindexes_saved_post();
 sschp_test_search_index_reindexes_product_attribute_meta_change();
 sschp_test_search_index_reindexes_term_change();
 sschp_test_search_handler_falls_back_before_index_complete();
+sschp_test_search_handler_caches_query_results();
+sschp_test_search_handler_caches_chip_generation_separately();
+sschp_test_search_handler_cache_version_changes_on_relevant_updates();
+sschp_test_search_handler_hard_caps_large_catalog_limits();
 sschp_test_search_index_search_after_complete_returns_ranked_results();
 sschp_test_search_index_large_catalog_smoke();
 sschp_test_fallback_relevance_exact_title_beats_content_only_match();

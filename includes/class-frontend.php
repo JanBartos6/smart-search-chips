@@ -117,6 +117,7 @@ class SSCHP_Frontend {
             'inputSelector' => $this->get_search_input_selector(),
             'resultSelector' => $this->get_result_container_selector(),
             'minChars'      => 2,
+            'debounceMs'    => $this->get_debounce_ms(),
             'postType'      => implode( ',', (array) $this->settings->get( 'post_types', array( 'post' ) ) ),
             'nonce'         => wp_create_nonce( 'sschp_search_nonce' ),
             'lang'          => SSCHP_Language::current_language(),
@@ -188,6 +189,17 @@ class SSCHP_Frontend {
         }
 
         return $default;
+    }
+
+    /**
+     * Return the configured live-search debounce delay.
+     *
+     * @return int
+     */
+    private function get_debounce_ms() {
+        $value = (int) $this->settings->get( 'debounce_ms', 300 );
+
+        return max( 50, min( 2000, $value ) );
     }
 
     /**

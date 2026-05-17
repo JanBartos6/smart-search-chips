@@ -38,6 +38,8 @@ $sschp_test_index_rows      = array();
 $sschp_test_db_queries      = array();
 $sschp_test_db_delta_sql    = array();
 $sschp_test_scheduled_events = array();
+$sschp_test_wp_query_count  = 0;
+$sschp_test_post_terms_calls = array();
 
 if ( ! class_exists( 'SSCHP_Test_WPDB' ) ) {
     class SSCHP_Test_WPDB {
@@ -773,6 +775,24 @@ if ( ! function_exists( 'delete_transient' ) ) {
     }
 }
 
+if ( ! function_exists( 'wp_using_ext_object_cache' ) ) {
+    function wp_using_ext_object_cache() {
+        return false;
+    }
+}
+
+if ( ! function_exists( 'wp_cache_get' ) ) {
+    function wp_cache_get( $key, $group = '' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        return false;
+    }
+}
+
+if ( ! function_exists( 'wp_cache_set' ) ) {
+    function wp_cache_set( $key, $value, $group = '', $expiration = 0 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        return true;
+    }
+}
+
 if ( ! function_exists( 'get_post_types' ) ) {
     function get_post_types( $args = array(), $output = 'names' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         $types = array(
@@ -904,9 +924,10 @@ if ( ! function_exists( 'wc_get_product' ) ) {
 
 if ( ! function_exists( 'wp_get_post_terms' ) ) {
     function wp_get_post_terms( $post_id, $taxonomy, $args = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-        global $sschp_test_post_terms;
+        global $sschp_test_post_terms, $sschp_test_post_terms_calls;
 
         $key = (int) $post_id . '|' . (string) $taxonomy;
+        $sschp_test_post_terms_calls[] = $key;
         return isset( $sschp_test_post_terms[ $key ] ) ? $sschp_test_post_terms[ $key ] : array();
     }
 }
@@ -1143,7 +1164,9 @@ if ( ! class_exists( 'WP_Query' ) ) {
         private $position = -1;
 
         public function __construct( $args = array() ) {
-            global $sschp_test_posts;
+            global $sschp_test_posts, $sschp_test_wp_query_count;
+
+            $sschp_test_wp_query_count++;
 
             if ( isset( $args['posts'] ) ) {
                 $this->posts = (array) $args['posts'];
