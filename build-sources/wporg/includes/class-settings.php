@@ -241,6 +241,50 @@ class SSCHP_Settings {
     }
 
     /**
+     * Render local search index status.
+     */
+    private function render_search_index_card() {
+        if ( ! class_exists( 'SSCHP_Search_Index' ) ) {
+            return;
+        }
+
+        $progress = SSCHP_Search_Index::get_progress();
+        $status   = isset( $progress['status'] ) ? sanitize_key( $progress['status'] ) : 'not_started';
+        $labels   = array(
+            'not_started' => __( 'Not started', 'smart-search-chips' ),
+            'queued'      => __( 'Queued', 'smart-search-chips' ),
+            'processing'  => __( 'Processing', 'smart-search-chips' ),
+            'complete'    => __( 'Ready', 'smart-search-chips' ),
+            'empty'       => __( 'Empty', 'smart-search-chips' ),
+        );
+        ?>
+        <div class="ssc-settings-card ssc-settings-card--index">
+            <h2><?php esc_html_e( 'Local Search Index', 'smart-search-chips' ); ?></h2>
+            <p class="description"><?php esc_html_e( 'Smart Search Chips stores a local index on this WordPress site so large catalogs can search and generate chips without sending content externally.', 'smart-search-chips' ); ?></p>
+            <dl class="ssc-compat-config">
+                <div>
+                    <dt><?php esc_html_e( 'Status', 'smart-search-chips' ); ?></dt>
+                    <dd><span class="ssc-badge ssc-badge--neutral"><?php echo esc_html( isset( $labels[ $status ] ) ? $labels[ $status ] : $status ); ?></span></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e( 'Progress', 'smart-search-chips' ); ?></dt>
+                    <dd><?php echo esc_html( sprintf( '%1$d%% (%2$d/%3$d)', (int) $progress['percent'], (int) $progress['processed'], (int) $progress['total'] ) ); ?></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e( 'Indexed rows', 'smart-search-chips' ); ?></dt>
+                    <dd><?php echo esc_html( (string) (int) $progress['rows'] ); ?></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e( 'Last completed', 'smart-search-chips' ); ?></dt>
+                    <dd><?php echo esc_html( '' !== $progress['updatedAt'] ? $progress['updatedAt'] : __( 'Not yet completed', 'smart-search-chips' ) ); ?></dd>
+                </div>
+            </dl>
+            <p class="description"><?php esc_html_e( 'Search remains usable before indexing finishes. Until the local index is ready, the plugin falls back to WordPress search or Relevanssi when available.', 'smart-search-chips' ); ?></p>
+        </div>
+        <?php
+    }
+
+    /**
      * Render one static diagnostic row.
      *
      * @param string $label Row label.
@@ -405,6 +449,7 @@ class SSCHP_Settings {
                         </div>
 
                         <?php $this->render_setup_wizard_card(); ?>
+                        <?php $this->render_search_index_card(); ?>
 
                         <div class="ssc-settings-card">
                             <h2><?php esc_html_e( 'Search', 'smart-search-chips' ); ?></h2>

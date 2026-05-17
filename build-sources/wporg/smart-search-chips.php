@@ -27,6 +27,7 @@ require_once SSCHP_PLUGIN_DIR . 'includes/class-edition.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-language.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-field-normalizer.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-chip-engine.php';
+require_once SSCHP_PLUGIN_DIR . 'includes/class-search-index.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-search-handler.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-settings.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-frontend.php';
@@ -42,7 +43,10 @@ function sschp_init() {
 
     $engine = new SSCHP_Chip_Engine();
 
-    $handler = new SSCHP_Search_Handler( $engine, $settings );
+    $search_index = new SSCHP_Search_Index( $settings, $engine );
+    $search_index->init();
+
+    $handler = new SSCHP_Search_Handler( $engine, $settings, $search_index );
     $handler->init();
 
     $frontend = new SSCHP_Frontend( $settings, $engine );
@@ -116,6 +120,9 @@ function sschp_activate() {
             add_option( $key, $value );
         }
     }
+
+    SSCHP_Search_Index::create_table();
+    SSCHP_Search_Index::queue_initial_index( 'activation' );
 }
 register_activation_hook( __FILE__, 'sschp_activate' );
 
@@ -150,6 +157,12 @@ function sschp_get_option_keys() {
         'sschp_result_image_display_size',
         'sschp_search_results_count',
         'sschp_delete_data_on_uninstall',
+        SSCHP_Search_Index::DB_VERSION_OPTION,
+        SSCHP_Search_Index::STATUS_OPTION,
+        SSCHP_Search_Index::TOTAL_OPTION,
+        SSCHP_Search_Index::PROCESSED_OPTION,
+        SSCHP_Search_Index::CURSOR_OPTION,
+        SSCHP_Search_Index::UPDATED_OPTION,
     );
 }
 
@@ -165,6 +178,7 @@ function sschp_delete_plugin_data() {
 
     delete_metadata( 'post', 0, 'sschp_tags', '', true );
     delete_metadata( 'post', 0, '_sschp_generated_tags', '', true );
+    SSCHP_Search_Index::drop_table();
 }
 
 /**

@@ -33,6 +33,187 @@ $sschp_test_post_terms      = array();
 $sschp_test_post_revisions  = array();
 $sschp_test_post_autosaves  = array();
 $sschp_test_acf_fields      = array();
+$sschp_test_posts           = array();
+$sschp_test_index_rows      = array();
+$sschp_test_db_queries      = array();
+$sschp_test_db_delta_sql    = array();
+$sschp_test_scheduled_events = array();
+
+if ( ! class_exists( 'SSCHP_Test_WPDB' ) ) {
+    class SSCHP_Test_WPDB {
+        public $prefix = 'wp_';
+        public $posts = 'wp_posts';
+
+        public function get_charset_collate() {
+            return 'DEFAULT CHARSET=utf8mb4';
+        }
+
+        public function prepare( $query ) {
+            $args = array_slice( func_get_args(), 1 );
+            if ( 1 === count( $args ) && is_array( $args[0] ) ) {
+                $args = $args[0];
+            }
+
+            foreach ( $args as $arg ) {
+                $query = preg_replace( '/%[sd]/', $this->quote_prepare_arg( $arg ), $query, 1 );
+            }
+
+            return $query;
+        }
+
+        public function esc_like( $text ) {
+            return addcslashes( (string) $text, '_%\\' );
+        }
+
+        public function query( $sql ) {
+            global $sschp_test_db_queries, $sschp_test_index_rows;
+
+            $sschp_test_db_queries[] = (string) $sql;
+
+            if ( false !== stripos( (string) $sql, 'TRUNCATE TABLE' ) || false !== stripos( (string) $sql, 'DROP TABLE IF EXISTS' ) ) {
+                $sschp_test_index_rows = array();
+            }
+
+            return true;
+        }
+
+        public function replace( $table, $data, $format = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+            global $sschp_test_index_rows;
+
+            $key = (int) $data['object_id'] . '|' . (string) $data['language_code'];
+            $sschp_test_index_rows[ $key ] = (object) $data;
+
+            return 1;
+        }
+
+        public function delete( $table, $where, $where_format = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+            global $sschp_test_index_rows;
+
+            if ( isset( $where['object_id'] ) ) {
+                foreach ( array_keys( $sschp_test_index_rows ) as $key ) {
+                    if ( 0 === strpos( $key, (int) $where['object_id'] . '|' ) ) {
+                        unset( $sschp_test_index_rows[ $key ] );
+                    }
+                }
+            }
+
+            return 1;
+        }
+
+        public function get_var( $sql ) {
+            global $sschp_test_index_rows, $sschp_test_posts;
+
+            $sql = (string) $sql;
+            if ( false !== stripos( $sql, 'sschp_search_index' ) && false !== stripos( $sql, 'COUNT' ) ) {
+                return count( $sschp_test_index_rows );
+            }
+
+            if ( false !== stripos( $sql, 'wp_posts' ) && false !== stripos( $sql, 'COUNT' ) ) {
+                return count( $this->filter_posts_from_sql( $sql, $sschp_test_posts ) );
+            }
+
+            return 0;
+        }
+
+        public function get_col( $sql ) {
+            global $sschp_test_posts;
+
+            $sql    = (string) $sql;
+            $cursor = 0;
+            $limit  = 25;
+
+            if ( preg_match( '/ID\s*>\s*(\d+)/i', $sql, $match ) ) {
+                $cursor = (int) $match[1];
+            }
+
+            if ( preg_match( '/LIMIT\s+(\d+)/i', $sql, $match ) ) {
+                $limit = (int) $match[1];
+            }
+
+            $posts = $this->filter_posts_from_sql( $sql, $sschp_test_posts );
+            $ids   = array();
+
+            foreach ( $posts as $post ) {
+                if ( (int) $post->ID > $cursor ) {
+                    $ids[] = (int) $post->ID;
+                }
+            }
+
+            sort( $ids );
+
+            return array_slice( $ids, 0, $limit );
+        }
+
+        public function get_results( $sql ) {
+            global $sschp_test_index_rows;
+
+            $sql        = (string) $sql;
+            $post_types = $this->extract_post_types_from_sql( $sql );
+            $rows       = array_values( $sschp_test_index_rows );
+
+            if ( ! empty( $post_types ) ) {
+                $rows = array_values(
+                    array_filter(
+                        $rows,
+                        function( $row ) use ( $post_types ) {
+                            return in_array( $row->post_type, $post_types, true );
+                        }
+                    )
+                );
+            }
+
+            return $rows;
+        }
+
+        private function quote_prepare_arg( $arg ) {
+            if ( is_int( $arg ) || is_float( $arg ) || ( is_string( $arg ) && preg_match( '/^-?\d+$/', $arg ) ) ) {
+                return (string) $arg;
+            }
+
+            return "'" . str_replace( "'", "''", (string) $arg ) . "'";
+        }
+
+        private function filter_posts_from_sql( $sql, $posts ) {
+            $post_types = $this->extract_post_types_from_sql( $sql );
+            $filtered   = array();
+
+            foreach ( $posts as $post ) {
+                if ( isset( $post->post_status ) && 'publish' !== $post->post_status ) {
+                    continue;
+                }
+
+                if ( ! empty( $post_types ) && ! in_array( $post->post_type, $post_types, true ) ) {
+                    continue;
+                }
+
+                $filtered[] = $post;
+            }
+
+            return $filtered;
+        }
+
+        private function extract_post_types_from_sql( $sql ) {
+            if ( ! preg_match( '/post_type\s+IN\s*\(([^)]+)\)/i', (string) $sql, $match ) ) {
+                return array();
+            }
+
+            $parts = array_map( 'trim', explode( ',', $match[1] ) );
+
+            return array_values(
+                array_filter(
+                    array_map(
+                        function( $part ) {
+                            return trim( $part, "'\" " );
+                        },
+                        $parts
+                    )
+                )
+            );
+        }
+    }
+}
+
+$wpdb = new SSCHP_Test_WPDB();
 
 if ( ! function_exists( '__' ) ) {
     function __( $text, $domain = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
@@ -113,6 +294,12 @@ if ( ! function_exists( 'map_deep' ) ) {
 if ( ! function_exists( 'wp_unslash' ) ) {
     function wp_unslash( $value ) {
         return $value;
+    }
+}
+
+if ( ! function_exists( 'wp_strip_all_tags' ) ) {
+    function wp_strip_all_tags( $text ) {
+        return strip_tags( (string) $text );
     }
 }
 
@@ -247,6 +434,39 @@ if ( ! function_exists( 'get_option' ) ) {
     }
 }
 
+if ( ! function_exists( 'add_option' ) ) {
+    function add_option( $name, $value = '', $deprecated = '', $autoload = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $sschp_test_options;
+
+        if ( array_key_exists( $name, $sschp_test_options ) ) {
+            return false;
+        }
+
+        $sschp_test_options[ $name ] = $value;
+        return true;
+    }
+}
+
+if ( ! function_exists( 'update_option' ) ) {
+    function update_option( $name, $value, $autoload = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $sschp_test_options;
+
+        $old_value = array_key_exists( $name, $sschp_test_options ) ? $sschp_test_options[ $name ] : false;
+        $sschp_test_options[ $name ] = $value;
+
+        return $old_value !== $value;
+    }
+}
+
+if ( ! function_exists( 'delete_option' ) ) {
+    function delete_option( $name ) {
+        global $sschp_test_options;
+
+        unset( $sschp_test_options[ $name ] );
+        return true;
+    }
+}
+
 if ( ! function_exists( 'add_settings_error' ) ) {
     function add_settings_error( $setting, $code, $message, $type = 'error' ) {
         global $sschp_test_settings_errors;
@@ -355,10 +575,60 @@ if ( ! function_exists( 'wp_is_block_theme' ) ) {
 
 if ( ! function_exists( 'get_the_title' ) ) {
     function get_the_title( $post ) {
+        global $sschp_test_posts;
+
+        if ( is_numeric( $post ) && isset( $sschp_test_posts[ (int) $post ] ) ) {
+            return $sschp_test_posts[ (int) $post ]->post_title;
+        }
+
         if ( is_object( $post ) && isset( $post->post_title ) ) {
             return $post->post_title;
         }
 
+        return '';
+    }
+}
+
+if ( ! function_exists( 'get_post' ) ) {
+    function get_post( $post_id ) {
+        global $sschp_test_posts;
+
+        return isset( $sschp_test_posts[ (int) $post_id ] ) ? $sschp_test_posts[ (int) $post_id ] : null;
+    }
+}
+
+if ( ! function_exists( 'get_permalink' ) ) {
+    function get_permalink( $post_id ) {
+        return 'http://example.test/?p=' . (int) $post_id;
+    }
+}
+
+if ( ! function_exists( 'get_the_post_thumbnail' ) ) {
+    function get_the_post_thumbnail( $post_id, $size = 'thumbnail', $attr = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        return '';
+    }
+}
+
+if ( ! function_exists( 'get_intermediate_image_sizes' ) ) {
+    function get_intermediate_image_sizes() {
+        return array( 'thumbnail', 'medium', 'large' );
+    }
+}
+
+if ( ! function_exists( 'locate_template' ) ) {
+    function locate_template( $template_names ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        return '';
+    }
+}
+
+if ( ! function_exists( 'wp_reset_postdata' ) ) {
+    function wp_reset_postdata() {
+        unset( $GLOBALS['post'] );
+    }
+}
+
+if ( ! function_exists( 'current_filter' ) ) {
+    function current_filter() {
         return '';
     }
 }
@@ -467,9 +737,23 @@ if ( ! function_exists( 'post_type_exists' ) ) {
 
 if ( ! function_exists( 'get_post_type' ) ) {
     function get_post_type( $post_id ) {
-        global $sschp_test_post_types;
+        global $sschp_test_post_types, $sschp_test_posts;
+
+        if ( isset( $sschp_test_posts[ (int) $post_id ] ) && isset( $sschp_test_posts[ (int) $post_id ]->post_type ) ) {
+            return $sschp_test_posts[ (int) $post_id ]->post_type;
+        }
 
         return isset( $sschp_test_post_types[ $post_id ] ) ? $sschp_test_post_types[ $post_id ] : 'post';
+    }
+}
+
+if ( ! function_exists( 'get_object_taxonomies' ) ) {
+    function get_object_taxonomies( $object_type, $output = 'names' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        if ( 'product' === $object_type ) {
+            return array( 'product_cat', 'product_tag', 'pa_material', 'pa_power' );
+        }
+
+        return array( 'category', 'post_tag' );
     }
 }
 
@@ -640,6 +924,38 @@ if ( ! function_exists( 'wp_timezone' ) ) {
     }
 }
 
+if ( ! function_exists( 'current_time' ) ) {
+    function current_time( $type, $gmt = 0 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        return gmdate( 'Y-m-d H:i:s' );
+    }
+}
+
+if ( ! function_exists( 'wp_next_scheduled' ) ) {
+    function wp_next_scheduled( $hook ) {
+        global $sschp_test_scheduled_events;
+
+        return in_array( $hook, $sschp_test_scheduled_events, true ) ? time() + 30 : false;
+    }
+}
+
+if ( ! function_exists( 'wp_schedule_single_event' ) ) {
+    function wp_schedule_single_event( $timestamp, $hook, $args = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $sschp_test_scheduled_events;
+
+        $sschp_test_scheduled_events[] = $hook;
+        return true;
+    }
+}
+
+if ( ! function_exists( 'dbDelta' ) ) {
+    function dbDelta( $sql ) {
+        global $sschp_test_db_delta_sql;
+
+        $sschp_test_db_delta_sql[] = (string) $sql;
+        return array();
+    }
+}
+
 if ( ! function_exists( 'wp_safe_redirect' ) ) {
     function wp_safe_redirect( $url ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         return true;
@@ -763,13 +1079,55 @@ if ( ! class_exists( 'WP_Query' ) ) {
         public $max_num_pages = 0;
 
         private $flags = array();
+        private $position = -1;
 
         public function __construct( $args = array() ) {
-            $this->posts         = isset( $args['posts'] ) ? (array) $args['posts'] : array();
+            global $sschp_test_posts;
+
+            if ( isset( $args['posts'] ) ) {
+                $this->posts = (array) $args['posts'];
+            } elseif ( isset( $args['s'] ) ) {
+                $query      = mb_strtolower( (string) $args['s'] );
+                $post_types = isset( $args['post_type'] ) ? (array) $args['post_type'] : array( 'post' );
+                $limit      = isset( $args['posts_per_page'] ) ? (int) $args['posts_per_page'] : 10;
+                $this->posts = array_values(
+                    array_filter(
+                        $sschp_test_posts,
+                        function( $post ) use ( $query, $post_types ) {
+                            if ( isset( $post->post_status ) && 'publish' !== $post->post_status ) {
+                                return false;
+                            }
+
+                            if ( ! empty( $post_types ) && ! in_array( $post->post_type, $post_types, true ) ) {
+                                return false;
+                            }
+
+                            $haystack = mb_strtolower( $post->post_title . ' ' . ( isset( $post->post_content ) ? $post->post_content : '' ) );
+                            return '' === $query || false !== strpos( $haystack, $query );
+                        }
+                    )
+                );
+
+                $this->posts = array_slice( $this->posts, 0, $limit );
+            } else {
+                $this->posts = array();
+            }
+
             $this->post_count    = count( $this->posts );
             $this->found_posts   = isset( $args['found_posts'] ) ? (int) $args['found_posts'] : $this->post_count;
             $this->max_num_pages = isset( $args['max_num_pages'] ) ? (int) $args['max_num_pages'] : 1;
             $this->flags         = (array) $args;
+        }
+
+        public function have_posts() {
+            return ( $this->position + 1 ) < $this->post_count;
+        }
+
+        public function the_post() {
+            $this->position++;
+            if ( isset( $this->posts[ $this->position ] ) ) {
+                $GLOBALS['post'] = $this->posts[ $this->position ];
+            }
         }
 
         public function is_main_query() {
@@ -814,6 +1172,7 @@ require_once dirname( __DIR__ ) . '/includes/class-field-normalizer.php';
 require_once dirname( __DIR__ ) . '/includes/class-chip-engine.php';
 require_once dirname( __DIR__ ) . '/includes/class-settings.php';
 require_once dirname( __DIR__ ) . '/includes/class-frontend.php';
+require_once dirname( __DIR__ ) . '/includes/class-search-index.php';
 require_once dirname( __DIR__ ) . '/includes/class-search-handler.php';
 
 $sschp_test_optional_requires = array(

@@ -136,6 +136,9 @@ if ( function_exists( 'sschp_fs' ) ) {
 
         $table_name = $wpdb->prefix . 'sschp_events';
         $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+
+        $index_table_name = $wpdb->prefix . 'sschp_search_index';
+        $wpdb->query( "DROP TABLE IF EXISTS {$index_table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
     }
 
     define( 'SSCHP_VERSION', '1.0.15' );
@@ -150,6 +153,7 @@ if ( function_exists( 'sschp_fs' ) ) {
     require_once SSCHP_PLUGIN_DIR . 'includes/class-language.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-field-normalizer.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-chip-engine.php';
+    require_once SSCHP_PLUGIN_DIR . 'includes/class-search-index.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-search-handler.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-settings.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-frontend.php';
@@ -180,7 +184,10 @@ if ( function_exists( 'sschp_fs' ) ) {
 
         $engine = new SSCHP_Chip_Engine();
 
-        $handler = new SSCHP_Search_Handler( $engine, $settings );
+        $search_index = new SSCHP_Search_Index( $settings, $engine );
+        $search_index->init();
+
+        $handler = new SSCHP_Search_Handler( $engine, $settings, $search_index );
         $handler->init();
 
         $frontend = new SSCHP_Frontend( $settings, $engine );
@@ -308,6 +315,9 @@ if ( function_exists( 'sschp_fs' ) ) {
         if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) {
             SSCHP_Analytics::create_table();
         }
+
+        SSCHP_Search_Index::create_table();
+        SSCHP_Search_Index::queue_initial_index( 'activation' );
     }
     register_activation_hook( __FILE__, 'sschp_activate' );
 
@@ -357,6 +367,12 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_ai_language',
             'sschp_ai_custom_instruction',
             'sschp_delete_data_on_uninstall',
+            SSCHP_Search_Index::DB_VERSION_OPTION,
+            SSCHP_Search_Index::STATUS_OPTION,
+            SSCHP_Search_Index::TOTAL_OPTION,
+            SSCHP_Search_Index::PROCESSED_OPTION,
+            SSCHP_Search_Index::CURSOR_OPTION,
+            SSCHP_Search_Index::UPDATED_OPTION,
         );
     }
 
@@ -381,6 +397,12 @@ if ( function_exists( 'sschp_fs' ) ) {
             } else {
                 SSCHP_Analytics::clear_events();
             }
+        }
+
+        if ( $drop_analytics_table ) {
+            SSCHP_Search_Index::drop_table();
+        } else {
+            SSCHP_Search_Index::clear_index();
         }
     }
 

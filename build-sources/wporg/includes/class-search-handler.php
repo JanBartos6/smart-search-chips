@@ -17,9 +17,13 @@ class SSCHP_Search_Handler {
     /** @var SSCHP_Settings */
     private $settings;
 
-    public function __construct( SSCHP_Chip_Engine $engine, SSCHP_Settings $settings ) {
-        $this->engine   = $engine;
-        $this->settings = $settings;
+    /** @var SSCHP_Search_Index|null */
+    private $search_index;
+
+    public function __construct( SSCHP_Chip_Engine $engine, SSCHP_Settings $settings, ?SSCHP_Search_Index $search_index = null ) {
+        $this->engine       = $engine;
+        $this->settings     = $settings;
+        $this->search_index = $search_index;
     }
 
     /**
@@ -68,6 +72,59 @@ class SSCHP_Search_Handler {
 
         $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_Edition::max_chips() );
 
+        $posts_data = $this->get_posts_data_for_keyword( $keyword, $post_types, $active_tags, $language, $max_results, $threshold_pct );
+
+        if ( empty( $posts_data ) ) {
+            header( 'X-SSC-Results-Count: 0' );
+            echo '<p class="ssc-empty">' . esc_html( apply_filters( 'sschp_no_results_text', __( 'No results found.', 'smart-search-chips' ) ) ) . '</p>';
+            wp_die();
+        }
+
+        // Filter by active tags
+        if ( ! empty( $active_tags ) ) {
+            $posts_data = $this->engine->filter_by_tags( $posts_data, $active_tags );
+        }
+
+        $total = count( $posts_data );
+        header( 'X-SSC-Results-Count: ' . (int) $total );
+
+        // Generate chips
+        $chips = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_tag_length );
+
+        // Allow themes/plugins to modify chips
+        $chips = apply_filters( 'sschp_chips', $chips, $posts_data, $active_tags );
+        header( 'X-SSC-Tagged-Posts: ' . (int) $this->count_tagged_posts( $posts_data ) );
+        header( 'X-SSC-Chips-Count: ' . (int) count( $chips ) );
+
+        // Render
+        $this->render_chips( $chips, $active_tags );
+        $this->render_results( $posts_data, $display_count );
+
+        wp_die();
+    }
+
+    /**
+     * Get post data from the local index when ready, otherwise use WP_Query.
+     *
+     * @param string $keyword       Search keyword.
+     * @param array  $post_types    Post types.
+     * @param array  $active_tags   Active tags.
+     * @param string $language      Language code.
+     * @param int    $max_results   Search result limit.
+     * @param float  $threshold_pct Relevance threshold.
+     * @return array
+     */
+    private function get_posts_data_for_keyword( $keyword, $post_types, $active_tags, $language, $max_results, $threshold_pct ) {
+        if (
+            $this->search_index
+            && apply_filters( 'sschp_use_search_index', true, $keyword, $post_types, $language )
+        ) {
+            $indexed_posts = $this->search_index->search( $keyword, $post_types, $language, $max_results );
+            if ( is_array( $indexed_posts ) ) {
+                return $indexed_posts;
+            }
+        }
+
         // Run search query. If Relevanssi is active, explicitly hand the query
         // to Relevanssi so theme AJAX overrides keep the same relevance order.
         $query_args = array(
@@ -87,9 +144,7 @@ class SSCHP_Search_Handler {
         }
 
         if ( ! $query->have_posts() ) {
-            header( 'X-SSC-Results-Count: 0' );
-            echo '<p class="ssc-empty">' . esc_html( apply_filters( 'sschp_no_results_text', __( 'No results found.', 'smart-search-chips' ) ) ) . '</p>';
-            wp_die();
+            return array();
         }
 
         // Collect posts with relevance scores
@@ -120,30 +175,7 @@ class SSCHP_Search_Handler {
             $relevant_posts = $scored_posts;
         }
 
-        // Build posts data with tags.
-        $posts_data = $this->collect_posts_data( $relevant_posts );
-
-        // Filter by active tags
-        if ( ! empty( $active_tags ) ) {
-            $posts_data = $this->engine->filter_by_tags( $posts_data, $active_tags );
-        }
-
-        $total = count( $posts_data );
-        header( 'X-SSC-Results-Count: ' . (int) $total );
-
-        // Generate chips
-        $chips = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_tag_length );
-
-        // Allow themes/plugins to modify chips
-        $chips = apply_filters( 'sschp_chips', $chips, $posts_data, $active_tags );
-        header( 'X-SSC-Tagged-Posts: ' . (int) $this->count_tagged_posts( $posts_data ) );
-        header( 'X-SSC-Chips-Count: ' . (int) count( $chips ) );
-
-        // Render
-        $this->render_chips( $chips, $active_tags );
-        $this->render_results( $posts_data, $display_count );
-
-        wp_die();
+        return $this->collect_posts_data( $relevant_posts );
     }
 
     /**

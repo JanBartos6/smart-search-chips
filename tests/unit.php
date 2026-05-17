@@ -55,6 +55,24 @@ function sschp_make_frontend_post( $post_id, array $tags ) {
     );
 }
 
+function sschp_register_test_post_for_index( $post_id, $post_type = 'post', $title = '', $content = '', $status = 'publish' ) {
+    global $sschp_test_posts, $sschp_test_post_types;
+
+    $post_id = (int) $post_id;
+    $post    = (object) array(
+        'ID'           => $post_id,
+        'post_type'    => $post_type,
+        'post_title'   => '' !== $title ? $title : 'Post ' . $post_id,
+        'post_content' => $content,
+        'post_status'  => $status,
+    );
+
+    $sschp_test_posts[ $post_id ]      = $post;
+    $sschp_test_post_types[ $post_id ] = $post_type;
+
+    return $post;
+}
+
 function sschp_make_archive_query( array $posts, $args = array() ) {
     return new WP_Query(
         array_merge(
@@ -82,7 +100,7 @@ function sschp_register_test_product( $post_id, $attributes = array(), $sku = ''
 }
 
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -108,6 +126,11 @@ function sschp_reset_test_state() {
     $sschp_test_post_revisions     = array();
     $sschp_test_post_autosaves     = array();
     $sschp_test_acf_fields         = array();
+    $sschp_test_posts              = array();
+    $sschp_test_index_rows         = array();
+    $sschp_test_db_queries         = array();
+    $sschp_test_db_delta_sql       = array();
+    $sschp_test_scheduled_events   = array();
     $_POST                    = array();
     $_REQUEST                 = array();
     $_SERVER                  = array();
@@ -217,6 +240,7 @@ function sschp_test_wporg_settings_source_keeps_selector_safety() {
     sschp_assert_contains( 'sanitize_result_container_selector', $contents, 'WP.org settings source should validate custom result selectors' );
     sschp_assert_contains( 'get_theme_compatibility_diagnostics', $contents, 'WP.org settings source should keep the compatibility diagnostics card' );
     sschp_assert_contains( 'get_setup_wizard_data', $contents, 'WP.org settings source should keep the first-run setup wizard data' );
+    sschp_assert_contains( 'render_search_index_card', $contents, 'WP.org settings source should show local search index progress' );
     sschp_assert_contains( 'sschp-run-compat-test', $contents, 'WP.org settings source should render the frontend compatibility test control' );
 }
 
@@ -1259,6 +1283,207 @@ function sschp_test_settings_setup_wizard_recommends_guaranteed_shortcode() {
     sschp_assert_same( array( 'Posts', 'Products' ), $setup['selectedPostTypeLabels'], 'setup wizard should show selected post type labels' );
 }
 
+function sschp_test_search_index_table_creation_defines_required_columns() {
+    global $sschp_test_db_delta_sql, $sschp_test_options;
+
+    sschp_reset_test_state();
+    SSCHP_Search_Index::create_table();
+
+    $sql = implode( "\n", $sschp_test_db_delta_sql );
+
+    sschp_assert_contains( 'object_id BIGINT(20) UNSIGNED NOT NULL', $sql, 'search index table should include object_id' );
+    sschp_assert_contains( 'post_type VARCHAR(32) NOT NULL', $sql, 'search index table should include post_type' );
+    sschp_assert_contains( 'language_code VARCHAR(20) NOT NULL', $sql, 'search index table should include language_code' );
+    sschp_assert_contains( 'title_text LONGTEXT NOT NULL', $sql, 'search index table should include title_text' );
+    sschp_assert_contains( 'content_text LONGTEXT NOT NULL', $sql, 'search index table should include content_text' );
+    sschp_assert_contains( 'taxonomy_text LONGTEXT NOT NULL', $sql, 'search index table should include taxonomy_text' );
+    sschp_assert_contains( 'meta_text LONGTEXT NOT NULL', $sql, 'search index table should include meta_text' );
+    sschp_assert_contains( 'chip_tags LONGTEXT NOT NULL', $sql, 'search index table should include chip_tags' );
+    sschp_assert_contains( 'numeric_facts LONGTEXT NOT NULL', $sql, 'search index table should include numeric_facts' );
+    sschp_assert_contains( 'updated_at DATETIME NOT NULL', $sql, 'search index table should include updated_at' );
+    sschp_assert_same( SSCHP_Search_Index::DB_VERSION, $sschp_test_options[SSCHP_Search_Index::DB_VERSION_OPTION], 'search index table creation should store the DB version' );
+}
+
+function sschp_test_search_index_queue_initial_index_schedules_batch() {
+    global $sschp_test_options, $sschp_test_scheduled_events;
+
+    sschp_reset_test_state();
+    $sschp_test_options['sschp_post_types'] = array( 'post' );
+    sschp_register_test_post_for_index( 1, 'post', 'Alpha Beacon' );
+    sschp_register_test_post_for_index( 2, 'post', 'Beta Beacon' );
+
+    SSCHP_Search_Index::queue_initial_index( 'test' );
+
+    sschp_assert_same( 'queued', $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION], 'initial indexing should enter queued status' );
+    sschp_assert_same( 2, $sschp_test_options[SSCHP_Search_Index::TOTAL_OPTION], 'initial indexing should count eligible posts' );
+    sschp_assert_true( in_array( SSCHP_Search_Index::CRON_HOOK, $sschp_test_scheduled_events, true ), 'initial indexing should schedule a background batch' );
+}
+
+function sschp_test_search_index_settings_change_queues_rebuild() {
+    global $sschp_test_options;
+
+    sschp_reset_test_state();
+    sschp_register_test_post_for_index( 3, 'product', 'Product Beacon' );
+
+    $index = new SSCHP_Search_Index(
+        new SSCHP_Test_Settings(
+            array(
+                'post_types' => array( 'product' ),
+            )
+        ),
+        new SSCHP_Chip_Engine()
+    );
+    $index->handle_option_changed( 'sschp_post_types', array( 'post' ), array( 'product' ) );
+
+    sschp_assert_same( 'queued', $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION], 'changing indexed settings should queue a rebuild' );
+}
+
+function sschp_test_search_index_reindexes_saved_post() {
+    global $sschp_test_index_rows, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    $post = sschp_register_test_post_for_index( 10, 'product', 'Signal Beacon', 'Reliable warning light' );
+    $sschp_test_post_meta[10][SSCHP_Meta_Box::META_KEY] = 'Outdoor; IP65';
+
+    $index = new SSCHP_Search_Index(
+        new SSCHP_Test_Settings(
+            array(
+                'post_types' => array( 'product' ),
+            )
+        ),
+        new SSCHP_Chip_Engine()
+    );
+    $index->handle_save_post( 10, $post, true );
+
+    $row = reset( $sschp_test_index_rows );
+    sschp_assert_same( 10, (int) $row->object_id, 'saved post should be written to the local search index' );
+    sschp_assert_same( 'product', $row->post_type, 'saved post index row should preserve post type' );
+    sschp_assert_contains( 'Signal Beacon', $row->title_text, 'saved post index row should include title text' );
+    sschp_assert_contains( 'Outdoor', $row->chip_tags, 'saved post index row should include chip tags' );
+}
+
+function sschp_test_search_index_reindexes_product_attribute_meta_change() {
+    global $sschp_test_index_rows, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    sschp_register_test_post_for_index( 11, 'product', 'Attribute Product', 'Product content' );
+    $sschp_test_post_meta[11][SSCHP_Meta_Box::META_KEY] = 'Manual Chip';
+
+    $index = new SSCHP_Search_Index(
+        new SSCHP_Test_Settings(
+            array(
+                'post_types' => array( 'product' ),
+            )
+        ),
+        new SSCHP_Chip_Engine()
+    );
+    $index->handle_post_meta_changed( 1, 11, '_product_attributes', array() );
+
+    sschp_assert_true( ! empty( $sschp_test_index_rows ), 'WooCommerce attribute meta changes should reindex the product' );
+}
+
+function sschp_test_search_index_reindexes_term_change() {
+    global $sschp_test_index_rows, $sschp_test_post_terms;
+
+    sschp_reset_test_state();
+    sschp_register_test_post_for_index( 12, 'product', 'Categorized Product', 'Product content' );
+    $sschp_test_post_terms['12|product_cat'] = array( 'Warning Lights' );
+
+    $index = new SSCHP_Search_Index(
+        new SSCHP_Test_Settings(
+            array(
+                'post_types' => array( 'product' ),
+            )
+        ),
+        new SSCHP_Chip_Engine()
+    );
+    $index->handle_object_terms_changed( 12 );
+
+    $row = reset( $sschp_test_index_rows );
+    sschp_assert_contains( 'Warning Lights', $row->taxonomy_text, 'taxonomy changes should reindex product category/tag text' );
+}
+
+function sschp_test_search_handler_falls_back_before_index_complete() {
+    global $sschp_test_options, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION] = 'queued';
+    $post = sschp_register_test_post_for_index( 20, 'post', 'Beacon Guide', 'Install a beacon safely.' );
+    $sschp_test_post_meta[20][SSCHP_Meta_Box::META_KEY] = 'Guide; Safety';
+
+    $engine   = new SSCHP_Chip_Engine();
+    $settings = new SSCHP_Test_Settings(
+        array(
+            'post_types' => array( 'post' ),
+        )
+    );
+    $index    = new SSCHP_Search_Index( $settings, $engine );
+    $handler  = new SSCHP_Search_Handler( $engine, $settings, $index );
+    $posts    = sschp_invoke_private( $handler, 'get_posts_data_for_keyword', array( 'Beacon', array( 'post' ), array(), '', 50, 0.3 ) );
+
+    sschp_assert_same( 1, count( $posts ), 'search handler should fall back to WP_Query before the local index is complete' );
+    sschp_assert_same( 20, $posts[0]['id'], 'fallback search should return the matching post' );
+    sschp_assert_same( array( 'Guide', 'Safety' ), $posts[0]['tags'], 'fallback search should still collect chip tags' );
+}
+
+function sschp_test_search_index_search_after_complete_returns_ranked_results() {
+    global $sschp_test_options, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION] = 'complete';
+
+    $exact = sschp_register_test_post_for_index( 31, 'product', 'Signal Beacon', 'Compact light' );
+    $broad = sschp_register_test_post_for_index( 32, 'product', 'Industrial Light', 'Signal beacon for machinery' );
+    $sschp_test_post_meta[31][SSCHP_Meta_Box::META_KEY] = 'Beacon; Outdoor';
+    $sschp_test_post_meta[32][SSCHP_Meta_Box::META_KEY] = 'Light; Industrial';
+
+    $index = new SSCHP_Search_Index(
+        new SSCHP_Test_Settings(
+            array(
+                'post_types' => array( 'product' ),
+            )
+        ),
+        new SSCHP_Chip_Engine()
+    );
+    $index->index_post( 31, $exact );
+    $index->index_post( 32, $broad );
+
+    $results = $index->search( 'Signal Beacon', array( 'product' ), '', 10 );
+
+    sschp_assert_same( 2, count( $results ), 'completed local index search should return matching rows' );
+    sschp_assert_same( 31, $results[0]['id'], 'exact title match should rank above broad content matches' );
+}
+
+function sschp_test_search_index_large_catalog_smoke() {
+    global $sschp_test_options, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION] = 'complete';
+
+    $index = new SSCHP_Search_Index(
+        new SSCHP_Test_Settings(
+            array(
+                'post_types' => array( 'product' ),
+            )
+        ),
+        new SSCHP_Chip_Engine()
+    );
+
+    for ( $i = 1; $i <= 500; $i++ ) {
+        $title = 250 === $i ? 'Steel Beacon Exact' : 'Catalog Product ' . $i;
+        $body  = 0 === $i % 10 ? 'Steel beacon replacement part' : 'General catalog item';
+        $post  = sschp_register_test_post_for_index( 1000 + $i, 'product', $title, $body );
+        $sschp_test_post_meta[ 1000 + $i ][SSCHP_Meta_Box::META_KEY] = 0 === $i % 10 ? 'Steel; Beacon' : 'Catalog';
+        $index->index_post( 1000 + $i, $post );
+    }
+
+    $results = $index->search( 'steel beacon', array( 'product' ), '', 50 );
+
+    sschp_assert_true( ! empty( $results ), 'large catalog indexed search should return matching rows' );
+    sschp_assert_true( count( $results ) <= 50, 'large catalog indexed search should respect the requested limit' );
+    sschp_assert_same( 1250, $results[0]['id'], 'large catalog indexed search should rank the best title match first' );
+}
+
 function sschp_test_search_handler_normalizes_active_tag_payload_shapes() {
     $handler = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
 
@@ -1442,6 +1667,15 @@ sschp_test_woocommerce_runtime_tags_merge_manual_and_generated_without_duplicate
 sschp_test_frontend_shortcode_uses_guaranteed_ajax_action();
 sschp_test_frontend_exposes_theme_ajax_action_separately();
 sschp_test_settings_setup_wizard_recommends_guaranteed_shortcode();
+sschp_test_search_index_table_creation_defines_required_columns();
+sschp_test_search_index_queue_initial_index_schedules_batch();
+sschp_test_search_index_settings_change_queues_rebuild();
+sschp_test_search_index_reindexes_saved_post();
+sschp_test_search_index_reindexes_product_attribute_meta_change();
+sschp_test_search_index_reindexes_term_change();
+sschp_test_search_handler_falls_back_before_index_complete();
+sschp_test_search_index_search_after_complete_returns_ranked_results();
+sschp_test_search_index_large_catalog_smoke();
 sschp_test_search_handler_normalizes_active_tag_payload_shapes();
 sschp_test_search_handler_builtin_action_without_nonce_fails();
 sschp_test_search_handler_override_without_marker_returns_early();
