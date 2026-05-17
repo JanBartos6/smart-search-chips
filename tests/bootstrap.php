@@ -38,6 +38,7 @@ $sschp_test_post_autosaves  = array();
 $sschp_test_acf_fields      = array();
 $sschp_test_posts           = array();
 $sschp_test_index_rows      = array();
+$sschp_test_analytics_rows  = array();
 $sschp_test_db_queries      = array();
 $sschp_test_db_delta_sql    = array();
 $sschp_test_scheduled_events = array();
@@ -88,6 +89,17 @@ if ( ! class_exists( 'SSCHP_Test_WPDB' ) ) {
 
             $key = (int) $data['object_id'] . '|' . (string) $data['language_code'];
             $sschp_test_index_rows[ $key ] = (object) $data;
+
+            return 1;
+        }
+
+        public function insert( $table, $data, $format = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+            global $sschp_test_analytics_rows;
+
+            if ( false !== stripos( (string) $table, 'sschp_events' ) ) {
+                $sschp_test_analytics_rows[] = $data;
+                return 1;
+            }
 
             return 1;
         }
@@ -944,6 +956,15 @@ if ( ! function_exists( 'wp_get_post_terms' ) ) {
 
         $key = (int) $post_id . '|' . (string) $taxonomy;
         $sschp_test_post_terms_calls[] = $key;
+        return isset( $sschp_test_post_terms[ $key ] ) ? $sschp_test_post_terms[ $key ] : array();
+    }
+}
+
+if ( ! function_exists( 'get_the_terms' ) ) {
+    function get_the_terms( $post_id, $taxonomy ) {
+        global $sschp_test_post_terms;
+
+        $key = (int) $post_id . '|' . (string) $taxonomy;
         return isset( $sschp_test_post_terms[ $key ] ) ? $sschp_test_post_terms[ $key ] : array();
     }
 }

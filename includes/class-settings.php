@@ -172,6 +172,9 @@ class SSCHP_Settings {
         register_setting( 'smart-search-chips', 'sschp_analytics_enabled', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_ignore_admins', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
         register_setting( 'smart-search-chips', 'sschp_analytics_digest_enabled', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
@@ -612,6 +615,7 @@ class SSCHP_Settings {
         $ai_rest_mode  = get_option( 'sschp_ai_rest_enabled', '1' );
         $ai_target     = $this->sanitize_ai_target_field( get_option( 'sschp_ai_target_field', 'built_in' ) );
         $analytics_on  = get_option( 'sschp_analytics_enabled', '0' );
+        $analytics_ignore_admins = get_option( 'sschp_analytics_ignore_admins', '1' );
         $digest_on     = get_option( 'sschp_analytics_digest_enabled', '0' );
         $digest_recipients = get_option( 'sschp_analytics_digest_recipients', get_option( 'admin_email', '' ) );
         $digest_frequency  = $this->sanitize_digest_frequency( get_option( 'sschp_analytics_digest_frequency', 'weekly' ) );
@@ -895,6 +899,17 @@ class SSCHP_Settings {
                                                 <?php esc_html_e( 'Track anonymous search, chip-click, and chip-impression events for admins', 'smart-search-chips' ); ?>
                                             </label>
                                             <p class="description"><?php esc_html_e( 'Stores aggregate search and chip interaction events on this WordPress site. Uses anonymous visitor IDs for unique-visitor counts.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Noise Reduction', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <label>
+                                                <input type="hidden" name="sschp_analytics_ignore_admins" value="0" />
+                                                <input type="checkbox" name="sschp_analytics_ignore_admins" value="1" <?php checked( $analytics_ignore_admins, '1' ); ?> />
+                                                <?php esc_html_e( 'Ignore visits from administrators', 'smart-search-chips' ); ?>
+                                            </label>
+                                            <p class="description"><?php esc_html_e( 'Recommended. Keeps setup/testing activity out of analytics while preserving public visitor data.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -1407,7 +1422,7 @@ class SSCHP_Settings {
 
         $is_pro       = false;
         $analytics_on = get_option( 'sschp_analytics_enabled', '0' );
-        $range_args   = $this->get_admin_date_range_args();
+        $range_args   = $this->get_admin_analytics_args();
         $range     = array( 'from' => '', 'to' => '' );
         $analytics = null;
         $events    = array();
@@ -1415,8 +1430,8 @@ class SSCHP_Settings {
         if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) {
             $is_pro    = SSCHP_License::is_pro();
             $range     = SSCHP_Analytics::get_date_range( $range_args );
-            $analytics = $is_pro && $analytics_on === '1' ? SSCHP_Analytics::get_dashboard_data( $range ) : null;
-            $events    = $is_pro && $analytics_on === '1' ? SSCHP_Analytics::get_recent_events( array_merge( $range, array( 'limit' => 150 ) ) ) : array();
+            $analytics = $is_pro && $analytics_on === '1' ? SSCHP_Analytics::get_dashboard_data( $range_args ) : null;
+            $events    = $is_pro && $analytics_on === '1' ? SSCHP_Analytics::get_recent_events( array_merge( $range_args, array( 'limit' => 150 ) ) ) : array();
         }
         $export_url   = wp_nonce_url(
             add_query_arg(
@@ -1424,6 +1439,9 @@ class SSCHP_Settings {
                     'action' => 'sschp_export_analytics',
                     'from'   => $range['from'],
                     'to'     => $range['to'],
+                    'language' => isset( $range_args['language'] ) ? $range_args['language'] : '',
+                    'post_type' => isset( $range_args['post_type'] ) ? $range_args['post_type'] : '',
+                    'product_category' => isset( $range_args['product_category'] ) ? $range_args['product_category'] : '',
                 ),
                 admin_url( 'admin-post.php' )
             ),
@@ -1455,7 +1473,31 @@ class SSCHP_Settings {
                     <span><?php esc_html_e( 'To', 'smart-search-chips' ); ?></span>
                     <input type="date" name="to" value="<?php echo esc_attr( $range['to'] ); ?>" />
                 </label>
-                <button type="submit" class="button button-primary"><?php esc_html_e( 'Apply Range', 'smart-search-chips' ); ?></button>
+                <label>
+                    <span><?php esc_html_e( 'Language', 'smart-search-chips' ); ?></span>
+                    <input type="text" name="language" value="<?php echo esc_attr( isset( $range_args['language'] ) ? $range_args['language'] : '' ); ?>" placeholder="en" />
+                </label>
+                <label>
+                    <span><?php esc_html_e( 'Post Type', 'smart-search-chips' ); ?></span>
+                    <select name="post_type">
+                        <option value=""><?php esc_html_e( 'All', 'smart-search-chips' ); ?></option>
+                        <?php foreach ( get_post_types( array( 'public' => true ), 'objects' ) as $type ) : ?>
+                            <?php
+                            if ( 'attachment' === $type->name ) {
+                                continue;
+                            }
+                            ?>
+                            <option value="<?php echo esc_attr( $type->name ); ?>" <?php selected( isset( $range_args['post_type'] ) ? $range_args['post_type'] : '', $type->name ); ?>><?php echo esc_html( $type->label ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <?php if ( class_exists( 'WooCommerce' ) ) : ?>
+                    <label>
+                        <span><?php esc_html_e( 'Product Category', 'smart-search-chips' ); ?></span>
+                        <input type="text" name="product_category" value="<?php echo esc_attr( isset( $range_args['product_category'] ) ? $range_args['product_category'] : '' ); ?>" placeholder="category-slug" />
+                    </label>
+                <?php endif; ?>
+                <button type="submit" class="button button-primary"><?php esc_html_e( 'Apply Filters', 'smart-search-chips' ); ?></button>
                 <a class="button" href="<?php echo esc_url( $export_url ); ?>"><?php esc_html_e( 'Export CSV', 'smart-search-chips' ); ?></a>
             </form>
 
@@ -1478,8 +1520,24 @@ class SSCHP_Settings {
                         <span><?php esc_html_e( 'Zero-Result Searches', 'smart-search-chips' ); ?></span>
                     </div>
                     <div class="ssc-analytics-stat">
-                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['search_to_click_rate'], 1 ) . '%' ); ?></strong>
-                        <span><?php esc_html_e( 'Search To Click Rate', 'smart-search-chips' ); ?></span>
+                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['zero_result_rate'], 1 ) . '%' ); ?></strong>
+                        <span><?php esc_html_e( 'Zero-Result Rate', 'smart-search-chips' ); ?></span>
+                    </div>
+                    <div class="ssc-analytics-stat">
+                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['chip_impressions'] ) ); ?></strong>
+                        <span><?php esc_html_e( 'Chip Impressions', 'smart-search-chips' ); ?></span>
+                    </div>
+                    <div class="ssc-analytics-stat">
+                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['chip_click_through_rate'], 1 ) . '%' ); ?></strong>
+                        <span><?php esc_html_e( 'Chip CTR', 'smart-search-chips' ); ?></span>
+                    </div>
+                    <div class="ssc-analytics-stat">
+                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['result_clicks'] ) ); ?></strong>
+                        <span><?php esc_html_e( 'Result Clicks', 'smart-search-chips' ); ?></span>
+                    </div>
+                    <div class="ssc-analytics-stat">
+                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['search_to_result_click_rate'], 1 ) . '%' ); ?></strong>
+                        <span><?php esc_html_e( 'Search To Result Click', 'smart-search-chips' ); ?></span>
                     </div>
                 </div>
 
@@ -1487,10 +1545,11 @@ class SSCHP_Settings {
                     <div class="ssc-analytics-panel">
                         <h3><?php esc_html_e( 'Search Activity Over Time', 'smart-search-chips' ); ?></h3>
                         <div class="ssc-chart">
-                            <?php $this->render_analytics_chart( $analytics['timeseries'], array( 'searches' => '#1d4ed8', 'chip_clicks' => '#d97706' ) ); ?>
+                            <?php $this->render_analytics_chart( $analytics['timeseries'], array( 'searches' => '#1d4ed8', 'chip_clicks' => '#d97706', 'result_clicks' => '#7c3aed' ) ); ?>
                             <div class="ssc-chart-meta">
                                 <span class="ssc-chart-searches"><?php esc_html_e( 'Searches', 'smart-search-chips' ); ?></span>
                                 <span class="ssc-chart-clicks"><?php esc_html_e( 'Chip Clicks', 'smart-search-chips' ); ?></span>
+                                <span><?php esc_html_e( 'Result Clicks', 'smart-search-chips' ); ?></span>
                             </div>
                         </div>
                     </div>
@@ -1517,17 +1576,25 @@ class SSCHP_Settings {
                     </div>
                     <div class="ssc-analytics-panel">
                         <h3><?php esc_html_e( 'Top Search Queries', 'smart-search-chips' ); ?></h3>
-                        <?php $this->render_analytics_table( $analytics['top_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'searches' => __( 'Searches', 'smart-search-chips' ), 'chip_clicks' => __( 'Chip Clicks', 'smart-search-chips' ), 'click_rate' => __( 'Click Rate', 'smart-search-chips' ), 'avg_results' => __( 'Avg. Results', 'smart-search-chips' ) ) ); ?>
+                        <?php $this->render_analytics_table( $analytics['top_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'searches' => __( 'Searches', 'smart-search-chips' ), 'chip_clicks' => __( 'Chip Clicks', 'smart-search-chips' ), 'result_clicks' => __( 'Result Clicks', 'smart-search-chips' ), 'result_click_rate' => __( 'Result CTR', 'smart-search-chips' ), 'avg_results' => __( 'Avg. Results', 'smart-search-chips' ) ) ); ?>
                     </div>
                     <div class="ssc-analytics-panel">
                         <h3><?php esc_html_e( 'Top Zero-Result Queries Over Time', 'smart-search-chips' ); ?></h3>
                         <?php $this->render_analytics_table( $analytics['zero_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'misses' => __( 'Misses', 'smart-search-chips' ), 'first_seen' => __( 'First Seen', 'smart-search-chips' ), 'last_seen' => __( 'Last Seen', 'smart-search-chips' ) ) ); ?>
                     </div>
+                    <div class="ssc-analytics-panel">
+                        <h3><?php esc_html_e( 'Top Query Refinements', 'smart-search-chips' ); ?></h3>
+                        <?php $this->render_analytics_table( $analytics['top_refinements'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'refinements' => __( 'Refinements', 'smart-search-chips' ), 'visitors' => __( 'Visitors', 'smart-search-chips' ) ) ); ?>
+                    </div>
+                    <div class="ssc-analytics-panel">
+                        <h3><?php esc_html_e( 'Often Seen, Rarely Clicked Chips', 'smart-search-chips' ); ?></h3>
+                        <?php $this->render_analytics_table( $analytics['low_chip_ctr'], array( 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'impressions' => __( 'Impressions', 'smart-search-chips' ), 'clicks' => __( 'Clicks', 'smart-search-chips' ), 'click_through_rate' => __( 'CTR', 'smart-search-chips' ) ) ); ?>
+                    </div>
                 </div>
 
                 <div class="ssc-analytics-panel">
                     <h3><?php esc_html_e( 'Recent Events', 'smart-search-chips' ); ?></h3>
-                    <?php $this->render_analytics_table( $events, array( 'created_at' => __( 'Date', 'smart-search-chips' ), 'event_type' => __( 'Event', 'smart-search-chips' ), 'language_code' => __( 'Lang', 'smart-search-chips' ), 'search_query' => __( 'Query', 'smart-search-chips' ), 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'result_count' => __( 'Results', 'smart-search-chips' ) ) ); ?>
+                    <?php $this->render_analytics_table( $events, array( 'created_at' => __( 'Date', 'smart-search-chips' ), 'event_type' => __( 'Event', 'smart-search-chips' ), 'language_code' => __( 'Lang', 'smart-search-chips' ), 'post_type' => __( 'Type', 'smart-search-chips' ), 'search_query' => __( 'Query', 'smart-search-chips' ), 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'result_object_id' => __( 'Result ID', 'smart-search-chips' ), 'result_position' => __( 'Position', 'smart-search-chips' ), 'result_count' => __( 'Results', 'smart-search-chips' ) ) ); ?>
                 </div>
             </div>
         </div>
@@ -1535,24 +1602,27 @@ class SSCHP_Settings {
     }
 
     /**
-     * Read the optional analytics date filters from the admin request.
+     * Read the optional analytics filters from the admin request.
      *
      * @return array
      */
-    private function get_admin_date_range_args() {
+    private function get_admin_analytics_args() {
         return array(
-            'from' => $this->get_admin_date_query_var( 'from' ),
-            'to'   => $this->get_admin_date_query_var( 'to' ),
+            'from'             => $this->get_admin_text_query_var( 'from' ),
+            'to'               => $this->get_admin_text_query_var( 'to' ),
+            'language'         => sanitize_key( $this->get_admin_text_query_var( 'language' ) ),
+            'post_type'        => sanitize_key( $this->get_admin_text_query_var( 'post_type' ) ),
+            'product_category' => sanitize_title( $this->get_admin_text_query_var( 'product_category' ) ),
         );
     }
 
     /**
-     * Read and sanitize a date filter query variable.
+     * Read and sanitize a text filter query variable.
      *
      * @param string $key Query variable name.
      * @return string
      */
-    private function get_admin_date_query_var( $key ) {
+    private function get_admin_text_query_var( $key ) {
         $value = filter_input( INPUT_GET, $key, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 
         if ( null === $value || false === $value ) {
@@ -1587,7 +1657,7 @@ class SSCHP_Settings {
                 $value = isset( $row[ $key ] ) ? $row[ $key ] : '';
                 if ( $key === 'avg_results' ) {
                     $value = number_format_i18n( (float) $value, 1 );
-                } elseif ( in_array( $key, array( 'click_rate', 'click_through_rate', 'search_to_click_rate' ), true ) ) {
+                } elseif ( in_array( $key, array( 'click_rate', 'click_through_rate', 'search_to_click_rate', 'result_click_rate', 'zero_result_rate', 'chip_click_through_rate', 'search_to_result_click_rate' ), true ) ) {
                     $value = number_format_i18n( (float) $value, 1 ) . '%';
                 } elseif ( in_array( $key, array( 'created_at', 'first_seen', 'last_seen' ), true ) && $value ) {
                     $value = get_date_from_gmt( $value, 'Y-m-d H:i' );

@@ -112,7 +112,7 @@ function sschp_test_scheduled_hooks() {
 }
 
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -140,6 +140,7 @@ function sschp_reset_test_state() {
     $sschp_test_acf_fields         = array();
     $sschp_test_posts              = array();
     $sschp_test_index_rows         = array();
+    $sschp_test_analytics_rows     = array();
     $sschp_test_db_queries         = array();
     $sschp_test_db_delta_sql       = array();
     $sschp_test_scheduled_events   = array();
@@ -1180,6 +1181,29 @@ function sschp_test_analytics_appends_ctr_percentages() {
     sschp_assert_same( 25.0, $rows[0]['click_through_rate'], 'append_percentage_to_rows should compute percentage metrics with one decimal place' );
 }
 
+function sschp_test_analytics_summary_rates_are_consistent() {
+    $summary = sschp_invoke_private(
+        'SSCHP_Analytics',
+        'enrich_summary_rates',
+        array(
+            array(
+                'total_searches'              => 4,
+                'zero_result_search'          => 1,
+                'chip_impressions'            => 10,
+                'chip_clicks'                 => 2,
+                'search_linked_clicks'        => 2,
+                'result_clicks'               => 3,
+                'search_linked_result_clicks' => 3,
+            ),
+        )
+    );
+
+    sschp_assert_same( 25.0, $summary['zero_result_rate'], 'zero-result rate should divide zero-result searches by all searches' );
+    sschp_assert_same( 20.0, $summary['chip_click_through_rate'], 'chip CTR should divide chip clicks by chip impressions' );
+    sschp_assert_same( 50.0, $summary['search_to_click_rate'], 'search-to-chip-click rate should divide linked chip clicks by all searches' );
+    sschp_assert_same( 75.0, $summary['search_to_result_click_rate'], 'search-to-result-click rate should divide linked result clicks by all searches' );
+}
+
 function sschp_test_analytics_escape_csv_value_neutralizes_spreadsheet_formulas() {
     $escaped_formula = sschp_invoke_private( 'SSCHP_Analytics', 'escape_csv_value', array( '=SUM(1,1)' ) );
     $escaped_spaced  = sschp_invoke_private( 'SSCHP_Analytics', 'escape_csv_value', array( '  @calc' ) );
@@ -1210,6 +1234,99 @@ function sschp_test_analytics_guard_tracking_rejects_immediate_replays() {
 
     sschp_assert_same( 'track', $first, 'guard_tracking_request should allow the first analytics event through' );
     sschp_assert_same( 'duplicate', $second, 'guard_tracking_request should reject immediate duplicate analytics events' );
+}
+
+function sschp_test_analytics_guard_dedupes_chip_impression_batches() {
+    sschp_reset_test_state();
+
+    $_SERVER['REMOTE_ADDR'] = '203.0.113.11';
+    $payload                = array(
+        'visitor_id'       => 'ssc-demo-visitor',
+        'event_type'       => 'chip_impression',
+        'language_code'    => 'en',
+        'search_query'     => 'spring',
+        'chip_label'       => '',
+        'post_type'        => 'product',
+        'product_category' => 'handles',
+        'page_url'         => 'https://example.test/search/',
+        'active_tag_count' => 0,
+        'chip_labels'      => array( 'Outdoor', 'Spring Handle' ),
+    );
+
+    $first  = sschp_invoke_private( 'SSCHP_Analytics', 'guard_tracking_request', array( $payload ) );
+    $second = sschp_invoke_private( 'SSCHP_Analytics', 'guard_tracking_request', array( $payload ) );
+
+    sschp_assert_same( 'track', $first, 'first chip impression batch should be recorded' );
+    sschp_assert_same( 'duplicate', $second, 'identical chip impression batches should be deduplicated' );
+}
+
+function sschp_test_analytics_report_filters_are_sanitized() {
+    $range  = array(
+        'from_gmt' => '2026-05-01 00:00:00',
+        'to_gmt'   => '2026-05-31 23:59:59',
+    );
+    $filter = sschp_invoke_private(
+        'SSCHP_Analytics',
+        'get_report_filter_sql',
+        array(
+            $range,
+            array(
+                'language'         => 'CS!',
+                'post_type'        => 'Product',
+                'product_category' => 'Power switches',
+            ),
+        )
+    );
+
+    sschp_assert_contains( 'language_code = %s', $filter['where'], 'report filter should include language when provided' );
+    sschp_assert_contains( 'post_type = %s', $filter['where'], 'report filter should include post type when provided' );
+    sschp_assert_contains( 'product_category = %s', $filter['where'], 'report filter should include WooCommerce category when provided' );
+    sschp_assert_same( array( '2026-05-01 00:00:00', '2026-05-31 23:59:59', 'cs', 'product', 'power-switches' ), $filter['params'], 'report filter values should be sanitized before SQL prepare' );
+}
+
+function sschp_test_analytics_result_click_tracking_stores_post_and_position() {
+    global $sschp_test_analytics_rows, $sschp_test_post_terms;
+
+    sschp_reset_test_state();
+    sschp_enable_pro_for_analytics_tests();
+    update_option( 'sschp_analytics_enabled', '1' );
+    update_option( 'sschp_analytics_ignore_admins', '0' );
+    $sschp_test_post_terms['42|product_cat'] = array(
+        (object) array(
+            'slug' => 'Power Switches',
+        ),
+    );
+
+    $_SERVER['REMOTE_ADDR'] = '203.0.113.12';
+    $_POST                  = array(
+        'nonce'              => 'test-nonce',
+        'event_type'         => 'result_click',
+        'visitor_id'         => 'visitor-one',
+        'search_query'       => 'spring handle',
+        'active_tag_count'   => '2',
+        'post_type'          => 'product',
+        'result_object_id'   => '42',
+        'result_position'    => '3',
+        'page_url'           => 'https://example.test/?s=spring',
+        'sschp_lang'         => 'cs',
+    );
+
+    $handler = new SSCHP_Analytics();
+    $result  = sschp_capture_wp_die(
+        function() use ( $handler ) {
+            $handler->ajax_track_event();
+        }
+    );
+
+    sschp_assert_true( $result['died'], 'ajax_track_event should finish by sending a JSON response' );
+    sschp_assert_contains( '"tracked":true', $result['message'], 'result click should be tracked when the object ID is present' );
+    sschp_assert_same( 1, count( $sschp_test_analytics_rows ), 'result click should insert one analytics row' );
+    sschp_assert_same( 'result_click', $sschp_test_analytics_rows[0]['event_type'], 'result click row should keep the event type' );
+    sschp_assert_same( 42, $sschp_test_analytics_rows[0]['result_object_id'], 'result click row should store clicked post/product ID' );
+    sschp_assert_same( 3, $sschp_test_analytics_rows[0]['result_position'], 'result click row should store clicked result position' );
+    sschp_assert_same( 0, $sschp_test_analytics_rows[0]['user_id'], 'analytics rows should not store personal WordPress user IDs' );
+    sschp_assert_same( 'product', $sschp_test_analytics_rows[0]['post_type'], 'result click row should store post type for filtering' );
+    sschp_assert_same( 'power-switches', $sschp_test_analytics_rows[0]['product_category'], 'result click row should derive a product category slug when the browser does not send one' );
 }
 
 function sschp_enable_pro_for_analytics_tests() {
@@ -2139,8 +2256,12 @@ sschp_test_language_applies_wpml_query_args();
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_sanitizes_chip_impression_labels' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_sanitizes_nested_chip_impression_labels' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_appends_ctr_percentages' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_summary_rates_are_consistent' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_escape_csv_value_neutralizes_spreadsheet_formulas' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_guard_tracking_rejects_immediate_replays' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_guard_dedupes_chip_impression_batches' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_report_filters_are_sanitized' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_result_click_tracking_stores_post_and_position' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_schedules_when_enabled' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_unschedules_when_disabled' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_test_email_uses_wp_mail' );

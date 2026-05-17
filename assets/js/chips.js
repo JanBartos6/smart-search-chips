@@ -439,6 +439,7 @@
             window.fetch(url, {
                 method: "POST",
                 credentials: "same-origin",
+                keepalive: true,
                 body: data
             }).catch(function () {
                 // Analytics should never interrupt search UX.
@@ -464,9 +465,13 @@
             data.append("event_type", payload.eventType || "");
             data.append("search_query", payload.searchQuery || "");
             data.append("chip_label", payload.chipLabel || "");
+            data.append("post_type", payload.postType || config.postType || "");
+            data.append("product_category", payload.productCategory || config.productCategory || "");
             data.append("page_url", window.location.href);
             data.append("result_count", String(typeof payload.resultCount === "number" ? payload.resultCount : -1));
             data.append("active_tag_count", String(state ? state.activeTags.length : 0));
+            data.append("result_object_id", String(payload.resultObjectId || 0));
+            data.append("result_position", String(payload.resultPosition || 0));
 
             if (Array.isArray(payload.chipLabels)) {
                 payload.chipLabels.forEach(function (label) {
@@ -562,8 +567,36 @@
             eventType: "chip_impression",
             searchQuery: context && context.searchQuery ? context.searchQuery : "",
             resultCount: context && typeof context.resultCount === "number" ? context.resultCount : -1,
+            postType: context && context.postType ? context.postType : "",
+            productCategory: context && context.productCategory ? context.productCategory : "",
             chipLabels: labels
         }, source);
+    }
+
+    function trackResultClick(link) {
+        if (!link || !analyticsEnabled()) {
+            return;
+        }
+
+        var postId = parseInt(link.getAttribute("data-sschp-post-id"), 10);
+        if (!postId || isNaN(postId)) {
+            return;
+        }
+
+        var state = getState(link);
+        var position = parseInt(link.getAttribute("data-sschp-result-position"), 10);
+        if (isNaN(position)) {
+            position = 0;
+        }
+
+        trackEvent({
+            eventType: "result_click",
+            searchQuery: state.lastQuery || getCurrentSearchQuery(),
+            resultObjectId: postId,
+            resultPosition: position,
+            postType: link.getAttribute("data-sschp-post-type") || config.postType || "",
+            productCategory: config.productCategory || ""
+        }, link);
     }
 
     function getQueryParam(name) {
@@ -1477,6 +1510,15 @@
             });
         };
     }
+
+    document.addEventListener("click", function (e) {
+        var resultLink = safeClosest(e.target, "[data-sschp-result][data-sschp-post-id]");
+        if (!resultLink) {
+            return;
+        }
+
+        trackResultClick(resultLink);
+    }, true);
 
     /**
      * Reset active tags when search is cleared.

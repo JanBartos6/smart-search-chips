@@ -84,6 +84,8 @@ async function installFakeAjax(page, options = {}) {
       resultSelector: config.resultSelector || "",
       isAdmin: !!config.isAdmin,
       primaryChipTag: config.primaryChipTag || "spring handle",
+      postType: config.postType || "product",
+      productCategory: config.productCategory || "handles",
       responseDelay: config.responseDelay || 0,
       analytics: config.analytics || { enabled: false, nonce: "" }
     };
@@ -152,6 +154,10 @@ async function installFakeAjax(page, options = {}) {
         nonce: (entries.find((entry) => entry[0] === "sschp_nonce") || [null, ""])[1],
         analyticsNonce: (entries.find((entry) => entry[0] === "nonce") || [null, ""])[1],
         activeTagCount: (entries.find((entry) => entry[0] === "active_tag_count") || [null, ""])[1],
+        postType: (entries.find((entry) => entry[0] === "post_type") || [null, ""])[1],
+        productCategory: (entries.find((entry) => entry[0] === "product_category") || [null, ""])[1],
+        resultObjectId: (entries.find((entry) => entry[0] === "result_object_id") || [null, ""])[1],
+        resultPosition: (entries.find((entry) => entry[0] === "result_position") || [null, ""])[1],
         chipLabels: entries
           .filter((entry) => entry[0] === "chip_labels[]" || entry[0] === "chip_labels")
           .map((entry) => entry[1]),
@@ -240,7 +246,7 @@ async function installFakeAjax(page, options = {}) {
               <button type="button" class="ssc-chip" data-tag="trapped key interlock" aria-pressed="false" aria-label="Filter by trapped key interlock, 2 results">trapped key interlock (2)</button>
             </div>
             <ul class="ssc-results">
-              <li class="ssc-result"><a href="#"><span class="ssc-result__title">Trapped Key Guard Door Interlock</span></a></li>
+              <li class="ssc-result"><a href="#result-101" data-sschp-result="1" data-sschp-post-id="101" data-sschp-post-type="product" data-sschp-result-position="1"><span class="ssc-result__title">Trapped Key Guard Door Interlock</span></a></li>
             </ul>
           `;
 
@@ -433,6 +439,34 @@ test.describe("Multiple search box state", () => {
     expect(impressionEvents).toHaveLength(1);
     expect(impressionEvents[0].searchQuery).toBe("Trapped");
     expect(impressionEvents[0].chipLabels).toEqual(["spring handle", "trapped key interlock"]);
+  });
+
+  test("tracks result clicks without interrupting result navigation", async ({ page }) => {
+    await installSearchFixture(page, {
+      analytics: { enabled: true, nonce: "analytics-nonce" },
+      sendBeaconMode: "false"
+    });
+
+    const first = page.getByTestId("first-search");
+    const input = first.locator(".ssc-search__input");
+
+    await input.fill("Trapped");
+    await input.dispatchEvent("input");
+    await expect(first.locator(".ssc-results .ssc-result")).toHaveCount(1);
+
+    await first.getByRole("link", { name: /Trapped Key Guard Door Interlock/i }).click();
+    await page.waitForFunction(() => window.__sschpFetchCalls.some((request) => request.eventType === "result_click"));
+
+    const fetchCalls = await readFetchCalls(page);
+    const resultClicks = analyticsEvents(fetchCalls, "result_click");
+
+    expect(resultClicks).toHaveLength(1);
+    expect(resultClicks[0].searchQuery).toBe("Trapped");
+    expect(resultClicks[0].activeTagCount).toBe("0");
+    expect(resultClicks[0].resultObjectId).toBe("101");
+    expect(resultClicks[0].resultPosition).toBe("1");
+    expect(resultClicks[0].postType).toBe("product");
+    expect(resultClicks[0].productCategory).toBe("handles");
   });
 
   test("keeps search working when analytics fetch rejects", async ({ page }) => {

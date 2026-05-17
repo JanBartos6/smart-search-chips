@@ -821,6 +821,7 @@ class SSCHP_Search_Handler {
                 'url'        => get_permalink( $pid ),
                 'title'      => get_the_title( $pid ),
                 'thumbnail'  => $this->get_result_thumbnail( $pid ),
+                'post_type'  => get_post_type( $pid ),
                 'score'      => isset( $rp['score'] ) ? (float) $rp['score'] : 0.0,
                 'tags'       => $tag_data['tags'],
                 'tags_lower' => $tag_data['tags_lower'],
@@ -1173,8 +1174,9 @@ class SSCHP_Search_Handler {
                 break;
             }
 
+            $position = $shown + 1;
             echo '<li class="ssc-result">';
-            echo '<a href="' . esc_url( $post['url'] ) . '">';
+            echo '<a href="' . esc_url( $post['url'] ) . '" data-sschp-result="1" data-sschp-post-id="' . esc_attr( (int) $post['id'] ) . '" data-sschp-post-type="' . esc_attr( isset( $post['post_type'] ) ? $post['post_type'] : '' ) . '" data-sschp-result-position="' . esc_attr( $position ) . '">';
 
             if ( $post['thumbnail'] ) {
                 echo '<figure class="ssc-result__image">' . wp_kses_post( $post['thumbnail'] ) . '</figure>';

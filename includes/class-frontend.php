@@ -119,6 +119,7 @@ class SSCHP_Frontend {
             'minChars'      => 2,
             'debounceMs'    => $this->get_debounce_ms(),
             'postType'      => implode( ',', (array) $this->settings->get( 'post_types', array( 'post' ) ) ),
+            'productCategory' => $this->get_current_product_category_slug(),
             'nonce'         => wp_create_nonce( 'sschp_search_nonce' ),
             'lang'          => SSCHP_Language::current_language(),
             'isAdmin'       => current_user_can( 'manage_options' ),
@@ -200,6 +201,24 @@ class SSCHP_Frontend {
         $value = (int) $this->settings->get( 'debounce_ms', 300 );
 
         return max( 50, min( 2000, $value ) );
+    }
+
+    /**
+     * Return the current WooCommerce product category slug when available.
+     *
+     * @return string
+     */
+    private function get_current_product_category_slug() {
+        if ( ! function_exists( 'get_queried_object' ) ) {
+            return '';
+        }
+
+        $queried = get_queried_object();
+        if ( ! $queried || ! isset( $queried->taxonomy, $queried->slug ) || 'product_cat' !== $queried->taxonomy ) {
+            return '';
+        }
+
+        return sanitize_title( $queried->slug );
     }
 
     /**

@@ -21,7 +21,7 @@ class SSCHP_Analytics {
     const DB_VERSION_OPTION = 'sschp_analytics_db_version';
 
     /** @var string Current analytics schema version */
-    const DB_VERSION = '1.1';
+    const DB_VERSION = '1.2';
 
     /** @var int Max analytics requests allowed per fingerprint in the rolling window */
     const RATE_LIMIT_MAX_REQUESTS = 120;
@@ -81,14 +81,21 @@ class SSCHP_Analytics {
             language_code varchar(32) DEFAULT '',
             search_query varchar(191) DEFAULT '',
             chip_label varchar(191) DEFAULT '',
+            post_type varchar(32) DEFAULT '',
+            product_category varchar(191) DEFAULT '',
             page_url varchar(255) DEFAULT '',
             result_count int(11) DEFAULT NULL,
             active_tag_count int(11) DEFAULT NULL,
+            result_object_id bigint(20) unsigned DEFAULT NULL,
+            result_position int(11) DEFAULT NULL,
             PRIMARY KEY  (id),
             KEY event_type_created_at (event_type, created_at),
             KEY language_created_at (language_code, created_at),
+            KEY post_type_created_at (post_type, created_at),
+            KEY product_category_created_at (product_category(100), created_at),
             KEY chip_label_created_at (chip_label(100), created_at),
             KEY search_query_created_at (search_query(100), created_at),
+            KEY result_object_created_at (result_object_id, created_at),
             KEY visitor_created_at (visitor_id, created_at)
         ) {$charset_collate};";
 
@@ -137,6 +144,17 @@ class SSCHP_Analytics {
      */
     public static function is_enabled() {
         return SSCHP_License::is_pro() && get_option( 'sschp_analytics_enabled', '0' ) === '1';
+    }
+
+    /**
+     * Whether the current request should be ignored as administrator noise.
+     *
+     * @return bool
+     */
+    private static function should_ignore_current_user() {
+        return get_option( 'sschp_analytics_ignore_admins', '1' ) === '1'
+            && function_exists( 'current_user_can' )
+            && current_user_can( 'manage_options' );
     }
 
     /**
@@ -440,12 +458,19 @@ class SSCHP_Analytics {
             <table cellpadding="8" cellspacing="0" border="1" style="border-collapse:collapse;border-color:#dcdcde">
                 <tr><th align="left"><?php esc_html_e( 'Total searches', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_number( $summary['total_searches'] ?? 0 ) ); ?></td></tr>
                 <tr><th align="left"><?php esc_html_e( 'Chip clicks', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_number( $summary['chip_clicks'] ?? 0 ) ); ?></td></tr>
-                <tr><th align="left"><?php esc_html_e( 'Search-to-click rate', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_percent( $summary['search_to_click_rate'] ?? 0 ) ); ?></td></tr>
+                <tr><th align="left"><?php esc_html_e( 'Chip impressions', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_number( $summary['chip_impressions'] ?? 0 ) ); ?></td></tr>
+                <tr><th align="left"><?php esc_html_e( 'Chip click-through rate', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_percent( $summary['chip_click_through_rate'] ?? 0 ) ); ?></td></tr>
+                <tr><th align="left"><?php esc_html_e( 'Result clicks', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_number( $summary['result_clicks'] ?? 0 ) ); ?></td></tr>
+                <tr><th align="left"><?php esc_html_e( 'Search-to-result-click rate', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_percent( $summary['search_to_result_click_rate'] ?? 0 ) ); ?></td></tr>
                 <tr><th align="left"><?php esc_html_e( 'Zero-result searches', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_number( $summary['zero_result_search'] ?? 0 ) ); ?></td></tr>
+                <tr><th align="left"><?php esc_html_e( 'Zero-result rate', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_percent( $summary['zero_result_rate'] ?? 0 ) ); ?></td></tr>
             </table>
 
             <h2><?php esc_html_e( 'Top queries', 'smart-search-chips' ); ?></h2>
-            <?php echo self::render_email_table( $analytics['top_queries'] ?? array(), array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'searches' => __( 'Searches', 'smart-search-chips' ), 'chip_clicks' => __( 'Chip clicks', 'smart-search-chips' ), 'click_rate' => __( 'Click rate', 'smart-search-chips' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- table renderer escapes cells. ?>
+            <?php echo self::render_email_table( $analytics['top_queries'] ?? array(), array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'searches' => __( 'Searches', 'smart-search-chips' ), 'chip_clicks' => __( 'Chip clicks', 'smart-search-chips' ), 'result_clicks' => __( 'Result clicks', 'smart-search-chips' ), 'result_click_rate' => __( 'Result CTR', 'smart-search-chips' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- table renderer escapes cells. ?>
+
+            <h2><?php esc_html_e( 'Top query refinements', 'smart-search-chips' ); ?></h2>
+            <?php echo self::render_email_table( $analytics['top_refinements'] ?? array(), array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'refinements' => __( 'Refinements', 'smart-search-chips' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- table renderer escapes cells. ?>
 
             <?php if ( $include_chips ) : ?>
                 <h2><?php esc_html_e( 'Top clicked chips', 'smart-search-chips' ); ?></h2>
@@ -576,7 +601,7 @@ class SSCHP_Analytics {
             return '';
         }
 
-        self::write_csv_row( $handle, array( 'created_at_utc', 'event_type', 'language_code', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'page_url', 'visitor_id' ) );
+        self::write_csv_row( $handle, array( 'created_at_utc', 'event_type', 'language_code', 'post_type', 'product_category', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'result_object_id', 'result_position', 'page_url', 'visitor_id' ) );
 
         foreach ( $events as $event ) {
             self::write_csv_row(
@@ -586,10 +611,14 @@ class SSCHP_Analytics {
                         $event['created_at'] ?? '',
                         $event['event_type'] ?? '',
                         $event['language_code'] ?? '',
+                        $event['post_type'] ?? '',
+                        $event['product_category'] ?? '',
                         $event['search_query'] ?? '',
                         $event['chip_label'] ?? '',
                         $event['result_count'] ?? '',
                         $event['active_tag_count'] ?? '',
+                        $event['result_object_id'] ?? '',
+                        $event['result_position'] ?? '',
                         $event['page_url'] ?? '',
                         $event['visitor_id'] ?? '',
                     )
@@ -766,8 +795,17 @@ class SSCHP_Analytics {
             wp_send_json_success( array( 'tracked' => false ) );
         }
 
+        if ( self::should_ignore_current_user() ) {
+            wp_send_json_success(
+                array(
+                    'tracked' => false,
+                    'reason'  => 'admin_ignored',
+                )
+            );
+        }
+
         $event_type = isset( $_POST['event_type'] ) ? sanitize_key( wp_unslash( $_POST['event_type'] ) ) : '';
-        if ( ! in_array( $event_type, array( 'search', 'chip_click', 'chip_impression' ), true ) ) {
+        if ( ! in_array( $event_type, array( 'search', 'chip_click', 'chip_impression', 'result_click' ), true ) ) {
             wp_send_json_error( array( 'message' => __( 'Unsupported analytics event type.', 'smart-search-chips' ) ), 400 );
         }
 
@@ -778,9 +816,13 @@ class SSCHP_Analytics {
 
         $search_query     = isset( $_POST['search_query'] ) ? sanitize_text_field( wp_unslash( $_POST['search_query'] ) ) : '';
         $chip_label       = isset( $_POST['chip_label'] ) ? sanitize_text_field( wp_unslash( $_POST['chip_label'] ) ) : '';
+        $post_type        = isset( $_POST['post_type'] ) ? sanitize_key( wp_unslash( $_POST['post_type'] ) ) : '';
+        $product_category = isset( $_POST['product_category'] ) ? sanitize_title( wp_unslash( $_POST['product_category'] ) ) : '';
         $page_url         = isset( $_POST['page_url'] ) ? esc_url_raw( wp_unslash( $_POST['page_url'] ) ) : '';
         $result_count     = isset( $_POST['result_count'] ) ? intval( wp_unslash( $_POST['result_count'] ) ) : null;
         $active_tag_count = isset( $_POST['active_tag_count'] ) ? max( 0, intval( wp_unslash( $_POST['active_tag_count'] ) ) ) : null;
+        $result_object_id = isset( $_POST['result_object_id'] ) ? absint( wp_unslash( $_POST['result_object_id'] ) ) : 0;
+        $result_position  = isset( $_POST['result_position'] ) ? absint( wp_unslash( $_POST['result_position'] ) ) : 0;
         $language_code    = SSCHP_Language::request_language(
             array(
                 'sschp_lang' => isset( $_POST['sschp_lang'] ) ? sanitize_key( wp_unslash( $_POST['sschp_lang'] ) ) : '',
@@ -788,12 +830,16 @@ class SSCHP_Analytics {
             )
         );
         $chip_labels      = self::sanitize_chip_labels( isset( $_POST['chip_labels'] ) ? wp_unslash( $_POST['chip_labels'] ) : array() );
+        $product_category = self::resolve_product_category_slug( $result_object_id, $product_category );
 
         if ( $event_type === 'search' && strlen( $search_query ) < 2 ) {
             wp_send_json_success( array( 'tracked' => false ) );
         }
         if ( $event_type === 'chip_impression' && empty( $chip_labels ) ) {
             wp_send_json_success( array( 'tracked' => false ) );
+        }
+        if ( $event_type === 'result_click' && $result_object_id <= 0 ) {
+            wp_send_json_success( array( 'tracked' => false, 'reason' => 'missing_result_object' ) );
         }
 
         $tracking_decision = self::guard_tracking_request(
@@ -803,9 +849,14 @@ class SSCHP_Analytics {
                 'language_code'    => $language_code,
                 'search_query'     => $search_query,
                 'chip_label'       => $chip_label,
+                'post_type'        => $post_type,
+                'product_category' => $product_category,
                 'page_url'         => $page_url,
+                'result_count'     => $result_count,
                 'active_tag_count' => $active_tag_count,
                 'chip_labels'      => $chip_labels,
+                'result_object_id' => $result_object_id,
+                'result_position'  => $result_position,
             )
         );
 
@@ -818,25 +869,26 @@ class SSCHP_Analytics {
             );
         }
 
-        $user_id = get_current_user_id();
-        $user_id = $user_id > 0 ? $user_id : 0;
-
         global $wpdb;
 
         $timestamp = current_time( 'mysql', true );
         $base_row  = array(
             'created_at'       => $timestamp,
             'visitor_id'       => substr( $visitor_id, 0, 64 ),
-            'user_id'          => $user_id,
+            'user_id'          => 0,
             'event_type'       => $event_type,
             'language_code'    => substr( $language_code, 0, 32 ),
             'search_query'     => substr( $search_query, 0, 191 ),
             'chip_label'       => substr( $chip_label, 0, 191 ),
+            'post_type'        => substr( $post_type, 0, 32 ),
+            'product_category' => substr( $product_category, 0, 191 ),
             'page_url'         => substr( $page_url, 0, 255 ),
             'result_count'     => $result_count,
             'active_tag_count' => $active_tag_count,
+            'result_object_id' => $result_object_id > 0 ? $result_object_id : null,
+            'result_position'  => $result_position > 0 ? $result_position : null,
         );
-        $formats   = array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d' );
+        $formats   = array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d' );
         $tracked   = 0;
 
         if ( 'chip_impression' === $event_type ) {
@@ -860,7 +912,7 @@ class SSCHP_Analytics {
     /**
      * Aggregate analytics data for the dashboard.
      *
-     * @param int $days Rolling time window in days.
+     * @param array $args Date range and filter arguments.
      * @return array
      */
     public static function get_dashboard_data( $args = array() ) {
@@ -870,91 +922,94 @@ class SSCHP_Analytics {
 
         $table_name = self::table_name();
         $range      = self::get_date_range( $args );
-        $from_gmt   = $range['from_gmt'];
-        $to_gmt     = $range['to_gmt'];
+        $filter     = self::get_report_filter_sql( $range, $args );
 
         $summary = array(
-            'total_searches'     => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND created_at BETWEEN %s AND %s", 'search', $from_gmt, $to_gmt ) ),
-            'unique_visitors'    => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT visitor_id) FROM {$table_name} WHERE created_at BETWEEN %s AND %s", $from_gmt, $to_gmt ) ),
-            'zero_result_search' => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND created_at BETWEEN %s AND %s AND result_count = 0", 'search', $from_gmt, $to_gmt ) ),
-            'chip_clicks'        => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND created_at BETWEEN %s AND %s", 'chip_click', $from_gmt, $to_gmt ) ),
+            'total_searches'      => (int) $wpdb->get_var( self::prepare_report_query( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND {$filter['where']}", $filter, array( 'search' ) ) ),
+            'unique_visitors'     => (int) $wpdb->get_var( self::prepare_report_query( "SELECT COUNT(DISTINCT visitor_id) FROM {$table_name} WHERE {$filter['where']}", $filter ) ),
+            'zero_result_search'  => (int) $wpdb->get_var( self::prepare_report_query( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND {$filter['where']} AND result_count = 0", $filter, array( 'search' ) ) ),
+            'chip_impressions'    => (int) $wpdb->get_var( self::prepare_report_query( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND {$filter['where']}", $filter, array( 'chip_impression' ) ) ),
+            'chip_clicks'         => (int) $wpdb->get_var( self::prepare_report_query( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND {$filter['where']}", $filter, array( 'chip_click' ) ) ),
+            'result_clicks'       => (int) $wpdb->get_var( self::prepare_report_query( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND {$filter['where']}", $filter, array( 'result_click' ) ) ),
         );
-        $summary['search_linked_clicks'] = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*)
-                FROM {$table_name}
-                WHERE event_type = %s AND created_at BETWEEN %s AND %s AND search_query <> ''",
-                'chip_click',
-                $from_gmt,
-                $to_gmt
-            )
-        );
-        $summary['search_to_click_rate'] = self::calculate_percentage( $summary['search_linked_clicks'], $summary['total_searches'] );
+        $summary['search_linked_clicks'] = (int) $wpdb->get_var( self::prepare_report_query( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND {$filter['where']} AND search_query <> ''", $filter, array( 'chip_click' ) ) );
+        $summary['search_linked_result_clicks'] = (int) $wpdb->get_var( self::prepare_report_query( "SELECT COUNT(*) FROM {$table_name} WHERE event_type = %s AND {$filter['where']} AND search_query <> ''", $filter, array( 'result_click' ) ) );
+        $summary = self::enrich_summary_rates( $summary );
 
         $top_chips = $wpdb->get_results(
-            $wpdb->prepare(
+            self::prepare_report_query(
                 "SELECT chip_label, COUNT(*) AS clicks, COUNT(DISTINCT visitor_id) AS visitors
                 FROM {$table_name}
-                WHERE event_type = %s AND created_at BETWEEN %s AND %s AND chip_label <> ''
+                WHERE event_type = %s AND {$filter['where']} AND chip_label <> ''
                 GROUP BY chip_label
                 ORDER BY clicks DESC, visitors DESC
                 LIMIT 10",
-                'chip_click',
-                $from_gmt,
-                $to_gmt
+                $filter,
+                array( 'chip_click' )
             ),
             ARRAY_A
         );
 
         $top_queries = $wpdb->get_results(
-            $wpdb->prepare(
+            self::prepare_report_query(
                 "SELECT search_query,
                     SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS searches,
                     SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS chip_clicks,
+                    SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS result_clicks,
                     AVG(CASE WHEN event_type = %s THEN COALESCE(result_count, 0) ELSE NULL END) AS avg_results
                 FROM {$table_name}
-                WHERE event_type IN (%s, %s) AND created_at BETWEEN %s AND %s AND search_query <> ''
+                WHERE event_type IN (%s, %s, %s) AND {$filter['where']} AND search_query <> ''
                 GROUP BY search_query
                 ORDER BY searches DESC
                 LIMIT 10",
-                'search',
-                'chip_click',
-                'search',
-                'search',
-                'chip_click',
-                $from_gmt,
-                $to_gmt
+                $filter,
+                array( 'search', 'chip_click', 'result_click', 'search', 'search', 'chip_click', 'result_click' )
             ),
             ARRAY_A
         );
         $top_queries = self::append_percentage_to_rows( $top_queries, 'chip_clicks', 'searches', 'click_rate' );
+        $top_queries = self::append_percentage_to_rows( $top_queries, 'result_clicks', 'searches', 'result_click_rate' );
 
         $zero_queries = $wpdb->get_results( // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from $wpdb->prefix.
-            $wpdb->prepare(
+            self::prepare_report_query(
                 "SELECT search_query, COUNT(*) AS misses, MIN(created_at) AS first_seen, MAX(created_at) AS last_seen
                 FROM {$table_name}
-                WHERE event_type = %s AND created_at BETWEEN %s AND %s AND result_count = 0 AND search_query <> ''
+                WHERE event_type = %s AND {$filter['where']} AND result_count = 0 AND search_query <> ''
                 GROUP BY search_query
                 ORDER BY misses DESC, last_seen DESC
                 LIMIT 10",
-                'search',
-                $from_gmt,
-                $to_gmt
+                $filter,
+                array( 'search' )
             ),
             ARRAY_A
         );
-        $top_chip_ctr = self::get_top_chip_ctr_rows( $range );
-        $low_chip_ctr = self::get_low_chip_ctr_rows( $range );
+        $top_refinements = $wpdb->get_results(
+            self::prepare_report_query(
+                "SELECT search_query, chip_label, COUNT(*) AS refinements, COUNT(DISTINCT visitor_id) AS visitors
+                FROM {$table_name}
+                WHERE event_type = %s AND {$filter['where']} AND search_query <> '' AND chip_label <> ''
+                GROUP BY search_query, chip_label
+                ORDER BY refinements DESC, visitors DESC
+                LIMIT 10",
+                $filter,
+                array( 'chip_click' )
+            ),
+            ARRAY_A
+        );
+        $top_chip_ctr = self::get_top_chip_ctr_rows( $range, $args );
+        $low_chip_ctr = self::get_low_chip_ctr_rows( $range, $args );
 
         return array(
             'range'         => $range,
+            'filters'       => $filter['filters'],
             'summary'       => $summary,
-            'timeseries'    => self::get_time_series( $range ),
+            'timeseries'    => self::get_time_series( $args ),
             'top_chips'     => is_array( $top_chips ) ? $top_chips : array(),
             'top_chip_ctr'  => $top_chip_ctr,
             'low_chip_ctr'  => $low_chip_ctr,
             'top_queries'   => is_array( $top_queries ) ? $top_queries : array(),
             'zero_queries'  => is_array( $zero_queries ) ? $zero_queries : array(),
+            'top_refinements' => is_array( $top_refinements ) ? $top_refinements : array(),
         );
     }
 
@@ -970,16 +1025,16 @@ class SSCHP_Analytics {
         self::maybe_install();
 
         $range      = self::get_date_range( $args );
+        $filter     = self::get_report_filter_sql( $range, $args );
         $table_name = self::table_name();
         $timezone   = wp_timezone();
         $rows       = $wpdb->get_results(
-            $wpdb->prepare(
+            self::prepare_report_query(
                 "SELECT created_at, event_type, visitor_id, result_count
                 FROM {$table_name}
-                WHERE created_at BETWEEN %s AND %s
+                WHERE {$filter['where']}
                 ORDER BY created_at ASC",
-                $range['from_gmt'],
-                $range['to_gmt']
+                $filter
             ),
             ARRAY_A
         );
@@ -999,6 +1054,7 @@ class SSCHP_Analytics {
                 'label'           => $day->format( 'M j' ),
                 'searches'        => 0,
                 'chip_clicks'     => 0,
+                'result_clicks'   => 0,
                 'zero_results'    => 0,
                 'unique_visitors' => 0,
             );
@@ -1024,6 +1080,8 @@ class SSCHP_Analytics {
                 }
             } elseif ( $row['event_type'] === 'chip_click' ) {
                 $series[ $bucket ]['chip_clicks']++;
+            } elseif ( $row['event_type'] === 'result_click' ) {
+                $series[ $bucket ]['result_clicks']++;
             }
 
             if ( ! empty( $row['visitor_id'] ) ) {
@@ -1050,32 +1108,30 @@ class SSCHP_Analytics {
         self::maybe_install();
 
         $range      = self::get_date_range( $args );
+        $filter     = self::get_report_filter_sql( $range, $args );
         $table_name = self::table_name();
         $limit      = isset( $args['limit'] ) ? absint( $args['limit'] ) : 100;
 
         if ( $limit > 0 ) {
             $results = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT created_at, event_type, language_code, search_query, chip_label, result_count, active_tag_count, page_url, visitor_id
+                    "SELECT created_at, event_type, language_code, search_query, chip_label, post_type, product_category, result_count, active_tag_count, result_object_id, result_position, page_url, visitor_id
                     FROM {$table_name}
-                    WHERE created_at BETWEEN %s AND %s
+                    WHERE {$filter['where']}
                     ORDER BY created_at DESC
                     LIMIT %d",
-                    $range['from_gmt'],
-                    $range['to_gmt'],
-                    $limit
+                    array_merge( $filter['params'], array( $limit ) )
                 ),
                 ARRAY_A
             );
         } else {
             $results = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT created_at, event_type, language_code, search_query, chip_label, result_count, active_tag_count, page_url, visitor_id
+                self::prepare_report_query(
+                    "SELECT created_at, event_type, language_code, search_query, chip_label, post_type, product_category, result_count, active_tag_count, result_object_id, result_position, page_url, visitor_id
                     FROM {$table_name}
-                    WHERE created_at BETWEEN %s AND %s
+                    WHERE {$filter['where']}
                     ORDER BY created_at DESC",
-                    $range['from_gmt'],
-                    $range['to_gmt']
+                    $filter
                 ),
                 ARRAY_A
             );
@@ -1099,9 +1155,12 @@ class SSCHP_Analytics {
         }
 
         $args   = array(
-            'from'  => self::get_request_date_arg( 'from' ),
-            'to'    => self::get_request_date_arg( 'to' ),
-            'limit' => 0,
+            'from'             => self::get_request_text_arg( 'from' ),
+            'to'               => self::get_request_text_arg( 'to' ),
+            'language'         => self::get_request_key_arg( 'language' ),
+            'post_type'        => self::get_request_key_arg( 'post_type' ),
+            'product_category' => sanitize_title( self::get_request_text_arg( 'product_category' ) ),
+            'limit'            => 0,
         );
         $range  = self::get_date_range( $args );
         $events = self::get_recent_events( $args );
@@ -1111,22 +1170,26 @@ class SSCHP_Analytics {
         header( 'Content-Disposition: attachment; filename=ssc-analytics-' . $range['from'] . '-to-' . $range['to'] . '.csv' );
 
         $out = fopen( 'php://output', 'w' );
-        self::write_csv_row( $out, array( 'created_at_utc', 'event_type', 'language_code', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'page_url', 'visitor_id' ) );
+        self::write_csv_row( $out, array( 'created_at_utc', 'event_type', 'language_code', 'post_type', 'product_category', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'result_object_id', 'result_position', 'page_url', 'visitor_id' ) );
 
         foreach ( $events as $event ) {
             self::write_csv_row(
                 $out,
                 self::escape_csv_row(
                     array(
-                        $event['created_at'],
-                        $event['event_type'],
-                        $event['language_code'],
-                        $event['search_query'],
-                        $event['chip_label'],
-                        $event['result_count'],
-                        $event['active_tag_count'],
-                        $event['page_url'],
-                        $event['visitor_id'],
+                        $event['created_at'] ?? '',
+                        $event['event_type'] ?? '',
+                        $event['language_code'] ?? '',
+                        $event['post_type'] ?? '',
+                        $event['product_category'] ?? '',
+                        $event['search_query'] ?? '',
+                        $event['chip_label'] ?? '',
+                        $event['result_count'] ?? '',
+                        $event['active_tag_count'] ?? '',
+                        $event['result_object_id'] ?? '',
+                        $event['result_position'] ?? '',
+                        $event['page_url'] ?? '',
+                        $event['visitor_id'] ?? '',
                     )
                 )
             );
@@ -1142,7 +1205,7 @@ class SSCHP_Analytics {
      * @param string $key Query variable name.
      * @return string
      */
-    private static function get_request_date_arg( $key ) {
+    private static function get_request_text_arg( $key ) {
         $value = filter_input( INPUT_GET, $key, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 
         if ( null === $value || false === $value ) {
@@ -1150,6 +1213,16 @@ class SSCHP_Analytics {
         }
 
         return sanitize_text_field( wp_unslash( $value ) );
+    }
+
+    /**
+     * Read and sanitize a key-style analytics export query argument.
+     *
+     * @param string $key Query variable name.
+     * @return string
+     */
+    private static function get_request_key_arg( $key ) {
+        return sanitize_key( self::get_request_text_arg( $key ) );
     }
 
     /**
@@ -1189,6 +1262,73 @@ class SSCHP_Analytics {
             'from_gmt' => $from_local->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' ),
             'to_gmt'   => $to_local->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' ),
         );
+    }
+
+    /**
+     * Build sanitized dashboard filters and SQL fragments.
+     *
+     * @param array $range Normalized date range.
+     * @param array $args  Report arguments.
+     * @return array
+     */
+    private static function get_report_filter_sql( $range, $args = array() ) {
+        $filters = array(
+            'language'         => isset( $args['language'] ) ? sanitize_key( $args['language'] ) : '',
+            'post_type'        => isset( $args['post_type'] ) ? sanitize_key( $args['post_type'] ) : '',
+            'product_category' => isset( $args['product_category'] ) ? sanitize_title( $args['product_category'] ) : '',
+        );
+        $where   = array( 'created_at BETWEEN %s AND %s' );
+        $params  = array( $range['from_gmt'], $range['to_gmt'] );
+
+        if ( '' !== $filters['language'] ) {
+            $where[]  = 'language_code = %s';
+            $params[] = $filters['language'];
+        }
+
+        if ( '' !== $filters['post_type'] ) {
+            $where[]  = 'post_type = %s';
+            $params[] = $filters['post_type'];
+        }
+
+        if ( '' !== $filters['product_category'] ) {
+            $where[]  = 'product_category = %s';
+            $params[] = $filters['product_category'];
+        }
+
+        return array(
+            'where'   => implode( ' AND ', $where ),
+            'params'  => $params,
+            'filters' => $filters,
+        );
+    }
+
+    /**
+     * Prepare a dashboard query with shared report filters.
+     *
+     * @param string $query  SQL query.
+     * @param array  $filter Filter SQL data.
+     * @param array  $params Query parameters before filter parameters.
+     * @return string
+     */
+    private static function prepare_report_query( $query, $filter, $params = array() ) {
+        global $wpdb;
+
+        return $wpdb->prepare( $query, array_merge( (array) $params, (array) $filter['params'] ) );
+    }
+
+    /**
+     * Add calculated rates to a summary row.
+     *
+     * @param array $summary Raw summary values.
+     * @return array
+     */
+    private static function enrich_summary_rates( $summary ) {
+        $summary['zero_result_rate']            = self::calculate_percentage( $summary['zero_result_search'] ?? 0, $summary['total_searches'] ?? 0 );
+        $summary['chip_click_through_rate']     = self::calculate_percentage( $summary['chip_clicks'] ?? 0, $summary['chip_impressions'] ?? 0 );
+        $summary['search_to_click_rate']        = self::calculate_percentage( $summary['search_linked_clicks'] ?? 0, $summary['total_searches'] ?? 0 );
+        $summary['search_to_result_click_rate'] = self::calculate_percentage( $summary['search_linked_result_clicks'] ?? 0, $summary['total_searches'] ?? 0 );
+
+        return $summary;
     }
 
     /**
@@ -1249,6 +1389,33 @@ class SSCHP_Analytics {
         $value = preg_replace( '/[^A-Za-z0-9_-]/', '', $value );
 
         return substr( (string) $value, 0, 64 );
+    }
+
+    /**
+     * Resolve a product category slug from the clicked result when the browser did not provide one.
+     *
+     * @param int    $result_object_id Clicked post/product ID.
+     * @param string $provided_slug    Category slug supplied by the browser.
+     * @return string
+     */
+    private static function resolve_product_category_slug( $result_object_id, $provided_slug = '' ) {
+        $provided_slug = sanitize_title( $provided_slug );
+        if ( '' !== $provided_slug || $result_object_id <= 0 || ! function_exists( 'get_the_terms' ) ) {
+            return $provided_slug;
+        }
+
+        $terms = get_the_terms( $result_object_id, 'product_cat' );
+        if ( ! is_array( $terms ) || ( function_exists( 'is_wp_error' ) && is_wp_error( $terms ) ) ) {
+            return '';
+        }
+
+        foreach ( $terms as $term ) {
+            if ( isset( $term->slug ) && '' !== $term->slug ) {
+                return sanitize_title( $term->slug );
+            }
+        }
+
+        return '';
     }
 
     /**
@@ -1336,8 +1503,13 @@ class SSCHP_Analytics {
             'language_code'    => isset( $payload['language_code'] ) ? (string) $payload['language_code'] : '',
             'search_query'     => isset( $payload['search_query'] ) ? (string) $payload['search_query'] : '',
             'chip_label'       => isset( $payload['chip_label'] ) ? (string) $payload['chip_label'] : '',
+            'post_type'        => isset( $payload['post_type'] ) ? (string) $payload['post_type'] : '',
+            'product_category' => isset( $payload['product_category'] ) ? (string) $payload['product_category'] : '',
             'page_url'         => isset( $payload['page_url'] ) ? (string) $payload['page_url'] : '',
+            'result_count'     => isset( $payload['result_count'] ) ? (int) $payload['result_count'] : -1,
             'active_tag_count' => isset( $payload['active_tag_count'] ) ? (int) $payload['active_tag_count'] : 0,
+            'result_object_id' => isset( $payload['result_object_id'] ) ? (int) $payload['result_object_id'] : 0,
+            'result_position'  => isset( $payload['result_position'] ) ? (int) $payload['result_position'] : 0,
             'chip_labels'      => isset( $payload['chip_labels'] ) && is_array( $payload['chip_labels'] ) ? array_values( $payload['chip_labels'] ) : array(),
         );
 
@@ -1457,36 +1629,32 @@ class SSCHP_Analytics {
      * Return the top chips ranked by click-through rate.
      *
      * @param array $range Date range.
+     * @param array $args  Filter arguments.
      * @return array
      */
-    private static function get_top_chip_ctr_rows( $range ) {
+    private static function get_top_chip_ctr_rows( $range, $args = array() ) {
         global $wpdb;
 
-        $table = self::table_name();
+        $table  = self::table_name();
+        $filter = self::get_report_filter_sql( $range, $args );
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $table is from $wpdb->prefix, not user input.
         $rows = $wpdb->get_results(
-            $wpdb->prepare(
+            self::prepare_report_query(
                 "SELECT chip_label,
                     SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS impressions,
                     SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS clicks,
-                    COUNT(DISTINCT CASE WHEN event_type = %s THEN visitor_id ELSE NULL END) AS click_visitors
+                    COUNT(DISTINCT CASE WHEN event_type = %s THEN visitor_id ELSE NULL END) AS click_visitors,
+                    ( SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END), 0) ) AS click_ratio
                 FROM {$table}
                 WHERE event_type IN (%s, %s)
-                    AND created_at BETWEEN %s AND %s
+                    AND {$filter['where']}
                     AND chip_label <> ''
                 GROUP BY chip_label
                 HAVING impressions > 0
-                ORDER BY ( SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) / SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) ) DESC, clicks DESC
+                ORDER BY click_ratio DESC, clicks DESC
                 LIMIT 10",
-                'chip_impression',
-                'chip_click',
-                'chip_click',
-                'chip_impression',
-                'chip_click',
-                $range['from_gmt'],
-                $range['to_gmt'],
-                'chip_click',
-                'chip_impression'
+                $filter,
+                array( 'chip_impression', 'chip_click', 'chip_click', 'chip_click', 'chip_impression', 'chip_impression', 'chip_click' )
             ),
             ARRAY_A
         );
@@ -1498,34 +1666,31 @@ class SSCHP_Analytics {
      * Return chips that are shown often but clicked rarely.
      *
      * @param array $range Date range.
+     * @param array $args  Filter arguments.
      * @return array
      */
-    private static function get_low_chip_ctr_rows( $range ) {
+    private static function get_low_chip_ctr_rows( $range, $args = array() ) {
         global $wpdb;
 
-        $table = self::table_name();
+        $table  = self::table_name();
+        $filter = self::get_report_filter_sql( $range, $args );
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $table is from $wpdb->prefix, not user input.
         $rows = $wpdb->get_results(
-            $wpdb->prepare(
+            self::prepare_report_query(
                 "SELECT chip_label,
                     SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS impressions,
-                    SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS clicks
+                    SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) AS clicks,
+                    ( SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END), 0) ) AS click_ratio
                 FROM {$table}
                 WHERE event_type IN (%s, %s)
-                    AND created_at BETWEEN %s AND %s
+                    AND {$filter['where']}
                     AND chip_label <> ''
                 GROUP BY chip_label
                 HAVING impressions >= 3
-                ORDER BY ( SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) / SUM(CASE WHEN event_type = %s THEN 1 ELSE 0 END) ) ASC, impressions DESC
+                ORDER BY click_ratio ASC, impressions DESC
                 LIMIT 10",
-                'chip_impression',
-                'chip_click',
-                'chip_impression',
-                'chip_click',
-                $range['from_gmt'],
-                $range['to_gmt'],
-                'chip_click',
-                'chip_impression'
+                $filter,
+                array( 'chip_impression', 'chip_click', 'chip_click', 'chip_impression', 'chip_impression', 'chip_click' )
             ),
             ARRAY_A
         );
