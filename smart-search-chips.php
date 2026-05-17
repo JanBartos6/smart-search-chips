@@ -153,6 +153,7 @@ if ( function_exists( 'sschp_fs' ) ) {
     require_once SSCHP_PLUGIN_DIR . 'includes/class-language.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-field-normalizer.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-chip-engine.php';
+    require_once SSCHP_PLUGIN_DIR . 'includes/class-relevance-scorer.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-search-index.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-search-handler.php';
     require_once SSCHP_PLUGIN_DIR . 'includes/class-settings.php';

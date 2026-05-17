@@ -303,6 +303,46 @@ if ( ! function_exists( 'wp_strip_all_tags' ) ) {
     }
 }
 
+if ( ! function_exists( 'remove_accents' ) ) {
+    function remove_accents( $text ) {
+        return strtr(
+            (string) $text,
+            array(
+                'á' => 'a',
+                'č' => 'c',
+                'ď' => 'd',
+                'é' => 'e',
+                'ě' => 'e',
+                'í' => 'i',
+                'ň' => 'n',
+                'ó' => 'o',
+                'ř' => 'r',
+                'š' => 's',
+                'ť' => 't',
+                'ú' => 'u',
+                'ů' => 'u',
+                'ý' => 'y',
+                'ž' => 'z',
+                'Á' => 'A',
+                'Č' => 'C',
+                'Ď' => 'D',
+                'É' => 'E',
+                'Ě' => 'E',
+                'Í' => 'I',
+                'Ň' => 'N',
+                'Ó' => 'O',
+                'Ř' => 'R',
+                'Š' => 'S',
+                'Ť' => 'T',
+                'Ú' => 'U',
+                'Ů' => 'U',
+                'Ý' => 'Y',
+                'Ž' => 'Z',
+            )
+        );
+    }
+}
+
 if ( ! function_exists( 'esc_url_raw' ) ) {
     function esc_url_raw( $url ) {
         return filter_var( (string) $url, FILTER_SANITIZE_URL );
@@ -1172,6 +1212,7 @@ require_once dirname( __DIR__ ) . '/includes/class-field-normalizer.php';
 require_once dirname( __DIR__ ) . '/includes/class-chip-engine.php';
 require_once dirname( __DIR__ ) . '/includes/class-settings.php';
 require_once dirname( __DIR__ ) . '/includes/class-frontend.php';
+require_once dirname( __DIR__ ) . '/includes/class-relevance-scorer.php';
 require_once dirname( __DIR__ ) . '/includes/class-search-index.php';
 require_once dirname( __DIR__ ) . '/includes/class-search-handler.php';
 

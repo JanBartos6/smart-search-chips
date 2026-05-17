@@ -55,7 +55,7 @@ function sschp_make_frontend_post( $post_id, array $tags ) {
     );
 }
 
-function sschp_register_test_post_for_index( $post_id, $post_type = 'post', $title = '', $content = '', $status = 'publish' ) {
+function sschp_register_test_post_for_index( $post_id, $post_type = 'post', $title = '', $content = '', $status = 'publish', $excerpt = '' ) {
     global $sschp_test_posts, $sschp_test_post_types;
 
     $post_id = (int) $post_id;
@@ -64,6 +64,7 @@ function sschp_register_test_post_for_index( $post_id, $post_type = 'post', $tit
         'post_type'    => $post_type,
         'post_title'   => '' !== $title ? $title : 'Post ' . $post_id,
         'post_content' => $content,
+        'post_excerpt' => $excerpt,
         'post_status'  => $status,
     );
 
@@ -1484,6 +1485,154 @@ function sschp_test_search_index_large_catalog_smoke() {
     sschp_assert_same( 1250, $results[0]['id'], 'large catalog indexed search should rank the best title match first' );
 }
 
+function sschp_test_fallback_relevance_exact_title_beats_content_only_match() {
+    sschp_reset_test_state();
+
+    $content_post = sschp_register_test_post_for_index( 51, 'post', 'General Article', 'This article mentions signal beacon in the body.' );
+    $title_post   = sschp_register_test_post_for_index( 52, 'post', 'Signal Beacon', 'Short content.' );
+    $handler      = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
+    $ranked       = sschp_invoke_private(
+        $handler,
+        'score_fallback_posts',
+        array(
+            array(
+                array(
+                    'post'  => $content_post,
+                    'score' => 0,
+                ),
+                array(
+                    'post'  => $title_post,
+                    'score' => 0,
+                ),
+            ),
+            'signal beacon',
+        )
+    );
+
+    sschp_assert_same( 52, $ranked[0]['post']->ID, 'fallback relevance should rank exact title matches above content-only matches' );
+}
+
+function sschp_test_fallback_relevance_product_attribute_beats_random_content() {
+    sschp_reset_test_state();
+
+    $content_post = sschp_register_test_post_for_index( 61, 'post', 'Material Notes', 'A paragraph that happens to mention brass.' );
+    $product_post = sschp_register_test_post_for_index( 62, 'product', 'Fixture Product', 'Product body.' );
+    sschp_register_test_product( 62, array( new SSCHP_Test_Product_Attribute( 'material', array( 'Brass' ) ) ) );
+
+    $handler = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
+    $ranked  = sschp_invoke_private(
+        $handler,
+        'score_fallback_posts',
+        array(
+            array(
+                array(
+                    'post'  => $content_post,
+                    'score' => 0,
+                ),
+                array(
+                    'post'  => $product_post,
+                    'score' => 0,
+                ),
+            ),
+            'brass',
+        )
+    );
+
+    sschp_assert_same( 62, $ranked[0]['post']->ID, 'fallback relevance should rank WooCommerce attribute matches above random content matches' );
+}
+
+function sschp_test_fallback_relevance_sku_match_works() {
+    sschp_reset_test_state();
+
+    $content_post = sschp_register_test_post_for_index( 71, 'post', 'SKU Notes', 'ABC-123 appears in generic content.' );
+    $product_post = sschp_register_test_post_for_index( 72, 'product', 'Replacement Part', 'Product body.' );
+    sschp_register_test_product( 72, array(), 'ABC-123' );
+
+    $handler = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
+    $ranked  = sschp_invoke_private(
+        $handler,
+        'score_fallback_posts',
+        array(
+            array(
+                array(
+                    'post'  => $content_post,
+                    'score' => 0,
+                ),
+                array(
+                    'post'  => $product_post,
+                    'score' => 0,
+                ),
+            ),
+            'ABC-123',
+        )
+    );
+
+    sschp_assert_same( 72, $ranked[0]['post']->ID, 'fallback relevance should score exact WooCommerce SKU matches' );
+}
+
+function sschp_test_fallback_relevance_accent_and_case_normalization() {
+    sschp_reset_test_state();
+
+    $content_post = sschp_register_test_post_for_index( 81, 'post', 'Generic Result', 'signalni majak is mentioned in content.' );
+    $title_post   = sschp_register_test_post_for_index( 82, 'post', 'Signální Maják', 'Short content.' );
+    $handler      = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
+    $ranked       = sschp_invoke_private(
+        $handler,
+        'score_fallback_posts',
+        array(
+            array(
+                array(
+                    'post'  => $content_post,
+                    'score' => 0,
+                ),
+                array(
+                    'post'  => $title_post,
+                    'score' => 0,
+                ),
+            ),
+            'SIGNALNI MAJAK',
+        )
+    );
+
+    sschp_assert_same( 82, $ranked[0]['post']->ID, 'fallback relevance should normalize accents and case for matching' );
+}
+
+function sschp_test_fallback_relevance_multilingual_text_does_not_break() {
+    sschp_reset_test_state();
+
+    $scorer = new SSCHP_Relevance_Scorer();
+    $post   = sschp_register_test_post_for_index( 91, 'post', '赤い信号灯', '日本語の説明文です。' );
+    $score  = $scorer->score_post( $post, '信号灯', array() );
+
+    sschp_assert_true( $score > 0, 'fallback relevance should handle multilingual Unicode text without English-only stemming' );
+}
+
+function sschp_test_fallback_relevance_does_not_override_relevanssi_order_by_default() {
+    global $sschp_test_filters, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    $sschp_test_filters['sschp_relevanssi_available'] = true;
+
+    sschp_register_test_post_for_index( 101, 'post', 'General Article', 'This article mentions signal beacon in the body.' );
+    sschp_register_test_post_for_index( 102, 'post', 'Signal Beacon', 'Short content.' );
+    $sschp_test_post_meta[101][SSCHP_Meta_Box::META_KEY] = 'Content';
+    $sschp_test_post_meta[102][SSCHP_Meta_Box::META_KEY] = 'Title';
+
+    $handler = new SSCHP_Search_Handler(
+        new SSCHP_Chip_Engine(),
+        new SSCHP_Test_Settings(
+            array(
+                'post_types' => array( 'post' ),
+            )
+        )
+    );
+    $posts   = sschp_invoke_private( $handler, 'get_posts_data_for_keyword', array( 'signal beacon', array( 'post' ), array(), '', 50, 0.3 ) );
+
+    sschp_assert_same( 101, $posts[0]['id'], 'fallback scorer should not reorder results when Relevanssi is available by default' );
+
+    sschp_reset_test_state();
+}
+
 function sschp_test_search_handler_normalizes_active_tag_payload_shapes() {
     $handler = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
 
@@ -1676,6 +1825,12 @@ sschp_test_search_index_reindexes_term_change();
 sschp_test_search_handler_falls_back_before_index_complete();
 sschp_test_search_index_search_after_complete_returns_ranked_results();
 sschp_test_search_index_large_catalog_smoke();
+sschp_test_fallback_relevance_exact_title_beats_content_only_match();
+sschp_test_fallback_relevance_product_attribute_beats_random_content();
+sschp_test_fallback_relevance_sku_match_works();
+sschp_test_fallback_relevance_accent_and_case_normalization();
+sschp_test_fallback_relevance_multilingual_text_does_not_break();
+sschp_test_fallback_relevance_does_not_override_relevanssi_order_by_default();
 sschp_test_search_handler_normalizes_active_tag_payload_shapes();
 sschp_test_search_handler_builtin_action_without_nonce_fails();
 sschp_test_search_handler_override_without_marker_returns_early();

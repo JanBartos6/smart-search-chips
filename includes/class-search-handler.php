@@ -20,10 +20,14 @@ class SSCHP_Search_Handler {
     /** @var SSCHP_Search_Index|null */
     private $search_index;
 
+    /** @var SSCHP_Relevance_Scorer */
+    private $relevance_scorer;
+
     public function __construct( SSCHP_Chip_Engine $engine, SSCHP_Settings $settings, ?SSCHP_Search_Index $search_index = null ) {
-        $this->engine       = $engine;
-        $this->settings     = $settings;
-        $this->search_index = $search_index;
+        $this->engine           = $engine;
+        $this->settings         = $settings;
+        $this->search_index     = $search_index;
+        $this->relevance_scorer = new SSCHP_Relevance_Scorer();
     }
 
     /**
@@ -140,6 +144,8 @@ class SSCHP_Search_Handler {
         $query_args = apply_filters( 'sschp_search_query_args', $query_args, $keyword, $active_tags, $language );
         $query      = new WP_Query( SSCHP_Language::apply_query_language( $query_args, $language ) );
 
+        $relevanssi_available = $this->is_relevanssi_available();
+
         if ( function_exists( 'relevanssi_do_query' ) ) {
             relevanssi_do_query( $query );
         }
@@ -172,11 +178,76 @@ class SSCHP_Search_Handler {
                 return $p['score'] >= $threshold;
             } );
             $relevant_posts = array_values( $relevant_posts );
+        } elseif ( ! $relevanssi_available || apply_filters( 'sschp_score_relevanssi_results', false, $keyword, $query ) ) {
+            $relevant_posts = $this->score_fallback_posts( $scored_posts, $keyword );
         } else {
             $relevant_posts = $scored_posts;
         }
 
         return $this->collect_posts_data( $relevant_posts );
+    }
+
+    /**
+     * Determine whether Relevanssi should own result ordering.
+     *
+     * @return bool
+     */
+    private function is_relevanssi_available() {
+        return (bool) apply_filters( 'sschp_relevanssi_available', function_exists( 'relevanssi_do_query' ) );
+    }
+
+    /**
+     * Score and sort default WP_Query results when Relevanssi is unavailable.
+     *
+     * @param array  $posts   Scored post rows.
+     * @param string $keyword Search keyword.
+     * @return array
+     */
+    private function score_fallback_posts( $posts, $keyword ) {
+        $top_score = 0.0;
+
+        foreach ( $posts as $index => $row ) {
+            if ( empty( $row['post'] ) || ! is_object( $row['post'] ) ) {
+                continue;
+            }
+
+            $post_id    = isset( $row['post']->ID ) ? absint( $row['post']->ID ) : 0;
+            $tag_source = $this->get_post_tag_source( $post_id, 'score' );
+            $tag_data   = $this->engine->extract_tags( $tag_source['primary'], $tag_source['extra'] );
+            $score      = $this->relevance_scorer->score_post( $row['post'], $keyword, $tag_data['tags'] );
+
+            $posts[ $index ]['score'] = $score;
+            $top_score = max( $top_score, $score );
+        }
+
+        if ( $top_score <= 0 ) {
+            return $posts;
+        }
+
+        $posts = array_values(
+            array_filter(
+                $posts,
+                function( $row ) {
+                    return isset( $row['score'] ) && (float) $row['score'] > 0;
+                }
+            )
+        );
+
+        usort(
+            $posts,
+            function( $a, $b ) {
+                $score_a = isset( $a['score'] ) ? (float) $a['score'] : 0.0;
+                $score_b = isset( $b['score'] ) ? (float) $b['score'] : 0.0;
+
+                if ( $score_a === $score_b ) {
+                    return 0;
+                }
+
+                return $score_a < $score_b ? 1 : -1;
+            }
+        );
+
+        return $posts;
     }
 
     /**
@@ -411,45 +482,10 @@ class SSCHP_Search_Handler {
         foreach ( $relevant_posts as $rp ) {
             $pid = $rp['post']->ID;
 
-            // Default: use built-in sschp_tags field only
-            $primary = get_post_meta( $pid, SSCHP_Meta_Box::META_KEY, true ) ?: '';
-            $extra   = '';
-
-            if ( SSCHP_License::is_pro() ) {
-                // Pro: use configured custom fields when present, otherwise keep
-                // the built-in fallback so sites do not lose chips just because
-                // Pro is active before field mapping is configured.
-                $tag_field   = $this->settings->get( 'tag_fields', '' );
-                $extra_field = $this->settings->get( 'extra_fields', '' );
-
-                if ( ! empty( $tag_field ) || ! empty( $extra_field ) ) {
-                    $primary = $this->get_field_value( $pid, $tag_field );
-                    $extra   = $this->get_field_value( $pid, $extra_field );
-
-                    if ( '' === $primary && '' === $extra && empty( $tag_field ) ) {
-                        $primary = get_post_meta( $pid, SSCHP_Meta_Box::META_KEY, true ) ?: '';
-                    }
-                }
-            }
-
-            $tag_source = apply_filters(
-                'sschp_post_tag_source',
-                array(
-                    'primary' => $primary,
-                    'extra'   => $extra,
-                ),
-                $pid,
-                array(
-                    'context' => 'ajax',
-                )
-            );
-
-            if ( is_array( $tag_source ) ) {
-                $primary = isset( $tag_source['primary'] ) ? (string) $tag_source['primary'] : '';
-                $extra   = isset( $tag_source['extra'] ) ? (string) $tag_source['extra'] : '';
-            }
-
-            $tag_data = $this->engine->extract_tags( $primary, $extra );
+            $tag_source = $this->get_post_tag_source( $pid, 'ajax' );
+            $primary    = $tag_source['primary'];
+            $extra      = $tag_source['extra'];
+            $tag_data   = $this->engine->extract_tags( $primary, $extra );
 
             $posts_data[] = array(
                 'id'         => $pid,
@@ -463,6 +499,58 @@ class SSCHP_Search_Handler {
         }
 
         return $posts_data;
+    }
+
+    /**
+     * Get chip tag source values for a post.
+     *
+     * @param int    $post_id Post ID.
+     * @param string $context Read context.
+     * @return array
+     */
+    private function get_post_tag_source( $post_id, $context = 'ajax' ) {
+        // Default: use built-in sschp_tags field only
+        $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
+        $extra   = '';
+
+        if ( SSCHP_License::is_pro() ) {
+            // Pro: use configured custom fields when present, otherwise keep
+            // the built-in fallback so sites do not lose chips just because
+            // Pro is active before field mapping is configured.
+            $tag_field   = $this->settings->get( 'tag_fields', '' );
+            $extra_field = $this->settings->get( 'extra_fields', '' );
+
+            if ( ! empty( $tag_field ) || ! empty( $extra_field ) ) {
+                $primary = $this->get_field_value( $post_id, $tag_field );
+                $extra   = $this->get_field_value( $post_id, $extra_field );
+
+                if ( '' === $primary && '' === $extra && empty( $tag_field ) ) {
+                    $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
+                }
+            }
+        }
+
+        $tag_source = apply_filters(
+            'sschp_post_tag_source',
+            array(
+                'primary' => $primary,
+                'extra'   => $extra,
+            ),
+            $post_id,
+            array(
+                'context' => $context,
+            )
+        );
+
+        if ( is_array( $tag_source ) ) {
+            $primary = isset( $tag_source['primary'] ) ? (string) $tag_source['primary'] : '';
+            $extra   = isset( $tag_source['extra'] ) ? (string) $tag_source['extra'] : '';
+        }
+
+        return array(
+            'primary' => $primary,
+            'extra'   => $extra,
+        );
     }
 
     /**
