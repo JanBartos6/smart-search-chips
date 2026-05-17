@@ -143,6 +143,107 @@ function sschp_capture_wp_die( $callback ) {
     }
 }
 
+function sschp_test_no_legacy_public_interface_references_in_fixtures() {
+    $root       = dirname( __DIR__ );
+    $scan_roots = array(
+        $root . '/tests',
+        $root . '/marketing/ssc-cozy-demo-theme',
+        $root . '/local-wp',
+    );
+    $forbidden = array(
+        '[ssc' . '_search',
+        'action=ssc' . '_search',
+        'ssc' . '_tags',
+        'ssc' . '_lang',
+    );
+    $allowed_files = array(
+        realpath( __FILE__ ) => true,
+    );
+    $extensions = array(
+        'php' => true,
+        'js'  => true,
+        'sh'  => true,
+        'md'  => true,
+        'txt' => true,
+    );
+
+    foreach ( $scan_roots as $scan_root ) {
+        if ( ! is_dir( $scan_root ) ) {
+            continue;
+        }
+
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator( $scan_root, FilesystemIterator::SKIP_DOTS )
+        );
+
+        foreach ( $iterator as $file ) {
+            if ( ! $file->isFile() ) {
+                continue;
+            }
+
+            $path = $file->getPathname();
+            if ( isset( $allowed_files[ realpath( $path ) ] ) ) {
+                continue;
+            }
+
+            $extension = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+            if ( ! isset( $extensions[ $extension ] ) ) {
+                continue;
+            }
+
+            $contents = file_get_contents( $path );
+            if ( false === $contents ) {
+                continue;
+            }
+
+            foreach ( $forbidden as $needle ) {
+                sschp_assert_true(
+                    false === strpos( $contents, $needle ),
+                    'tracked fixtures should not use legacy public interface reference "' . $needle . '" in ' . str_replace( $root . DIRECTORY_SEPARATOR, '', $path )
+                );
+            }
+        }
+    }
+}
+
+function sschp_test_wporg_settings_source_keeps_selector_safety() {
+    $path = dirname( __DIR__ ) . '/build-sources/wporg/includes/class-settings.php';
+
+    sschp_assert_true( is_file( $path ), 'WP.org settings source should exist for explicit release builds' );
+
+    $contents = is_file( $path ) ? file_get_contents( $path ) : '';
+
+    sschp_assert_contains( 'sanitize_search_input_selector', $contents, 'WP.org settings source should validate custom input selectors' );
+    sschp_assert_contains( 'sanitize_result_container_selector', $contents, 'WP.org settings source should validate custom result selectors' );
+    sschp_assert_contains( 'get_theme_compatibility_diagnostics', $contents, 'WP.org settings source should keep the compatibility diagnostics card' );
+    sschp_assert_contains( 'sschp-run-compat-test', $contents, 'WP.org settings source should render the frontend compatibility test control' );
+}
+
+function sschp_test_premium_ajax_numeric_inputs_are_unslashed() {
+    $root  = dirname( __DIR__ );
+    $files = array(
+        $root . '/includes/class-ai-tagger__premium_only.php',
+        $root . '/includes/class-analytics__premium_only.php',
+    );
+    $forbidden = array(
+        'absint( $_' . 'POST',
+        'intval( $_' . 'POST',
+        'is_array( $_' . 'POST',
+        '! empty( $_' . 'POST',
+    );
+
+    foreach ( $files as $path ) {
+        $contents = is_file( $path ) ? file_get_contents( $path ) : '';
+
+        foreach ( $forbidden as $needle ) {
+            sschp_assert_true(
+                false === strpos( $contents, $needle ),
+                basename( $path ) . ' should unslash and sanitize AJAX numeric/checkbox inputs before casting'
+            );
+        }
+    }
+}
+
 function sschp_test_chip_engine_extract_tags() {
     $engine = new SSCHP_Chip_Engine();
     $tags   = $engine->extract_tags( 'Steel; IP65; steel', 'Outdoor, CE, outdoor' );
@@ -1312,6 +1413,9 @@ sschp_test_search_handler_override_without_marker_returns_early();
 sschp_test_search_handler_override_with_marker_and_valid_nonce_runs();
 sschp_test_search_handler_override_with_marker_and_invalid_nonce_fails();
 sschp_test_frontend_registers_loop_fallback_for_block_themes();
+sschp_test_no_legacy_public_interface_references_in_fixtures();
+sschp_test_wporg_settings_source_keeps_selector_safety();
+sschp_test_premium_ajax_numeric_inputs_are_unslashed();
 
 if ( $sschp_test_failures > 0 ) {
     fwrite( STDERR, "\n{$sschp_test_failures} unit test(s) failed.\n" );

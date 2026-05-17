@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-function ssc_demo_theme_setup() {
+function sschp_demo_theme_setup() {
     add_theme_support( 'title-tag' );
     add_theme_support( 'post-thumbnails' );
     add_theme_support(
@@ -19,9 +19,9 @@ function ssc_demo_theme_setup() {
         )
     );
 }
-add_action( 'after_setup_theme', 'ssc_demo_theme_setup' );
+add_action( 'after_setup_theme', 'sschp_demo_theme_setup' );
 
-function ssc_demo_theme_enqueue_assets() {
+function sschp_demo_theme_enqueue_assets() {
     wp_enqueue_style(
         'ssc-demo-fonts',
         'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap',
@@ -73,23 +73,23 @@ function ssc_demo_theme_enqueue_assets() {
                 'image'       => 'https://smartsearchchips.app/wp-content/uploads/2026/04/ssc-favicon-300x300.png',
                 'name'        => 'Smart Search Chips',
                 'licenses'    => 1,
-                'checkoutUrl' => ssc_demo_get_checkout_url(),
+                'checkoutUrl' => sschp_demo_get_checkout_url(),
             )
         );
     }
 }
-add_action( 'wp_enqueue_scripts', 'ssc_demo_theme_enqueue_assets' );
+add_action( 'wp_enqueue_scripts', 'sschp_demo_theme_enqueue_assets' );
 
-function ssc_demo_get_checkout_url() {
+function sschp_demo_get_checkout_url() {
     return 'https://checkout.freemius.com/plugin/27046/plan/45154/';
 }
 
-function ssc_demo_get_free_plugin_url() {
+function sschp_demo_get_free_plugin_url() {
     return 'https://wordpress.org/plugins/smart-search-chips/';
 }
 
-function ssc_demo_get_product_tags( $post_id, $limit = 4 ) {
-    $raw = get_post_meta( $post_id, 'ssc_tags', true );
+function sschp_demo_get_product_tags( $post_id, $limit = 4 ) {
+    $raw = get_post_meta( $post_id, 'sschp_tags', true );
     if ( empty( $raw ) ) {
         return array();
     }
@@ -118,7 +118,7 @@ function ssc_demo_get_product_tags( $post_id, $limit = 4 ) {
     return array_values( $tags );
 }
 
-function ssc_demo_get_collection_terms( $post_id ) {
+function sschp_demo_get_collection_terms( $post_id ) {
     $terms = get_the_terms( $post_id, 'category' );
     if ( empty( $terms ) || is_wp_error( $terms ) ) {
         return array();
@@ -134,8 +134,8 @@ function ssc_demo_get_collection_terms( $post_id ) {
     );
 }
 
-function ssc_demo_get_collection_label( $post_id ) {
-    $terms = ssc_demo_get_collection_terms( $post_id );
+function sschp_demo_get_collection_label( $post_id ) {
+    $terms = sschp_demo_get_collection_terms( $post_id );
     if ( empty( $terms ) ) {
         return __( 'Catalog Piece', 'ssc-cozy-demo' );
     }
@@ -143,9 +143,9 @@ function ssc_demo_get_collection_label( $post_id ) {
     return $terms[0]->name;
 }
 
-function ssc_demo_render_product_card( $post_id ) {
-    $tags       = ssc_demo_get_product_tags( $post_id, 4 );
-    $collection = ssc_demo_get_collection_label( $post_id );
+function sschp_demo_render_product_card( $post_id ) {
+    $tags       = sschp_demo_get_product_tags( $post_id, 4 );
+    $collection = sschp_demo_get_collection_label( $post_id );
     ?>
     <article class="ssc-card ssc-product-card" data-reveal>
         <div class="ssc-product-card__meta">
@@ -172,7 +172,7 @@ function ssc_demo_render_product_card( $post_id ) {
     <?php
 }
 
-function ssc_demo_render_native_search_form( $value = '' ) {
+function sschp_demo_render_native_search_form( $value = '' ) {
     ?>
     <form class="ssc-inline-search" method="get" action="<?php echo esc_url( home_url( '/' ) ); ?>">
         <input

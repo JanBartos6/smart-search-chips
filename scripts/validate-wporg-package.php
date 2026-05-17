@@ -122,7 +122,7 @@ $forbidden_patterns = array(
 	'SSCHP_License',
 	'SSCHP_Analytics',
 	'SSCHP_AI_Tagger',
-	'[ssc_search]',
+	'[ssc' . '_search]',
 );
 
 foreach ( $files as $file ) {

@@ -56,7 +56,7 @@ class SSCHP_AI_Tagger {
         $this->assert_admin_request();
 
         $taxonomy = isset( $_POST['taxonomy'] ) ? sanitize_key( wp_unslash( $_POST['taxonomy'] ) ) : '';
-        $term_id  = isset( $_POST['term_id'] ) ? absint( $_POST['term_id'] ) : 0;
+        $term_id  = isset( $_POST['term_id'] ) ? absint( wp_unslash( $_POST['term_id'] ) ) : 0;
 
         if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) || $term_id < 1 ) {
             wp_send_json_error( array( 'message' => __( 'Select a valid category before loading its items.', 'smart-search-chips' ) ), 400 );
@@ -142,17 +142,19 @@ class SSCHP_AI_Tagger {
      * @return array
      */
     private function get_request_config() {
-        $post_ids = array();
-        if ( isset( $_POST['post_ids'] ) && is_array( $_POST['post_ids'] ) ) {
-            $post_ids = array_map( 'absint', wp_unslash( $_POST['post_ids'] ) );
+        $post_ids        = array();
+        $posted_post_ids = isset( $_POST['post_ids'] ) ? wp_unslash( $_POST['post_ids'] ) : array();
+
+        if ( is_array( $posted_post_ids ) ) {
+            $post_ids = array_map( 'absint', $posted_post_ids );
         }
 
         return array(
             'post_ids'           => array_values( array_filter( array_unique( $post_ids ) ) ),
             'custom_read_fields' => isset( $_POST['custom_read_fields'] ) ? sanitize_text_field( wp_unslash( $_POST['custom_read_fields'] ) ) : $this->settings->get( 'ai_custom_read_fields', '' ),
             'target_field'       => isset( $_POST['target_field'] ) ? sanitize_text_field( wp_unslash( $_POST['target_field'] ) ) : $this->settings->get( 'ai_target_field', 'built_in' ),
-            'rest_enabled'       => isset( $_POST['rest_enabled'] ) ? ( ! empty( $_POST['rest_enabled'] ) ? '1' : '0' ) : $this->settings->get( 'ai_rest_enabled', '1' ),
-            'max_tags'           => isset( $_POST['max_tags'] ) ? absint( $_POST['max_tags'] ) : (int) $this->settings->get( 'ai_max_tags', 8 ),
+            'rest_enabled'       => isset( $_POST['rest_enabled'] ) ? ( '' !== sanitize_text_field( wp_unslash( $_POST['rest_enabled'] ) ) ? '1' : '0' ) : $this->settings->get( 'ai_rest_enabled', '1' ),
+            'max_tags'           => isset( $_POST['max_tags'] ) ? absint( wp_unslash( $_POST['max_tags'] ) ) : (int) $this->settings->get( 'ai_max_tags', 8 ),
             'language'           => isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : $this->settings->get( 'ai_language', '' ),
             'custom_instruction' => isset( $_POST['custom_instruction'] ) ? sanitize_textarea_field( wp_unslash( $_POST['custom_instruction'] ) ) : $this->settings->get( 'ai_custom_instruction', '' ),
         );

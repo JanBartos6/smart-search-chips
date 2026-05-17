@@ -65,7 +65,7 @@ $collections = get_categories(
                 if ( $catalog_query->have_posts() ) :
                     while ( $catalog_query->have_posts() ) :
                         $catalog_query->the_post();
-                        ssc_demo_render_product_card( get_the_ID() );
+                        sschp_demo_render_product_card( get_the_ID() );
                     endwhile;
                     wp_reset_postdata();
                 endif;
@@ -76,4 +76,3 @@ $collections = get_categories(
 </main>
 <?php
 get_footer();
-

@@ -9,7 +9,7 @@ module.exports = defineConfig({
   fullyParallel: false,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: process.env.SSC_TEST_BASE_URL || "http://localhost:8080",
+    baseURL: process.env.SSCHP_TEST_BASE_URL || "http://localhost:8080",
     headless: true,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

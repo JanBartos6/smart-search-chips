@@ -220,8 +220,12 @@ class SSCHP_Search_Handler {
      * @return string
      */
     private function get_scalar_request_value( $key ) {
-        if ( isset( $_POST[ $key ] ) && ! is_array( $_POST[ $key ] ) ) {
-            return sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
+        if ( isset( $_POST[ $key ] ) ) {
+            $posted_value = wp_unslash( $_POST[ $key ] );
+
+            if ( ! is_array( $posted_value ) ) {
+                return sanitize_text_field( $posted_value );
+            }
         }
 
         $value = filter_input( INPUT_GET, $key, FILTER_UNSAFE_RAW );

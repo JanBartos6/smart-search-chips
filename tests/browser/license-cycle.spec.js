@@ -6,12 +6,12 @@ const {
   deactivateProLicense,
 } = require("./helpers");
 
-const licenseKey = process.env.SSC_TEST_LICENSE_KEY || "";
+const licenseKey = process.env.SSCHP_TEST_LICENSE_KEY || "";
 
 test.describe.configure({ mode: "serial" });
 
 test("Freemius deactivation yields a clear outcome", async ({ page }) => {
-  test.skip(!licenseKey, "Set SSC_TEST_LICENSE_KEY to run the Freemius license-cycle test.");
+  test.skip(!licenseKey, "Set SSCHP_TEST_LICENSE_KEY to run the Freemius license-cycle test.");
   test.setTimeout(180000);
 
   await loginAsAdmin(page);
@@ -32,7 +32,7 @@ test("Freemius deactivation yields a clear outcome", async ({ page }) => {
 });
 
 test("Freemius free-to-pro-to-free cycle toggles the gated UI", async ({ page, baseURL }) => {
-  test.skip(!licenseKey, "Set SSC_TEST_LICENSE_KEY to run the Freemius license-cycle test.");
+  test.skip(!licenseKey, "Set SSCHP_TEST_LICENSE_KEY to run the Freemius license-cycle test.");
   test.setTimeout(180000);
 
   await loginAsAdmin(page);

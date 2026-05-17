@@ -51,8 +51,8 @@ class SSCHP_Settings {
         register_setting( 'smart-search-chips', 'sschp_post_types', array( 'sanitize_callback' => array( $this, 'sanitize_post_types' ) ) );
         register_setting( 'smart-search-chips', 'sschp_override_ajax', array( 'sanitize_callback' => 'sanitize_key' ) );
         register_setting( 'smart-search-chips', 'sschp_ajax_keyword_field', array( 'sanitize_callback' => 'sanitize_key' ) );
-        register_setting( 'smart-search-chips', 'sschp_result_container_selector', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-        register_setting( 'smart-search-chips', 'sschp_search_input_selector', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+        register_setting( 'smart-search-chips', 'sschp_result_container_selector', array( 'sanitize_callback' => array( $this, 'sanitize_result_container_selector' ) ) );
+        register_setting( 'smart-search-chips', 'sschp_search_input_selector', array( 'sanitize_callback' => array( $this, 'sanitize_search_input_selector' ) ) );
         register_setting( 'smart-search-chips', 'sschp_max_chips', array( 'sanitize_callback' => array( $this, 'sanitize_max_chips' ) ) );
         register_setting( 'smart-search-chips', 'sschp_max_tag_length', array( 'sanitize_callback' => array( $this, 'sanitize_max_tag_length' ) ) );
         register_setting( 'smart-search-chips', 'sschp_woo_enabled', array( 'sanitize_callback' => array( $this, 'sanitize_checkbox' ) ) );
@@ -98,6 +98,168 @@ class SSCHP_Settings {
             SSCHP_VERSION,
             true
         );
+        wp_localize_script( 'smart-search-chips-settings', 'sschpSettingsDiagnostics', array(
+            'diagnostics' => $this->get_theme_compatibility_diagnostics(),
+            'strings'     => array(
+                'pass'                        => __( 'Pass', 'smart-search-chips' ),
+                'warning'                     => __( 'Warning', 'smart-search-chips' ),
+                'selectorInvalid'             => __( 'This selector is invalid and should be corrected before testing theme integration.', 'smart-search-chips' ),
+                'selectorValid'               => __( 'Selector syntax is valid.', 'smart-search-chips' ),
+                'defaultSelectorsValid'       => __( 'Built-in fallback selectors are valid.', 'smart-search-chips' ),
+                'actionConfigured'            => __( 'Custom AJAX action is configured.', 'smart-search-chips' ),
+                'actionDefault'               => __( 'Using built-in action.', 'smart-search-chips' ),
+                'keywordSane'                 => __( 'Keyword field looks valid.', 'smart-search-chips' ),
+                'keywordInvalid'              => __( 'Keyword field should contain only letters, numbers, underscores, or hyphens.', 'smart-search-chips' ),
+                'inputMatches'                => __( 'Matching search inputs found on this page:', 'smart-search-chips' ),
+                'resultMatches'               => __( 'Matching result containers found on this page:', 'smart-search-chips' ),
+                'resultMissingRecommendation' => __( 'No result container found. Use [sschp_search] or configure the result container selector.', 'smart-search-chips' ),
+            ),
+        ) );
+    }
+
+    /**
+     * Build diagnostics for the theme compatibility settings card.
+     *
+     * @return array
+     */
+    public function get_theme_compatibility_diagnostics() {
+        $input_selector  = trim( (string) get_option( 'sschp_search_input_selector', $this->get_default_search_input_selector() ) );
+        $result_selector = trim( (string) get_option( 'sschp_result_container_selector', $this->get_default_result_container_selector() ) );
+        $ajax_action     = sanitize_key( get_option( 'sschp_override_ajax', '' ) );
+        $keyword_field   = trim( (string) get_option( 'sschp_ajax_keyword_field', 'keyword' ) );
+
+        if ( '' === $input_selector ) {
+            $input_selector = $this->get_default_search_input_selector();
+        }
+
+        if ( '' === $result_selector ) {
+            $result_selector = $this->get_default_result_container_selector();
+        }
+
+        $keyword_sane = '' !== $keyword_field && sanitize_key( $keyword_field ) === $keyword_field;
+
+        return array(
+            'inputSelector'        => $input_selector,
+            'resultSelector'       => $result_selector,
+            'ajaxAction'           => $ajax_action,
+            'ajaxActionLabel'      => '' !== $ajax_action ? $ajax_action : 'sschp_search',
+            'keywordField'         => $keyword_field,
+            'inputSelectorValid'   => $this->looks_like_valid_css_selector( $input_selector ),
+            'resultSelectorValid'  => $this->looks_like_valid_css_selector( $result_selector ),
+            'defaultInputValid'    => $this->looks_like_valid_css_selector( $this->get_default_search_input_selector() ),
+            'defaultResultValid'   => $this->looks_like_valid_css_selector( $this->get_default_result_container_selector() ),
+            'ajaxActionConfigured' => '' !== $ajax_action,
+            'keywordFieldSane'     => $keyword_sane,
+            'woocommerceActive'    => class_exists( 'WooCommerce' ),
+            'relevanssiActive'     => function_exists( 'relevanssi_do_query' ),
+            'shortcodeAvailable'   => ! function_exists( 'shortcode_exists' ) || shortcode_exists( 'sschp_search' ),
+            'debugUrl'             => add_query_arg( 'sschp_debug', '1', home_url( '/' ) ),
+            'shortcode'            => '[sschp_search]',
+        );
+    }
+
+    /**
+     * Render one static diagnostic row.
+     *
+     * @param string $label Row label.
+     * @param bool   $pass  Whether the diagnostic passes.
+     * @param string $text  Row detail.
+     */
+    private function render_diagnostic_row( $label, $pass, $text ) {
+        printf(
+            '<li class="ssc-diagnostic-row ssc-diagnostic-row--%1$s"><strong>%2$s</strong><span>%3$s</span><em>%4$s</em></li>',
+            $pass ? 'pass' : 'warn',
+            esc_html( $label ),
+            esc_html( $text ),
+            esc_html( $pass ? __( 'Pass', 'smart-search-chips' ) : __( 'Check', 'smart-search-chips' ) )
+        );
+    }
+
+    /**
+     * Render the theme compatibility diagnostics card.
+     */
+    private function render_theme_compatibility_card() {
+        $diagnostics = $this->get_theme_compatibility_diagnostics();
+        ?>
+        <div class="ssc-settings-card ssc-settings-card--diagnostics">
+            <h2><?php esc_html_e( 'Theme Compatibility Test', 'smart-search-chips' ); ?></h2>
+            <p class="description"><?php esc_html_e( 'Use this before assuming the plugin is broken. Most theme-search issues come from a different input selector, result container, AJAX action, or keyword field.', 'smart-search-chips' ); ?></p>
+
+            <dl class="ssc-compat-config">
+                <div>
+                    <dt><?php esc_html_e( 'Search input selector', 'smart-search-chips' ); ?></dt>
+                    <dd><code><?php echo esc_html( $diagnostics['inputSelector'] ); ?></code></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e( 'Result container selector', 'smart-search-chips' ); ?></dt>
+                    <dd><code><?php echo esc_html( $diagnostics['resultSelector'] ); ?></code></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e( 'AJAX action', 'smart-search-chips' ); ?></dt>
+                    <dd><code><?php echo esc_html( $diagnostics['ajaxActionLabel'] ); ?></code></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e( 'Keyword field', 'smart-search-chips' ); ?></dt>
+                    <dd><code><?php echo esc_html( $diagnostics['keywordField'] ); ?></code></dd>
+                </div>
+            </dl>
+
+            <ul class="ssc-diagnostic-list">
+                <?php
+                $this->render_diagnostic_row(
+                    __( 'Search input selector', 'smart-search-chips' ),
+                    $diagnostics['inputSelectorValid'],
+                    $diagnostics['inputSelectorValid'] ? __( 'Configured selector syntax looks valid.', 'smart-search-chips' ) : __( 'Configured selector syntax looks invalid.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'Result container selector', 'smart-search-chips' ),
+                    $diagnostics['resultSelectorValid'],
+                    $diagnostics['resultSelectorValid'] ? __( 'Configured selector syntax looks valid.', 'smart-search-chips' ) : __( 'Configured selector syntax looks invalid.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'Default selectors', 'smart-search-chips' ),
+                    $diagnostics['defaultInputValid'] && $diagnostics['defaultResultValid'],
+                    __( 'Built-in fallback selectors are available.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'AJAX action', 'smart-search-chips' ),
+                    true,
+                    $diagnostics['ajaxActionConfigured'] ? __( 'Theme AJAX action override is configured.', 'smart-search-chips' ) : __( 'Using the built-in shortcode AJAX action.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'Keyword field', 'smart-search-chips' ),
+                    $diagnostics['keywordFieldSane'],
+                    $diagnostics['keywordFieldSane'] ? __( 'Keyword request field looks valid.', 'smart-search-chips' ) : __( 'Keyword request field should be a simple key.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'WooCommerce', 'smart-search-chips' ),
+                    $diagnostics['woocommerceActive'],
+                    $diagnostics['woocommerceActive'] ? __( 'WooCommerce is active.', 'smart-search-chips' ) : __( 'WooCommerce is not active.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'Relevanssi', 'smart-search-chips' ),
+                    $diagnostics['relevanssiActive'],
+                    $diagnostics['relevanssiActive'] ? __( 'Relevanssi is active.', 'smart-search-chips' ) : __( 'Relevanssi is not active. Search still works, but relevance ranking may be weaker.', 'smart-search-chips' )
+                );
+                $this->render_diagnostic_row(
+                    __( 'Shortcode', 'smart-search-chips' ),
+                    $diagnostics['shortcodeAvailable'],
+                    $diagnostics['shortcodeAvailable'] ? __( 'The [sschp_search] shortcode is available.', 'smart-search-chips' ) : __( 'Shortcode registration was not detected.', 'smart-search-chips' )
+                );
+                ?>
+            </ul>
+
+            <p class="description">
+                <?php esc_html_e( 'Recommendation: if your theme live search cannot be detected reliably, place the shortcode where you want a known-compatible Smart Search Chips search box:', 'smart-search-chips' ); ?>
+                <code><?php echo esc_html( $diagnostics['shortcode'] ); ?></code>
+            </p>
+            <p>
+                <button type="button" class="button button-secondary" id="sschp-run-compat-test"><?php esc_html_e( 'Run frontend compatibility test', 'smart-search-chips' ); ?></button>
+                <a class="button button-link" href="<?php echo esc_url( $diagnostics['debugUrl'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open frontend debug mode', 'smart-search-chips' ); ?></a>
+            </p>
+            <div id="sschp-compat-results" class="ssc-compat-results" aria-live="polite"></div>
+        </div>
+        <?php
     }
 
     /**
@@ -241,6 +403,8 @@ class SSCHP_Settings {
                             </div>
                         </details>
 
+                        <?php $this->render_theme_compatibility_card(); ?>
+
                         <div class="ssc-settings-card ssc-settings-card--danger">
                             <h2><?php esc_html_e( 'Data Cleanup', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
@@ -374,6 +538,153 @@ class SSCHP_Settings {
     public function sanitize_hex_color_setting( $value ) {
         $color = sanitize_hex_color( $value );
         return $color ? $color : '';
+    }
+
+    /**
+     * Sanitize the configured frontend search input selector.
+     *
+     * @param mixed $value Raw selector value.
+     * @return string
+     */
+    public function sanitize_search_input_selector( $value ) {
+        return $this->sanitize_css_selector_setting(
+            $value,
+            'sschp_search_input_selector',
+            $this->get_default_search_input_selector(),
+            __( 'Search Input Selector', 'smart-search-chips' )
+        );
+    }
+
+    /**
+     * Sanitize the configured frontend results container selector.
+     *
+     * @param mixed $value Raw selector value.
+     * @return string
+     */
+    public function sanitize_result_container_selector( $value ) {
+        return $this->sanitize_css_selector_setting(
+            $value,
+            'sschp_result_container_selector',
+            $this->get_default_result_container_selector(),
+            __( 'Result Container Selector', 'smart-search-chips' )
+        );
+    }
+
+    /**
+     * Get the default frontend input selector.
+     *
+     * @return string
+     */
+    private function get_default_search_input_selector() {
+        return '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]';
+    }
+
+    /**
+     * Get the default frontend results selector.
+     *
+     * @return string
+     */
+    private function get_default_result_container_selector() {
+        return '.js-ssc-results, .js-search__results, .ssc-search__results';
+    }
+
+    /**
+     * Sanitize a CSS selector option without over-restricting valid selectors.
+     *
+     * @param mixed  $value       Raw selector value.
+     * @param string $option_name Full option name.
+     * @param string $default     Default selector.
+     * @param string $label       Human-readable field label.
+     * @return string
+     */
+    private function sanitize_css_selector_setting( $value, $option_name, $default, $label ) {
+        $selector = trim( sanitize_text_field( (string) $value ) );
+
+        if ( $this->looks_like_valid_css_selector( $selector ) ) {
+            return $selector;
+        }
+
+        add_settings_error(
+            'smart-search-chips',
+            $option_name . '_invalid',
+            sprintf(
+                /* translators: %s: settings field label. */
+                __( '%s was not saved because it does not look like a valid CSS selector. The previous value or default selector is still being used.', 'smart-search-chips' ),
+                $label
+            ),
+            'error'
+        );
+
+        $previous = trim( sanitize_text_field( (string) get_option( $option_name, $default ) ) );
+
+        if ( $this->looks_like_valid_css_selector( $previous ) ) {
+            return $previous;
+        }
+
+        return $default;
+    }
+
+    /**
+     * Conservative CSS selector sanity check.
+     *
+     * @param string $selector Selector value.
+     * @return bool
+     */
+    private function looks_like_valid_css_selector( $selector ) {
+        if ( '' === trim( $selector ) ) {
+            return false;
+        }
+
+        if ( preg_match( '/[\x00-\x1F\x7F]/', $selector ) ) {
+            return false;
+        }
+
+        if ( preg_match( '/(^|,)\s*(,|$)/', $selector ) ) {
+            return false;
+        }
+
+        $pairs = array(
+            '(' => ')',
+            '[' => ']',
+            '{' => '}',
+        );
+        $stack = array();
+        $quote = '';
+        $len   = strlen( $selector );
+
+        for ( $i = 0; $i < $len; $i++ ) {
+            $char = $selector[ $i ];
+
+            if ( '\\' === $char ) {
+                $i++;
+                continue;
+            }
+
+            if ( '' !== $quote ) {
+                if ( $char === $quote ) {
+                    $quote = '';
+                }
+                continue;
+            }
+
+            if ( '"' === $char || "'" === $char ) {
+                $quote = $char;
+                continue;
+            }
+
+            if ( isset( $pairs[ $char ] ) ) {
+                $stack[] = $pairs[ $char ];
+                continue;
+            }
+
+            if ( in_array( $char, $pairs, true ) ) {
+                if ( empty( $stack ) || array_pop( $stack ) !== $char ) {
+                    return false;
+                }
+            }
+        }
+
+        return '' === $quote && empty( $stack );
     }
 
     public function sanitize_result_image_fit( $value ) {

@@ -19,7 +19,7 @@ get_header();
                 if ( have_posts() ) :
                     while ( have_posts() ) :
                         the_post();
-                        ssc_demo_render_product_card( get_the_ID() );
+                        sschp_demo_render_product_card( get_the_ID() );
                     endwhile;
                 endif;
                 ?>

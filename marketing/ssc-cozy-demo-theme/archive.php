@@ -27,7 +27,7 @@ get_header();
                     <?php
                     while ( have_posts() ) :
                         the_post();
-                        ssc_demo_render_product_card( get_the_ID() );
+                        sschp_demo_render_product_card( get_the_ID() );
                     endwhile;
                     ?>
                 </div>
@@ -41,4 +41,3 @@ get_header();
 </main>
 <?php
 get_footer();
-

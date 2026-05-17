@@ -25,7 +25,7 @@ get_header();
             </div>
             <aside class="ssc-card ssc-side-note">
                 <span class="ssc-card-label"><?php esc_html_e( 'Try another query', 'ssc-cozy-demo' ); ?></span>
-                <?php ssc_demo_render_native_search_form( get_search_query() ); ?>
+                <?php sschp_demo_render_native_search_form( get_search_query() ); ?>
             </aside>
         </div>
     </section>
@@ -37,7 +37,7 @@ get_header();
                     <?php
                     while ( have_posts() ) :
                         the_post();
-                        ssc_demo_render_product_card( get_the_ID() );
+                        sschp_demo_render_product_card( get_the_ID() );
                     endwhile;
                     ?>
                 </div>
@@ -52,4 +52,3 @@ get_header();
 </main>
 <?php
 get_footer();
-

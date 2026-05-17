@@ -17,6 +17,7 @@ if (-not (Test-Path $PackageDir)) {
 
 $PackageDir = (Resolve-Path $PackageDir).Path
 $failures = New-Object System.Collections.Generic.List[string]
+$legacyShortcode = '[ssc' + '_search]'
 
 function Get-RelativePath {
     param(
@@ -91,7 +92,6 @@ $patterns = [ordered]@{
     'quota'                            = 'Quota wording is present.'
     'if ( true )'                      = 'Build-stripping placeholder condition is present.'
     'isset( <?php'                     = 'Corrupted PHP fragment is present.'
-    '[ssc_search]'                     = 'Old [ssc_search] shortcode is present.'
     'Free: max 5'                      = 'Old free chip cap wording is present.'
     'free version limit'               = 'Old free version cap comment is present.'
     'Upgrade to Pro to unlock'         = 'Unlock wording suggests restricted included functionality.'
@@ -103,6 +103,8 @@ $patterns = [ordered]@{
     'Security.EscapeOutput'            = 'Escaping suppression is present.'
     "wp_unslash( `$_POST['active_tags'] )" = 'active_tags is unslashed without array sanitization.'
 }
+
+$patterns[$legacyShortcode] = 'Old shortcode is present.'
 
 $files = Get-ChildItem -LiteralPath $PackageDir -Recurse -File |
     Where-Object {
@@ -159,8 +161,8 @@ if (-not (Test-Path $readmeFile)) {
     if ($readme -notlike '*Contributors: honzdev*') {
         Add-Failure 'readme.txt does not list honzdev as contributor.'
     }
-    if ($readme -match '\[ssc_search\]') {
-        Add-Failure 'readme.txt still references the old [ssc_search] shortcode.'
+    if ($readme -match [regex]::Escape($legacyShortcode)) {
+        Add-Failure 'readme.txt still references the old shortcode.'
     }
 
     $stableMatch = [regex]::Match($readme, '(?im)^Stable tag:\s*([^\r\n]+)')

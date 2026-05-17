@@ -11,10 +11,10 @@ get_header();
             <?php
             while ( have_posts() ) :
                 the_post();
-                $tags = ssc_demo_get_product_tags( get_the_ID(), 0 );
+                $tags = sschp_demo_get_product_tags( get_the_ID(), 0 );
                 ?>
                 <div>
-                    <span class="ssc-kicker"><?php echo esc_html( ssc_demo_get_collection_label( get_the_ID() ) ); ?></span>
+                    <span class="ssc-kicker"><?php echo esc_html( sschp_demo_get_collection_label( get_the_ID() ) ); ?></span>
                     <h1><?php the_title(); ?></h1>
                     <p class="ssc-page-hero__lede"><?php echo esc_html( wp_trim_words( get_the_content(), 36 ) ); ?></p>
                     <?php if ( ! empty( $tags ) ) : ?>

@@ -149,8 +149,8 @@ class SSCHP_Analytics {
         $search_query     = isset( $_POST['search_query'] ) ? sanitize_text_field( wp_unslash( $_POST['search_query'] ) ) : '';
         $chip_label       = isset( $_POST['chip_label'] ) ? sanitize_text_field( wp_unslash( $_POST['chip_label'] ) ) : '';
         $page_url         = isset( $_POST['page_url'] ) ? esc_url_raw( wp_unslash( $_POST['page_url'] ) ) : '';
-        $result_count     = isset( $_POST['result_count'] ) ? intval( $_POST['result_count'] ) : null;
-        $active_tag_count = isset( $_POST['active_tag_count'] ) ? max( 0, intval( $_POST['active_tag_count'] ) ) : null;
+        $result_count     = isset( $_POST['result_count'] ) ? intval( wp_unslash( $_POST['result_count'] ) ) : null;
+        $active_tag_count = isset( $_POST['active_tag_count'] ) ? max( 0, intval( wp_unslash( $_POST['active_tag_count'] ) ) ) : null;
         $language_code    = SSCHP_Language::request_language(
             array(
                 'sschp_lang' => isset( $_POST['sschp_lang'] ) ? sanitize_key( wp_unslash( $_POST['sschp_lang'] ) ) : '',

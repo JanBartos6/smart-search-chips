@@ -1,7 +1,14 @@
 const { test, expect } = require("@playwright/test");
-const { escapedChipRegexp, countArchiveResults } = require("./helpers");
+const { escapedChipRegexp, countArchiveResults, isLocalWordPressAvailable } = require("./helpers");
 
 test.describe("Archive and search results chip links", () => {
+  test.beforeEach(async ({ request, baseURL }) => {
+    test.skip(
+      !(await isLocalWordPressAvailable(request, baseURL)),
+      "Local WordPress test site is not running. Run `npm run local:wp:start` before local-site browser tests."
+    );
+  });
+
   test("chip links update URL, support back/forward, and can open in a new tab", async ({ page, context, browserName }) => {
     await page.goto("/?s=Trapped");
 
@@ -14,16 +21,16 @@ test.describe("Archive and search results chip links", () => {
     const springHandleLink = page.getByRole("link", { name: escapedChipRegexp("spring handle") });
 
     await springHandleLink.click();
-    await expect(page).toHaveURL(/ssc_tags=spring%20handle/);
+    await expect(page).toHaveURL(/sschp_tags=spring%20handle/);
     await expect(page.locator(".ssc-loop-filters .ssc-chip--active")).toContainText(["spring handle"]);
     await expect.poll(() => countArchiveResults(page)).toBe(4);
 
     await page.getByRole("link", { name: escapedChipRegexp("trapped key interlock") }).click();
-    await expect(page).toHaveURL(/ssc_tags=spring%20handle,trapped%20key%20interlock/);
+    await expect(page).toHaveURL(/sschp_tags=spring%20handle,trapped%20key%20interlock/);
     await expect.poll(() => countArchiveResults(page)).toBe(2);
 
     await page.goBack();
-    await expect(page).toHaveURL(/ssc_tags=spring%20handle/);
+    await expect(page).toHaveURL(/sschp_tags=spring%20handle/);
     await expect.poll(() => countArchiveResults(page)).toBe(4);
 
     await page.goBack();
@@ -42,12 +49,12 @@ test.describe("Archive and search results chip links", () => {
     await newPage.close();
 
     await page.goForward();
-    await expect(page).toHaveURL(/ssc_tags=spring%20handle/);
+    await expect(page).toHaveURL(/sschp_tags=spring%20handle/);
     await expect.poll(() => countArchiveResults(page)).toBe(4);
   });
 
   test("clear filters removes chip params and restores the unfiltered result set", async ({ page }) => {
-    await page.goto("/?s=Trapped&ssc_tags=spring%20handle");
+    await page.goto("/?s=Trapped&sschp_tags=spring%20handle");
 
     await expect(page.locator(".ssc-loop-filters .ssc-chip--active")).toContainText(["spring handle"]);
     await expect.poll(() => countArchiveResults(page)).toBe(4);
@@ -59,7 +66,7 @@ test.describe("Archive and search results chip links", () => {
   });
 
   test("direct filtered URLs render the expected active state and result counts", async ({ page }) => {
-    await page.goto("/?s=Trapped&ssc_tags=spring%20handle,trapped%20key%20interlock");
+    await page.goto("/?s=Trapped&sschp_tags=spring%20handle,trapped%20key%20interlock");
 
     await expect(page.locator(".ssc-loop-filters .ssc-chip--active")).toContainText([
       "spring handle",

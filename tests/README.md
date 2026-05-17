@@ -10,7 +10,7 @@ Files:
   Runs public HTTP smoke tests against a running local site. By default it targets `http://localhost:8080`.
 - `tests/browser/*.spec.js`
   Runs Playwright browser tests against the local site for live search, chip interaction, and search-results navigation behavior.
-  The paid-license cycle test also needs `SSC_TEST_LICENSE_KEY` set in the environment.
+  The paid-license cycle test also needs `SSCHP_TEST_LICENSE_KEY` set in the environment.
   When that key is set, the suite includes a Freemius deactivation diagnostic that accepts either a clean downgrade to free or the current local timeout signature.
 - `tests/run-all.sh`
   Runs both suites in sequence.
@@ -34,11 +34,11 @@ npm run test:browser
 To target a different local site:
 
 ```bash
-SSC_TEST_BASE_URL=http://localhost:8080 ./tests/http-smoke.sh
+SSCHP_TEST_BASE_URL=http://localhost:8080 ./tests/http-smoke.sh
 ```
 
 To run the Freemius free/Pro cycle test as well:
 
 ```bash
-SSC_TEST_LICENSE_KEY=your_test_license npm run test:browser
+SSCHP_TEST_LICENSE_KEY=your_test_license npm run test:browser
 ```

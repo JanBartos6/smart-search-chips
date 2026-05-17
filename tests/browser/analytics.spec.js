@@ -4,9 +4,17 @@ const {
   loginAsAdmin,
   gotoAnalyticsPage,
   ensureAnalyticsEnabled,
+  isLocalWordPressAvailable,
 } = require("./helpers");
 
 test.describe("Analytics dashboard", () => {
+  test.beforeEach(async ({ request, baseURL }) => {
+    test.skip(
+      !(await isLocalWordPressAvailable(request, baseURL)),
+      "Local WordPress test site is not running. Run `npm run local:wp:start` before local-site browser tests."
+    );
+  });
+
   test("records search, click-through, and zero-result insights", async ({ page }) => {
     await loginAsAdmin(page);
 

@@ -7,8 +7,8 @@ get_header();
 
 $mugs_term = get_category_by_slug( 'mugs' );
 $mugs_url  = $mugs_term ? get_category_link( $mugs_term ) : home_url( '/category/mugs/' );
-$checkout_url    = ssc_demo_get_checkout_url();
-$free_plugin_url = ssc_demo_get_free_plugin_url();
+$checkout_url    = sschp_demo_get_checkout_url();
+$free_plugin_url = sschp_demo_get_free_plugin_url();
 ?>
 <main class="ssc-home ssc-home--landing">
 
@@ -39,7 +39,7 @@ $free_plugin_url = ssc_demo_get_free_plugin_url();
                         <span><?php esc_html_e( 'Live demo', 'ssc-cozy-demo' ); ?></span>
                     </div>
                     <div class="ssc-hero-card__search">
-                        <?php echo do_shortcode( '[ssc_search placeholder="Try searching: tea, stoneware, serving..."]' ); ?>
+                        <?php echo do_shortcode( '[sschp_search placeholder="Try searching: tea, stoneware, serving..."]' ); ?>
                     </div>
                     <div class="ssc-demo-pill-row">
                         <button class="ssc-demo-pill" type="button" data-demo-query="tea"><?php esc_html_e( 'tea', 'ssc-cozy-demo' ); ?></button>
@@ -136,7 +136,7 @@ $free_plugin_url = ssc_demo_get_free_plugin_url();
                 <article class="ssc-context-card" data-reveal>
                     <div class="ssc-context-card__visual">
                         <div class="ssc-ui-panel">
-                            <div class="ssc-ui-browserbar">/?s=tea&amp;ssc_tags=stoneware</div>
+                            <div class="ssc-ui-browserbar">/?s=tea&amp;sschp_tags=stoneware</div>
                             <div class="ssc-ui-chiprow ssc-ui-chiprow--active">
                                 <span class="is-active"><?php esc_html_e( 'stoneware', 'ssc-cozy-demo' ); ?></span>
                                 <span><?php esc_html_e( 'tea ritual', 'ssc-cozy-demo' ); ?></span>

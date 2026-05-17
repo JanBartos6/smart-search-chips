@@ -122,6 +122,12 @@ if ( ! function_exists( 'esc_url_raw' ) ) {
     }
 }
 
+if ( ! function_exists( 'esc_url' ) ) {
+    function esc_url( $url ) {
+        return esc_url_raw( $url );
+    }
+}
+
 if ( ! function_exists( 'esc_html__' ) ) {
     function esc_html__( $text, $domain = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         return $text;
@@ -257,6 +263,18 @@ if ( ! function_exists( 'add_settings_error' ) ) {
 if ( ! function_exists( 'add_shortcode' ) ) {
     function add_shortcode( $tag, $callback ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         return true;
+    }
+}
+
+if ( ! function_exists( 'shortcode_atts' ) ) {
+    function shortcode_atts( $pairs, $atts, $shortcode = '' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        return array_merge( (array) $pairs, (array) $atts );
+    }
+}
+
+if ( ! function_exists( 'shortcode_exists' ) ) {
+    function shortcode_exists( $tag ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        return 'sschp_search' === $tag;
     }
 }
 

@@ -1,7 +1,14 @@
 const { test, expect } = require("@playwright/test");
-const { escapedChipRegexp, countAjaxResults } = require("./helpers");
+const { escapedChipRegexp, countAjaxResults, isLocalWordPressAvailable } = require("./helpers");
 
 test.describe("Shortcode AJAX search", () => {
+  test.beforeEach(async ({ request, baseURL }) => {
+    test.skip(
+      !(await isLocalWordPressAvailable(request, baseURL)),
+      "Local WordPress test site is not running. Run `npm run local:wp:start` before local-site browser tests."
+    );
+  });
+
   test("stays on the page, searches live, and resets when cleared", async ({ page }) => {
     await page.goto("/search/");
 

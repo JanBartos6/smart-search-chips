@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${SSC_TEST_BASE_URL:-http://localhost:8080}"
+BASE_URL="${SSCHP_TEST_BASE_URL:-http://localhost:8080}"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 if command -v rg >/dev/null 2>&1 && rg --version >/dev/null 2>&1; then
-  SSC_SEARCH_CMD="rg"
+  SSCHP_SEARCH_CMD="rg"
 else
-  SSC_SEARCH_CMD="grep"
+  SSCHP_SEARCH_CMD="grep"
 fi
 
 has_match() {
   local pattern="$1"
   local file="$2"
 
-  if [[ "$SSC_SEARCH_CMD" == "rg" ]]; then
+  if [[ "$SSCHP_SEARCH_CMD" == "rg" ]]; then
     rg -q --fixed-strings "$pattern" "$file"
   else
     grep -F -q -- "$pattern" "$file"
@@ -26,7 +26,7 @@ count_fixed_matches() {
   local pattern="$1"
   local file="$2"
 
-  if [[ "$SSC_SEARCH_CMD" == "rg" ]]; then
+  if [[ "$SSCHP_SEARCH_CMD" == "rg" ]]; then
     rg -o --fixed-strings "$pattern" "$file" | wc -l | tr -d ' '
   else
     grep -F -o -- "$pattern" "$file" | wc -l | tr -d ' '
@@ -56,7 +56,7 @@ require_match "$TMP_DIR/search-page.html" 'js-ssc-search' 'Shortcode search page
 require_match "$TMP_DIR/search-page.html" 'ssc-search__results' 'Shortcode search page should render the result container.'
 
 curl -fsS -X POST "$BASE_URL/wp-admin/admin-ajax.php" \
-  --data 'action=ssc_search&keyword=Trapped' > "$TMP_DIR/ajax-trapped.html"
+  --data 'action=sschp_search&keyword=Trapped' > "$TMP_DIR/ajax-trapped.html"
 require_match "$TMP_DIR/ajax-trapped.html" '<div class="ssc-chips">' 'AJAX search should return chips for the Trapped demo query.'
 require_match "$TMP_DIR/ajax-trapped.html" 'spring handle' 'AJAX search should include at least one expected chip label.'
 require_match "$TMP_DIR/ajax-trapped.html" 'Trapped Key Interlock with Lockout' 'AJAX search should include expected results.'
@@ -65,7 +65,7 @@ curl -fsS "$BASE_URL/?s=Trapped" > "$TMP_DIR/results-unfiltered.html"
 require_match "$TMP_DIR/results-unfiltered.html" 'ssc-loop-filters' 'Search results page should render chips above the loop.'
 require_match "$TMP_DIR/results-unfiltered.html" 'Refine This Search' 'Search results page should show the archive chip heading.'
 
-curl -fsS "$BASE_URL/?s=Trapped&ssc_tags=spring%20handle" > "$TMP_DIR/results-filtered.html"
+curl -fsS "$BASE_URL/?s=Trapped&sschp_tags=spring%20handle" > "$TMP_DIR/results-filtered.html"
 require_match "$TMP_DIR/results-filtered.html" 'Clear filters' 'Filtered results page should render a clear-filters link.'
 require_match "$TMP_DIR/results-filtered.html" 'ssc-chip ssc-chip--active' 'Filtered results page should mark the chosen chip as active.'
 

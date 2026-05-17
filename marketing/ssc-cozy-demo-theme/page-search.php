@@ -31,7 +31,7 @@ get_header();
     <section class="ssc-section ssc-live-demo-section" data-reveal>
         <div class="ssc-shell">
             <div class="ssc-live-demo-shell">
-                <?php echo do_shortcode( '[ssc_search placeholder="Search mug, tea, glaze, handmade, or serving"]' ); ?>
+                <?php echo do_shortcode( '[sschp_search placeholder="Search mug, tea, glaze, handmade, or serving"]' ); ?>
             </div>
         </div>
     </section>

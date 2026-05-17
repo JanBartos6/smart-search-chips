@@ -39,6 +39,20 @@ async function readBodyText(page) {
   }
 }
 
+async function isLocalWordPressAvailable(request, baseURL) {
+  const rootUrl = baseURL || "http://localhost:8080";
+
+  try {
+    const response = await request.get(new URL("/wp-login.php", rootUrl).toString(), {
+      timeout: 2000,
+    });
+
+    return response.status() < 500;
+  } catch (error) {
+    return false;
+  }
+}
+
 async function reactivatePlugin(page) {
   await page.goto("/wp-admin/plugins.php", { waitUntil: "networkidle" });
 
@@ -182,6 +196,7 @@ module.exports = {
   gotoPluginSettings,
   gotoPluginAccount,
   gotoAnalyticsPage,
+  isLocalWordPressAvailable,
   activateProLicense,
   deactivateProLicense,
   countAjaxResults,
