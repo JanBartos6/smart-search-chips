@@ -20,6 +20,7 @@ class SSCHP_Settings {
         add_action( 'admin_post_sschp_delete_plugin_data_now', array( $this, 'handle_delete_data_now' ) );
         add_action( 'admin_post_sschp_dismiss_onboarding', array( $this, 'handle_dismiss_onboarding' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+        add_action( 'wp_ajax_sschp_admin_test_search', array( $this, 'handle_admin_test_search' ) );
         add_filter( 'plugin_action_links_' . SSCHP_PLUGIN_BASENAME, array( $this, 'add_settings_link' ) );
     }
 
@@ -247,10 +248,25 @@ class SSCHP_Settings {
                 true
             );
             wp_localize_script( 'smart-search-chips-settings', 'sschpSettingsDiagnostics', array(
+                'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+                'testSearch'  => array(
+                    'nonce' => wp_create_nonce( 'sschp_admin_test_search' ),
+                ),
                 'diagnostics' => $this->get_theme_compatibility_diagnostics(),
                 'strings'     => array(
                     'pass'                       => __( 'Pass', 'smart-search-chips' ),
                     'warning'                    => __( 'Warning', 'smart-search-chips' ),
+                    'runningSearch'              => __( 'Running test search...', 'smart-search-chips' ),
+                    'searchFailed'               => __( 'The test search could not run.', 'smart-search-chips' ),
+                    'queryTooShort'              => __( 'Enter at least two characters to run a test search.', 'smart-search-chips' ),
+                    'path'                       => __( 'Path', 'smart-search-chips' ),
+                    'results'                    => __( 'Results', 'smart-search-chips' ),
+                    'taggedResults'              => __( 'Tagged results', 'smart-search-chips' ),
+                    'generatedChips'             => __( 'Generated chips', 'smart-search-chips' ),
+                    'firstResults'               => __( 'First results', 'smart-search-chips' ),
+                    'warnings'                   => __( 'Warnings', 'smart-search-chips' ),
+                    'noChips'                    => __( 'No chips generated.', 'smart-search-chips' ),
+                    'noResults'                  => __( 'No preview results returned.', 'smart-search-chips' ),
                     'notFound'                   => __( 'Not found on this page', 'smart-search-chips' ),
                     'selectorInvalid'            => __( 'This selector is invalid and should be corrected before testing theme integration.', 'smart-search-chips' ),
                     'selectorValid'              => __( 'Selector syntax is valid.', 'smart-search-chips' ),
@@ -490,6 +506,59 @@ class SSCHP_Settings {
     }
 
     /**
+     * Render the admin test search tool.
+     */
+    private function render_search_debug_card() {
+        $selected_post_types = $this->sanitize_post_types( get_option( 'sschp_post_types', array( 'post' ) ) );
+        $post_types          = get_post_types( array( 'public' => true ), 'objects' );
+        ?>
+        <div class="ssc-settings-card ssc-settings-card--search-debug">
+            <h2><?php esc_html_e( 'Test Search', 'smart-search-chips' ); ?></h2>
+            <p class="description"><?php esc_html_e( 'Run the Smart Search Chips server-side search pipeline from this settings screen to confirm which search path is used and whether usable chips are generated.', 'smart-search-chips' ); ?></p>
+            <table class="form-table">
+                <tr>
+                    <th><label for="sschp-test-search-query"><?php esc_html_e( 'Query', 'smart-search-chips' ); ?></label></th>
+                    <td>
+                        <input type="search" id="sschp-test-search-query" class="regular-text" value="" placeholder="<?php echo esc_attr__( 'Try a product, topic, or keyword', 'smart-search-chips' ); ?>" />
+                    </td>
+                </tr>
+                <tr>
+                    <th><?php esc_html_e( 'Post Types', 'smart-search-chips' ); ?></th>
+                    <td>
+                        <div class="ssc-test-post-types">
+                            <?php foreach ( $post_types as $post_type ) : ?>
+                                <?php
+                                if ( 'attachment' === $post_type->name ) {
+                                    continue;
+                                }
+
+                                $input_id = 'sschp-test-post-type-' . sanitize_key( $post_type->name );
+                                ?>
+                                <label for="<?php echo esc_attr( $input_id ); ?>">
+                                    <input
+                                        type="checkbox"
+                                        id="<?php echo esc_attr( $input_id ); ?>"
+                                        value="<?php echo esc_attr( $post_type->name ); ?>"
+                                        data-sschp-test-post-type="1"
+                                        <?php checked( in_array( $post_type->name, $selected_post_types, true ) ); ?>
+                                    />
+                                    <?php echo esc_html( $post_type->label ); ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                        <p class="description"><?php esc_html_e( 'The checked post types are used for this test only. If none are checked, the saved Search post type setting is used.', 'smart-search-chips' ); ?></p>
+                    </td>
+                </tr>
+            </table>
+            <p>
+                <button type="button" class="button button-secondary" id="sschp-run-test-search"><?php esc_html_e( 'Run Test Search', 'smart-search-chips' ); ?></button>
+            </p>
+            <div id="sschp-test-search-results" class="ssc-test-search-results" aria-live="polite"></div>
+        </div>
+        <?php
+    }
+
+    /**
      * Render one static diagnostic row.
      *
      * @param string $label Row label.
@@ -693,6 +762,7 @@ class SSCHP_Settings {
 
                         <?php $this->render_setup_wizard_card(); ?>
                         <?php $this->render_search_index_card(); ?>
+                        <?php $this->render_search_debug_card(); ?>
 
                         <!-- Search Settings -->
                         <div class="ssc-settings-card">
@@ -1367,6 +1437,72 @@ class SSCHP_Settings {
             )
         );
         exit;
+    }
+
+    /**
+     * Handle the settings-page test search AJAX request.
+     *
+     * @return void
+     */
+    public function handle_admin_test_search() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to run test searches.', 'smart-search-chips' ),
+                ),
+                403
+            );
+        }
+
+        $nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+        if ( ! wp_verify_nonce( $nonce, 'sschp_admin_test_search' ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Security check failed.', 'smart-search-chips' ),
+                ),
+                403
+            );
+        }
+
+        $query = isset( $_POST['query'] ) ? sanitize_text_field( wp_unslash( $_POST['query'] ) ) : '';
+        if ( strlen( $query ) < 2 ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Enter at least two characters to run a test search.', 'smart-search-chips' ),
+                ),
+                400
+            );
+        }
+
+        $engine       = new SSCHP_Chip_Engine();
+        $search_index = class_exists( 'SSCHP_Search_Index' ) ? new SSCHP_Search_Index( $this, $engine ) : null;
+        $handler      = new SSCHP_Search_Handler( $engine, $this, $search_index );
+        $data         = $handler->get_admin_test_search_data(
+            array(
+                'keyword'    => $query,
+                'post_types' => $this->get_admin_test_search_post_types(),
+            )
+        );
+
+        wp_send_json_success( $data );
+    }
+
+    /**
+     * Read the optional post type choices from the admin test search request.
+     *
+     * @return array
+     */
+    private function get_admin_test_search_post_types() {
+        if ( ! isset( $_POST['post_types'] ) ) {
+            return $this->sanitize_post_types( get_option( 'sschp_post_types', array( 'post' ) ) );
+        }
+
+        $raw = wp_unslash( $_POST['post_types'] );
+        if ( is_array( $raw ) ) {
+            return $this->sanitize_post_types( $raw );
+        }
+
+        return $this->sanitize_post_types( preg_split( '/[\s,]+/', (string) $raw ) );
     }
 
     // ─── Helper renderers ────────────────────────────────────────────

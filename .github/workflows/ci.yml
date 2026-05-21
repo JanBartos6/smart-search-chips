@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: Make PowerShell available to npm scripts
+        shell: bash
+        run: |
+          if ! command -v powershell >/dev/null 2>&1; then
+            sudo ln -s "$(command -v pwsh)" /usr/local/bin/powershell
+          fi
+          powershell -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Build WordPress.org package
+        run: npm run build:wporg
+
+      - name: Validate WordPress.org package
+        run: npm run validate:wporg
+
+      - name: Lint WordPress.org package
+        run: npm run lint:wporg
+
+      - name: Run browser compatibility tests
+        run: npm run test:browser:compat

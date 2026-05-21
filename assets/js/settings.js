@@ -12,6 +12,14 @@
         return (window.sschpSettingsDiagnostics && window.sschpSettingsDiagnostics.strings) || {};
     }
 
+    function settingsConfig() {
+        return window.sschpSettingsDiagnostics || {};
+    }
+
+    function testSearchConfig() {
+        return settingsConfig().testSearch || {};
+    }
+
     function isValidSelector(selector) {
         if (!selector) {
             return false;
@@ -134,6 +142,166 @@
         }
     }
 
+    function appendText(parent, tagName, className, text) {
+        var element = document.createElement(tagName);
+        if (className) {
+            element.className = className;
+        }
+        element.textContent = text;
+        parent.appendChild(element);
+        return element;
+    }
+
+    function renderTestSearchData(output, data) {
+        var strings = diagnosticStrings();
+        output.innerHTML = '';
+
+        var summary = document.createElement('div');
+        summary.className = 'ssc-test-search-summary';
+        output.appendChild(summary);
+
+        [
+            [strings.path || 'Path', data.pathLabel || data.path || ''],
+            [strings.results || 'Results', String(data.resultCount || 0)],
+            [strings.taggedResults || 'Tagged results', String(data.taggedResultCount || 0)]
+        ].forEach(function (item) {
+            var stat = document.createElement('div');
+            var label = document.createElement('span');
+            var value = document.createElement('strong');
+            label.textContent = item[0];
+            value.textContent = item[1];
+            stat.appendChild(label);
+            stat.appendChild(value);
+            summary.appendChild(stat);
+        });
+
+        if (data.postTypes && data.postTypes.length) {
+            appendText(output, 'p', 'description', 'Post types: ' + data.postTypes.join(', '));
+        }
+
+        if (data.warnings && data.warnings.length) {
+            var warningPanel = document.createElement('div');
+            warningPanel.className = 'ssc-test-search-panel ssc-test-search-panel--warnings';
+            appendText(warningPanel, 'h3', '', strings.warnings || 'Warnings');
+            var warningList = document.createElement('ul');
+            data.warnings.forEach(function (warning) {
+                appendText(warningList, 'li', '', warning);
+            });
+            warningPanel.appendChild(warningList);
+            output.appendChild(warningPanel);
+        }
+
+        var chipsPanel = document.createElement('div');
+        chipsPanel.className = 'ssc-test-search-panel';
+        appendText(chipsPanel, 'h3', '', strings.generatedChips || 'Generated chips');
+        var chips = document.createElement('div');
+        chips.className = 'ssc-test-search-chips';
+        if (data.chips && data.chips.length) {
+            data.chips.forEach(function (chip) {
+                var chipEl = document.createElement('span');
+                chipEl.className = 'ssc-test-search-chip';
+                chipEl.textContent = (chip.label || chip.value || '') + ' (' + (chip.count || 0) + ')';
+                chips.appendChild(chipEl);
+            });
+        } else {
+            appendText(chips, 'p', 'description', strings.noChips || 'No chips generated.');
+        }
+        chipsPanel.appendChild(chips);
+        output.appendChild(chipsPanel);
+
+        var resultsPanel = document.createElement('div');
+        resultsPanel.className = 'ssc-test-search-panel';
+        appendText(resultsPanel, 'h3', '', strings.firstResults || 'First results');
+        if (data.results && data.results.length) {
+            var list = document.createElement('ol');
+            list.className = 'ssc-test-search-result-list';
+            data.results.forEach(function (result) {
+                var item = document.createElement('li');
+                var title = document.createElement('strong');
+                title.textContent = result.title || ('#' + result.id);
+                item.appendChild(title);
+
+                var meta = [];
+                if (result.postType) {
+                    meta.push(result.postType);
+                }
+                if (result.id) {
+                    meta.push('#' + result.id);
+                }
+                if (result.tags && result.tags.length) {
+                    meta.push('tags: ' + result.tags.join(', '));
+                }
+                appendText(item, 'span', '', meta.join(' | '));
+                list.appendChild(item);
+            });
+            resultsPanel.appendChild(list);
+        } else {
+            appendText(resultsPanel, 'p', 'description', strings.noResults || 'No preview results returned.');
+        }
+        output.appendChild(resultsPanel);
+    }
+
+    function renderTestSearchError(output, message) {
+        output.innerHTML = '';
+        appendDiagnostic(output, diagnosticStrings().searchFailed || 'Search failed', false, message || (diagnosticStrings().searchFailed || 'The test search could not run.'));
+    }
+
+    function runTestSearch() {
+        var output = document.getElementById('sschp-test-search-results');
+        var queryInput = document.getElementById('sschp-test-search-query');
+        var button = document.getElementById('sschp-run-test-search');
+        var config = settingsConfig();
+        var testConfig = testSearchConfig();
+        var strings = diagnosticStrings();
+        var ajaxTarget = config.ajaxUrl || (typeof window.ajaxurl !== 'undefined' ? window.ajaxurl : '');
+
+        if (!output || !queryInput || !button) {
+            return;
+        }
+
+        var query = (queryInput.value || '').trim();
+        if (query.length < 2) {
+            renderTestSearchError(output, strings.queryTooShort || 'Enter at least two characters to run a test search.');
+            return;
+        }
+
+        if (!ajaxTarget) {
+            renderTestSearchError(output, strings.searchFailed || 'The test search could not run.');
+            return;
+        }
+
+        var body = new FormData();
+        body.append('action', 'sschp_admin_test_search');
+        body.append('nonce', testConfig.nonce || '');
+        body.append('query', query);
+
+        document.querySelectorAll('[data-sschp-test-post-type]:checked').forEach(function (checkbox) {
+            body.append('post_types[]', checkbox.value);
+        });
+
+        output.innerHTML = '';
+        appendText(output, 'p', 'description', strings.runningSearch || 'Running test search...');
+        button.disabled = true;
+
+        window.fetch(ajaxTarget, {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: body
+        }).then(function (response) {
+            return response.json();
+        }).then(function (payload) {
+            if (!payload || payload.success === false) {
+                throw new Error((payload && payload.data && payload.data.message) || (strings.searchFailed || 'The test search could not run.'));
+            }
+
+            renderTestSearchData(output, payload.data || payload);
+        }).catch(function (error) {
+            renderTestSearchError(output, error && error.message ? error.message : (strings.searchFailed || 'The test search could not run.'));
+        }).finally(function () {
+            button.disabled = false;
+        });
+    }
+
     function renderPreview() {
         var color = val('sschp_chip_color') || '#e74c3c';
         var textColor = val('sschp_chip_text_color') || '#ffffff';
@@ -184,6 +352,11 @@
     var compatButton = document.getElementById('sschp-run-compat-test');
     if (compatButton) {
         compatButton.addEventListener('click', runCompatibilityTest);
+    }
+
+    var testSearchButton = document.getElementById('sschp-run-test-search');
+    if (testSearchButton) {
+        testSearchButton.addEventListener('click', runTestSearch);
     }
 
     document.addEventListener('click', function (event) {

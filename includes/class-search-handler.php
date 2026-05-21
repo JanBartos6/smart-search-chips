@@ -149,6 +149,90 @@ class SSCHP_Search_Handler {
     }
 
     /**
+     * Run a structured admin-only diagnostic search.
+     *
+     * This uses the same search/index/tag/chip pipeline as the frontend AJAX
+     * handler, but returns data for the settings screen instead of rendered HTML.
+     *
+     * @param array $args Diagnostic search arguments.
+     * @return array
+     */
+    public function get_admin_test_search_data( $args = array() ) {
+        $keyword = isset( $args['keyword'] ) ? sanitize_text_field( (string) $args['keyword'] ) : '';
+        $warnings = array();
+
+        $post_types = isset( $args['post_types'] )
+            ? $this->normalize_post_types( $args['post_types'] )
+            : $this->normalize_post_types( $this->settings->get( 'post_types', array( 'post' ) ) );
+
+        if ( strlen( $keyword ) < 2 ) {
+            return array(
+                'query'             => $keyword,
+                'path'              => 'not_run',
+                'pathLabel'         => __( 'Not run', 'smart-search-chips' ),
+                'postTypes'         => $post_types,
+                'resultCount'       => 0,
+                'taggedResultCount' => 0,
+                'chips'             => array(),
+                'results'           => array(),
+                'warnings'          => array(
+                    __( 'Enter at least two characters to run a test search.', 'smart-search-chips' ),
+                ),
+            );
+        }
+
+        $language        = isset( $args['language'] ) ? sanitize_key( (string) $args['language'] ) : SSCHP_Language::current_language();
+        $max_results     = $this->limit_analyzed_results( (int) $this->settings->get( 'search_results_count', 50 ) );
+        $threshold_pct   = (float) $this->settings->get( 'relevance_threshold', 0.3 );
+        $max_tag_length  = (int) $this->settings->get( 'max_tag_length', 40 );
+        $max_chips       = min( (int) $this->settings->get( 'max_chips', 8 ), $this->get_max_chips_limit() );
+        $preview_results = max( 1, min( 5, (int) apply_filters( 'sschp_admin_test_search_preview_results', 5 ) ) );
+        $diagnostics     = array(
+            'path'     => 'wp_query_fallback',
+            'warnings' => array(),
+        );
+
+        $posts_data = $this->query_posts_data_for_keyword(
+            $keyword,
+            $post_types,
+            array(),
+            $language,
+            $max_results,
+            $threshold_pct,
+            $diagnostics
+        );
+
+        $chips = $this->engine->generate_chips( $posts_data, array(), $max_chips, $max_tag_length );
+        $chips = apply_filters( 'sschp_chips', $chips, $posts_data, array() );
+
+        $warnings = array_merge( $warnings, isset( $diagnostics['warnings'] ) ? (array) $diagnostics['warnings'] : array() );
+
+        if ( empty( $posts_data ) ) {
+            $warnings[] = __( 'No matching results were found for this query and post type selection.', 'smart-search-chips' );
+        } elseif ( 0 === $this->count_tagged_posts( $posts_data ) ) {
+            $warnings[] = __( 'Results were found, but none of the returned results have Search Chips tags available.', 'smart-search-chips' );
+        } elseif ( empty( $chips ) ) {
+            $warnings[] = __( 'Tagged results were found, but no useful chips were generated. Tags may be too broad, too long, or too unique for this result set.', 'smart-search-chips' );
+        }
+
+        if ( ! $this->is_relevanssi_available() && 'wp_query_fallback' === $diagnostics['path'] ) {
+            $warnings[] = __( 'Relevanssi was not detected, so Smart Search Chips used the built-in WP_Query fallback scoring.', 'smart-search-chips' );
+        }
+
+        return array(
+            'query'             => $keyword,
+            'path'              => $diagnostics['path'],
+            'pathLabel'         => $this->get_search_path_label( $diagnostics['path'] ),
+            'postTypes'         => $post_types,
+            'resultCount'       => count( $posts_data ),
+            'taggedResultCount' => $this->count_tagged_posts( $posts_data ),
+            'chips'             => $this->format_admin_test_chips( $chips ),
+            'results'           => $this->format_admin_test_results( array_slice( $posts_data, 0, $preview_results ) ),
+            'warnings'          => array_values( array_unique( array_filter( $warnings ) ) ),
+        );
+    }
+
+    /**
      * Query post data without cache.
      *
      * @param string $keyword       Search keyword.
@@ -159,14 +243,23 @@ class SSCHP_Search_Handler {
      * @param float  $threshold_pct Relevance threshold.
      * @return array
      */
-    private function query_posts_data_for_keyword( $keyword, $post_types, $active_tags, $language, $max_results, $threshold_pct ) {
+    private function query_posts_data_for_keyword( $keyword, $post_types, $active_tags, $language, $max_results, $threshold_pct, &$diagnostics = null ) {
+        if ( ! is_array( $diagnostics ) ) {
+            $diagnostics = array();
+        }
+
         if (
             $this->search_index
             && apply_filters( 'sschp_use_search_index', true, $keyword, $post_types, $language )
         ) {
             $indexed_posts = $this->search_index->search( $keyword, $post_types, $language, $max_results );
             if ( is_array( $indexed_posts ) ) {
+                $diagnostics['path'] = 'local_index';
                 return $indexed_posts;
+            }
+
+            if ( method_exists( $this->search_index, 'is_ready' ) && ! $this->search_index->is_ready( $post_types, $language ) ) {
+                $diagnostics['warnings'][] = __( 'The local search index is not ready for this post type/language yet, so the test fell back to live WordPress search.', 'smart-search-chips' );
             }
         }
 
@@ -185,8 +278,10 @@ class SSCHP_Search_Handler {
         $query      = new WP_Query( SSCHP_Language::apply_query_language( $query_args, $language ) );
 
         $relevanssi_available = $this->is_relevanssi_available();
+        $relevanssi_ran       = function_exists( 'relevanssi_do_query' );
+        $diagnostics['path']  = $relevanssi_ran ? 'relevanssi' : 'wp_query_fallback';
 
-        if ( function_exists( 'relevanssi_do_query' ) ) {
+        if ( $relevanssi_ran ) {
             relevanssi_do_query( $query );
         }
 
@@ -213,18 +308,99 @@ class SSCHP_Search_Handler {
 
         $use_relevance = $top_score > 0;
         if ( $use_relevance ) {
+            $diagnostics['path'] = 'relevanssi';
             $threshold      = $top_score * $threshold_pct;
             $relevant_posts = array_filter( $scored_posts, function( $p ) use ( $threshold ) {
                 return $p['score'] >= $threshold;
             } );
             $relevant_posts = array_values( $relevant_posts );
-        } elseif ( ! $relevanssi_available || apply_filters( 'sschp_score_relevanssi_results', false, $keyword, $query ) ) {
+        } elseif ( ! $relevanssi_ran || ! $relevanssi_available || apply_filters( 'sschp_score_relevanssi_results', false, $keyword, $query ) ) {
+            $diagnostics['path'] = 'wp_query_fallback';
             $relevant_posts = $this->score_fallback_posts( $scored_posts, $keyword );
         } else {
+            $diagnostics['path'] = 'relevanssi';
             $relevant_posts = $scored_posts;
         }
 
         return $this->collect_posts_data( $relevant_posts );
+    }
+
+    /**
+     * Format chips for admin diagnostics JSON.
+     *
+     * @param array $chips Generated chips.
+     * @return array
+     */
+    private function format_admin_test_chips( $chips ) {
+        $formatted = array();
+
+        foreach ( (array) $chips as $chip ) {
+            $formatted[] = array(
+                'label' => isset( $chip['label'] ) ? (string) $chip['label'] : '',
+                'value' => isset( $chip['value'] ) ? (string) $chip['value'] : ( isset( $chip['label'] ) ? (string) $chip['label'] : '' ),
+                'count' => isset( $chip['count'] ) ? (int) $chip['count'] : 0,
+                'type'  => isset( $chip['type'] ) ? sanitize_key( $chip['type'] ) : 'chip',
+            );
+        }
+
+        return $formatted;
+    }
+
+    /**
+     * Format result previews for admin diagnostics JSON.
+     *
+     * @param array $posts_data Post data rows.
+     * @return array
+     */
+    private function format_admin_test_results( $posts_data ) {
+        $formatted = array();
+
+        foreach ( (array) $posts_data as $post ) {
+            $formatted[] = array(
+                'id'       => isset( $post['id'] ) ? absint( $post['id'] ) : 0,
+                'title'    => isset( $post['title'] ) ? (string) $post['title'] : '',
+                'url'      => isset( $post['url'] ) ? esc_url_raw( $post['url'] ) : '',
+                'postType' => isset( $post['post_type'] ) ? sanitize_key( $post['post_type'] ) : '',
+                'score'    => isset( $post['score'] ) ? (float) $post['score'] : 0.0,
+                'tags'     => isset( $post['tags'] ) ? array_values( array_map( 'strval', (array) $post['tags'] ) ) : array(),
+            );
+        }
+
+        return $formatted;
+    }
+
+    /**
+     * Return a human-readable search path label.
+     *
+     * @param string $path Path key.
+     * @return string
+     */
+    private function get_search_path_label( $path ) {
+        $labels = array(
+            'local_index'       => __( 'Local index', 'smart-search-chips' ),
+            'relevanssi'        => __( 'Relevanssi', 'smart-search-chips' ),
+            'wp_query_fallback' => __( 'WP_Query fallback', 'smart-search-chips' ),
+            'not_run'           => __( 'Not run', 'smart-search-chips' ),
+        );
+
+        return isset( $labels[ $path ] ) ? $labels[ $path ] : $labels['wp_query_fallback'];
+    }
+
+    /**
+     * Get the edition-specific chip limit.
+     *
+     * @return int
+     */
+    private function get_max_chips_limit() {
+        if ( class_exists( 'SSCHP_License' ) ) {
+            return SSCHP_License::max_chips();
+        }
+
+        if ( class_exists( 'SSCHP_Edition' ) ) {
+            return SSCHP_Edition::max_chips();
+        }
+
+        return 8;
     }
 
     /**

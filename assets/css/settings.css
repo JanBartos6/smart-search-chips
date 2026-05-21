@@ -56,6 +56,23 @@
 .ssc-setup-step p { margin: 0; }
 .ssc-copy-row { display: flex; gap: 8px; align-items: center; }
 .ssc-copy-row input { flex: 1; min-width: 0; }
+.ssc-test-post-types { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.ssc-test-post-types label { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.ssc-test-search-results { display: grid; gap: 12px; margin-top: 14px; }
+.ssc-test-search-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ssc-test-search-summary div { display: grid; gap: 4px; padding: 12px; border: 1px solid #e3e5e8; border-radius: 8px; background: #fcfcfd; }
+.ssc-test-search-summary span { color: #646970; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.ssc-test-search-summary strong { color: #1d2327; font-size: 18px; line-height: 1.2; }
+.ssc-test-search-panel { padding: 14px; border: 1px solid #e3e5e8; border-radius: 8px; background: #fff; }
+.ssc-test-search-panel--warnings { border-color: #f0d28a; background: #fffaf0; }
+.ssc-test-search-panel h3 { margin: 0 0 10px; font-size: 13px; color: #1d2327; text-transform: uppercase; letter-spacing: 0.04em; }
+.ssc-test-search-panel ul { margin: 0 0 0 18px; }
+.ssc-test-search-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ssc-test-search-chip { display: inline-flex; align-items: center; padding: 4px 9px; border: 1px solid #d0d7de; border-radius: 999px; background: #f6f7f7; color: #1d2327; font-size: 12px; line-height: 1.4; }
+.ssc-test-search-result-list { display: grid; gap: 8px; margin: 0; padding-left: 20px; }
+.ssc-test-search-result-list li { margin: 0; }
+.ssc-test-search-result-list strong { display: block; color: #1d2327; }
+.ssc-test-search-result-list span { display: block; margin-top: 3px; color: #646970; font-size: 12px; }
 .ssc-feedback-link { margin-top: 24px; padding-top: 16px; border-top: 1px solid #eee; color: #888; font-size: 13px; }
 .ssc-feedback-link a { color: #2271b1; text-decoration: none; font-weight: 500; }
 .ssc-feedback-link a:hover { text-decoration: underline; }
@@ -133,6 +150,7 @@
     #ssc-settings-right { width: 100%; }
     #ssc-preview-panel { position: static; }
     .ssc-compat-config { grid-template-columns: 1fr; }
+    .ssc-test-search-summary { grid-template-columns: 1fr; }
     .ssc-diagnostic-row { grid-template-columns: 1fr; }
     .ssc-setup-grid { grid-template-columns: 1fr; }
     .ssc-copy-row { flex-direction: column; align-items: stretch; }

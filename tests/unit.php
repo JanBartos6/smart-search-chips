@@ -259,6 +259,21 @@ function sschp_test_wporg_settings_source_keeps_selector_safety() {
     sschp_assert_contains( 'render_search_index_card', $contents, 'WP.org settings source should show local search index progress' );
     sschp_assert_contains( 'sschp-run-compat-test', $contents, 'WP.org settings source should render the frontend compatibility test control' );
     sschp_assert_contains( 'sanitize_debounce_ms', $contents, 'WP.org settings source should keep the configurable debounce setting' );
+    sschp_assert_contains( 'render_search_debug_card', $contents, 'WP.org settings source should render the admin test search card' );
+    sschp_assert_contains( 'sschp_admin_test_search', $contents, 'WP.org settings source should register the admin test search AJAX endpoint' );
+}
+
+function sschp_test_wporg_search_handler_keeps_admin_test_search_api() {
+    $path = dirname( __DIR__ ) . '/build-sources/wporg/includes/class-search-handler.php';
+
+    sschp_assert_true( is_file( $path ), 'WP.org search handler source should exist for explicit release builds' );
+
+    $contents = is_file( $path ) ? file_get_contents( $path ) : '';
+
+    sschp_assert_contains( 'get_admin_test_search_data', $contents, 'WP.org search handler should keep the reusable admin test search API' );
+    sschp_assert_contains( 'local_index', $contents, 'WP.org search handler should report the local index path' );
+    sschp_assert_contains( 'relevanssi', $contents, 'WP.org search handler should report the Relevanssi path' );
+    sschp_assert_contains( 'wp_query_fallback', $contents, 'WP.org search handler should report the WP_Query fallback path' );
 }
 
 function sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant() {
@@ -1903,6 +1918,115 @@ function sschp_test_search_handler_hard_caps_large_catalog_limits() {
     sschp_assert_same( 100, sschp_invoke_private( $handler, 'limit_rendered_results', array( 1000 ) ), 'rendered result count should be hard-capped by default' );
 }
 
+function sschp_test_admin_test_search_reports_wp_query_fallback_data() {
+    global $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    sschp_register_test_post_for_index( 301, 'post', 'Beacon Alpha', 'Beacon product detail.' );
+    sschp_register_test_post_for_index( 302, 'post', 'Beacon Beta', 'Beacon product detail.' );
+    $sschp_test_post_meta[301][SSCHP_Meta_Box::META_KEY] = 'Steel; Outdoor';
+    $sschp_test_post_meta[302][SSCHP_Meta_Box::META_KEY] = 'Steel; Indoor';
+
+    $handler = new SSCHP_Search_Handler(
+        new SSCHP_Chip_Engine(),
+        new SSCHP_Test_Settings(
+            array(
+                'post_types' => array( 'post' ),
+            )
+        )
+    );
+
+    $data = $handler->get_admin_test_search_data(
+        array(
+            'keyword'    => 'Beacon',
+            'post_types' => array( 'post' ),
+        )
+    );
+
+    sschp_assert_same( 'wp_query_fallback', $data['path'], 'admin test search should report WP_Query fallback when no index or Relevanssi is available' );
+    sschp_assert_same( 2, $data['resultCount'], 'admin test search should report the result count' );
+    sschp_assert_same( 2, $data['taggedResultCount'], 'admin test search should report tagged result count' );
+    sschp_assert_true( ! empty( $data['chips'] ), 'admin test search should include generated chips' );
+    sschp_assert_same( 2, count( $data['results'] ), 'admin test search should include first result previews' );
+    sschp_assert_same( 'post', $data['results'][0]['postType'], 'admin test search result previews should include post type' );
+}
+
+function sschp_test_admin_test_search_reports_local_index_path() {
+    global $sschp_test_options, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION] = 'complete';
+
+    $post = sschp_register_test_post_for_index( 311, 'product', 'Indexed Beacon', 'Indexed product detail.' );
+    $sschp_test_post_meta[311][SSCHP_Meta_Box::META_KEY] = 'Indexed; Outdoor';
+
+    $engine   = new SSCHP_Chip_Engine();
+    $settings = new SSCHP_Test_Settings(
+        array(
+            'post_types' => array( 'product' ),
+        )
+    );
+    $index    = new SSCHP_Search_Index( $settings, $engine );
+    $index->index_post( 311, $post );
+
+    $handler = new SSCHP_Search_Handler( $engine, $settings, $index );
+    $data    = $handler->get_admin_test_search_data(
+        array(
+            'keyword'    => 'Indexed Beacon',
+            'post_types' => array( 'product' ),
+        )
+    );
+
+    sschp_assert_same( 'local_index', $data['path'], 'admin test search should report when the local index serves the query' );
+    sschp_assert_same( 1, $data['resultCount'], 'local-index admin test search should report indexed result count' );
+    sschp_assert_same( 1, $data['taggedResultCount'], 'local-index admin test search should report tagged indexed results' );
+}
+
+function sschp_test_settings_admin_test_search_ajax_requires_manage_options() {
+    sschp_reset_test_state();
+    $_POST = array(
+        'nonce' => 'test-nonce',
+        'query' => 'Beacon',
+    );
+
+    $settings = new SSCHP_Settings();
+    $result   = sschp_capture_wp_die(
+        function() use ( $settings ) {
+            $settings->handle_admin_test_search();
+        }
+    );
+
+    sschp_assert_true( $result['died'], 'admin test search AJAX should finish through a JSON response' );
+    sschp_assert_contains( 'permission', $result['message'], 'admin test search AJAX should reject users without manage_options' );
+}
+
+function sschp_test_settings_admin_test_search_ajax_returns_search_json() {
+    global $sschp_test_current_user_can, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    $sschp_test_current_user_can['manage_options'] = true;
+    sschp_register_test_post_for_index( 321, 'post', 'Beacon Admin Test', 'Admin test content.' );
+    $sschp_test_post_meta[321][SSCHP_Meta_Box::META_KEY] = 'Admin; Test';
+    $_POST = array(
+        'nonce'      => 'test-nonce',
+        'query'      => 'Beacon',
+        'post_types' => array( 'post' ),
+    );
+
+    $settings = new SSCHP_Settings();
+    $result   = sschp_capture_wp_die(
+        function() use ( $settings ) {
+            $settings->handle_admin_test_search();
+        }
+    );
+    $data = json_decode( $result['message'], true );
+
+    sschp_assert_true( $result['died'], 'admin test search AJAX should finish through a JSON response' );
+    sschp_assert_same( 'Beacon', $data['query'], 'admin test search AJAX should return the tested query' );
+    sschp_assert_same( 1, $data['resultCount'], 'admin test search AJAX should return result counts' );
+    sschp_assert_same( 'wp_query_fallback', $data['path'], 'admin test search AJAX should return the search path' );
+}
+
 function sschp_test_search_index_search_after_complete_returns_ranked_results() {
     global $sschp_test_options, $sschp_test_post_meta;
 
@@ -2319,6 +2443,10 @@ sschp_test_search_handler_caches_query_results();
 sschp_test_search_handler_caches_chip_generation_separately();
 sschp_test_search_handler_cache_version_changes_on_relevant_updates();
 sschp_test_search_handler_hard_caps_large_catalog_limits();
+sschp_test_admin_test_search_reports_wp_query_fallback_data();
+sschp_test_admin_test_search_reports_local_index_path();
+sschp_test_settings_admin_test_search_ajax_requires_manage_options();
+sschp_test_settings_admin_test_search_ajax_returns_search_json();
 sschp_test_search_index_search_after_complete_returns_ranked_results();
 sschp_test_search_index_large_catalog_smoke();
 sschp_test_fallback_relevance_exact_title_beats_content_only_match();
@@ -2335,6 +2463,7 @@ sschp_test_search_handler_override_with_marker_and_invalid_nonce_fails();
 sschp_test_frontend_registers_loop_fallback_for_block_themes();
 sschp_test_no_legacy_public_interface_references_in_fixtures();
 sschp_test_wporg_settings_source_keeps_selector_safety();
+sschp_test_wporg_search_handler_keeps_admin_test_search_api();
 sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant();
 sschp_test_premium_ajax_numeric_inputs_are_unslashed();
 
