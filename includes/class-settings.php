@@ -21,6 +21,7 @@ class SSCHP_Settings {
         add_action( 'admin_post_sschp_dismiss_onboarding', array( $this, 'handle_dismiss_onboarding' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
         add_action( 'wp_ajax_sschp_admin_test_search', array( $this, 'handle_admin_test_search' ) );
+        add_action( 'wp_ajax_sschp_search_index_control', array( $this, 'handle_search_index_control' ) );
         add_filter( 'plugin_action_links_' . SSCHP_PLUGIN_BASENAME, array( $this, 'add_settings_link' ) );
     }
 
@@ -252,6 +253,17 @@ class SSCHP_Settings {
                 'testSearch'  => array(
                     'nonce' => wp_create_nonce( 'sschp_admin_test_search' ),
                 ),
+                'indexControl' => array(
+                    'nonce'  => wp_create_nonce( 'sschp_search_index_control' ),
+                    'labels' => array(
+                        'not_started' => __( 'Not started', 'smart-search-chips' ),
+                        'queued'      => __( 'Queued', 'smart-search-chips' ),
+                        'processing'  => __( 'Processing', 'smart-search-chips' ),
+                        'paused'      => __( 'Paused', 'smart-search-chips' ),
+                        'complete'    => __( 'Ready', 'smart-search-chips' ),
+                        'empty'       => __( 'Empty', 'smart-search-chips' ),
+                    ),
+                ),
                 'diagnostics' => $this->get_theme_compatibility_diagnostics(),
                 'strings'     => array(
                     'pass'                       => __( 'Pass', 'smart-search-chips' ),
@@ -269,6 +281,9 @@ class SSCHP_Settings {
                     'suggestedFix'               => __( 'Suggested fix', 'smart-search-chips' ),
                     'noChips'                    => __( 'No chips generated.', 'smart-search-chips' ),
                     'noResults'                  => __( 'No preview results returned.', 'smart-search-chips' ),
+                    'indexRunning'                => __( 'Updating local index...', 'smart-search-chips' ),
+                    'indexActionFailed'           => __( 'The local index action could not run.', 'smart-search-chips' ),
+                    'notYetCompleted'             => __( 'Not yet completed', 'smart-search-chips' ),
                     'notFound'                   => __( 'Not found on this page', 'smart-search-chips' ),
                     'selectorInvalid'            => __( 'This selector is invalid and should be corrected before testing theme integration.', 'smart-search-chips' ),
                     'selectorValid'              => __( 'Selector syntax is valid.', 'smart-search-chips' ),
@@ -477,6 +492,7 @@ class SSCHP_Settings {
             'not_started' => __( 'Not started', 'smart-search-chips' ),
             'queued'      => __( 'Queued', 'smart-search-chips' ),
             'processing'  => __( 'Processing', 'smart-search-chips' ),
+            'paused'      => __( 'Paused', 'smart-search-chips' ),
             'complete'    => __( 'Ready', 'smart-search-chips' ),
             'empty'       => __( 'Empty', 'smart-search-chips' ),
         );
@@ -487,21 +503,29 @@ class SSCHP_Settings {
             <dl class="ssc-compat-config">
                 <div>
                     <dt><?php esc_html_e( 'Status', 'smart-search-chips' ); ?></dt>
-                    <dd><span class="ssc-badge ssc-badge--neutral"><?php echo esc_html( isset( $labels[ $status ] ) ? $labels[ $status ] : $status ); ?></span></dd>
+                    <dd><span class="ssc-badge ssc-badge--neutral" data-sschp-index-status><?php echo esc_html( isset( $labels[ $status ] ) ? $labels[ $status ] : $status ); ?></span></dd>
                 </div>
                 <div>
                     <dt><?php esc_html_e( 'Progress', 'smart-search-chips' ); ?></dt>
-                    <dd><?php echo esc_html( sprintf( '%1$d%% (%2$d/%3$d)', (int) $progress['percent'], (int) $progress['processed'], (int) $progress['total'] ) ); ?></dd>
+                    <dd data-sschp-index-progress><?php echo esc_html( sprintf( '%1$d%% (%2$d/%3$d)', (int) $progress['percent'], (int) $progress['processed'], (int) $progress['total'] ) ); ?></dd>
                 </div>
                 <div>
                     <dt><?php esc_html_e( 'Indexed rows', 'smart-search-chips' ); ?></dt>
-                    <dd><?php echo esc_html( (string) (int) $progress['rows'] ); ?></dd>
+                    <dd data-sschp-index-rows><?php echo esc_html( (string) (int) $progress['rows'] ); ?></dd>
                 </div>
                 <div>
                     <dt><?php esc_html_e( 'Last completed', 'smart-search-chips' ); ?></dt>
-                    <dd><?php echo esc_html( '' !== $progress['updatedAt'] ? $progress['updatedAt'] : __( 'Not yet completed', 'smart-search-chips' ) ); ?></dd>
+                    <dd data-sschp-index-updated><?php echo esc_html( '' !== $progress['updatedAt'] ? $progress['updatedAt'] : __( 'Not yet completed', 'smart-search-chips' ) ); ?></dd>
                 </div>
             </dl>
+            <p class="ssc-index-actions">
+                <button type="button" class="button button-secondary" data-sschp-index-action="rebuild"><?php esc_html_e( 'Rebuild index now', 'smart-search-chips' ); ?></button>
+                <button type="button" class="button button-secondary" data-sschp-index-action="process"><?php esc_html_e( 'Process next batch now', 'smart-search-chips' ); ?></button>
+                <button type="button" class="button button-secondary" data-sschp-index-action="pause"><?php esc_html_e( 'Pause indexing', 'smart-search-chips' ); ?></button>
+                <button type="button" class="button button-secondary" data-sschp-index-action="resume"><?php esc_html_e( 'Resume indexing', 'smart-search-chips' ); ?></button>
+                <button type="button" class="button button-link-delete" data-sschp-index-action="clear"><?php esc_html_e( 'Clear index', 'smart-search-chips' ); ?></button>
+            </p>
+            <div class="ssc-index-action-result" data-sschp-index-message aria-live="polite"></div>
             <p class="description"><?php esc_html_e( 'Search remains usable before indexing finishes. Until the local index is ready, the plugin falls back to WordPress search or Relevanssi when available.', 'smart-search-chips' ); ?></p>
         </div>
         <?php
@@ -1439,6 +1463,105 @@ class SSCHP_Settings {
             )
         );
         exit;
+    }
+
+    /**
+     * Handle local search index control actions from the settings page.
+     *
+     * @return void
+     */
+    public function handle_search_index_control() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'You do not have permission to manage the local search index.', 'smart-search-chips' ),
+                ),
+                403
+            );
+        }
+
+        $nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+        if ( ! wp_verify_nonce( $nonce, 'sschp_search_index_control' ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'Security check failed.', 'smart-search-chips' ),
+                ),
+                403
+            );
+        }
+
+        if ( ! class_exists( 'SSCHP_Search_Index' ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => __( 'The local search index is not available.', 'smart-search-chips' ),
+                ),
+                500
+            );
+        }
+
+        $operation = isset( $_POST['operation'] ) ? sanitize_key( wp_unslash( $_POST['operation'] ) ) : '';
+        $progress  = null;
+        $message   = '';
+
+        switch ( $operation ) {
+            case 'rebuild':
+                SSCHP_Search_Index::rebuild_index( 'manual_rebuild' );
+                $message = __( 'Index rebuild queued. The next batch will run in the background.', 'smart-search-chips' );
+                break;
+
+            case 'process':
+                SSCHP_Search_Index::create_table();
+                $engine       = new SSCHP_Chip_Engine();
+                $search_index = new SSCHP_Search_Index( $this, $engine );
+                $processed    = $search_index->process_batch();
+                $progress     = SSCHP_Search_Index::get_progress();
+
+                if ( 'paused' === $progress['status'] ) {
+                    $message = __( 'Indexing is paused. Resume indexing before processing another batch.', 'smart-search-chips' );
+                } elseif ( $processed > 0 ) {
+                    $message = sprintf(
+                        /* translators: %d: number of posts indexed. */
+                        _n( '%d post indexed in this batch.', '%d posts indexed in this batch.', $processed, 'smart-search-chips' ),
+                        $processed
+                    );
+                } elseif ( 'complete' === $progress['status'] ) {
+                    $message = __( 'No queued posts remain. The index is ready.', 'smart-search-chips' );
+                } else {
+                    $message = __( 'No posts were processed in this batch.', 'smart-search-chips' );
+                }
+                break;
+
+            case 'clear':
+                SSCHP_Search_Index::create_table();
+                SSCHP_Search_Index::clear_index();
+                $message = __( 'Local search index cleared.', 'smart-search-chips' );
+                break;
+
+            case 'pause':
+                SSCHP_Search_Index::pause_index();
+                $message = __( 'Indexing paused.', 'smart-search-chips' );
+                break;
+
+            case 'resume':
+                SSCHP_Search_Index::resume_index();
+                $message = __( 'Indexing resumed. The next batch will run in the background.', 'smart-search-chips' );
+                break;
+
+            default:
+                wp_send_json_error(
+                    array(
+                        'message' => __( 'Unknown local search index action.', 'smart-search-chips' ),
+                    ),
+                    400
+                );
+        }
+
+        wp_send_json_success(
+            array(
+                'message'  => $message,
+                'progress' => $progress ? $progress : SSCHP_Search_Index::get_progress(),
+            )
+        );
     }
 
     /**

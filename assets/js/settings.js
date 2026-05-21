@@ -20,6 +20,10 @@
         return settingsConfig().testSearch || {};
     }
 
+    function indexControlConfig() {
+        return settingsConfig().indexControl || {};
+    }
+
     function isValidSelector(selector) {
         if (!selector) {
             return false;
@@ -266,6 +270,99 @@
         appendDiagnostic(output, diagnosticStrings().searchFailed || 'Search failed', false, message || (diagnosticStrings().searchFailed || 'The test search could not run.'));
     }
 
+    function setIndexMessage(message, isError) {
+        var output = document.querySelector('[data-sschp-index-message]');
+        if (!output) {
+            return;
+        }
+
+        output.className = 'ssc-index-action-result' + (isError ? ' ssc-index-action-result--error' : '');
+        output.textContent = message || '';
+    }
+
+    function renderIndexProgress(progress) {
+        if (!progress) {
+            return;
+        }
+
+        var labels = indexControlConfig().labels || {};
+        var strings = diagnosticStrings();
+        var status = progress.status || 'not_started';
+        var statusEl = document.querySelector('[data-sschp-index-status]');
+        var progressEl = document.querySelector('[data-sschp-index-progress]');
+        var rowsEl = document.querySelector('[data-sschp-index-rows]');
+        var updatedEl = document.querySelector('[data-sschp-index-updated]');
+        var percent = parseInt(progress.percent, 10);
+        var processed = parseInt(progress.processed, 10);
+        var total = parseInt(progress.total, 10);
+        var rows = parseInt(progress.rows, 10);
+
+        if (statusEl) {
+            statusEl.textContent = labels[status] || status;
+        }
+
+        if (progressEl) {
+            progressEl.textContent = (isNaN(percent) ? 0 : percent) + '% ('
+                + (isNaN(processed) ? 0 : processed) + '/'
+                + (isNaN(total) ? 0 : total) + ')';
+        }
+
+        if (rowsEl) {
+            rowsEl.textContent = isNaN(rows) ? '0' : String(rows);
+        }
+
+        if (updatedEl) {
+            updatedEl.textContent = progress.updatedAt || strings.notYetCompleted || 'Not yet completed';
+        }
+    }
+
+    function setIndexButtonsDisabled(disabled) {
+        document.querySelectorAll('[data-sschp-index-action]').forEach(function (button) {
+            button.disabled = disabled;
+        });
+    }
+
+    function runIndexControl(button) {
+        var config = settingsConfig();
+        var indexConfig = indexControlConfig();
+        var strings = diagnosticStrings();
+        var ajaxTarget = config.ajaxUrl || (typeof window.ajaxurl !== 'undefined' ? window.ajaxurl : '');
+        var operation = button ? button.getAttribute('data-sschp-index-action') : '';
+
+        if (!ajaxTarget || !operation) {
+            setIndexMessage(strings.indexActionFailed || 'The local index action could not run.', true);
+            return;
+        }
+
+        var body = new FormData();
+        body.append('action', 'sschp_search_index_control');
+        body.append('nonce', indexConfig.nonce || '');
+        body.append('operation', operation);
+
+        setIndexMessage(strings.indexRunning || 'Updating local index...', false);
+        setIndexButtonsDisabled(true);
+
+        window.fetch(ajaxTarget, {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: body
+        }).then(function (response) {
+            return response.json();
+        }).then(function (payload) {
+            if (!payload || payload.success === false) {
+                throw new Error((payload && payload.data && payload.data.message) || (strings.indexActionFailed || 'The local index action could not run.'));
+            }
+
+            var data = payload.data || payload;
+            renderIndexProgress(data.progress);
+            setIndexMessage(data.message || '', false);
+        }).catch(function (error) {
+            setIndexMessage(error && error.message ? error.message : (strings.indexActionFailed || 'The local index action could not run.'), true);
+        }).finally(function () {
+            setIndexButtonsDisabled(false);
+        });
+    }
+
     function runTestSearch() {
         var output = document.getElementById('sschp-test-search-results');
         var queryInput = document.getElementById('sschp-test-search-query');
@@ -373,6 +470,16 @@
     if (testSearchButton) {
         testSearchButton.addEventListener('click', runTestSearch);
     }
+
+    document.addEventListener('click', function (event) {
+        var button = event.target && event.target.closest ? event.target.closest('[data-sschp-index-action]') : null;
+        if (!button) {
+            return;
+        }
+
+        event.preventDefault();
+        runIndexControl(button);
+    });
 
     document.addEventListener('click', function (event) {
         var button = event.target && event.target.closest ? event.target.closest('[data-sschp-copy]') : null;

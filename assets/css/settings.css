@@ -56,6 +56,9 @@
 .ssc-setup-step p { margin: 0; }
 .ssc-copy-row { display: flex; gap: 8px; align-items: center; }
 .ssc-copy-row input { flex: 1; min-width: 0; }
+.ssc-index-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.ssc-index-action-result { min-height: 18px; margin: 4px 0 10px; color: #3c434a; }
+.ssc-index-action-result--error { color: #b32d2e; }
 .ssc-test-post-types { display: flex; flex-wrap: wrap; gap: 10px 16px; }
 .ssc-test-post-types label { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
 .ssc-test-search-results { display: grid; gap: 12px; margin-top: 14px; }

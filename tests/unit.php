@@ -272,6 +272,9 @@ function sschp_test_wporg_settings_source_keeps_selector_safety() {
     sschp_assert_contains( 'sanitize_debounce_ms', $contents, 'WP.org settings source should keep the configurable debounce setting' );
     sschp_assert_contains( 'render_search_debug_card', $contents, 'WP.org settings source should render the admin test search card' );
     sschp_assert_contains( 'sschp_admin_test_search', $contents, 'WP.org settings source should register the admin test search AJAX endpoint' );
+    sschp_assert_contains( 'sschp_search_index_control', $contents, 'WP.org settings source should register the local search index controls endpoint' );
+    sschp_assert_contains( 'Rebuild index now', $contents, 'WP.org settings source should render manual index rebuild control' );
+    sschp_assert_contains( 'Pause indexing', $contents, 'WP.org settings source should render pause indexing control' );
 }
 
 function sschp_test_wporg_search_handler_keeps_admin_test_search_api() {
@@ -1757,6 +1760,135 @@ function sschp_test_search_index_queue_initial_index_schedules_batch() {
     sschp_assert_true( in_array( SSCHP_Search_Index::CRON_HOOK, sschp_test_scheduled_hooks(), true ), 'initial indexing should schedule a background batch' );
 }
 
+function sschp_test_search_index_rebuild_queues_index() {
+    global $sschp_test_index_rows, $sschp_test_options;
+
+    sschp_reset_test_state();
+    $sschp_test_options['sschp_post_types'] = array( 'product' );
+    $sschp_test_index_rows['999|en']        = (object) array(
+        'object_id'     => 999,
+        'language_code' => 'en',
+    );
+    sschp_register_test_post_for_index( 201, 'product', 'Queued Product One' );
+    sschp_register_test_post_for_index( 202, 'product', 'Queued Product Two' );
+
+    SSCHP_Search_Index::rebuild_index( 'test_rebuild' );
+
+    sschp_assert_same( 'queued', $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION], 'manual rebuild should queue indexing' );
+    sschp_assert_same( 2, $sschp_test_options[SSCHP_Search_Index::TOTAL_OPTION], 'manual rebuild should recount eligible posts' );
+    sschp_assert_same( 0, $sschp_test_options[SSCHP_Search_Index::PROCESSED_OPTION], 'manual rebuild should reset processed progress' );
+    sschp_assert_same( 0, $sschp_test_options[SSCHP_Search_Index::CURSOR_OPTION], 'manual rebuild should reset the cursor' );
+    sschp_assert_same( '', $sschp_test_options[SSCHP_Search_Index::UPDATED_OPTION], 'manual rebuild should clear the completed timestamp' );
+    sschp_assert_same( 0, count( $sschp_test_index_rows ), 'manual rebuild should clear existing index rows before queueing' );
+    sschp_assert_true( in_array( SSCHP_Search_Index::CRON_HOOK, sschp_test_scheduled_hooks(), true ), 'manual rebuild should schedule a background batch' );
+}
+
+function sschp_test_search_index_clear_index_clears_rows_and_status() {
+    global $sschp_test_index_rows, $sschp_test_options, $sschp_test_scheduled_events;
+
+    sschp_reset_test_state();
+    $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION]    = 'processing';
+    $sschp_test_options[SSCHP_Search_Index::TOTAL_OPTION]     = 4;
+    $sschp_test_options[SSCHP_Search_Index::PROCESSED_OPTION] = 2;
+    $sschp_test_options[SSCHP_Search_Index::CURSOR_OPTION]    = 202;
+    $sschp_test_options[SSCHP_Search_Index::UPDATED_OPTION]   = '2026-05-22 12:00:00';
+    $sschp_test_scheduled_events[]                            = SSCHP_Search_Index::CRON_HOOK;
+    $sschp_test_index_rows['201|en']                          = (object) array(
+        'object_id'     => 201,
+        'language_code' => 'en',
+    );
+
+    SSCHP_Search_Index::clear_index();
+
+    sschp_assert_same( 0, count( $sschp_test_index_rows ), 'clear index should remove indexed rows' );
+    sschp_assert_same( 'empty', $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION], 'clear index should mark the index empty' );
+    sschp_assert_same( 0, $sschp_test_options[SSCHP_Search_Index::TOTAL_OPTION], 'clear index should reset total progress' );
+    sschp_assert_same( 0, $sschp_test_options[SSCHP_Search_Index::PROCESSED_OPTION], 'clear index should reset processed progress' );
+    sschp_assert_same( 0, $sschp_test_options[SSCHP_Search_Index::CURSOR_OPTION], 'clear index should reset the cursor' );
+    sschp_assert_same( '', $sschp_test_options[SSCHP_Search_Index::UPDATED_OPTION], 'clear index should clear the completed timestamp' );
+    sschp_assert_true( ! in_array( SSCHP_Search_Index::CRON_HOOK, sschp_test_scheduled_hooks(), true ), 'clear index should unschedule pending batches' );
+}
+
+function sschp_test_search_index_process_batch_indexes_one_batch() {
+    global $sschp_test_index_rows, $sschp_test_options, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    $sschp_test_options['sschp_post_types'] = array( 'product' );
+    sschp_register_test_post_for_index( 211, 'product', 'Batch Product One' );
+    sschp_register_test_post_for_index( 212, 'product', 'Batch Product Two' );
+    sschp_register_test_post_for_index( 213, 'product', 'Batch Product Three' );
+    $sschp_test_post_meta[211][SSCHP_Meta_Box::META_KEY] = 'Batch; One';
+    $sschp_test_post_meta[212][SSCHP_Meta_Box::META_KEY] = 'Batch; Two';
+    $sschp_test_post_meta[213][SSCHP_Meta_Box::META_KEY] = 'Batch; Three';
+
+    SSCHP_Search_Index::queue_initial_index( 'test_batch' );
+    $index     = new SSCHP_Search_Index( new SSCHP_Test_Settings( array( 'post_types' => array( 'product' ) ) ), new SSCHP_Chip_Engine() );
+    $processed = $index->process_batch( 2 );
+
+    sschp_assert_same( 2, $processed, 'process batch should only index the requested batch size' );
+    sschp_assert_same( 2, count( $sschp_test_index_rows ), 'process batch should write one batch of rows' );
+    sschp_assert_same( 2, $sschp_test_options[SSCHP_Search_Index::PROCESSED_OPTION], 'process batch should advance processed progress by one batch' );
+    sschp_assert_same( 212, $sschp_test_options[SSCHP_Search_Index::CURSOR_OPTION], 'process batch should advance the cursor to the last processed post' );
+    sschp_assert_same( 'processing', $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION], 'partial batch should leave the index processing' );
+}
+
+function sschp_test_search_index_paused_index_does_not_process() {
+    global $sschp_test_index_rows, $sschp_test_options;
+
+    sschp_reset_test_state();
+    $sschp_test_options['sschp_post_types'] = array( 'product' );
+    sschp_register_test_post_for_index( 221, 'product', 'Paused Product One' );
+    sschp_register_test_post_for_index( 222, 'product', 'Paused Product Two' );
+
+    SSCHP_Search_Index::queue_initial_index( 'test_pause' );
+    SSCHP_Search_Index::pause_index();
+    $index     = new SSCHP_Search_Index( new SSCHP_Test_Settings( array( 'post_types' => array( 'product' ) ) ), new SSCHP_Chip_Engine() );
+    $processed = $index->process_batch( 2 );
+
+    sschp_assert_same( 0, $processed, 'paused index should not process rows' );
+    sschp_assert_same( 0, count( $sschp_test_index_rows ), 'paused index should not write index rows' );
+    sschp_assert_same( 0, $sschp_test_options[SSCHP_Search_Index::PROCESSED_OPTION], 'paused index should not advance progress' );
+    sschp_assert_same( 'paused', $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION], 'paused index should keep paused status' );
+    sschp_assert_true( ! in_array( SSCHP_Search_Index::CRON_HOOK, sschp_test_scheduled_hooks(), true ), 'paused index should unschedule pending batches' );
+}
+
+function sschp_test_search_index_resumed_index_can_process_again() {
+    global $sschp_test_index_rows, $sschp_test_options;
+
+    sschp_reset_test_state();
+    $sschp_test_options['sschp_post_types'] = array( 'product' );
+    sschp_register_test_post_for_index( 231, 'product', 'Resumed Product One' );
+    sschp_register_test_post_for_index( 232, 'product', 'Resumed Product Two' );
+    sschp_register_test_post_for_index( 233, 'product', 'Resumed Product Three' );
+
+    SSCHP_Search_Index::queue_initial_index( 'test_resume' );
+    SSCHP_Search_Index::pause_index();
+    SSCHP_Search_Index::resume_index();
+    $index     = new SSCHP_Search_Index( new SSCHP_Test_Settings( array( 'post_types' => array( 'product' ) ) ), new SSCHP_Chip_Engine() );
+    $processed = $index->process_batch( 2 );
+
+    sschp_assert_same( 2, $processed, 'resumed index should process the next batch' );
+    sschp_assert_same( 2, count( $sschp_test_index_rows ), 'resumed index should write index rows again' );
+    sschp_assert_same( 2, $sschp_test_options[SSCHP_Search_Index::PROCESSED_OPTION], 'resumed index should advance processed progress' );
+    sschp_assert_same( 'processing', $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION], 'resumed partial batch should continue processing' );
+}
+
+function sschp_test_search_index_paused_complete_index_remains_ready() {
+    global $sschp_test_options;
+
+    sschp_reset_test_state();
+    $post = sschp_register_test_post_for_index( 241, 'product', 'Ready Product' );
+    $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION]    = 'complete';
+    $sschp_test_options[SSCHP_Search_Index::TOTAL_OPTION]     = 1;
+    $sschp_test_options[SSCHP_Search_Index::PROCESSED_OPTION] = 1;
+
+    $index = new SSCHP_Search_Index( new SSCHP_Test_Settings( array( 'post_types' => array( 'product' ) ) ), new SSCHP_Chip_Engine() );
+    $index->index_post( 241, $post );
+    SSCHP_Search_Index::pause_index();
+
+    sschp_assert_true( $index->is_ready( array( 'product' ), 'en' ), 'pausing a complete index should stop processing without disabling local search' );
+}
+
 function sschp_test_search_index_settings_change_queues_rebuild() {
     global $sschp_test_options;
 
@@ -2220,6 +2352,34 @@ function sschp_test_settings_admin_test_search_ajax_returns_short_query_explanat
     sschp_assert_true( in_array( 'no_search_query', $codes, true ), 'empty admin test search should return no-query explanation' );
 }
 
+function sschp_test_settings_search_index_control_ajax_rebuilds_queue() {
+    global $sschp_test_current_user_can, $sschp_test_options;
+
+    sschp_reset_test_state();
+    $sschp_test_current_user_can['manage_options'] = true;
+    $sschp_test_options['sschp_post_types']        = array( 'product' );
+    sschp_register_test_post_for_index( 331, 'product', 'Control Product One' );
+    sschp_register_test_post_for_index( 332, 'product', 'Control Product Two' );
+    $_POST = array(
+        'nonce'     => 'test-nonce',
+        'operation' => 'rebuild',
+    );
+
+    $settings = new SSCHP_Settings();
+    $result   = sschp_capture_wp_die(
+        function() use ( $settings ) {
+            $settings->handle_search_index_control();
+        }
+    );
+    $data = json_decode( $result['message'], true );
+
+    sschp_assert_true( $result['died'], 'search index control AJAX should finish through a JSON response' );
+    sschp_assert_contains( 'queued', $data['message'], 'search index control AJAX should report rebuild queueing' );
+    sschp_assert_same( 'queued', $data['progress']['status'], 'search index control AJAX should return queued status after rebuild' );
+    sschp_assert_same( 2, $data['progress']['total'], 'search index control AJAX should return rebuilt index progress' );
+    sschp_assert_true( in_array( SSCHP_Search_Index::CRON_HOOK, sschp_test_scheduled_hooks(), true ), 'search index control AJAX rebuild should schedule a batch' );
+}
+
 function sschp_test_search_index_search_after_complete_returns_ranked_results() {
     global $sschp_test_options, $sschp_test_post_meta;
 
@@ -2627,6 +2787,12 @@ sschp_test_frontend_exposes_theme_ajax_action_separately();
 sschp_test_settings_setup_wizard_recommends_guaranteed_shortcode();
 sschp_test_search_index_table_creation_defines_required_columns();
 sschp_test_search_index_queue_initial_index_schedules_batch();
+sschp_test_search_index_rebuild_queues_index();
+sschp_test_search_index_clear_index_clears_rows_and_status();
+sschp_test_search_index_process_batch_indexes_one_batch();
+sschp_test_search_index_paused_index_does_not_process();
+sschp_test_search_index_resumed_index_can_process_again();
+sschp_test_search_index_paused_complete_index_remains_ready();
 sschp_test_search_index_settings_change_queues_rebuild();
 sschp_test_search_index_reindexes_saved_post();
 sschp_test_search_index_reindexes_product_attribute_meta_change();
@@ -2643,6 +2809,7 @@ sschp_test_admin_test_search_reports_local_index_path();
 sschp_test_settings_admin_test_search_ajax_requires_manage_options();
 sschp_test_settings_admin_test_search_ajax_returns_search_json();
 sschp_test_settings_admin_test_search_ajax_returns_short_query_explanations();
+sschp_test_settings_search_index_control_ajax_rebuilds_queue();
 sschp_test_search_index_search_after_complete_returns_ranked_results();
 sschp_test_search_index_large_catalog_smoke();
 sschp_test_fallback_relevance_exact_title_beats_content_only_match();

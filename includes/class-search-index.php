@@ -102,20 +102,35 @@ class SSCHP_Search_Index {
     /**
      * Queue a full index rebuild.
      *
-     * @param string $reason Reason for queuing, kept filterable for diagnostics.
+     * @param string $reason         Reason for queuing, kept filterable for diagnostics.
+     * @param bool   $preserve_pause Keep indexing paused when it is already paused.
      */
-    public static function queue_initial_index( $reason = 'manual' ) {
+    public static function queue_initial_index( $reason = 'manual', $preserve_pause = false ) {
         $post_types = self::get_configured_post_types();
         $total      = self::count_indexable_posts( $post_types );
+        $paused     = $preserve_pause && self::is_paused();
 
-        update_option( self::STATUS_OPTION, 'queued', false );
+        update_option( self::STATUS_OPTION, $paused ? 'paused' : 'queued', false );
         update_option( self::TOTAL_OPTION, (int) $total, false );
         update_option( self::PROCESSED_OPTION, 0, false );
         update_option( self::CURSOR_OPTION, 0, false );
         update_option( self::UPDATED_OPTION, '', false );
 
         do_action( 'sschp_search_index_queued', $reason, $post_types, $total );
-        self::schedule_batch();
+        if ( ! $paused ) {
+            self::schedule_batch();
+        }
+    }
+
+    /**
+     * Rebuild the local index from scratch without processing all rows inline.
+     *
+     * @param string $reason Rebuild reason.
+     */
+    public static function rebuild_index( $reason = 'manual_rebuild' ) {
+        self::create_table();
+        self::clear_index();
+        self::queue_initial_index( $reason );
     }
 
     /**
@@ -140,11 +155,47 @@ class SSCHP_Search_Index {
         global $wpdb;
 
         $wpdb->query( 'TRUNCATE TABLE ' . self::table_name() ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+            wp_clear_scheduled_hook( self::CRON_HOOK );
+        }
         update_option( self::STATUS_OPTION, 'empty', false );
         update_option( self::TOTAL_OPTION, 0, false );
         update_option( self::PROCESSED_OPTION, 0, false );
         update_option( self::CURSOR_OPTION, 0, false );
         update_option( self::UPDATED_OPTION, '', false );
+    }
+
+    /**
+     * Pause background index processing.
+     */
+    public static function pause_index() {
+        update_option( self::STATUS_OPTION, 'paused', false );
+        if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+            wp_clear_scheduled_hook( self::CRON_HOOK );
+        }
+    }
+
+    /**
+     * Resume background index processing.
+     */
+    public static function resume_index() {
+        $progress = self::get_progress();
+        if ( 'paused' === $progress['status'] && ! empty( $progress['ready'] ) ) {
+            update_option( self::STATUS_OPTION, 'complete', false );
+            return;
+        }
+
+        update_option( self::STATUS_OPTION, 'queued', false );
+        self::schedule_batch();
+    }
+
+    /**
+     * Determine whether indexing is paused.
+     *
+     * @return bool
+     */
+    public static function is_paused() {
+        return 'paused' === sanitize_key( get_option( self::STATUS_OPTION, 'not_started' ) );
     }
 
     /**
@@ -156,16 +207,17 @@ class SSCHP_Search_Index {
         $status    = sanitize_key( get_option( self::STATUS_OPTION, 'not_started' ) );
         $total     = max( 0, (int) get_option( self::TOTAL_OPTION, 0 ) );
         $processed = max( 0, (int) get_option( self::PROCESSED_OPTION, 0 ) );
-        $percent   = $total > 0 ? min( 100, (int) floor( ( $processed / $total ) * 100 ) ) : ( 'complete' === $status ? 100 : 0 );
         $rows      = self::count_index_rows();
-        $ready     = 'complete' === $status && ( $rows > 0 || 0 === $total );
+        $updated   = sanitize_text_field( get_option( self::UPDATED_OPTION, '' ) );
+        $ready     = self::is_ready_state( $status, $total, $processed, $rows, $updated );
+        $percent   = $total > 0 ? min( 100, (int) floor( ( $processed / $total ) * 100 ) ) : ( $ready ? 100 : 0 );
 
         return array(
             'status'    => $status,
             'total'     => $total,
             'processed' => $processed,
             'percent'   => $percent,
-            'updatedAt' => sanitize_text_field( get_option( self::UPDATED_OPTION, '' ) ),
+            'updatedAt' => $updated,
             'rows'      => $rows,
             'ready'     => $ready,
         );
@@ -175,8 +227,13 @@ class SSCHP_Search_Index {
      * Process one background batch.
      *
      * @param int|null $limit Optional batch size.
+     * @return int Number of posts processed in this batch.
      */
     public function process_batch( $limit = null ) {
+        if ( self::is_paused() ) {
+            return 0;
+        }
+
         $limit      = $limit ? max( 1, (int) $limit ) : self::BATCH_SIZE;
         $post_types = $this->normalize_post_types( $this->settings->get( 'post_types', array( 'post' ) ) );
         $cursor     = max( 0, (int) get_option( self::CURSOR_OPTION, 0 ) );
@@ -185,12 +242,13 @@ class SSCHP_Search_Index {
         if ( empty( $ids ) ) {
             update_option( self::STATUS_OPTION, 'complete', false );
             update_option( self::UPDATED_OPTION, $this->current_mysql_time(), false );
-            return;
+            return 0;
         }
 
         update_option( self::STATUS_OPTION, 'processing', false );
 
-        $processed = max( 0, (int) get_option( self::PROCESSED_OPTION, 0 ) );
+        $processed            = max( 0, (int) get_option( self::PROCESSED_OPTION, 0 ) );
+        $processed_this_batch = 0;
         foreach ( $ids as $post_id ) {
             $post_id = absint( $post_id );
             if ( $post_id <= 0 ) {
@@ -200,11 +258,21 @@ class SSCHP_Search_Index {
             $this->index_post( $post_id );
             $cursor = max( $cursor, $post_id );
             $processed++;
+            $processed_this_batch++;
         }
 
         update_option( self::CURSOR_OPTION, (int) $cursor, false );
         update_option( self::PROCESSED_OPTION, (int) $processed, false );
-        self::schedule_batch();
+        $total = max( 0, (int) get_option( self::TOTAL_OPTION, 0 ) );
+
+        if ( $total > 0 && $processed >= $total ) {
+            update_option( self::STATUS_OPTION, 'complete', false );
+            update_option( self::UPDATED_OPTION, $this->current_mysql_time(), false );
+        } else {
+            self::schedule_batch();
+        }
+
+        return $processed_this_batch;
     }
 
     /**
@@ -280,7 +348,7 @@ class SSCHP_Search_Index {
             return;
         }
 
-        self::queue_initial_index( 'settings_changed' );
+        self::queue_initial_index( 'settings_changed', true );
     }
 
     /**
@@ -416,10 +484,44 @@ class SSCHP_Search_Index {
      * @return bool
      */
     public function is_ready( $post_types = array(), $language = '' ) {
-        $ready = 'complete' === get_option( self::STATUS_OPTION, 'not_started' )
-            && ( self::count_index_rows() > 0 || (int) get_option( self::TOTAL_OPTION, 0 ) === 0 );
+        $status    = sanitize_key( get_option( self::STATUS_OPTION, 'not_started' ) );
+        $total     = max( 0, (int) get_option( self::TOTAL_OPTION, 0 ) );
+        $processed = max( 0, (int) get_option( self::PROCESSED_OPTION, 0 ) );
+        $ready     = self::is_ready_state(
+            $status,
+            $total,
+            $processed,
+            self::count_index_rows(),
+            sanitize_text_field( get_option( self::UPDATED_OPTION, '' ) )
+        );
 
         return (bool) apply_filters( 'sschp_search_index_ready', $ready, $post_types, $language );
+    }
+
+    /**
+     * Determine whether progress state represents a usable index.
+     *
+     * @param string $status     Progress status.
+     * @param int    $total      Total indexed target.
+     * @param int    $processed  Processed count.
+     * @param int    $rows       Indexed row count.
+     * @param string $updated_at Last completed timestamp.
+     * @return bool
+     */
+    private static function is_ready_state( $status, $total, $processed, $rows, $updated_at ) {
+        if ( 'complete' === $status ) {
+            return $rows > 0 || 0 === $total;
+        }
+
+        if ( 'paused' !== $status ) {
+            return false;
+        }
+
+        if ( $total > 0 && $processed < $total ) {
+            return false;
+        }
+
+        return $rows > 0 || '' !== $updated_at;
     }
 
     /**
