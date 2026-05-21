@@ -158,14 +158,23 @@ class SSCHP_Search_Handler {
      * @return array
      */
     public function get_admin_test_search_data( $args = array() ) {
-        $keyword = isset( $args['keyword'] ) ? sanitize_text_field( (string) $args['keyword'] ) : '';
-        $warnings = array();
+        $keyword   = isset( $args['keyword'] ) ? sanitize_text_field( (string) $args['keyword'] ) : '';
+        $explainer = new SSCHP_Search_Explainer( $this->engine, $this->settings );
 
         $post_types = isset( $args['post_types'] )
             ? $this->normalize_post_types( $args['post_types'] )
             : $this->normalize_post_types( $this->settings->get( 'post_types', array( 'post' ) ) );
 
-        if ( strlen( $keyword ) < 2 ) {
+        if ( '' === trim( $keyword ) || strlen( $keyword ) < 2 ) {
+            $explanations = $explainer->explain(
+                array(
+                    'query'        => $keyword,
+                    'post_types'   => $post_types,
+                    'search_path'  => 'not_run',
+                    'search_index' => $this->search_index,
+                )
+            );
+
             return array(
                 'query'             => $keyword,
                 'path'              => 'not_run',
@@ -175,9 +184,8 @@ class SSCHP_Search_Handler {
                 'taggedResultCount' => 0,
                 'chips'             => array(),
                 'results'           => array(),
-                'warnings'          => array(
-                    __( 'Enter at least two characters to run a test search.', 'smart-search-chips' ),
-                ),
+                'warnings'          => $this->get_warning_messages_from_explanations( $explanations ),
+                'explanations'      => $explanations,
             );
         }
 
@@ -205,15 +213,22 @@ class SSCHP_Search_Handler {
         $chips = $this->engine->generate_chips( $posts_data, array(), $max_chips, $max_tag_length );
         $chips = apply_filters( 'sschp_chips', $chips, $posts_data, array() );
 
-        $warnings = array_merge( $warnings, isset( $diagnostics['warnings'] ) ? (array) $diagnostics['warnings'] : array() );
-
-        if ( empty( $posts_data ) ) {
-            $warnings[] = __( 'No matching results were found for this query and post type selection.', 'smart-search-chips' );
-        } elseif ( 0 === $this->count_tagged_posts( $posts_data ) ) {
-            $warnings[] = __( 'Results were found, but none of the returned results have Search Chips tags available.', 'smart-search-chips' );
-        } elseif ( empty( $chips ) ) {
-            $warnings[] = __( 'Tagged results were found, but no useful chips were generated. Tags may be too broad, too long, or too unique for this result set.', 'smart-search-chips' );
-        }
+        $explanations = $explainer->explain(
+            array(
+                'query'          => $keyword,
+                'post_types'     => $post_types,
+                'language'       => $language,
+                'search_path'    => $diagnostics['path'],
+                'search_index'   => $this->search_index,
+                'posts_data'     => $posts_data,
+                'chips'          => $chips,
+                'max_tag_length' => $max_tag_length,
+            )
+        );
+        $warnings = array_merge(
+            isset( $diagnostics['warnings'] ) ? (array) $diagnostics['warnings'] : array(),
+            $this->get_warning_messages_from_explanations( $explanations )
+        );
 
         if ( ! $this->is_relevanssi_available() && 'wp_query_fallback' === $diagnostics['path'] ) {
             $warnings[] = __( 'Relevanssi was not detected, so Smart Search Chips used the built-in WP_Query fallback scoring.', 'smart-search-chips' );
@@ -229,6 +244,7 @@ class SSCHP_Search_Handler {
             'chips'             => $this->format_admin_test_chips( $chips ),
             'results'           => $this->format_admin_test_results( array_slice( $posts_data, 0, $preview_results ) ),
             'warnings'          => array_values( array_unique( array_filter( $warnings ) ) ),
+            'explanations'      => $explanations,
         );
     }
 
@@ -258,8 +274,8 @@ class SSCHP_Search_Handler {
                 return $indexed_posts;
             }
 
-            if ( method_exists( $this->search_index, 'is_ready' ) && ! $this->search_index->is_ready( $post_types, $language ) ) {
-                $diagnostics['warnings'][] = __( 'The local search index is not ready for this post type/language yet, so the test fell back to live WordPress search.', 'smart-search-chips' );
+            if ( method_exists( $this->search_index, 'is_ready' ) ) {
+                $diagnostics['index_ready'] = (bool) $this->search_index->is_ready( $post_types, $language );
             }
         }
 
@@ -367,6 +383,33 @@ class SSCHP_Search_Handler {
         }
 
         return $formatted;
+    }
+
+    /**
+     * Convert structured explanations to legacy warning strings.
+     *
+     * @param array $explanations Explanation rows.
+     * @return array
+     */
+    private function get_warning_messages_from_explanations( $explanations ) {
+        $messages = array();
+
+        foreach ( (array) $explanations as $explanation ) {
+            if ( ! is_array( $explanation ) ) {
+                continue;
+            }
+
+            $severity = isset( $explanation['severity'] ) ? sanitize_key( $explanation['severity'] ) : 'info';
+            if ( ! in_array( $severity, array( 'warning', 'error' ), true ) ) {
+                continue;
+            }
+
+            if ( ! empty( $explanation['message'] ) ) {
+                $messages[] = (string) $explanation['message'];
+            }
+        }
+
+        return array_values( array_unique( array_filter( $messages ) ) );
     }
 
     /**

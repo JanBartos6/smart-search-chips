@@ -1356,6 +1356,7 @@ require_once dirname( __DIR__ ) . '/includes/class-woocommerce.php';
 require_once dirname( __DIR__ ) . '/includes/class-language.php';
 require_once dirname( __DIR__ ) . '/includes/class-field-normalizer.php';
 require_once dirname( __DIR__ ) . '/includes/class-chip-engine.php';
+require_once dirname( __DIR__ ) . '/includes/class-search-explainer.php';
 require_once dirname( __DIR__ ) . '/includes/class-settings.php';
 require_once dirname( __DIR__ ) . '/includes/class-frontend.php';
 require_once dirname( __DIR__ ) . '/includes/class-relevance-scorer.php';

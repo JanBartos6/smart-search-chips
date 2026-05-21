@@ -179,7 +179,27 @@
             appendText(output, 'p', 'description', 'Post types: ' + data.postTypes.join(', '));
         }
 
-        if (data.warnings && data.warnings.length) {
+        if (data.explanations && data.explanations.length) {
+            var explanationPanel = document.createElement('div');
+            explanationPanel.className = 'ssc-test-search-panel ssc-test-search-panel--explanations';
+            appendText(explanationPanel, 'h3', '', strings.explanations || 'Explanations');
+            var explanationList = document.createElement('ul');
+            data.explanations.forEach(function (explanation) {
+                var item = document.createElement('li');
+                var severity = explanation.severity || 'info';
+                if (['info', 'warning', 'error'].indexOf(severity) === -1) {
+                    severity = 'info';
+                }
+                item.className = 'ssc-test-search-explanation ssc-test-search-explanation--' + severity;
+                appendText(item, 'strong', '', explanation.message || explanation.code || '');
+                if (explanation.suggestedFix) {
+                    appendText(item, 'span', '', (strings.suggestedFix || 'Suggested fix') + ': ' + explanation.suggestedFix);
+                }
+                explanationList.appendChild(item);
+            });
+            explanationPanel.appendChild(explanationList);
+            output.appendChild(explanationPanel);
+        } else if (data.warnings && data.warnings.length) {
             var warningPanel = document.createElement('div');
             warningPanel.className = 'ssc-test-search-panel ssc-test-search-panel--warnings';
             appendText(warningPanel, 'h3', '', strings.warnings || 'Warnings');
@@ -259,17 +279,12 @@
             return;
         }
 
-        var query = (queryInput.value || '').trim();
-        if (query.length < 2) {
-            renderTestSearchError(output, strings.queryTooShort || 'Enter at least two characters to run a test search.');
-            return;
-        }
-
         if (!ajaxTarget) {
             renderTestSearchError(output, strings.searchFailed || 'The test search could not run.');
             return;
         }
 
+        var query = (queryInput.value || '').trim();
         var body = new FormData();
         body.append('action', 'sschp_admin_test_search');
         body.append('nonce', testConfig.nonce || '');

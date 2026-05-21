@@ -46,7 +46,8 @@ function Add-Failure {
 $requiredFiles = @(
     'smart-search-chips.php',
     'readme.txt',
-    'includes\class-edition.php'
+    'includes\class-edition.php',
+    'includes\class-search-explainer.php'
 )
 
 foreach ($path in $requiredFiles) {

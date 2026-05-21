@@ -65,8 +65,15 @@
 .ssc-test-search-summary strong { color: #1d2327; font-size: 18px; line-height: 1.2; }
 .ssc-test-search-panel { padding: 14px; border: 1px solid #e3e5e8; border-radius: 8px; background: #fff; }
 .ssc-test-search-panel--warnings { border-color: #f0d28a; background: #fffaf0; }
+.ssc-test-search-panel--explanations { border-color: #c8d7e1; background: #f6fbff; }
 .ssc-test-search-panel h3 { margin: 0 0 10px; font-size: 13px; color: #1d2327; text-transform: uppercase; letter-spacing: 0.04em; }
 .ssc-test-search-panel ul { margin: 0 0 0 18px; }
+.ssc-test-search-explanation { margin-bottom: 8px; }
+.ssc-test-search-explanation strong,
+.ssc-test-search-explanation span { display: block; }
+.ssc-test-search-explanation span { margin-top: 3px; color: #50575e; }
+.ssc-test-search-explanation--error strong { color: #b32d2e; }
+.ssc-test-search-explanation--warning strong { color: #7a4f01; }
 .ssc-test-search-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .ssc-test-search-chip { display: inline-flex; align-items: center; padding: 4px 9px; border: 1px solid #d0d7de; border-radius: 999px; background: #f6f7f7; color: #1d2327; font-size: 12px; line-height: 1.4; }
 .ssc-test-search-result-list { display: grid; gap: 8px; margin: 0; padding-left: 20px; }

@@ -264,7 +264,9 @@ class SSCHP_Settings {
                     'taggedResults'              => __( 'Tagged results', 'smart-search-chips' ),
                     'generatedChips'             => __( 'Generated chips', 'smart-search-chips' ),
                     'firstResults'               => __( 'First results', 'smart-search-chips' ),
+                    'explanations'               => __( 'Explanations', 'smart-search-chips' ),
                     'warnings'                   => __( 'Warnings', 'smart-search-chips' ),
+                    'suggestedFix'               => __( 'Suggested fix', 'smart-search-chips' ),
                     'noChips'                    => __( 'No chips generated.', 'smart-search-chips' ),
                     'noResults'                  => __( 'No preview results returned.', 'smart-search-chips' ),
                     'notFound'                   => __( 'Not found on this page', 'smart-search-chips' ),
@@ -1465,14 +1467,6 @@ class SSCHP_Settings {
         }
 
         $query = isset( $_POST['query'] ) ? sanitize_text_field( wp_unslash( $_POST['query'] ) ) : '';
-        if ( strlen( $query ) < 2 ) {
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Enter at least two characters to run a test search.', 'smart-search-chips' ),
-                ),
-                400
-            );
-        }
 
         $engine       = new SSCHP_Chip_Engine();
         $search_index = class_exists( 'SSCHP_Search_Index' ) ? new SSCHP_Search_Index( $this, $engine ) : null;

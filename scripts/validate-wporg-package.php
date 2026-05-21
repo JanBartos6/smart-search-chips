@@ -81,6 +81,7 @@ $required_files = array(
 	'smart-search-chips.php',
 	'readme.txt',
 	'includes/class-edition.php',
+	'includes/class-search-explainer.php',
 );
 
 foreach ( $required_files as $required_file ) {

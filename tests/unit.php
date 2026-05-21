@@ -30,6 +30,17 @@ function sschp_assert_contains( $needle, $haystack, $message ) {
     }
 }
 
+function sschp_explanation_codes( $explanations ) {
+    return array_values(
+        array_map(
+            function( $explanation ) {
+                return isset( $explanation['code'] ) ? $explanation['code'] : '';
+            },
+            (array) $explanations
+        )
+    );
+}
+
 function sschp_run_if_class_exists( $class_name, $callback ) {
     if ( class_exists( $class_name ) ) {
         $callback();
@@ -274,6 +285,17 @@ function sschp_test_wporg_search_handler_keeps_admin_test_search_api() {
     sschp_assert_contains( 'local_index', $contents, 'WP.org search handler should report the local index path' );
     sschp_assert_contains( 'relevanssi', $contents, 'WP.org search handler should report the Relevanssi path' );
     sschp_assert_contains( 'wp_query_fallback', $contents, 'WP.org search handler should report the WP_Query fallback path' );
+    sschp_assert_contains( 'explanations', $contents, 'WP.org search handler should return structured admin test search explanations' );
+}
+
+function sschp_test_wporg_main_loads_search_explainer() {
+    $path = dirname( __DIR__ ) . '/build-sources/wporg/smart-search-chips.php';
+
+    sschp_assert_true( is_file( $path ), 'WP.org main plugin source should exist for explicit release builds' );
+
+    $contents = is_file( $path ) ? file_get_contents( $path ) : '';
+
+    sschp_assert_contains( 'includes/class-search-explainer.php', $contents, 'WP.org build should load the shared search explanation helper' );
 }
 
 function sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant() {
@@ -1918,6 +1940,152 @@ function sschp_test_search_handler_hard_caps_large_catalog_limits() {
     sschp_assert_same( 100, sschp_invoke_private( $handler, 'limit_rendered_results', array( 1000 ) ), 'rendered result count should be hard-capped by default' );
 }
 
+function sschp_test_search_explainer_reports_query_and_chip_causes() {
+    sschp_reset_test_state();
+
+    $explainer = new SSCHP_Search_Explainer( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
+
+    $codes = sschp_explanation_codes( $explainer->explain( array( 'query' => '' ) ) );
+    sschp_assert_true( in_array( 'no_search_query', $codes, true ), 'search explainer should report a missing query' );
+
+    $codes = sschp_explanation_codes( $explainer->explain( array( 'query' => 'a' ) ) );
+    sschp_assert_true( in_array( 'query_too_short', $codes, true ), 'search explainer should report a short query' );
+
+    $codes = sschp_explanation_codes(
+        $explainer->explain(
+            array(
+                'query'      => 'Beacon',
+                'posts_data' => array(),
+            )
+        )
+    );
+    sschp_assert_true( in_array( 'no_matching_results', $codes, true ), 'search explainer should report no matching results' );
+
+    $posts_without_tags = array(
+        array( 'tags' => array(), 'tags_lower' => array() ),
+        array( 'tags' => array(), 'tags_lower' => array() ),
+    );
+    $codes              = sschp_explanation_codes(
+        $explainer->explain(
+            array(
+                'query'      => 'Beacon',
+                'posts_data' => $posts_without_tags,
+            )
+        )
+    );
+    sschp_assert_true( in_array( 'results_missing_tags', $codes, true ), 'search explainer should report results without chip tags' );
+
+    $redundant_posts = array(
+        array( 'tags' => array( 'Steel' ), 'tags_lower' => array( 'steel' ) ),
+        array( 'tags' => array( 'Steel' ), 'tags_lower' => array( 'steel' ) ),
+    );
+    $codes           = sschp_explanation_codes(
+        $explainer->explain(
+            array(
+                'query'      => 'Beacon',
+                'posts_data' => $redundant_posts,
+                'chips'      => array(),
+            )
+        )
+    );
+    sschp_assert_true( in_array( 'all_tags_redundant', $codes, true ), 'search explainer should report tags shared by every result' );
+
+    $long_tag_posts = array(
+        array( 'tags' => array( 'Very Long Catalog Descriptor' ), 'tags_lower' => array( 'very long catalog descriptor' ) ),
+        array( 'tags' => array( 'Very Long Catalog Descriptor' ), 'tags_lower' => array( 'very long catalog descriptor' ) ),
+    );
+    $codes          = sschp_explanation_codes(
+        $explainer->explain(
+            array(
+                'query'          => 'Beacon',
+                'posts_data'     => $long_tag_posts,
+                'chips'          => array(),
+                'max_tag_length' => 8,
+            )
+        )
+    );
+    sschp_assert_true( in_array( 'tags_exceed_max_length', $codes, true ), 'search explainer should report tags filtered by max tag length' );
+}
+
+function sschp_test_search_explainer_reports_environment_causes() {
+    global $sschp_test_options;
+
+    sschp_reset_test_state();
+
+    $engine   = new SSCHP_Chip_Engine();
+    $settings = new SSCHP_Test_Settings(
+        array(
+            'post_types'  => array( 'post' ),
+            'woo_enabled' => '0',
+        )
+    );
+    $index    = new SSCHP_Search_Index( $settings, $engine );
+    $explainer = new SSCHP_Search_Explainer( $engine, $settings );
+
+    $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION] = 'queued';
+    $codes = sschp_explanation_codes(
+        $explainer->explain(
+            array(
+                'query'              => 'Beacon',
+                'post_types'         => array( 'post' ),
+                'search_path'        => 'wp_query_fallback',
+                'search_index'       => $index,
+                'woocommerce_active' => false,
+            )
+        )
+    );
+    sschp_assert_true( in_array( 'local_index_queued', $codes, true ), 'search explainer should report queued local index state' );
+
+    $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION] = 'processing';
+    $codes = sschp_explanation_codes(
+        $explainer->explain(
+            array(
+                'query'              => 'Beacon',
+                'post_types'         => array( 'post' ),
+                'search_path'        => 'wp_query_fallback',
+                'search_index'       => $index,
+                'woocommerce_active' => false,
+            )
+        )
+    );
+    sschp_assert_true( in_array( 'local_index_processing', $codes, true ), 'search explainer should report processing local index state' );
+
+    $codes = sschp_explanation_codes(
+        $explainer->explain(
+            array(
+                'query'                           => 'Beacon',
+                'post_types'                      => array( 'post' ),
+                'woocommerce_active'              => true,
+                'woocommerce_helper_tags_enabled' => false,
+            )
+        )
+    );
+    sschp_assert_true( in_array( 'woocommerce_products_not_selected', $codes, true ), 'search explainer should report when product searches are not selected for WooCommerce' );
+    sschp_assert_true( in_array( 'woocommerce_helper_tags_disabled', $codes, true ), 'search explainer should report disabled WooCommerce helper tags' );
+
+    $codes = sschp_explanation_codes(
+        $explainer->explain(
+            array(
+                'query'                     => 'Beacon',
+                'theme_context'             => true,
+                'result_container_selector' => 'div[',
+            )
+        )
+    );
+    sschp_assert_true( in_array( 'result_container_selector_invalid', $codes, true ), 'search explainer should report invalid theme result selector' );
+
+    $codes = sschp_explanation_codes(
+        $explainer->explain(
+            array(
+                'query'                     => 'Beacon',
+                'theme_context'             => true,
+                'result_container_selector' => '',
+            )
+        )
+    );
+    sschp_assert_true( in_array( 'result_container_selector_missing', $codes, true ), 'search explainer should report missing theme result selector' );
+}
+
 function sschp_test_admin_test_search_reports_wp_query_fallback_data() {
     global $sschp_test_post_meta;
 
@@ -2025,6 +2193,31 @@ function sschp_test_settings_admin_test_search_ajax_returns_search_json() {
     sschp_assert_same( 'Beacon', $data['query'], 'admin test search AJAX should return the tested query' );
     sschp_assert_same( 1, $data['resultCount'], 'admin test search AJAX should return result counts' );
     sschp_assert_same( 'wp_query_fallback', $data['path'], 'admin test search AJAX should return the search path' );
+    sschp_assert_true( isset( $data['explanations'] ) && is_array( $data['explanations'] ), 'admin test search AJAX should return structured explanations' );
+}
+
+function sschp_test_settings_admin_test_search_ajax_returns_short_query_explanations() {
+    global $sschp_test_current_user_can;
+
+    sschp_reset_test_state();
+    $sschp_test_current_user_can['manage_options'] = true;
+    $_POST = array(
+        'nonce' => 'test-nonce',
+        'query' => '',
+    );
+
+    $settings = new SSCHP_Settings();
+    $result   = sschp_capture_wp_die(
+        function() use ( $settings ) {
+            $settings->handle_admin_test_search();
+        }
+    );
+    $data  = json_decode( $result['message'], true );
+    $codes = isset( $data['explanations'] ) ? sschp_explanation_codes( $data['explanations'] ) : array();
+
+    sschp_assert_true( $result['died'], 'admin test search AJAX should finish through a JSON response for empty queries' );
+    sschp_assert_same( 'not_run', $data['path'], 'empty admin test search should not run a backend search path' );
+    sschp_assert_true( in_array( 'no_search_query', $codes, true ), 'empty admin test search should return no-query explanation' );
 }
 
 function sschp_test_search_index_search_after_complete_returns_ranked_results() {
@@ -2443,10 +2636,13 @@ sschp_test_search_handler_caches_query_results();
 sschp_test_search_handler_caches_chip_generation_separately();
 sschp_test_search_handler_cache_version_changes_on_relevant_updates();
 sschp_test_search_handler_hard_caps_large_catalog_limits();
+sschp_test_search_explainer_reports_query_and_chip_causes();
+sschp_test_search_explainer_reports_environment_causes();
 sschp_test_admin_test_search_reports_wp_query_fallback_data();
 sschp_test_admin_test_search_reports_local_index_path();
 sschp_test_settings_admin_test_search_ajax_requires_manage_options();
 sschp_test_settings_admin_test_search_ajax_returns_search_json();
+sschp_test_settings_admin_test_search_ajax_returns_short_query_explanations();
 sschp_test_search_index_search_after_complete_returns_ranked_results();
 sschp_test_search_index_large_catalog_smoke();
 sschp_test_fallback_relevance_exact_title_beats_content_only_match();
@@ -2464,6 +2660,7 @@ sschp_test_frontend_registers_loop_fallback_for_block_themes();
 sschp_test_no_legacy_public_interface_references_in_fixtures();
 sschp_test_wporg_settings_source_keeps_selector_safety();
 sschp_test_wporg_search_handler_keeps_admin_test_search_api();
+sschp_test_wporg_main_loads_search_explainer();
 sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant();
 sschp_test_premium_ajax_numeric_inputs_are_unslashed();
 
