@@ -87,6 +87,19 @@
 .ssc-feedback-link a { color: #2271b1; text-decoration: none; font-weight: 500; }
 .ssc-feedback-link a:hover { text-decoration: underline; }
 .ssc-range-val { font-family: monospace; font-size: 13px; color: #666; }
+.ssc-analytics-email-preview { display: grid; gap: 12px; margin: 14px 0 18px; padding: 16px; border: 1px solid #d9e2ec; border-radius: 8px; background: #f8fbff; }
+.ssc-analytics-email-preview h3 { margin: 0; font-size: 13px; color: #1d2327; text-transform: uppercase; letter-spacing: 0.04em; }
+.ssc-analytics-email-preview dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin: 0; }
+.ssc-analytics-email-preview dl div { min-width: 0; padding: 10px 12px; border: 1px solid #e3e8ef; border-radius: 8px; background: #fff; }
+.ssc-analytics-email-preview dt { margin: 0 0 4px; color: #646970; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.ssc-analytics-email-preview dd { margin: 0; color: #1d2327; overflow-wrap: anywhere; }
+.ssc-analytics-email-preview__body { max-height: 520px; overflow: auto; padding: 16px; border: 1px solid #dcdcde; border-radius: 8px; background: #fff; }
+.ssc-analytics-email-preview__body h1 { margin-top: 0; font-size: 22px; line-height: 1.25; }
+.ssc-analytics-email-preview__body h2 { margin: 18px 0 10px; padding: 0; border: 0; font-size: 16px; }
+.ssc-analytics-email-preview__body table { width: 100%; max-width: 100%; border-collapse: collapse; }
+.ssc-analytics-email-preview__body th,
+.ssc-analytics-email-preview__body td { padding: 8px; border: 1px solid #dcdcde; text-align: left; vertical-align: top; }
+.ssc-analytics-email-preview--empty { background: #fcfcfd; border-color: #dcdcde; }
 .ssc-analytics-dashboard { display: grid; gap: 18px; margin-top: 12px; }
 .ssc-analytics-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .ssc-analytics-stat { display: grid; gap: 6px; padding: 14px; border: 1px solid #e3e5e8; border-radius: 12px; background: #fcfcfd; }
@@ -164,6 +177,7 @@
     .ssc-diagnostic-row { grid-template-columns: 1fr; }
     .ssc-setup-grid { grid-template-columns: 1fr; }
     .ssc-copy-row { flex-direction: column; align-items: stretch; }
+    .ssc-analytics-email-preview dl { grid-template-columns: 1fr; }
     .ssc-analytics-stats, .ssc-analytics-panels { grid-template-columns: 1fr; }
     .ssc-ai-picker { grid-template-columns: 1fr; }
     .ssc-ai-browser-results, .ssc-ai-selected-items { max-height: none; }

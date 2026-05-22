@@ -253,6 +253,31 @@ class SSCHP_Analytics {
     }
 
     /**
+     * Return the currently scheduled digest run timestamp.
+     *
+     * @return int Unix timestamp, or 0 when no digest is scheduled.
+     */
+    public static function get_next_digest_run_timestamp() {
+        if ( ! self::is_digest_enabled() || ! function_exists( 'wp_next_scheduled' ) ) {
+            return 0;
+        }
+
+        return max( 0, (int) wp_next_scheduled( self::DIGEST_HOOK ) );
+    }
+
+    /**
+     * Return the next timestamp implied by current digest settings.
+     *
+     * This does not create a cron event. It is used only for admin diagnostics
+     * when the saved schedule and the current controls need to be compared.
+     *
+     * @return int Unix timestamp, or 0 when digest scheduling is disabled.
+     */
+    public static function get_expected_digest_run_timestamp() {
+        return self::is_digest_enabled() ? self::calculate_next_run_timestamp() : 0;
+    }
+
+    /**
      * Remove any scheduled digest event.
      *
      * @return void
@@ -398,6 +423,29 @@ class SSCHP_Analytics {
         }
 
         return $sent;
+    }
+
+    /**
+     * Build a non-sending preview of the next analytics digest email.
+     *
+     * @return array Preview data. Empty array when analytics is disabled.
+     */
+    public static function get_digest_preview_data() {
+        if ( ! self::is_enabled() ) {
+            return array();
+        }
+
+        $range     = self::get_digest_range_args();
+        $analytics = self::get_dashboard_data( $range );
+
+        return array(
+            'recipients'   => self::get_digest_recipients(),
+            'subject'      => self::build_digest_subject( $analytics, false ),
+            'message'      => self::build_digest_message( $analytics, false ),
+            'range'        => isset( $analytics['range'] ) && is_array( $analytics['range'] ) ? $analytics['range'] : $range,
+            'include_csv'  => self::get_digest_checkbox( 'sschp_analytics_digest_include_csv', '0' ),
+            'generated_by' => __( 'This preview is generated locally in WordPress. Scheduled and test emails are sent only to the configured recipients.', 'smart-search-chips' ),
+        );
     }
 
     /**

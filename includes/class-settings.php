@@ -721,6 +721,14 @@ class SSCHP_Settings {
         $digest_zero       = get_option( 'sschp_analytics_digest_include_zero_results', '1' );
         $digest_top_chips  = get_option( 'sschp_analytics_digest_include_top_chips', '1' );
         $digest_low_ctr    = get_option( 'sschp_analytics_digest_include_low_ctr', '1' );
+        $digest_next_run   = 0;
+        $digest_expected_next_run = 0;
+        $digest_preview    = array();
+        if ( $is_pro && class_exists( 'SSCHP_Analytics' ) ) {
+            $digest_next_run          = SSCHP_Analytics::get_next_digest_run_timestamp();
+            $digest_expected_next_run = SSCHP_Analytics::get_expected_digest_run_timestamp();
+            $digest_preview           = $analytics_on === '1' ? SSCHP_Analytics::get_digest_preview_data() : array();
+        }
         $delete_on_uninstall = get_option( 'sschp_delete_data_on_uninstall', '0' );
         $render_limit  = $this->get_numeric_option_value( 'sschp_max_results', 10, 1 );
         $analyze_limit = $this->get_numeric_option_value( 'sschp_search_results_count', 50, 5 );
@@ -1054,6 +1062,32 @@ class SSCHP_Settings {
                                         </td>
                                     </tr>
                                     <tr>
+                                        <th><?php esc_html_e( 'Next Scheduled Run', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <?php if ( $analytics_on !== '1' ) : ?>
+                                                <p class="description"><?php esc_html_e( 'Enable analytics and save settings before scheduled digest emails can run.', 'smart-search-chips' ); ?></p>
+                                            <?php elseif ( $digest_on !== '1' ) : ?>
+                                                <p class="description"><?php esc_html_e( 'Scheduled analytics emails are currently off. You can still send a test email and preview the next report below.', 'smart-search-chips' ); ?></p>
+                                            <?php elseif ( $digest_next_run > 0 ) : ?>
+                                                <p><strong><?php echo esc_html( $this->format_digest_run_time( $digest_next_run ) ); ?></strong></p>
+                                                <p class="description"><?php esc_html_e( 'Uses the site timezone and the saved digest schedule.', 'smart-search-chips' ); ?></p>
+                                            <?php else : ?>
+                                                <p class="description"><?php esc_html_e( 'No analytics digest cron event is currently scheduled. Save settings or toggle the digest setting to refresh the schedule.', 'smart-search-chips' ); ?></p>
+                                                <?php if ( $digest_expected_next_run > 0 ) : ?>
+                                                    <p class="description">
+                                                        <?php
+                                                        printf(
+                                                            /* translators: %s: formatted next run date/time */
+                                                            esc_html__( 'Based on the current controls, the next run would be %s.', 'smart-search-chips' ),
+                                                            esc_html( $this->format_digest_run_time( $digest_expected_next_run ) )
+                                                        );
+                                                        ?>
+                                                    </p>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                    <tr>
                                         <th><?php esc_html_e( 'Digest Content', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <label style="display:block;margin-bottom:6px;"><input type="hidden" name="sschp_analytics_digest_include_csv" value="0" /><input type="checkbox" name="sschp_analytics_digest_include_csv" value="1" <?php checked( $digest_csv, '1' ); ?> /> <?php esc_html_e( 'Attach CSV export', 'smart-search-chips' ); ?></label>
@@ -1072,6 +1106,53 @@ class SSCHP_Settings {
                                         </tr>
                                     <?php endif; ?>
                                 </table>
+                                <?php if ( class_exists( 'SSCHP_Analytics' ) ) : ?>
+                                    <?php if ( ! empty( $digest_preview ) ) : ?>
+                                        <?php
+                                        $preview_recipients = isset( $digest_preview['recipients'] ) && is_array( $digest_preview['recipients'] ) ? $digest_preview['recipients'] : array();
+                                        $preview_range      = isset( $digest_preview['range'] ) && is_array( $digest_preview['range'] ) ? $digest_preview['range'] : array();
+                                        ?>
+                                        <div class="ssc-analytics-email-preview">
+                                            <h3><?php esc_html_e( 'Preview Next Analytics Email', 'smart-search-chips' ); ?></h3>
+                                            <p class="description"><?php echo esc_html( $digest_preview['generated_by'] ?? __( 'Analytics reports are generated locally and emailed only to configured recipients.', 'smart-search-chips' ) ); ?></p>
+                                            <dl>
+                                                <div>
+                                                    <dt><?php esc_html_e( 'Recipients', 'smart-search-chips' ); ?></dt>
+                                                    <dd><?php echo esc_html( ! empty( $preview_recipients ) ? implode( ', ', $preview_recipients ) : __( 'No valid recipients configured', 'smart-search-chips' ) ); ?></dd>
+                                                </div>
+                                                <div>
+                                                    <dt><?php esc_html_e( 'Subject', 'smart-search-chips' ); ?></dt>
+                                                    <dd><?php echo esc_html( $digest_preview['subject'] ?? '' ); ?></dd>
+                                                </div>
+                                                <div>
+                                                    <dt><?php esc_html_e( 'Date Range', 'smart-search-chips' ); ?></dt>
+                                                    <dd>
+                                                        <?php
+                                                        printf(
+                                                            /* translators: %1$s: start date, %2$s: end date */
+                                                            esc_html__( '%1$s to %2$s', 'smart-search-chips' ),
+                                                            esc_html( $preview_range['from'] ?? '' ),
+                                                            esc_html( $preview_range['to'] ?? '' )
+                                                        );
+                                                        ?>
+                                                    </dd>
+                                                </div>
+                                                <div>
+                                                    <dt><?php esc_html_e( 'CSV Attachment', 'smart-search-chips' ); ?></dt>
+                                                    <dd><?php echo esc_html( ! empty( $digest_preview['include_csv'] ) ? __( 'Enabled', 'smart-search-chips' ) : __( 'Not attached', 'smart-search-chips' ) ); ?></dd>
+                                                </div>
+                                            </dl>
+                                            <div class="ssc-analytics-email-preview__body">
+                                                <?php echo wp_kses( $digest_preview['message'] ?? '', $this->get_analytics_email_preview_allowed_html() ); ?>
+                                            </div>
+                                        </div>
+                                    <?php else : ?>
+                                        <div class="ssc-analytics-email-preview ssc-analytics-email-preview--empty">
+                                            <h3><?php esc_html_e( 'Preview Next Analytics Email', 'smart-search-chips' ); ?></h3>
+                                            <p class="description"><?php esc_html_e( 'Enable analytics and save settings to preview the next locally generated email report.', 'smart-search-chips' ); ?></p>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                                 <?php if ( $analytics_on === '1' && SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) : ?>
                                     <?php $analytics = SSCHP_Analytics::get_dashboard_data(); ?>
                                     <div class="ssc-analytics-dashboard">
@@ -1413,6 +1494,59 @@ class SSCHP_Settings {
             </p>
         </div>
         <?php
+    }
+
+    /**
+     * Format a cron timestamp for the admin digest schedule display.
+     *
+     * @param int $timestamp Unix timestamp.
+     * @return string
+     */
+    private function format_digest_run_time( $timestamp ) {
+        $timestamp = absint( $timestamp );
+        if ( $timestamp <= 0 ) {
+            return '';
+        }
+
+        $format = get_option( 'date_format', 'Y-m-d' ) . ' ' . get_option( 'time_format', 'H:i' );
+        if ( function_exists( 'wp_date' ) ) {
+            $timezone = function_exists( 'wp_timezone' ) ? wp_timezone() : null;
+            return wp_date( $format, $timestamp, $timezone );
+        }
+
+        if ( function_exists( 'date_i18n' ) ) {
+            return date_i18n( $format, $timestamp );
+        }
+
+        return gmdate( 'Y-m-d H:i', $timestamp );
+    }
+
+    /**
+     * Allow the generated analytics email markup inside the admin preview.
+     *
+     * @return array
+     */
+    private function get_analytics_email_preview_allowed_html() {
+        $style_attribute = array( 'style' => true );
+
+        return array(
+            'a'      => array_merge( $style_attribute, array( 'href' => true, 'target' => true, 'rel' => true ) ),
+            'br'     => array(),
+            'div'    => $style_attribute,
+            'h1'     => $style_attribute,
+            'h2'     => $style_attribute,
+            'li'     => $style_attribute,
+            'p'      => $style_attribute,
+            'span'   => $style_attribute,
+            'strong' => $style_attribute,
+            'table'  => array_merge( $style_attribute, array( 'cellpadding' => true, 'cellspacing' => true, 'border' => true ) ),
+            'tbody'  => $style_attribute,
+            'td'     => array_merge( $style_attribute, array( 'align' => true ) ),
+            'th'     => array_merge( $style_attribute, array( 'align' => true ) ),
+            'thead'  => $style_attribute,
+            'tr'     => $style_attribute,
+            'ul'     => $style_attribute,
+        );
     }
 
     /**
