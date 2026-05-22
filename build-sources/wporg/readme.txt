@@ -4,7 +4,7 @@ Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.15
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -91,6 +91,14 @@ Smart Search Chips Pro is a separate add-on for advanced workflows such as ACF/c
 
 == Changelog ==
 
+= 1.1.0 =
+* Added CI coverage for unit tests, WP.org packaging validation, linting, and browser compatibility checks.
+* Added the Search Debug admin tool with search-path reporting, warnings, generated chips, and sample results.
+* Added reusable "why no chips?" explanations for empty results, redundant tags, missing tags, index readiness, WooCommerce settings, and theme selector issues.
+* Added local search index controls for rebuilding, processing one batch, clearing, pausing, and resuming indexing.
+* Added the Smart Search Chips Gutenberg search block for the guaranteed search UI.
+* Improved WP.org package validation to keep premium-only code out of the free build.
+
 = 1.0.15 =
 * Added first-run setup guidance with a guaranteed shortcode/block integration path.
 * Split shortcode search from optional theme AJAX enhancement so the shortcode always uses the built-in endpoint.
@@ -141,6 +149,9 @@ Smart Search Chips Pro is available separately from https://smartsearchchips.app
 Smart Search Chips processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this server and are not stored or sent to any third-party service by this WordPress.org edition. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Adds release-ready diagnostics, local index controls, the guaranteed search block, and stronger WP.org package validation.
 
 = 1.0.15 =
 Adds a guaranteed shortcode setup path, improves theme live-search compatibility settings, and keeps Pro information contextual/admin-only.

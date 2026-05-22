@@ -4,7 +4,7 @@ Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.15
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -97,6 +97,16 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 
 == Changelog ==
 
+= 1.1.0 =
+* Added CI coverage for unit tests, WP.org packaging validation, linting, and browser compatibility checks.
+* Added the Search Debug admin tool with search-path reporting, warnings, generated chips, and sample results.
+* Added reusable "why no chips?" explanations for empty results, redundant tags, missing tags, index readiness, WooCommerce settings, and theme selector issues.
+* Added local search index controls for rebuilding, processing one batch, clearing, pausing, and resuming indexing.
+* Added the Smart Search Chips Gutenberg search block for the guaranteed search UI.
+* Improved Pro analytics digest previews, next scheduled run display, and local-reporting privacy messaging.
+* Improved Pro range diagnostics with confidence scores, accepted/rejected groups, source labels, and human-readable rejection reasons.
+* Added Pro chip rule JSON import/export with validation, preview mode, and admin-only security checks.
+
 = 1.0.15 =
 * Added first-run setup guidance with a guaranteed shortcode/block integration path.
 * Split shortcode search from optional theme AJAX enhancement so the shortcode always uses the built-in endpoint.
@@ -163,6 +173,9 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 Smart Search Chips uses [Freemius](https://freemius.com/) for license management and optional usage tracking. When you opt in during activation, basic diagnostic data (WordPress version, PHP version, site URL) is shared with Freemius. You can opt out at any time. The Pro analytics feature stores search data locally in your WordPress database. Optional analytics email digests are sent only by your WordPress site to recipients configured by the administrator; the plugin does not send analytics reports to Smart Search Chips or any third party. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Adds release-ready diagnostics, local index controls, the guaranteed search block, WP.org package validation, and Pro workflow polish.
 
 = 1.0.15 =
 Adds a guaranteed shortcode setup path and improves theme live-search compatibility settings.
