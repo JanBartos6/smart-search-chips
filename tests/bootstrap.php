@@ -1394,6 +1394,7 @@ require_once dirname( __DIR__ ) . '/includes/class-search-index.php';
 require_once dirname( __DIR__ ) . '/includes/class-search-handler.php';
 
 $sschp_test_optional_requires = array(
+    dirname( __DIR__ ) . '/includes/class-chip-rules__premium_only.php',
     dirname( __DIR__ ) . '/includes/class-ai-tagger__premium_only.php',
     dirname( __DIR__ ) . '/includes/class-analytics__premium_only.php',
     dirname( __DIR__ ) . '/includes/class-range-filters__premium_only.php',

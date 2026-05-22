@@ -697,6 +697,140 @@ function sschp_test_frontend_get_field_value_normalizes_acf_relationship_posts()
     sschp_assert_same( 'Signal Beacon', $value, 'frontend mapped field reads should normalize ACF relationship post objects into titles' );
 }
 
+function sschp_test_chip_rules_export_returns_expected_json_shape() {
+    sschp_reset_test_state();
+    update_option( 'sschp_synonym_rules', 'Sofa = couch, settee' );
+    update_option( 'sschp_pinned_chips', 'Bestseller' );
+    update_option( 'sschp_hidden_chips', 'Internal' );
+    update_option( 'sschp_renamed_chips', 'eco => Eco friendly' );
+
+    $rules   = new SSCHP_Chip_Rules();
+    $payload = json_decode( $rules->export_rules_json(), true );
+
+    sschp_assert_same( 'smart-search-chips/chip-rules', $payload['schema'], 'chip rule export should include a stable schema identifier' );
+    sschp_assert_same( 1, $payload['version'], 'chip rule export should include a schema version' );
+    sschp_assert_same( 'Sofa = couch, settee', $payload['rules']['synonym_rules'], 'chip rule export should include synonym rules' );
+    sschp_assert_same( 'Bestseller', $payload['rules']['pinned_chips'], 'chip rule export should include pinned chips' );
+    sschp_assert_same( 'Internal', $payload['rules']['hidden_chips'], 'chip rule export should include hidden chips' );
+    sschp_assert_same( 'eco => Eco friendly', $payload['rules']['renamed_chips'], 'chip rule export should include renamed chips' );
+}
+
+function sschp_test_chip_rules_valid_import_saves_rules() {
+    sschp_reset_test_state();
+
+    $rules  = new SSCHP_Chip_Rules();
+    $result = $rules->import_rules_json(
+        json_encode(
+            array(
+                'schema' => 'smart-search-chips/chip-rules',
+                'version' => 1,
+                'rules' => array(
+                    'synonym_rules' => " Sofa = couch, settee \n",
+                    'pinned_chips'  => array( 'Bestseller', 'New arrival' ),
+                    'hidden_chips'  => 'Internal',
+                    'renamed_chips' => 'eco => Eco friendly',
+                ),
+            )
+        ),
+        false
+    );
+
+    sschp_assert_true( $result['valid'], 'valid chip rule import should pass validation' );
+    sschp_assert_true( $result['saved'], 'valid chip rule import should save when not in dry-run mode' );
+    sschp_assert_same( 'Sofa = couch, settee', get_option( 'sschp_synonym_rules', '' ), 'valid import should save sanitized synonym rules' );
+    sschp_assert_same( "Bestseller\nNew arrival", get_option( 'sschp_pinned_chips', '' ), 'valid import should save array chip lists as lines' );
+    sschp_assert_same( 'Internal', get_option( 'sschp_hidden_chips', '' ), 'valid import should save hidden chips' );
+    sschp_assert_same( 'eco => Eco friendly', get_option( 'sschp_renamed_chips', '' ), 'valid import should save renamed chips' );
+}
+
+function sschp_test_chip_rules_import_dry_run_does_not_save_rules() {
+    sschp_reset_test_state();
+    update_option( 'sschp_pinned_chips', 'Existing' );
+
+    $rules  = new SSCHP_Chip_Rules();
+    $result = $rules->import_rules_json(
+        json_encode(
+            array(
+                'rules' => array(
+                    'pinned_chips' => 'Preview only',
+                ),
+            )
+        ),
+        true
+    );
+
+    sschp_assert_true( $result['valid'], 'dry-run chip rule import should validate good JSON' );
+    sschp_assert_true( ! $result['saved'], 'dry-run chip rule import should not save' );
+    sschp_assert_same( 'Existing', get_option( 'sschp_pinned_chips', '' ), 'dry-run chip rule import should leave existing options unchanged' );
+    sschp_assert_same( 1, $result['summary']['pinned_chips'], 'dry-run chip rule import should summarize the previewed rules' );
+}
+
+function sschp_test_chip_rules_invalid_import_is_rejected() {
+    sschp_reset_test_state();
+    update_option( 'sschp_hidden_chips', 'Keep me' );
+
+    $rules  = new SSCHP_Chip_Rules();
+    $result = $rules->import_rules_json( '{"rules":', false );
+
+    sschp_assert_true( ! $result['valid'], 'invalid chip rule import should fail validation' );
+    sschp_assert_contains( 'Invalid JSON', implode( ' ', $result['errors'] ), 'invalid chip rule import should explain JSON parse failures clearly' );
+    sschp_assert_same( 'Keep me', get_option( 'sschp_hidden_chips', '' ), 'invalid chip rule import should not overwrite existing rules' );
+}
+
+function sschp_test_chip_rules_unauthorized_import_is_rejected() {
+    global $sschp_test_current_user_can;
+
+    sschp_reset_test_state();
+    $sschp_test_current_user_can['manage_options'] = false;
+    update_option( 'sschp_pinned_chips', 'Existing' );
+    $_POST['sschp_chip_rules_json'] = json_encode(
+        array(
+            'rules' => array(
+                'pinned_chips' => 'Should not save',
+            ),
+        )
+    );
+
+    $rules  = new SSCHP_Chip_Rules();
+    $result = sschp_capture_wp_die( array( $rules, 'handle_import_chip_rules' ) );
+
+    sschp_assert_true( $result['died'], 'unauthorized chip rule import should stop with wp_die' );
+    sschp_assert_contains( 'permission', $result['message'], 'unauthorized chip rule import should explain the permission failure' );
+    sschp_assert_same( 'Existing', get_option( 'sschp_pinned_chips', '' ), 'unauthorized chip rule import should not save rules' );
+}
+
+function sschp_test_chip_rules_import_export_handlers_are_admin_secured() {
+    $path     = dirname( __DIR__ ) . '/includes/class-chip-rules__premium_only.php';
+    $contents = is_file( $path ) ? file_get_contents( $path ) : '';
+
+    sschp_assert_contains( 'admin_post_\' . self::EXPORT_ACTION', $contents, 'chip rule export should register an admin-post handler' );
+    sschp_assert_contains( 'admin_post_\' . self::IMPORT_ACTION', $contents, 'chip rule import should register an admin-post handler' );
+    sschp_assert_contains( "current_user_can( 'manage_options' )", $contents, 'chip rule import/export handlers should require manage_options' );
+    sschp_assert_contains( 'check_admin_referer( self::IMPORT_ACTION )', $contents, 'chip rule import handler should verify a nonce' );
+}
+
+function sschp_test_wporg_build_excludes_pro_chip_rules_class() {
+    $root      = dirname( __DIR__ );
+    $build     = $root . '/scripts/build-release.ps1';
+    $wporg     = $root . '/build-sources/wporg';
+
+    sschp_assert_contains( 'includes\class-chip-rules__premium_only.php', file_get_contents( $build ), 'WP.org release build should remove the Pro chip rules class' );
+    sschp_assert_true( ! is_file( $wporg . '/includes/class-chip-rules__premium_only.php' ), 'WP.org source overrides should not contain the Pro chip rules class file' );
+
+    $main_contents = file_get_contents( $wporg . '/smart-search-chips.php' );
+    sschp_assert_true( false === strpos( $main_contents, 'class-chip-rules__premium_only.php' ), 'WP.org main plugin source should not load the Pro chip rules class' );
+    sschp_assert_true( false === strpos( $main_contents, 'SSCHP_Chip_Rules' ), 'WP.org main plugin source should not reference the Pro chip rules class' );
+
+    $settings_contents = file_get_contents( $wporg . '/includes/class-settings.php' );
+    sschp_assert_true( false === strpos( $settings_contents, 'SSCHP_Chip_Rules' ), 'WP.org settings source should not reference the Pro chip rules class' );
+    sschp_assert_true( false === strpos( $settings_contents, 'sschp_export_chip_rules' ), 'WP.org settings source should not expose Pro chip rule export handlers' );
+    sschp_assert_true( false === strpos( $settings_contents, 'sschp_import_chip_rules' ), 'WP.org settings source should not expose Pro chip rule import handlers' );
+
+    $validator_contents = file_get_contents( $root . '/scripts/validate-wporg-package.php' );
+    sschp_assert_contains( 'SSCHP_Chip_Rules', $validator_contents, 'WP.org package validation should reject Pro chip rule class references' );
+    sschp_assert_contains( 'sschp_import_chip_rules', $validator_contents, 'WP.org package validation should reject Pro chip rule import handlers' );
+}
+
 function sschp_make_range_post( $post_id, array $tags, $title = '' ) {
     return array(
         'id'         => (int) $post_id,
@@ -2964,6 +3098,13 @@ sschp_test_field_normalizer_handles_numeric_fields();
 sschp_test_field_normalizer_ignores_empty_null_and_plain_objects();
 sschp_test_search_handler_get_field_value_normalizes_acf_arrays();
 sschp_test_frontend_get_field_value_normalizes_acf_relationship_posts();
+sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_export_returns_expected_json_shape' );
+sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_valid_import_saves_rules' );
+sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_import_dry_run_does_not_save_rules' );
+sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_invalid_import_is_rejected' );
+sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_unauthorized_import_is_rejected' );
+sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_import_export_handlers_are_admin_secured' );
+sschp_test_wporg_build_excludes_pro_chip_rules_class();
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_watt_slider_from_consistent_facts' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_keep_ac_dc_voltage_separate' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_ip_ratings_as_categorical' );

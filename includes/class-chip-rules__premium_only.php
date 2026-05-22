@@ -11,6 +11,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SSCHP_Chip_Rules {
 
+    /** @var string Admin-post action for exporting chip rules */
+    const EXPORT_ACTION = 'sschp_export_chip_rules';
+
+    /** @var string Admin-post action for importing chip rules */
+    const IMPORT_ACTION = 'sschp_import_chip_rules';
+
+    /** @var string Import result transient prefix */
+    const IMPORT_RESULT_TRANSIENT_PREFIX = 'sschp_chip_rules_import_result_';
+
     /**
      * Register rule filters.
      */
@@ -19,6 +28,8 @@ class SSCHP_Chip_Rules {
         add_filter( 'sschp_active_tags', array( $this, 'normalize_active_tags' ) );
         add_filter( 'sschp_generated_chips', array( $this, 'apply_curation_rules' ), 10, 6 );
         add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+        add_action( 'admin_post_' . self::EXPORT_ACTION, array( $this, 'handle_export_chip_rules' ) );
+        add_action( 'admin_post_' . self::IMPORT_ACTION, array( $this, 'handle_import_chip_rules' ) );
     }
 
     /**
@@ -99,6 +110,307 @@ class SSCHP_Chip_Rules {
         }
 
         return rest_ensure_response( $this->get_rest_rules_payload() );
+    }
+
+    /**
+     * Return the JSON export payload for Pro chip rules.
+     *
+     * @return array
+     */
+    public function export_rules_payload() {
+        return array(
+            'schema'         => 'smart-search-chips/chip-rules',
+            'version'        => 1,
+            'plugin_version' => defined( 'SSCHP_VERSION' ) ? SSCHP_VERSION : '',
+            'exported_at'    => gmdate( 'c' ),
+            'rules'          => $this->get_rest_rules_payload(),
+        );
+    }
+
+    /**
+     * Return chip rules as JSON.
+     *
+     * @return string
+     */
+    public function export_rules_json() {
+        $json = wp_json_encode( $this->export_rules_payload() );
+
+        return is_string( $json ) ? $json : '{}';
+    }
+
+    /**
+     * Handle admin JSON export.
+     *
+     * @return void
+     */
+    public function handle_export_chip_rules() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have permission to export chip rules.', 'smart-search-chips' ) );
+        }
+
+        check_admin_referer( self::EXPORT_ACTION );
+
+        if ( ! headers_sent() ) {
+            header( 'Content-Type: application/json; charset=utf-8' );
+            header( 'Content-Disposition: attachment; filename=smart-search-chips-rules.json' );
+            header( 'X-Content-Type-Options: nosniff' );
+        }
+
+        echo $this->export_rules_json(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON response body.
+        exit;
+    }
+
+    /**
+     * Handle admin JSON import or preview.
+     *
+     * @return void
+     */
+    public function handle_import_chip_rules() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have permission to import chip rules.', 'smart-search-chips' ) );
+        }
+
+        check_admin_referer( self::IMPORT_ACTION );
+
+        $raw_json = isset( $_POST['sschp_chip_rules_json'] ) ? wp_unslash( $_POST['sschp_chip_rules_json'] ) : '';
+        $mode     = isset( $_POST['sschp_chip_rules_import_mode'] ) ? sanitize_key( wp_unslash( $_POST['sschp_chip_rules_import_mode'] ) ) : 'import';
+        $dry_run  = 'preview' === $mode || ! empty( $_POST['sschp_chip_rules_dry_run'] );
+        $result   = $this->import_rules_json( $raw_json, $dry_run );
+
+        $this->store_import_result( $result );
+
+        wp_safe_redirect( admin_url( 'options-general.php?page=smart-search-chips' ) );
+        exit;
+    }
+
+    /**
+     * Validate and optionally import chip rules from JSON.
+     *
+     * @param string $json    Raw JSON.
+     * @param bool   $dry_run Whether to validate without saving.
+     * @return array
+     */
+    public function import_rules_json( $json, $dry_run = false ) {
+        $json = trim( (string) $json );
+        if ( '' === $json ) {
+            return $this->build_import_result(
+                false,
+                (bool) $dry_run,
+                array(),
+                array( __( 'No JSON was provided.', 'smart-search-chips' ) )
+            );
+        }
+
+        $decoded = json_decode( $json, true );
+        if ( JSON_ERROR_NONE !== json_last_error() ) {
+            return $this->build_import_result(
+                false,
+                (bool) $dry_run,
+                array(),
+                array(
+                    sprintf(
+                        /* translators: %s: JSON parser error. */
+                        __( 'Invalid JSON: %s', 'smart-search-chips' ),
+                        function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : __( 'Unable to parse the JSON.', 'smart-search-chips' )
+                    ),
+                )
+            );
+        }
+
+        $validation = $this->validate_import_payload( $decoded );
+        if ( ! $validation['valid'] ) {
+            return $this->build_import_result( false, (bool) $dry_run, array(), $validation['errors'], $validation['warnings'] );
+        }
+
+        if ( ! $dry_run ) {
+            $option_map = $this->get_rest_option_map();
+
+            foreach ( $validation['rules'] as $field => $value ) {
+                $option = $option_map[ $field ];
+                update_option( $option, $value );
+            }
+        }
+
+        return $this->build_import_result( true, (bool) $dry_run, $validation['rules'], array(), $validation['warnings'] );
+    }
+
+    /**
+     * Validate a decoded import payload before anything is saved.
+     *
+     * @param mixed $payload Decoded JSON.
+     * @return array
+     */
+    public function validate_import_payload( $payload ) {
+        $errors = array();
+        $warnings = array();
+        $rules  = array();
+
+        if ( ! is_array( $payload ) ) {
+            return array(
+                'valid'    => false,
+                'rules'    => array(),
+                'errors'   => array( __( 'The JSON must be an object containing a rules object.', 'smart-search-chips' ) ),
+                'warnings' => array(),
+            );
+        }
+
+        $source = isset( $payload['rules'] ) ? $payload['rules'] : $payload;
+        if ( ! is_array( $source ) ) {
+            return array(
+                'valid'    => false,
+                'rules'    => array(),
+                'errors'   => array( __( 'The rules field must be an object.', 'smart-search-chips' ) ),
+                'warnings' => array(),
+            );
+        }
+
+        $known_fields = array_keys( $this->get_rest_option_map() );
+        foreach ( array_keys( $source ) as $field ) {
+            if ( ! in_array( $field, $known_fields, true ) ) {
+                $warnings[] = sprintf(
+                    /* translators: %s: ignored import field. */
+                    __( 'Ignored unknown rule field: %s', 'smart-search-chips' ),
+                    sanitize_text_field( (string) $field )
+                );
+            }
+        }
+
+        foreach ( $known_fields as $field ) {
+            if ( ! array_key_exists( $field, $source ) ) {
+                continue;
+            }
+
+            $normalized = $this->normalize_import_value( $source[ $field ], $field );
+            if ( ! $normalized['valid'] ) {
+                $errors[] = $normalized['message'];
+                continue;
+            }
+
+            $rules[ $field ] = $normalized['value'];
+        }
+
+        if ( empty( $rules ) && empty( $errors ) ) {
+            $errors[] = __( 'No supported chip rule fields were found. Expected synonym_rules, pinned_chips, hidden_chips, or renamed_chips.', 'smart-search-chips' );
+        }
+
+        return array(
+            'valid'    => empty( $errors ),
+            'rules'    => $rules,
+            'errors'   => $errors,
+            'warnings' => $warnings,
+        );
+    }
+
+    /**
+     * Normalize one import field.
+     *
+     * @param mixed  $value Import value.
+     * @param string $field Field name.
+     * @return array
+     */
+    private function normalize_import_value( $value, $field ) {
+        if ( is_array( $value ) ) {
+            $lines = array();
+            foreach ( $value as $line ) {
+                if ( is_array( $line ) || is_object( $line ) ) {
+                    return array(
+                        'valid'   => false,
+                        'value'   => '',
+                        'message' => sprintf(
+                            /* translators: %s: field name. */
+                            __( 'The %s field must contain text or a simple array of text lines.', 'smart-search-chips' ),
+                            sanitize_key( $field )
+                        ),
+                    );
+                }
+
+                $lines[] = (string) $line;
+            }
+            $value = implode( "\n", $lines );
+        } elseif ( is_bool( $value ) || is_object( $value ) || null === $value ) {
+            return array(
+                'valid'   => false,
+                'value'   => '',
+                'message' => sprintf(
+                    /* translators: %s: field name. */
+                    __( 'The %s field must be text.', 'smart-search-chips' ),
+                    sanitize_key( $field )
+                ),
+            );
+        }
+
+        return array(
+            'valid' => true,
+            'value' => $this->sanitize_rules_text( $value ),
+            'message' => '',
+        );
+    }
+
+    /**
+     * Build a consistent import response for tests and admin notices.
+     *
+     * @param bool  $valid    Whether import payload is valid.
+     * @param bool  $dry_run  Whether this was a preview.
+     * @param array $rules    Normalized rules.
+     * @param array $errors   Errors.
+     * @param array $warnings Warnings.
+     * @return array
+     */
+    private function build_import_result( $valid, $dry_run, $rules, $errors = array(), $warnings = array() ) {
+        return array(
+            'valid'      => (bool) $valid,
+            'dry_run'    => (bool) $dry_run,
+            'saved'      => (bool) $valid && ! $dry_run,
+            'rules'      => $rules,
+            'summary'    => $this->summarize_rules( $rules ),
+            'errors'     => array_values( array_filter( array_map( 'strval', (array) $errors ) ) ),
+            'warnings'   => array_values( array_filter( array_map( 'strval', (array) $warnings ) ) ),
+        );
+    }
+
+    /**
+     * Count imported lines per rule field.
+     *
+     * @param array $rules Rules.
+     * @return array
+     */
+    private function summarize_rules( $rules ) {
+        $summary = array();
+        foreach ( $this->get_rest_option_map() as $field => $option ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+            $summary[ $field ] = isset( $rules[ $field ] ) ? $this->count_rule_lines( $rules[ $field ] ) : 0;
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Count non-empty rule lines.
+     *
+     * @param string $value Rule text.
+     * @return int
+     */
+    private function count_rule_lines( $value ) {
+        $lines = preg_split( '/\r\n|\r|\n/', (string) $value );
+        $lines = array_filter(
+            array_map( 'trim', (array) $lines ),
+            function( $line ) {
+                return '' !== $line;
+            }
+        );
+
+        return count( $lines );
+    }
+
+    /**
+     * Store import result for the next settings page load.
+     *
+     * @param array $result Import result.
+     * @return void
+     */
+    private function store_import_result( $result ) {
+        if ( function_exists( 'set_transient' ) && function_exists( 'get_current_user_id' ) ) {
+            set_transient( self::IMPORT_RESULT_TRANSIENT_PREFIX . get_current_user_id(), $result, MINUTE_IN_SECONDS );
+        }
     }
 
     /**

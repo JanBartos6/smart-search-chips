@@ -83,6 +83,11 @@
 .ssc-test-search-result-list li { margin: 0; }
 .ssc-test-search-result-list strong { display: block; color: #1d2327; }
 .ssc-test-search-result-list span { display: block; margin-top: 3px; color: #646970; font-size: 12px; }
+.ssc-chip-rules-transfer { margin: 14px 0 4px; padding: 14px 16px; border: 1px solid #d9e2ec; border-radius: 8px; background: #f8fbff; }
+.ssc-chip-rules-transfer h3 { margin: 0 0 8px; font-size: 13px; color: #1d2327; text-transform: uppercase; letter-spacing: 0.04em; }
+.ssc-chip-rules-transfer textarea { margin-top: 8px; min-height: 150px; }
+.ssc-chip-rules-transfer .notice { margin: 12px 0; }
+.ssc-chip-rules-transfer .notice ul { margin: 6px 0 0 18px; list-style: disc; }
 .ssc-feedback-link { margin-top: 24px; padding-top: 16px; border-top: 1px solid #eee; color: #888; font-size: 13px; }
 .ssc-feedback-link a { color: #2271b1; text-decoration: none; font-weight: 500; }
 .ssc-feedback-link a:hover { text-decoration: underline; }

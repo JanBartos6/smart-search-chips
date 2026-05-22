@@ -737,6 +737,14 @@ class SSCHP_Settings {
         if ( $data_deleted ) {
             delete_transient( 'sschp_data_deleted_' . get_current_user_id() );
         }
+        $chip_rule_import_result = null;
+        if ( $is_pro && class_exists( 'SSCHP_Chip_Rules' ) ) {
+            $chip_rule_import_key    = SSCHP_Chip_Rules::IMPORT_RESULT_TRANSIENT_PREFIX . get_current_user_id();
+            $chip_rule_import_result = get_transient( $chip_rule_import_key );
+            if ( $chip_rule_import_result ) {
+                delete_transient( $chip_rule_import_key );
+            }
+        }
 
         ?>
         <div class="wrap">
@@ -897,6 +905,65 @@ class SSCHP_Settings {
                                 </tr>
                                 <?php endif; ?>
                             </table>
+                            <?php if ( $is_pro && class_exists( 'SSCHP_Chip_Rules' ) ) : ?>
+                                <div class="ssc-chip-rules-transfer">
+                                    <h3><?php esc_html_e( 'Import / Export Chip Rules', 'smart-search-chips' ); ?></h3>
+                                    <p class="description"><?php esc_html_e( 'Export synonym rules, pinned chips, hidden chips, and label overrides as JSON. Imports are validated before saving, and preview mode checks the JSON without changing settings.', 'smart-search-chips' ); ?></p>
+
+                                    <?php if ( is_array( $chip_rule_import_result ) ) : ?>
+                                        <?php
+                                        $notice_class = ! empty( $chip_rule_import_result['valid'] ) ? 'notice-success' : 'notice-error';
+                                        $summary      = isset( $chip_rule_import_result['summary'] ) && is_array( $chip_rule_import_result['summary'] ) ? $chip_rule_import_result['summary'] : array();
+                                        ?>
+                                        <div class="notice <?php echo esc_attr( $notice_class ); ?> inline">
+                                            <p>
+                                                <?php
+                                                if ( empty( $chip_rule_import_result['valid'] ) ) {
+                                                    esc_html_e( 'Chip rule import failed. Nothing was saved.', 'smart-search-chips' );
+                                                } elseif ( ! empty( $chip_rule_import_result['dry_run'] ) ) {
+                                                    esc_html_e( 'Import preview passed. Nothing was saved.', 'smart-search-chips' );
+                                                } else {
+                                                    esc_html_e( 'Chip rules imported successfully.', 'smart-search-chips' );
+                                                }
+                                                ?>
+                                            </p>
+                                            <?php if ( ! empty( $summary ) ) : ?>
+                                                <p class="description">
+                                                    <?php
+                                                    printf(
+                                                        /* translators: %1$d: synonym lines, %2$d: pinned lines, %3$d: hidden lines, %4$d: renamed lines */
+                                                        esc_html__( 'Rules found: %1$d synonym, %2$d pinned, %3$d hidden, %4$d renamed.', 'smart-search-chips' ),
+                                                        (int) ( $summary['synonym_rules'] ?? 0 ),
+                                                        (int) ( $summary['pinned_chips'] ?? 0 ),
+                                                        (int) ( $summary['hidden_chips'] ?? 0 ),
+                                                        (int) ( $summary['renamed_chips'] ?? 0 )
+                                                    );
+                                                    ?>
+                                                </p>
+                                            <?php endif; ?>
+                                            <?php foreach ( array( 'errors', 'warnings' ) as $message_type ) : ?>
+                                                <?php if ( ! empty( $chip_rule_import_result[ $message_type ] ) && is_array( $chip_rule_import_result[ $message_type ] ) ) : ?>
+                                                    <ul>
+                                                        <?php foreach ( $chip_rule_import_result[ $message_type ] as $message ) : ?>
+                                                            <li><?php echo esc_html( $message ); ?></li>
+                                                        <?php endforeach; ?>
+                                                    </ul>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <p>
+                                        <a class="button button-secondary" href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'action', SSCHP_Chip_Rules::EXPORT_ACTION, admin_url( 'admin-post.php' ) ), SSCHP_Chip_Rules::EXPORT_ACTION ) ); ?>"><?php esc_html_e( 'Export chip rules JSON', 'smart-search-chips' ); ?></a>
+                                    </p>
+                                    <label for="sschp-chip-rules-json"><strong><?php esc_html_e( 'Import JSON', 'smart-search-chips' ); ?></strong></label>
+                                    <textarea id="sschp-chip-rules-json" name="sschp_chip_rules_json" form="ssc-chip-rules-import-form" rows="8" class="large-text code" placeholder='{"schema":"smart-search-chips/chip-rules","version":1,"rules":{"synonym_rules":"Sofa = couch, settee","pinned_chips":"Bestseller","hidden_chips":"Internal","renamed_chips":"eco => Eco friendly"}}'></textarea>
+                                    <p>
+                                        <button type="submit" form="ssc-chip-rules-import-form" name="sschp_chip_rules_import_mode" value="preview" class="button button-secondary"><?php esc_html_e( 'Preview import', 'smart-search-chips' ); ?></button>
+                                        <button type="submit" form="ssc-chip-rules-import-form" name="sschp_chip_rules_import_mode" value="import" class="button button-primary"><?php esc_html_e( 'Import and save', 'smart-search-chips' ); ?></button>
+                                    </p>
+                                </div>
+                            <?php endif; ?>
                         </div>
 
                         <!-- Design -->
@@ -1487,6 +1554,12 @@ class SSCHP_Settings {
                 <input type="hidden" name="action" value="sschp_delete_plugin_data_now" />
                 <?php wp_nonce_field( 'sschp_delete_plugin_data_now' ); ?>
             </form>
+            <?php if ( $is_pro && class_exists( 'SSCHP_Chip_Rules' ) ) : ?>
+                <form id="ssc-chip-rules-import-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                    <input type="hidden" name="action" value="<?php echo esc_attr( SSCHP_Chip_Rules::IMPORT_ACTION ); ?>" />
+                    <?php wp_nonce_field( SSCHP_Chip_Rules::IMPORT_ACTION ); ?>
+                </form>
+            <?php endif; ?>
 
             <p class="ssc-feedback-link">
                 <?php esc_html_e( 'Questions, bugs, or ideas?', 'smart-search-chips' ); ?>
