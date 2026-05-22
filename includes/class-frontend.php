@@ -32,6 +32,7 @@ class SSCHP_Frontend {
      * Initialize frontend hooks.
      */
     public function init() {
+        add_action( 'init', array( $this, 'register_search_block' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_shortcode( 'sschp_search', array( $this, 'render_search_form' ) );
         add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
@@ -45,6 +46,46 @@ class SSCHP_Frontend {
         if ( class_exists( 'WooCommerce' ) ) {
             add_action( 'woocommerce_before_shop_loop', array( $this, 'render_woocommerce_loop_chips' ), 5 );
         }
+    }
+
+    /**
+     * Register the guaranteed-search Gutenberg block.
+     */
+    public function register_search_block() {
+        if ( ! function_exists( 'register_block_type' ) ) {
+            return;
+        }
+
+        $block_dir = SSCHP_PLUGIN_DIR . 'blocks/search';
+        if ( ! file_exists( $block_dir . '/block.json' ) ) {
+            return;
+        }
+
+        register_block_type(
+            $block_dir,
+            array(
+                'render_callback' => array( $this, 'render_search_block' ),
+            )
+        );
+    }
+
+    /**
+     * Render the guaranteed-search Gutenberg block.
+     *
+     * @param array $attributes Block attributes.
+     * @return string HTML output.
+     */
+    public function render_search_block( $attributes = array() ) {
+        $attributes  = is_array( $attributes ) ? $attributes : array();
+        $placeholder = isset( $attributes['placeholder'] ) ? sanitize_text_field( (string) $attributes['placeholder'] ) : __( 'Search...', 'smart-search-chips' );
+        $class       = isset( $attributes['className'] ) ? sanitize_text_field( (string) $attributes['className'] ) : '';
+
+        return $this->render_search_form(
+            array(
+                'placeholder' => '' !== $placeholder ? $placeholder : __( 'Search...', 'smart-search-chips' ),
+                'class'       => $class,
+            )
+        );
     }
 
     /**

@@ -423,7 +423,7 @@ class SSCHP_Settings {
             'selectedPostTypes'       => $selected_post_types,
             'selectedPostTypeLabels'  => $selected_labels,
             'shortcode'               => '[sschp_search]',
-            'shortcodeBlockLabel'     => __( 'Add a WordPress Shortcode block and paste [sschp_search].', 'smart-search-chips' ),
+            'shortcodeBlockLabel'     => __( 'Add the Smart Search Chips Search block, or use a Shortcode block with [sschp_search].', 'smart-search-chips' ),
             'guaranteedModeLabel'     => __( 'Guaranteed Search Mode uses the Smart Search Chips endpoint and does not depend on theme AJAX.', 'smart-search-chips' ),
             'themeEnhancementStatus'  => $diagnostics['ajaxActionConfigured'] ? __( 'Configured', 'smart-search-chips' ) : __( 'Passive by default', 'smart-search-chips' ),
             'themeEnhancementMessage' => $diagnostics['ajaxActionConfigured']

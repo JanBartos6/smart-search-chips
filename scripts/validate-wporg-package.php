@@ -80,6 +80,9 @@ function sschp_wporg_is_text_extension( $extension ) {
 $required_files = array(
 	'smart-search-chips.php',
 	'readme.txt',
+	'blocks/search/block.json',
+	'blocks/search/editor.asset.php',
+	'blocks/search/editor.js',
 	'includes/class-edition.php',
 	'includes/class-search-explainer.php',
 );

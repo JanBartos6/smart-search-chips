@@ -123,7 +123,7 @@ function sschp_test_scheduled_hooks() {
 }
 
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls, $sschp_test_registered_blocks;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -158,6 +158,7 @@ function sschp_reset_test_state() {
     $sschp_test_mail               = array();
     $sschp_test_wp_query_count     = 0;
     $sschp_test_post_terms_calls   = array();
+    $sschp_test_registered_blocks  = array();
     $_POST                    = array();
     $_REQUEST                 = array();
     $_SERVER                  = array();
@@ -299,6 +300,44 @@ function sschp_test_wporg_main_loads_search_explainer() {
     $contents = is_file( $path ) ? file_get_contents( $path ) : '';
 
     sschp_assert_contains( 'includes/class-search-explainer.php', $contents, 'WP.org build should load the shared search explanation helper' );
+}
+
+function sschp_test_wporg_frontend_source_registers_search_block() {
+    $path = dirname( __DIR__ ) . '/build-sources/wporg/includes/class-frontend.php';
+
+    sschp_assert_true( is_file( $path ), 'WP.org frontend source should exist for explicit release builds' );
+
+    $contents = is_file( $path ) ? file_get_contents( $path ) : '';
+
+    sschp_assert_contains( 'register_search_block', $contents, 'WP.org frontend source should register the guaranteed search block' );
+    sschp_assert_contains( 'render_search_block', $contents, 'WP.org frontend source should server-render the guaranteed search block' );
+    sschp_assert_contains( 'blocks/search', $contents, 'WP.org frontend source should use the shared search block metadata directory' );
+}
+
+function sschp_test_search_block_files_are_release_validated() {
+    $root        = dirname( __DIR__ );
+    $block_json  = $root . '/blocks/search/block.json';
+    $editor_js   = $root . '/blocks/search/editor.js';
+    $asset_php   = $root . '/blocks/search/editor.asset.php';
+    $build       = $root . '/scripts/build-release.ps1';
+    $validator   = $root . '/scripts/validate-wporg-package.php';
+
+    sschp_assert_true( is_file( $block_json ), 'search block metadata should exist' );
+    sschp_assert_true( is_file( $editor_js ), 'search block editor script should exist' );
+    sschp_assert_true( is_file( $asset_php ), 'search block editor asset metadata should exist' );
+
+    $metadata = json_decode( file_get_contents( $block_json ), true );
+    sschp_assert_same( 'smart-search-chips/search', $metadata['name'], 'search block should use the public Smart Search Chips namespace' );
+    sschp_assert_true( ! isset( $metadata['attributes']['premium'] ), 'search block metadata should not expose premium-only attributes' );
+
+    $combined_block_source = file_get_contents( $block_json ) . "\n" . file_get_contents( $editor_js ) . "\n" . file_get_contents( $asset_php );
+    foreach ( array( '__premium_only', 'SSCHP_License', 'SSCHP_Analytics', 'Freemius', 'Upgrade to Pro' ) as $forbidden ) {
+        sschp_assert_true( false === stripos( $combined_block_source, $forbidden ), 'search block files should not reference premium-only code: ' . $forbidden );
+    }
+
+    sschp_assert_contains( "'blocks'", file_get_contents( $build ), 'release build should copy block files into generated packages' );
+    sschp_assert_contains( 'blocks/search/block.json', file_get_contents( $validator ), 'WP.org validator should require search block metadata' );
+    sschp_assert_contains( 'blocks/search/editor.js', file_get_contents( $validator ), 'WP.org validator should require search block editor script' );
 }
 
 function sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant() {
@@ -784,6 +823,37 @@ function sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_res
     sschp_assert_contains( 'aria-live="polite"', $markup, 'shortcode results container should politely announce AJAX updates' );
     sschp_assert_contains( 'aria-busy="false"', $markup, 'shortcode results container should expose an initial not-busy state' );
     sschp_assert_contains( 'data-sschp-mode="guaranteed"', $markup, 'shortcode search should identify the guaranteed integration mode' );
+}
+
+function sschp_test_frontend_registers_guaranteed_search_block() {
+    global $sschp_test_registered_blocks;
+
+    sschp_reset_test_state();
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $frontend->register_search_block();
+
+    sschp_assert_true( isset( $sschp_test_registered_blocks['smart-search-chips/search'] ), 'frontend should register the guaranteed search block' );
+    sschp_assert_same( 'smart-search-chips/search', $sschp_test_registered_blocks['smart-search-chips/search']['metadata']['name'], 'registered block metadata should preserve the block name' );
+    sschp_assert_true( is_callable( $sschp_test_registered_blocks['smart-search-chips/search']['args']['render_callback'] ), 'search block should be server rendered' );
+}
+
+function sschp_test_frontend_search_block_renders_shortcode_ui() {
+    sschp_reset_test_state();
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $markup   = $frontend->render_search_block(
+        array(
+            'placeholder' => 'Find products',
+            'className'   => 'custom-search-block',
+        )
+    );
+
+    sschp_assert_contains( 'placeholder="Find products"', $markup, 'search block should render editable placeholder text' );
+    sschp_assert_contains( 'custom-search-block', $markup, 'search block should pass through the optional custom class' );
+    sschp_assert_contains( 'data-sschp-mode="guaranteed"', $markup, 'search block should use the guaranteed search UI' );
+    sschp_assert_contains( 'js-ssc-search', $markup, 'search block should render the same frontend search form as the shortcode' );
+    sschp_assert_contains( 'js-ssc-results', $markup, 'search block should render the same live result container as the shortcode' );
 }
 
 function sschp_test_search_handler_normalizes_active_tags_case_insensitively() {
@@ -1718,7 +1788,7 @@ function sschp_test_settings_setup_wizard_recommends_guaranteed_shortcode() {
     $setup    = $settings->get_setup_wizard_data();
 
     sschp_assert_same( '[sschp_search]', $setup['shortcode'], 'setup wizard should expose the guaranteed shortcode' );
-    sschp_assert_contains( 'Shortcode block', $setup['shortcodeBlockLabel'], 'setup wizard should recommend the WordPress Shortcode block path' );
+    sschp_assert_contains( 'Smart Search Chips Search block', $setup['shortcodeBlockLabel'], 'setup wizard should recommend the guaranteed Gutenberg block path' );
     sschp_assert_contains( 'Smart Search Chips endpoint', $setup['guaranteedModeLabel'], 'setup wizard should explain that guaranteed mode uses the SSC endpoint' );
     sschp_assert_same( 'Passive by default', $setup['themeEnhancementStatus'], 'theme enhancement should be passive when no override action is configured' );
     sschp_assert_same( array( 'Posts', 'Products' ), $setup['selectedPostTypeLabels'], 'setup wizard should show selected post type labels' );
@@ -2734,6 +2804,8 @@ sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reje
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_normalize_dimensions_to_common_unit' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_do_not_mix_prices_with_wattage' );
 sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_results();
+sschp_test_frontend_registers_guaranteed_search_block();
+sschp_test_frontend_search_block_renders_shortcode_ui();
 sschp_test_search_handler_normalizes_active_tags_case_insensitively();
 sschp_test_search_handler_render_chips_marks_case_insensitive_active_tag();
 sschp_test_frontend_archive_filter_url_toggles_case_insensitively();
@@ -2828,6 +2900,8 @@ sschp_test_no_legacy_public_interface_references_in_fixtures();
 sschp_test_wporg_settings_source_keeps_selector_safety();
 sschp_test_wporg_search_handler_keeps_admin_test_search_api();
 sschp_test_wporg_main_loads_search_explainer();
+sschp_test_wporg_frontend_source_registers_search_block();
+sschp_test_search_block_files_are_release_validated();
 sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant();
 sschp_test_premium_ajax_numeric_inputs_are_unslashed();
 

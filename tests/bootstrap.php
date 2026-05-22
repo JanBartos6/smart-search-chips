@@ -45,6 +45,7 @@ $sschp_test_scheduled_events = array();
 $sschp_test_mail            = array();
 $sschp_test_wp_query_count  = 0;
 $sschp_test_post_terms_calls = array();
+$sschp_test_registered_blocks = array();
 
 if ( ! class_exists( 'SSCHP_Test_WPDB' ) ) {
     class SSCHP_Test_WPDB {
@@ -568,6 +569,35 @@ if ( ! function_exists( 'add_settings_error' ) ) {
 if ( ! function_exists( 'add_shortcode' ) ) {
     function add_shortcode( $tag, $callback ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         return true;
+    }
+}
+
+if ( ! function_exists( 'register_block_type' ) ) {
+    function register_block_type( $block_type, $args = array() ) {
+        global $sschp_test_registered_blocks;
+
+        $metadata = array();
+        $name     = is_string( $block_type ) ? $block_type : '';
+
+        if ( is_string( $block_type ) && is_file( rtrim( $block_type, '/\\' ) . DIRECTORY_SEPARATOR . 'block.json' ) ) {
+            $metadata = json_decode( file_get_contents( rtrim( $block_type, '/\\' ) . DIRECTORY_SEPARATOR . 'block.json' ), true );
+            if ( is_array( $metadata ) && ! empty( $metadata['name'] ) ) {
+                $name = $metadata['name'];
+            }
+        } elseif ( is_array( $block_type ) && ! empty( $block_type['name'] ) ) {
+            $name     = $block_type['name'];
+            $metadata = $block_type;
+        }
+
+        $sschp_test_registered_blocks[ $name ] = array(
+            'block_type' => $block_type,
+            'args'       => $args,
+            'metadata'   => $metadata,
+        );
+
+        return (object) array(
+            'name' => $name,
+        );
     }
 }
 

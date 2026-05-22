@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 2,
+  "name": "smart-search-chips/search",
+  "title": "Smart Search Chips Search",
+  "category": "widgets",
+  "icon": "search",
+  "description": "Guaranteed Smart Search Chips search form.",
+  "textdomain": "smart-search-chips",
+  "attributes": {
+    "placeholder": {
+      "type": "string",
+      "default": "Search..."
+    },
+    "className": {
+      "type": "string"
+    }
+  },
+  "supports": {
+    "html": false,
+    "className": true
+  },
+  "editorScript": "file:./editor.js"
+}

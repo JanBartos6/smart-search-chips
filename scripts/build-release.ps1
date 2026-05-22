@@ -61,7 +61,7 @@ function Copy-PluginTree {
         }
     }
 
-    foreach ($dir in @('assets', 'includes', 'languages')) {
+    foreach ($dir in @('assets', 'blocks', 'includes', 'languages')) {
         $source = Join-Path $Root $dir
         if (Test-Path $source) {
             Copy-Item -LiteralPath $source -Destination (Join-Path $Destination $dir) -Recurse -Force
