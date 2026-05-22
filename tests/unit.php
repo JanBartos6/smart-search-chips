@@ -813,6 +813,108 @@ function sschp_test_range_filters_do_not_mix_prices_with_wattage() {
     sschp_assert_same( 'W', $chips['sschp_range|power|w']['range']['unit'], 'watt slider should keep wattage as its unit' );
 }
 
+function sschp_test_range_debug_report_splits_accepted_and_rejected_groups() {
+    $range  = new SSCHP_Range_Filters();
+    $report = $range->get_debug_report(
+        array(
+            sschp_make_range_post( 1, array( 'Power: 100 W', 'Weight: 5 kg' ) ),
+            sschp_make_range_post( 2, array( 'Power: 200 W' ) ),
+        )
+    );
+
+    sschp_assert_same( 1, count( $report['accepted_groups'] ), 'range debug should split accepted groups into their own list' );
+    sschp_assert_same( 'power', $report['accepted_groups'][0]['group_key'], 'power should be accepted when two products have varied wattage' );
+    sschp_assert_true( isset( $report['accepted_groups'][0]['confidence'] ), 'accepted range groups should expose a confidence score' );
+
+    sschp_assert_same( 1, count( $report['rejected_groups'] ), 'range debug should split rejected groups into their own list' );
+    sschp_assert_same( 'weight', $report['rejected_groups'][0]['group_key'], 'single-product weight should be rejected as its own group' );
+    sschp_assert_true( in_array( 'too_few_products', $report['rejected_groups'][0]['reason_codes'], true ), 'rejected groups should expose a stable too-few-products code' );
+}
+
+function sschp_test_range_debug_report_uses_structured_rejection_reason_codes() {
+    $range  = new SSCHP_Range_Filters();
+    $report = $range->get_debug_report(
+        array(
+            sschp_make_range_post( 1, array( 'IP65', 'Model A100', 'SKU-12345' ), 'Only $99 today' ),
+        )
+    );
+
+    $codes = array_map(
+        function( $rejected ) {
+            return isset( $rejected['reason_code'] ) ? $rejected['reason_code'] : '';
+        },
+        $report['products'][0]['rejected']
+    );
+
+    foreach ( array( 'ip_rating', 'model_number', 'sku_like_value', 'price_like_value' ) as $expected_code ) {
+        sschp_assert_true( in_array( $expected_code, $codes, true ), 'range debug should expose rejection reason code: ' . $expected_code );
+    }
+
+    sschp_assert_contains( 'IP ratings are categorical', implode( ' ', $report['products'][0]['rejected'][0] ), 'range debug should keep human-readable rejection messages' );
+}
+
+function sschp_test_range_debug_report_explains_mixed_units_and_low_confidence() {
+    $range = new SSCHP_Range_Filters();
+
+    $mixed_report = $range->get_debug_report(
+        array(
+            sschp_make_range_post( 1, array( 'Size: 10 cm' ) ),
+            sschp_make_range_post( 2, array( 'Size: 2 kg' ) ),
+        )
+    );
+    $mixed_codes = array();
+    foreach ( $mixed_report['rejected_groups'] as $group ) {
+        $mixed_codes = array_merge( $mixed_codes, $group['reason_codes'] );
+    }
+    sschp_assert_true( in_array( 'mixed_units', $mixed_codes, true ), 'range debug should explain groups rejected because their units are mixed' );
+
+    $low_confidence_report = $range->get_debug_report(
+        array(
+            sschp_make_range_post( 3, array(), '100 W pump' ),
+            sschp_make_range_post( 4, array(), '200 W pump' ),
+        )
+    );
+    $low_confidence_codes = array();
+    foreach ( $low_confidence_report['rejected_groups'] as $group ) {
+        $low_confidence_codes = array_merge( $low_confidence_codes, $group['reason_codes'] );
+    }
+    sschp_assert_true( in_array( 'low_confidence', $low_confidence_codes, true ), 'range debug should explain groups rejected because confidence is low' );
+}
+
+function sschp_test_range_debug_report_labels_sources_for_non_developers() {
+    global $sschp_test_acf_fields;
+
+    sschp_reset_test_state();
+    sschp_register_test_product(
+        31,
+        array(
+            new SSCHP_Test_Product_Attribute( 'pa_power', array( '100 W' ) ),
+        ),
+        '',
+        array(
+            'pa_power' => array( '200 W' ),
+        )
+    );
+    update_option( 'sschp_tag_fields', 'power_w' );
+    $sschp_test_acf_fields[31]['power_w'] = '300';
+
+    $range  = new SSCHP_Range_Filters();
+    $report = $range->get_debug_report(
+        array(
+            sschp_make_range_post( 31, array(), 'Fallback: 400 W' ),
+        )
+    );
+
+    $source_labels = array();
+    foreach ( $report['products'][0]['facts'] as $fact ) {
+        $source_labels[] = isset( $fact['source_label'] ) ? $fact['source_label'] : '';
+    }
+
+    foreach ( array( 'WooCommerce attribute', 'Mapped custom field', 'Taxonomy', 'Title/content fallback' ) as $expected_label ) {
+        sschp_assert_true( in_array( $expected_label, $source_labels, true ), 'range debug should show non-developer source label: ' . $expected_label );
+    }
+}
+
 function sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_results() {
     sschp_reset_test_state();
 
@@ -2868,6 +2970,10 @@ sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reje
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_model_numbers' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_normalize_dimensions_to_common_unit' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_do_not_mix_prices_with_wattage' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_splits_accepted_and_rejected_groups' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_uses_structured_rejection_reason_codes' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_explains_mixed_units_and_low_confidence' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_labels_sources_for_non_developers' );
 sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_results();
 sschp_test_frontend_registers_guaranteed_search_block();
 sschp_test_frontend_search_block_renders_shortcode_ui();
