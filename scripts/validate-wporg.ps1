@@ -30,10 +30,10 @@ function Get-RelativePath {
     $pathFull = [System.IO.Path]::GetFullPath($Path)
 
     if ($pathFull.StartsWith($baseFull, [System.StringComparison]::OrdinalIgnoreCase)) {
-        return $pathFull.Substring($baseFull.Length)
+        return $pathFull.Substring($baseFull.Length).Replace('\', '/')
     }
 
-    return $pathFull
+    return $pathFull.Replace('\', '/')
 }
 
 function Add-Failure {
@@ -137,8 +137,8 @@ foreach ($entry in $patterns.GetEnumerator()) {
 $allowedProLinkFiles = @(
     'readme.txt',
     'smart-search-chips.php',
-    'includes\class-edition.php',
-    'includes\class-settings.php'
+    'includes/class-edition.php',
+    'includes/class-settings.php'
 )
 $proLinkPatterns = @(
     'smartsearchchips.app',
