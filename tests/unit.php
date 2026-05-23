@@ -1502,6 +1502,15 @@ function sschp_test_ai_prompt_rest_mode() {
     sschp_assert_contains( 'REST route: http://example.test/wp-json/wp/v2/product/22', $prompt, 'REST-mode prompt should include the selected item route' );
 }
 
+function sschp_test_ai_settings_card_wraps_narrow_copy() {
+    $css = file_get_contents( dirname( __DIR__ ) . '/assets/css/settings.css' );
+
+    sschp_assert_contains( '.ssc-settings-card--ai .form-table { table-layout: fixed; width: 100%; }', $css, 'AI settings table should not push past the settings card at narrow widths' );
+    sschp_assert_contains( '.ssc-settings-card--ai .form-table td { min-width: 0; overflow-wrap: anywhere; }', $css, 'AI settings table cells should wrap long explanatory copy' );
+    sschp_assert_contains( '.ssc-ai-toggle { display: inline-flex; align-items: flex-start; flex-wrap: wrap; max-width: 100%; gap: 10px; font-weight: 600; }', $css, 'AI REST toggle label should wrap instead of widening the card' );
+    sschp_assert_contains( '.ssc-ai-toggle span { min-width: 0; overflow-wrap: anywhere; }', $css, 'AI REST toggle text should stay inside its card' );
+}
+
 function sschp_test_language_request_prefers_explicit_request_value() {
     sschp_reset_test_state();
 
@@ -3163,6 +3172,7 @@ sschp_test_settings_theme_compatibility_diagnostics_report_invalid_selector();
 sschp_test_settings_theme_compatibility_diagnostics_report_valid_defaults();
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_manual_mode' );
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_rest_mode' );
+sschp_test_ai_settings_card_wraps_narrow_copy();
 sschp_test_language_request_prefers_explicit_request_value();
 sschp_test_language_detects_polylang_slug();
 sschp_test_language_applies_wpml_query_args();
