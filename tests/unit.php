@@ -354,7 +354,8 @@ function sschp_test_release_workflow_requires_version_tag_and_freemius_sdk() {
         'release workflow should validate deployment secrets before creating a GitHub release'
     );
     sschp_assert_contains( 'FREEMIUS_DEVELOPER_ID', $workflow, 'release workflow should accept the Freemius developer ID secret alias' );
-    sschp_assert_contains( 'release_mode: pending', $workflow, 'Freemius uploads should default to pending for dashboard review' );
+    sschp_assert_contains( 'release_mode: released', $workflow, 'Freemius uploads should be released immediately for now' );
+    sschp_assert_true( false === strpos( $workflow, 'release_mode: pending' ), 'Freemius uploads should not be left pending by the release workflow' );
 
     sschp_assert_contains( 'Ensure-FreemiusSdk', $build, 'release build should prepare the Freemius SDK before building the Pro zip' );
     sschp_assert_contains( 'vendor\freemius\start.php', $build, 'release build should verify the Freemius SDK entrypoint exists' );

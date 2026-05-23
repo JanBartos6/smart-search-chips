@@ -150,11 +150,11 @@ jobs:
             build/smart-search-chips-pro.zip
           generate_release_notes: true
 
-      - name: Deploy pending release to Freemius
+      - name: Deploy released build to Freemius
         uses: buttonizer/freemius-deploy@v0.1.3
         with:
           file_name: smart-search-chips-pro.zip
-          release_mode: pending
+          release_mode: released
           version: ${{ needs.verify-build.outputs.version }}
           sandbox: false
         env:

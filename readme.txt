@@ -4,7 +4,7 @@ Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.2
+Stable tag: 1.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -97,6 +97,9 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 
 == Changelog ==
 
+= 1.1.3 =
+* Changed Freemius release automation to publish Pro builds immediately instead of leaving them pending.
+
 = 1.1.2 =
 * Fixed Freemius release automation to accept the developer ID secret alias and fail before publishing if required deployment secrets are missing.
 * Keeps Pro uploads pending for dashboard review.
@@ -181,6 +184,9 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 Smart Search Chips uses [Freemius](https://freemius.com/) for license management and optional usage tracking. When you opt in during activation, basic diagnostic data (WordPress version, PHP version, site URL) is shared with Freemius. You can opt out at any time. The Pro analytics feature stores search data locally in your WordPress database. Optional analytics email digests are sent only by your WordPress site to recipients configured by the administrator; the plugin does not send analytics reports to Smart Search Chips or any third party. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.1.3 =
+Releases Pro builds immediately in Freemius during automated deployment.
 
 = 1.1.2 =
 Fixes Freemius release automation and deployment secret validation.
