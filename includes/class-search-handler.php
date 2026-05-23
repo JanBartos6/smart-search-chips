@@ -330,7 +330,7 @@ class SSCHP_Search_Handler {
                 return $p['score'] >= $threshold;
             } );
             $relevant_posts = array_values( $relevant_posts );
-        } elseif ( ! $relevanssi_ran || ! $relevanssi_available || apply_filters( 'sschp_score_relevanssi_results', false, $keyword, $query ) ) {
+        } elseif ( ! $relevanssi_available || apply_filters( 'sschp_score_relevanssi_results', false, $keyword, $query ) ) {
             $diagnostics['path'] = 'wp_query_fallback';
             $relevant_posts = $this->score_fallback_posts( $scored_posts, $keyword );
         } else {

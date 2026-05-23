@@ -2004,6 +2004,10 @@ class SSCHP_Range_Filters {
             return true;
         }
 
+        if ( preg_match( '/^\s*model\b/iu', (string) $match ) ) {
+            return true;
+        }
+
         $position = strpos( (string) $text, (string) $match );
         $position = false === $position ? 0 : (int) $position;
         $before   = substr( (string) $text, max( 0, $position - 24 ), 24 );
