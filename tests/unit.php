@@ -349,6 +349,10 @@ function sschp_test_release_workflow_requires_version_tag_and_freemius_sdk() {
     sschp_assert_true( false === strpos( $workflow, 'workflow_dispatch' ), 'release workflow should not allow manual same-version deployment' );
     sschp_assert_contains( 'Verify version metadata', $workflow, 'release workflow should verify tag and plugin metadata match before deploying' );
     sschp_assert_contains( 'Verify deployment secrets', $workflow, 'release workflow should fail before deployment when required secrets are missing' );
+    sschp_assert_true(
+        strpos( $workflow, 'Verify deployment secrets' ) < strpos( $workflow, 'Create GitHub release' ),
+        'release workflow should validate deployment secrets before creating a GitHub release'
+    );
     sschp_assert_contains( 'FREEMIUS_DEVELOPER_ID', $workflow, 'release workflow should accept the Freemius developer ID secret alias' );
     sschp_assert_contains( 'release_mode: pending', $workflow, 'Freemius uploads should default to pending for dashboard review' );
 
