@@ -20,7 +20,8 @@ function Assert-ChildPath {
         [string] $Child
     )
 
-    $parentFull = [System.IO.Path]::GetFullPath($Parent).TrimEnd('\') + '\'
+    $separator = [System.IO.Path]::DirectorySeparatorChar
+    $parentFull = [System.IO.Path]::GetFullPath($Parent).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar) + $separator
     $childFull = [System.IO.Path]::GetFullPath($Child)
 
     if (-not $childFull.StartsWith($parentFull, [System.StringComparison]::OrdinalIgnoreCase)) {

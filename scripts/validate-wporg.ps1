@@ -25,7 +25,8 @@ function Get-RelativePath {
         [string] $Path
     )
 
-    $baseFull = [System.IO.Path]::GetFullPath($BasePath).TrimEnd('\') + '\'
+    $separator = [System.IO.Path]::DirectorySeparatorChar
+    $baseFull = [System.IO.Path]::GetFullPath($BasePath).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar) + $separator
     $pathFull = [System.IO.Path]::GetFullPath($Path)
 
     if ($pathFull.StartsWith($baseFull, [System.StringComparison]::OrdinalIgnoreCase)) {
