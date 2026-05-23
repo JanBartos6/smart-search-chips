@@ -1599,6 +1599,21 @@ class SSCHP_Range_Filters {
             }
         }
 
+        if ( preg_match_all( '/\bmodel\s+[A-Z]{1,6}[-_ ]?\d{2,}\b/iu', $text, $matches ) ) {
+            foreach ( $matches[0] as $match ) {
+                $this->reject_candidate(
+                    $rejected,
+                    array(
+                        'raw'    => $match,
+                        'number' => '',
+                        'unit'   => '',
+                    ),
+                    $context,
+                    'model_number'
+                );
+            }
+        }
+
         if ( preg_match_all( '/\b[A-Z]{1,6}[-_ ]?\d{2,}\b/u', $text, $matches ) ) {
             foreach ( $matches[0] as $match ) {
                 if ( preg_match( '/^IP\s*[-_: ]?\d{2}$/iu', $match ) ) {
