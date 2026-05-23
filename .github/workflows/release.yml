@@ -4,32 +4,12 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release, for example 1.1.0'
-        required: true
-        type: string
-      freemius_release_mode:
-        description: 'Freemius release status'
-        required: true
-        default: pending
-        type: choice
-        options:
-          - pending
-          - beta
-          - released
-      wporg_dry_run:
-        description: 'Run the WordPress.org SVN deploy without committing'
-        required: true
-        default: false
-        type: boolean
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref_name || inputs.version }}
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -48,13 +28,7 @@ jobs:
         id: release_version
         shell: bash
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            version="${{ inputs.version }}"
-          else
-            version="${GITHUB_REF_NAME#v}"
-          fi
-
-          version="${version#v}"
+          version="${GITHUB_REF_NAME#v}"
 
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]; then
             echo "Release version must look like 1.1.0 or v1.1.0; got '$version'." >&2
@@ -160,7 +134,7 @@ jobs:
         uses: buttonizer/freemius-deploy@v0.1.3
         with:
           file_name: smart-search-chips-pro.zip
-          release_mode: ${{ github.event_name == 'workflow_dispatch' && inputs.freemius_release_mode || 'pending' }}
+          release_mode: pending
           version: ${{ needs.verify-build.outputs.version }}
           sandbox: false
         env:
@@ -173,7 +147,7 @@ jobs:
       - name: Deploy WordPress.org package
         uses: 10up/action-wordpress-plugin-deploy@stable
         with:
-          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.wporg_dry_run || false }}
+          dry-run: false
         env:
           SVN_USERNAME: ${{ secrets.WPORG_USERNAME || secrets.SVN_USERNAME }}
           SVN_PASSWORD: ${{ secrets.WPORG_PASSWORD || secrets.SVN_PASSWORD }}

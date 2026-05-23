@@ -340,6 +340,22 @@ function sschp_test_search_block_files_are_release_validated() {
     sschp_assert_contains( 'blocks/search/editor.js', file_get_contents( $validator ), 'WP.org validator should require search block editor script' );
 }
 
+function sschp_test_release_workflow_requires_version_tag_and_freemius_sdk() {
+    $root     = dirname( __DIR__ );
+    $workflow = file_get_contents( $root . '/.github/workflows/release.yml' );
+    $build    = file_get_contents( $root . '/scripts/build-release.ps1' );
+
+    sschp_assert_contains( "tags:\n      - 'v*'", $workflow, 'release workflow should only deploy from version tags' );
+    sschp_assert_true( false === strpos( $workflow, 'workflow_dispatch' ), 'release workflow should not allow manual same-version deployment' );
+    sschp_assert_contains( 'Verify version metadata', $workflow, 'release workflow should verify tag and plugin metadata match before deploying' );
+    sschp_assert_contains( 'release_mode: pending', $workflow, 'Freemius uploads should default to pending for dashboard review' );
+
+    sschp_assert_contains( 'Ensure-FreemiusSdk', $build, 'release build should prepare the Freemius SDK before building the Pro zip' );
+    sschp_assert_contains( 'vendor\freemius\start.php', $build, 'release build should verify the Freemius SDK entrypoint exists' );
+    sschp_assert_contains( 'github.com/Freemius/wordpress-sdk', $build, 'release build should download the Freemius SDK when it is absent from the checkout' );
+    sschp_assert_contains( 'Get-Command zip', $build, 'release build should prefer the native zip command for Freemius-compatible packages' );
+}
+
 function sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant() {
     $root           = dirname( __DIR__ ) . '/build-sources/wporg';
     $readme         = $root . '/readme.txt';
@@ -3218,6 +3234,7 @@ sschp_test_wporg_search_handler_keeps_admin_test_search_api();
 sschp_test_wporg_main_loads_search_explainer();
 sschp_test_wporg_frontend_source_registers_search_block();
 sschp_test_search_block_files_are_release_validated();
+sschp_test_release_workflow_requires_version_tag_and_freemius_sdk();
 sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant();
 sschp_test_premium_ajax_numeric_inputs_are_unslashed();
 

@@ -13,6 +13,7 @@ $ProDir = Join-Path $BuildRoot "$Slug-pro\$Slug"
 $WpOrgDir = Join-Path $BuildRoot "$Slug-wporg\$Slug"
 $ProZip = Join-Path $BuildRoot "$Slug-pro.zip"
 $WpOrgZip = Join-Path $BuildRoot "$Slug-wporg.zip"
+$FreemiusVersion = '2.13.1'
 
 function Assert-ChildPath {
     param(
@@ -77,6 +78,46 @@ function Copy-PluginTree {
     }
 }
 
+function Ensure-FreemiusSdk {
+    $sdkStart = Join-Path $Root 'vendor\freemius\start.php'
+    if (Test-Path $sdkStart) {
+        return
+    }
+
+    $vendorDir = Join-Path $Root 'vendor\freemius'
+    $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) "sschp-freemius-$([System.Guid]::NewGuid().ToString())"
+    $archive = Join-Path ([System.IO.Path]::GetTempPath()) "freemius-sdk-$FreemiusVersion.tar.gz"
+    $url = "https://github.com/Freemius/wordpress-sdk/archive/refs/tags/$FreemiusVersion.tar.gz"
+
+    Write-Host "Downloading Freemius SDK v$FreemiusVersion..."
+    New-Item -ItemType Directory -Path $vendorDir -Force | Out-Null
+    New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
+
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $archive
+        tar -xzf $archive -C $tempRoot
+
+        $sourceDir = Join-Path $tempRoot "wordpress-sdk-$FreemiusVersion"
+        if (-not (Test-Path $sourceDir)) {
+            throw "Downloaded Freemius SDK archive did not contain expected directory: $sourceDir"
+        }
+
+        Get-ChildItem -LiteralPath $sourceDir -Force | Copy-Item -Destination $vendorDir -Recurse -Force
+    } finally {
+        if (Test-Path $archive) {
+            Remove-Item -LiteralPath $archive -Force
+        }
+
+        if (Test-Path $tempRoot) {
+            Remove-Item -LiteralPath $tempRoot -Recurse -Force
+        }
+    }
+
+    if (-not (Test-Path $sdkStart)) {
+        throw "Freemius SDK download completed, but start.php was not found."
+    }
+}
+
 function Copy-WpOrgSourceOverrides {
     param([string] $PluginDir)
 
@@ -109,7 +150,11 @@ function Compress-Plugin {
 
     Push-Location $ParentDir
     try {
-        Compress-Archive -Path $Slug -DestinationPath $ZipPath -Force
+        if (Get-Command zip -ErrorAction SilentlyContinue) {
+            & zip -qr $ZipPath $Slug
+        } else {
+            Compress-Archive -Path $Slug -DestinationPath $ZipPath -Force
+        }
     } finally {
         Pop-Location
     }
@@ -142,6 +187,7 @@ function Remove-WpOrgExcludedFiles {
 }
 
 function Build-Pro {
+    Ensure-FreemiusSdk
     $parent = Split-Path -Parent $ProDir
     New-Item -ItemType Directory -Path $parent -Force | Out-Null
     Copy-PluginTree -Destination $ProDir -IncludeVendor $true
