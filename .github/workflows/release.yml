@@ -120,16 +120,6 @@ jobs:
           name: release-packages-${{ needs.verify-build.outputs.version }}
           path: .
 
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ needs.verify-build.outputs.version }}
-          name: Smart Search Chips ${{ needs.verify-build.outputs.version }}
-          files: |
-            build/smart-search-chips-wporg.zip
-            build/smart-search-chips-pro.zip
-          generate_release_notes: true
-
       - name: Verify deployment secrets
         shell: bash
         env:
@@ -149,6 +139,16 @@ jobs:
             fi
           done
           exit "$missing"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.verify-build.outputs.version }}
+          name: Smart Search Chips ${{ needs.verify-build.outputs.version }}
+          files: |
+            build/smart-search-chips-wporg.zip
+            build/smart-search-chips-pro.zip
+          generate_release_notes: true
 
       - name: Deploy pending release to Freemius
         uses: buttonizer/freemius-deploy@v0.1.3
