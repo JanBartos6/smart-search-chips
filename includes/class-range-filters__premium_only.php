@@ -23,6 +23,7 @@ class SSCHP_Range_Filters {
         add_filter( 'sschp_chip_tag_counts', array( $this, 'add_range_chips' ), 20, 3 );
         add_filter( 'sschp_filter_posts_by_tags', array( $this, 'filter_posts_by_range_tags' ), 10, 3 );
         add_filter( 'sschp_active_chip_fallback', array( $this, 'active_range_chip_fallback' ), 10, 5 );
+        add_filter( 'sschp_generated_chips', array( $this, 'prioritize_range_chips' ), 10, 6 );
         add_filter( 'sschp_render_chip_html', array( $this, 'render_range_chip' ), 10, 4 );
     }
 
@@ -314,6 +315,122 @@ class SSCHP_Range_Filters {
         }
 
         return $tag_counts;
+    }
+
+    /**
+     * Keep accepted range chips visible when normal chips fill the limit.
+     *
+     * @param array $chips       Generated chips.
+     * @param array $tag_counts  Ranked tag counts and virtual range chips.
+     * @param array $posts_data  Posts data.
+     * @param array $active_tags Active tags.
+     * @param int   $max_chips   Maximum chips.
+     * @param int   $max_length  Maximum regular tag label length.
+     * @return array
+     */
+    public function prioritize_range_chips( $chips, $tag_counts, $posts_data, $active_tags, $max_chips, $max_length ) {
+        $max_chips = max( 1, (int) $max_chips );
+        $target    = (int) apply_filters( 'sschp_range_visible_chip_target', 2, $chips, $tag_counts, $posts_data, $active_tags );
+        $target    = max( 1, min( $target, $max_chips ) );
+
+        $range_candidates = array();
+        foreach ( (array) $tag_counts as $key => $data ) {
+            if ( ! $this->is_range_chip( $data ) ) {
+                continue;
+            }
+
+            $range_candidates[ $key ] = $data;
+        }
+
+        if ( empty( $range_candidates ) ) {
+            return $chips;
+        }
+
+        $visible = 0;
+        foreach ( (array) $chips as $chip ) {
+            if ( $this->is_range_chip( $chip ) ) {
+                $visible++;
+            }
+        }
+
+        if ( $visible >= $target ) {
+            return $chips;
+        }
+
+        foreach ( $range_candidates as $key => $range_chip ) {
+            if ( $visible >= $target ) {
+                break;
+            }
+
+            if ( isset( $chips[ $key ] ) ) {
+                continue;
+            }
+
+            $roomy_chips = $this->make_room_for_range_chip( $chips, $active_tags, $max_chips );
+            if ( count( $roomy_chips ) >= $max_chips ) {
+                continue;
+            }
+
+            $chips   = array( $key => $range_chip ) + $roomy_chips;
+            $visible++;
+        }
+
+        return $chips;
+    }
+
+    /**
+     * Check whether a chip is a virtual range chip.
+     *
+     * @param array $chip Chip data.
+     * @return bool
+     */
+    private function is_range_chip( $chip ) {
+        return is_array( $chip ) && isset( $chip['type'] ) && self::CHIP_TYPE === $chip['type'];
+    }
+
+    /**
+     * Remove the last inactive regular chip when range chips need visibility.
+     *
+     * @param array $chips       Current chips.
+     * @param array $active_tags Active tags.
+     * @param int   $max_chips   Maximum chips.
+     * @return array
+     */
+    private function make_room_for_range_chip( $chips, $active_tags, $max_chips ) {
+        if ( count( $chips ) < $max_chips ) {
+            return $chips;
+        }
+
+        $keys = array_reverse( array_keys( $chips ) );
+        foreach ( $keys as $key ) {
+            if ( $this->is_range_chip( $chips[ $key ] ) || $this->chip_matches_active_tag( $key, $chips[ $key ], $active_tags ) ) {
+                continue;
+            }
+
+            unset( $chips[ $key ] );
+            break;
+        }
+
+        return $chips;
+    }
+
+    /**
+     * Check whether a chip represents an active tag value.
+     *
+     * @param string $key         Chip key.
+     * @param array  $chip        Chip data.
+     * @param array  $active_tags Active tags.
+     * @return bool
+     */
+    private function chip_matches_active_tag( $key, $chip, $active_tags ) {
+        $active_tags_lower = array_map( 'mb_strtolower', array_map( 'strval', (array) $active_tags ) );
+        if ( in_array( mb_strtolower( (string) $key ), $active_tags_lower, true ) ) {
+            return true;
+        }
+
+        $value = isset( $chip['value'] ) ? (string) $chip['value'] : (string) $key;
+
+        return in_array( mb_strtolower( $value ), $active_tags_lower, true );
     }
 
     /**
@@ -1186,6 +1303,7 @@ class SSCHP_Range_Filters {
         $facts      = array();
         $candidates = array_merge(
             $this->match_currency_candidates( $text ),
+            $this->match_leading_unit_candidates( $text ),
             $this->match_unit_candidates( $text ),
             $this->match_inferred_unit_candidates( $text, $context )
         );
@@ -1233,6 +1351,31 @@ class SSCHP_Range_Filters {
     }
 
     /**
+     * Match explicit unit + number candidates such as DN 15 and PN 16.
+     *
+     * @param string $text Text.
+     * @return array
+     */
+    private function match_leading_unit_candidates( $text ) {
+        if ( ! preg_match_all( '/(?<![\pL\pN])(?P<unit>DN|PN)\s*[-:]?\s*(?P<number>[-+]?\d+(?:[\.,]\d+)?)(?![\pL\pN])/iu', $text, $matches, PREG_SET_ORDER ) ) {
+            return array();
+        }
+
+        $candidates = array();
+        foreach ( $matches as $match ) {
+            $candidates[] = array(
+                'number' => $match['number'],
+                'unit'   => $match['unit'],
+                'raw'    => $match[0],
+                'before' => $this->text_before_match( $text, $match[0] ),
+                'after'  => '',
+            );
+        }
+
+        return $candidates;
+    }
+
+    /**
      * Match number + explicit unit candidates.
      *
      * @param string $text Text.
@@ -1246,6 +1389,10 @@ class SSCHP_Range_Filters {
 
         $candidates = array();
         foreach ( $matches as $match ) {
+            if ( preg_match( '/^(?:DN|PN)$/iu', trim( $match['unit'] ) ) ) {
+                continue;
+            }
+
             $candidates[] = array(
                 'number' => $match['number'],
                 'unit'   => $match['unit'],
@@ -1419,12 +1566,17 @@ class SSCHP_Range_Filters {
             'c'     => array( '°C', 'degc', 1 ),
             'degc'  => array( '°C', 'degc', 1 ),
             'oc'    => array( '°C', 'degc', 1 ),
+            'bar'   => array( 'bar', 'bar', 1 ),
+            'dn'    => array( 'DN', 'dn', 1 ),
+            'pn'    => array( 'PN', 'pn', 1 ),
         );
 
         if ( preg_match( '/^watt(?:s|u|ů|y|ech|ům|em)?$/u', $compact ) ) {
             $compact = 'watt';
         } elseif ( preg_match( '/^volt(?:s|u|ů|y|ech|ům|em)?$/u', $compact ) ) {
             $compact = 'v';
+        } elseif ( preg_match( '/^bar(?:u|ů|y|ech|ům|em)?$/u', $compact ) ) {
+            $compact = 'bar';
         } elseif ( preg_match( '/^v(?:ac)$/u', $compact ) ) {
             $compact = 'vac';
         } elseif ( preg_match( '/^v(?:dc)$/u', $compact ) ) {
@@ -1485,6 +1637,22 @@ class SSCHP_Range_Filters {
         $field = mb_strtolower( (string) $source_field );
         $field = trim( str_replace( array( '-', ' ' ), '_', $field ), '_' );
 
+        $field_units = array(
+            'dn'                 => 'DN',
+            'pa_dn'              => 'DN',
+            'nominal_diameter'   => 'DN',
+            'jmenovita_svetlost' => 'DN',
+            'jmenovit_svtlost'   => 'DN',
+            'pn'                 => 'PN',
+            'pa_pn'              => 'PN',
+            'pressure'           => 'bar',
+            'tlak'               => 'bar',
+        );
+
+        if ( isset( $field_units[ $field ] ) ) {
+            return $field_units[ $field ];
+        }
+
         $suffixes = array(
             '_watt' => 'W',
             '_watts' => 'W',
@@ -1501,6 +1669,9 @@ class SSCHP_Range_Filters {
             '_g' => 'g',
             '_c' => '°C',
             '_degc' => '°C',
+            '_bar' => 'bar',
+            '_dn' => 'DN',
+            '_pn' => 'PN',
         );
 
         foreach ( $suffixes as $suffix => $unit ) {
@@ -1546,6 +1717,9 @@ class SSCHP_Range_Filters {
                 'mm',
                 'g',
                 'degc',
+                'bar',
+                'dn',
+                'pn',
                 'currency_usd', 'currency_eur', 'currency_gbp', 'currency_czk',
             ),
             $tag,
@@ -1617,6 +1791,10 @@ class SSCHP_Range_Filters {
         if ( preg_match_all( '/\b[A-Z]{1,6}[-_ ]?\d{2,}\b/u', $text, $matches ) ) {
             foreach ( $matches[0] as $match ) {
                 if ( preg_match( '/^IP\s*[-_: ]?\d{2}$/iu', $match ) ) {
+                    continue;
+                }
+
+                if ( preg_match( '/^(?:DN|PN)\s*[-_: ]?\d+(?:[\.,]\d+)?$/iu', $match ) ) {
                     continue;
                 }
 
@@ -1693,6 +1871,7 @@ class SSCHP_Range_Filters {
             'mm', 'cm', 'm',
             'kg', 'g',
             'degc', 'c',
+            'bar', 'dn', 'pn',
         );
 
         foreach ( $unit_suffixes as $suffix ) {
@@ -1701,6 +1880,10 @@ class SSCHP_Range_Filters {
 
         if ( in_array( $field, array( 'price', 'regular_price', 'sale_price' ), true ) ) {
             return __( 'Price', 'smart-search-chips' );
+        }
+
+        if ( in_array( $field, array( 'dn', 'pn' ), true ) ) {
+            return strtoupper( $field );
         }
 
         $label = trim( preg_replace( '/[_\-]+/', ' ', $field ) );
@@ -1758,7 +1941,9 @@ class SSCHP_Range_Filters {
             return 'price_like_value';
         }
 
-        if ( in_array( $source, array( 'title', 'content' ), true ) && preg_match( '/\b[A-Z]{1,6}[-_ ]?\d{2,}\b/u', $text ) && ! preg_match( '/\d+\s*' . preg_quote( $unit_data['raw_unit'], '/' ) . '/iu', $raw ) ) {
+        $raw_unit_pattern      = preg_quote( $unit_data['raw_unit'], '/' );
+        $raw_has_explicit_unit = preg_match( '/\d+\s*' . $raw_unit_pattern . '/iu', $raw ) || preg_match( '/' . $raw_unit_pattern . '\s*[-:]?\s*\d+/iu', $raw );
+        if ( in_array( $source, array( 'title', 'content' ), true ) && preg_match( '/\b[A-Z]{1,6}[-_ ]?\d{2,}\b/u', $text ) && ! $raw_has_explicit_unit ) {
             return $this->looks_like_model_number( $text, $raw, $context ) ? 'model_number' : 'sku_like_value';
         }
 

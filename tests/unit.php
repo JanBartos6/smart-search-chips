@@ -928,6 +928,57 @@ function sschp_test_range_filters_keep_ac_dc_voltage_separate() {
     sschp_assert_same( 230.0, $chips['sschp_range|v-ac|v_ac']['range']['min'], 'AC slider should not include DC values' );
 }
 
+function sschp_test_range_filters_create_valve_sliders_from_dn_pn_and_bar_values() {
+    $range = new SSCHP_Range_Filters();
+    $chips = $range->add_range_chips(
+        array(),
+        array(
+            sschp_make_range_post( 1, array( 'DN 15', 'PN 16', 'Pressure: 6 bar' ), 'Ventil DN 15 PN 16' ),
+            sschp_make_range_post( 2, array( 'DN 20', 'PN 25', 'Pressure: 10 bar' ), 'Ventil DN 20 PN 25' ),
+            sschp_make_range_post( 3, array( 'DN 25', 'PN 40', 'Pressure: 16 bar' ), 'Ventil DN 25 PN 40' ),
+        ),
+        array()
+    );
+
+    sschp_assert_true( isset( $chips['sschp_range|dn|dn'] ), 'DN values should create a valve size range chip' );
+    sschp_assert_true( isset( $chips['sschp_range|pn|pn'] ), 'PN values should create a valve pressure class range chip' );
+    sschp_assert_true( isset( $chips['sschp_range|pressure|bar'] ), 'bar values should create a pressure range chip' );
+    sschp_assert_same( 15.0, $chips['sschp_range|dn|dn']['range']['min'], 'DN range should preserve the minimum nominal size' );
+    sschp_assert_same( 25.0, $chips['sschp_range|dn|dn']['range']['max'], 'DN range should preserve the maximum nominal size' );
+    sschp_assert_same( 16.0, $chips['sschp_range|pn|pn']['range']['min'], 'PN range should not treat the preceding DN value as a PN value' );
+    sschp_assert_same( 6.0, $chips['sschp_range|pressure|bar']['range']['min'], 'bar range should preserve the minimum pressure' );
+    sschp_assert_same( 'bar', $chips['sschp_range|pressure|bar']['range']['unit'], 'bar range should keep bar as its unit' );
+}
+
+function sschp_test_range_filters_prioritize_ranges_when_normal_chips_fill_limit() {
+    $range      = new SSCHP_Range_Filters();
+    $tag_counts = $range->add_range_chips(
+        array(
+            'brand a' => array( 'label' => 'Brand A', 'value' => 'Brand A', 'count' => 9 ),
+            'steel'   => array( 'label' => 'Steel', 'value' => 'Steel', 'count' => 8 ),
+            'indoor'  => array( 'label' => 'Indoor', 'value' => 'Indoor', 'count' => 7 ),
+            'thread'  => array( 'label' => 'Thread', 'value' => 'Thread', 'count' => 6 ),
+        ),
+        array(
+            sschp_make_range_post( 1, array( 'DN 15' ) ),
+            sschp_make_range_post( 2, array( 'DN 20' ) ),
+        ),
+        array()
+    );
+
+    $chips = array(
+        'brand a' => $tag_counts['brand a'],
+        'steel'   => $tag_counts['steel'],
+        'indoor'  => $tag_counts['indoor'],
+        'thread'  => $tag_counts['thread'],
+    );
+
+    $prioritized = $range->prioritize_range_chips( $chips, $tag_counts, array(), array(), 4, 40 );
+
+    sschp_assert_true( isset( $prioritized['sschp_range|dn|dn'] ), 'accepted range chips should remain visible when normal chips fill the max chip limit' );
+    sschp_assert_same( 4, count( $prioritized ), 'range prioritization should respect the max chip limit' );
+}
+
 function sschp_test_range_filters_reject_ip_ratings_as_categorical() {
     $range = new SSCHP_Range_Filters();
     $posts = array(
@@ -3172,6 +3223,8 @@ sschp_test_wporg_build_excludes_pro_chip_rules_class();
 sschp_test_range_chip_css_uses_aligned_desktop_thumbs();
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_watt_slider_from_consistent_facts' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_keep_ac_dc_voltage_separate' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_valve_sliders_from_dn_pn_and_bar_values' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_prioritize_ranges_when_normal_chips_fill_limit' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_ip_ratings_as_categorical' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_model_numbers' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_normalize_dimensions_to_common_unit' );
