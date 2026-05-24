@@ -417,6 +417,23 @@ function sschp_test_premium_ajax_numeric_inputs_are_unslashed() {
     }
 }
 
+function sschp_test_range_chip_css_uses_aligned_desktop_thumbs() {
+    $path = dirname( __DIR__ ) . '/assets/css/range-filters__premium_only.css';
+
+    sschp_assert_true( is_file( $path ), 'Pro range chip stylesheet should exist' );
+
+    $css = is_file( $path ) ? file_get_contents( $path ) : '';
+
+    sschp_assert_contains( '--ssc-range-track-height: 3px;', $css, 'range chip rail should use a compact desktop track height' );
+    sschp_assert_contains( '--ssc-range-thumb-size: 10px;', $css, 'range chip desktop thumb should be smaller for pointer precision' );
+    sschp_assert_contains( '--ssc-range-hit-size: 22px;', $css, 'range chip desktop drag area should remain easy to target' );
+    sschp_assert_contains( 'top: 50%;', $css, 'range chip rail should be vertically centered in the drag area' );
+    sschp_assert_contains( 'transform: translateY(-50%);', $css, 'range chip rail centering should not depend on hard-coded offsets' );
+    sschp_assert_contains( 'margin-top: calc((var(--ssc-range-track-height) - var(--ssc-range-thumb-size)) / 2);', $css, 'range chip WebKit thumb should align from the track/thumb variables' );
+    sschp_assert_contains( '@media (pointer: coarse)', $css, 'range chip should keep larger handles for touch/coarse pointers' );
+    sschp_assert_contains( '--ssc-range-thumb-size: 16px;', $css, 'range chip coarse pointer handles should remain touch-friendly' );
+}
+
 function sschp_test_chip_engine_extract_tags() {
     $engine = new SSCHP_Chip_Engine();
     $tags   = $engine->extract_tags( 'Steel; IP65; steel', 'Outdoor, CE, outdoor' );
@@ -3147,6 +3164,7 @@ sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_invalid_im
 sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_unauthorized_import_is_rejected' );
 sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_import_export_handlers_are_admin_secured' );
 sschp_test_wporg_build_excludes_pro_chip_rules_class();
+sschp_test_range_chip_css_uses_aligned_desktop_thumbs();
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_watt_slider_from_consistent_facts' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_keep_ac_dc_voltage_separate' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_ip_ratings_as_categorical' );
