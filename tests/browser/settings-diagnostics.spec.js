@@ -19,7 +19,10 @@ async function installSettingsFixture(page, values = {}, body = "") {
           <p>Guaranteed Search Mode uses the Smart Search Chips endpoint and does not depend on theme AJAX.</p>
           <input id="sschp-guaranteed-shortcode" type="text" value="[sschp_search]" readonly />
           <button type="button" data-sschp-copy="[sschp_search]">Copy shortcode</button>
-          <p>Add a WordPress Shortcode block and paste [sschp_search].</p>
+          <div class="ssc-setup-paths">
+            <p><strong>Block</strong><span>Find and add the Smart Search Chips Search block from the block inserter.</span></p>
+            <p><strong>Shortcode fallback</strong><span>Search for WordPress's built-in Shortcode block and paste [sschp_search].</span></p>
+          </div>
         </div>
       </section>
       <button type="button" id="sschp-run-compat-test">Run frontend compatibility test</button>
@@ -118,6 +121,8 @@ test.describe("Settings compatibility diagnostics", () => {
     await expect(page.locator(".ssc-settings-card--setup")).toContainText("For the most reliable setup");
     await expect(page.locator(".ssc-settings-card--setup")).toContainText("Existing theme search enhancement is automatic");
     await expect(page.locator("#sschp-guaranteed-shortcode")).toHaveValue("[sschp_search]");
+    await expect(page.locator(".ssc-settings-card--setup")).toContainText("block inserter");
+    await expect(page.locator(".ssc-settings-card--setup")).toContainText("Shortcode fallback");
     await expect(page.locator(".ssc-settings-card--setup")).toContainText("Shortcode block");
     await expect(page.locator(".ssc-settings-card--setup")).toContainText("does not depend on theme AJAX");
   });

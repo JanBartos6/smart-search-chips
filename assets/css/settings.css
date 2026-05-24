@@ -54,6 +54,9 @@
 .ssc-setup-step { display: grid; align-content: start; gap: 8px; padding: 14px; border: 1px solid #d8e8f5; border-radius: 12px; background: #fff; }
 .ssc-setup-step strong { color: #1d2327; }
 .ssc-setup-step p { margin: 0; }
+.ssc-setup-paths { display: grid; gap: 8px; }
+.ssc-setup-paths p { display: grid; gap: 2px; }
+.ssc-setup-paths span { color: #50575e; }
 .ssc-copy-row { display: flex; gap: 8px; align-items: center; }
 .ssc-copy-row input { flex: 1; min-width: 0; }
 .ssc-index-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }

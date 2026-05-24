@@ -276,6 +276,8 @@ function sschp_test_wporg_settings_source_keeps_selector_safety() {
     sschp_assert_contains( 'sschp_search_index_control', $contents, 'WP.org settings source should register the local search index controls endpoint' );
     sschp_assert_contains( 'Rebuild index now', $contents, 'WP.org settings source should render manual index rebuild control' );
     sschp_assert_contains( 'Pause indexing', $contents, 'WP.org settings source should render pause indexing control' );
+    sschp_assert_contains( 'blockPathLabel', $contents, 'WP.org settings source should keep explicit guaranteed search block guidance' );
+    sschp_assert_contains( 'Shortcode fallback', $contents, 'WP.org settings source should keep explicit guaranteed search shortcode fallback guidance' );
 }
 
 function sschp_test_wporg_search_handler_keeps_admin_test_search_api() {
@@ -2148,7 +2150,10 @@ function sschp_test_settings_setup_wizard_recommends_guaranteed_shortcode() {
     $setup    = $settings->get_setup_wizard_data();
 
     sschp_assert_same( '[sschp_search]', $setup['shortcode'], 'setup wizard should expose the guaranteed shortcode' );
-    sschp_assert_contains( 'Smart Search Chips Search block', $setup['shortcodeBlockLabel'], 'setup wizard should recommend the guaranteed Gutenberg block path' );
+    sschp_assert_contains( 'Smart Search Chips Search block', $setup['blockPathLabel'], 'setup wizard should recommend the guaranteed Gutenberg block path' );
+    sschp_assert_contains( 'block inserter', $setup['blockPathLabel'], 'setup wizard should explain where to find the guaranteed Gutenberg block' );
+    sschp_assert_contains( 'built-in Shortcode block', $setup['shortcodeBlockLabel'], 'setup wizard should clarify that the second path uses WordPress core Shortcode block' );
+    sschp_assert_contains( 'page builder', $setup['shortcodeBlockLabel'], 'setup wizard should explain that the shortcode can be pasted outside the core Shortcode block' );
     sschp_assert_contains( 'Smart Search Chips endpoint', $setup['guaranteedModeLabel'], 'setup wizard should explain that guaranteed mode uses the SSC endpoint' );
     sschp_assert_same( 'Passive by default', $setup['themeEnhancementStatus'], 'theme enhancement should be passive when no override action is configured' );
     sschp_assert_same( array( 'Posts', 'Products' ), $setup['selectedPostTypeLabels'], 'setup wizard should show selected post type labels' );

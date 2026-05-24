@@ -219,7 +219,8 @@ class SSCHP_Settings {
             'selectedPostTypes'       => $selected_post_types,
             'selectedPostTypeLabels'  => $selected_labels,
             'shortcode'               => '[sschp_search]',
-            'shortcodeBlockLabel'     => __( 'Add the Smart Search Chips Search block, or use a Shortcode block with [sschp_search].', 'smart-search-chips' ),
+            'blockPathLabel'          => __( 'Find and add the Smart Search Chips Search block from the block inserter.', 'smart-search-chips' ),
+            'shortcodeBlockLabel'     => __( 'Search for WordPress\'s built-in Shortcode block and paste [sschp_search]. If your editor or page builder hides that block, paste the shortcode into its shortcode or widget module instead.', 'smart-search-chips' ),
             'guaranteedModeLabel'     => __( 'Guaranteed Search Mode uses the Smart Search Chips endpoint and does not depend on theme AJAX.', 'smart-search-chips' ),
             'themeEnhancementStatus'  => $diagnostics['ajaxActionConfigured'] ? __( 'Configured', 'smart-search-chips' ) : __( 'Passive by default', 'smart-search-chips' ),
             'themeEnhancementMessage' => $diagnostics['ajaxActionConfigured']
@@ -258,7 +259,16 @@ class SSCHP_Settings {
                         <input id="sschp-guaranteed-shortcode" type="text" class="regular-text code" value="<?php echo esc_attr( $setup['shortcode'] ); ?>" readonly />
                         <button type="button" class="button button-secondary" data-sschp-copy="<?php echo esc_attr( $setup['shortcode'] ); ?>"><?php esc_html_e( 'Copy shortcode', 'smart-search-chips' ); ?></button>
                     </div>
-                    <p class="description"><?php echo esc_html( $setup['shortcodeBlockLabel'] ); ?></p>
+                    <div class="ssc-setup-paths" aria-label="<?php esc_attr_e( 'Guaranteed search setup paths', 'smart-search-chips' ); ?>">
+                        <p>
+                            <strong><?php esc_html_e( 'Block', 'smart-search-chips' ); ?></strong>
+                            <span><?php echo esc_html( $setup['blockPathLabel'] ); ?></span>
+                        </p>
+                        <p>
+                            <strong><?php esc_html_e( 'Shortcode fallback', 'smart-search-chips' ); ?></strong>
+                            <span><?php echo esc_html( $setup['shortcodeBlockLabel'] ); ?></span>
+                        </p>
+                    </div>
                 </div>
 
                 <div class="ssc-setup-step">
