@@ -1511,6 +1511,16 @@ function sschp_test_ai_settings_card_wraps_narrow_copy() {
     sschp_assert_contains( '.ssc-ai-toggle span { min-width: 0; overflow-wrap: anywhere; }', $css, 'AI REST toggle text should stay inside its card' );
 }
 
+function sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow() {
+    $css = file_get_contents( dirname( __DIR__ ) . '/assets/css/settings.css' );
+
+    sschp_assert_contains( '.ssc-settings-card--ai-lab .form-table { table-layout: fixed; width: 100%; }', $css, 'AI prompt picker table should stay inside the settings card' );
+    sschp_assert_contains( '.ssc-ai-picker > * { min-width: 0; }', $css, 'AI prompt picker columns should be allowed to shrink' );
+    sschp_assert_contains( '.ssc-ai-picker__selection { order: -1; }', $css, 'selected items panel should appear before the browser when the picker stacks' );
+    sschp_assert_contains( '.ssc-ai-browser-results { max-height: 420px; }', $css, 'narrow AI browser results should stay scrollable so selected items remain reachable' );
+    sschp_assert_contains( '.ssc-ai-selected-items { max-height: 320px; }', $css, 'narrow selected items list should remain visible without taking over the page' );
+}
+
 function sschp_test_language_request_prefers_explicit_request_value() {
     sschp_reset_test_state();
 
@@ -3173,6 +3183,7 @@ sschp_test_settings_theme_compatibility_diagnostics_report_valid_defaults();
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_manual_mode' );
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_rest_mode' );
 sschp_test_ai_settings_card_wraps_narrow_copy();
+sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow();
 sschp_test_language_request_prefers_explicit_request_value();
 sschp_test_language_detects_polylang_slug();
 sschp_test_language_applies_wpml_query_args();
