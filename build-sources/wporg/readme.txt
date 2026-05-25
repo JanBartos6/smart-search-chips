@@ -92,7 +92,7 @@ Smart Search Chips Pro is a separate add-on for advanced workflows such as ACF/c
 == Changelog ==
 
 = 1.1.9 =
-* Added a legacy `[ssc_search]` shortcode alias so older demo/theme content renders the guaranteed search UI instead of shortcode text.
+* Added a legacy shortcode alias so older demo/theme content renders the guaranteed search UI instead of shortcode text.
 
 = 1.1.8 =
 * Updated release metadata for the latest Pro numeric range improvements.
@@ -178,7 +178,7 @@ Smart Search Chips processes search queries entered by visitors to generate dyna
 == Upgrade Notice ==
 
 = 1.1.9 =
-Restores older `[ssc_search]` embeds by routing them to the guaranteed Smart Search Chips search UI.
+Restores older legacy shortcode embeds by routing them to the guaranteed Smart Search Chips search UI.
 
 = 1.1.8 =
 Updates release metadata for the latest compatibility improvements.

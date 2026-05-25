@@ -98,7 +98,7 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 == Changelog ==
 
 = 1.1.9 =
-* Added a legacy `[ssc_search]` shortcode alias so older demo/theme content renders the guaranteed search UI instead of shortcode text.
+* Added a legacy shortcode alias so older demo/theme content renders the guaranteed search UI instead of shortcode text.
 
 = 1.1.8 =
 * Improved Pro numeric range detection for valve-style values such as DN, PN, and bar, and kept accepted range chips visible when normal chips fill the chip limit.
@@ -204,7 +204,7 @@ Smart Search Chips uses [Freemius](https://freemius.com/) for license management
 == Upgrade Notice ==
 
 = 1.1.9 =
-Restores older `[ssc_search]` embeds by routing them to the guaranteed Smart Search Chips search UI.
+Restores older legacy shortcode embeds by routing them to the guaranteed Smart Search Chips search UI.
 
 = 1.1.8 =
 Improves Pro numeric range chips for valve-style product searches.
