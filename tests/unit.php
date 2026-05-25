@@ -123,7 +123,7 @@ function sschp_test_scheduled_hooks() {
 }
 
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls, $sschp_test_registered_blocks;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls, $sschp_test_registered_blocks, $sschp_test_shortcodes;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -159,6 +159,7 @@ function sschp_reset_test_state() {
     $sschp_test_wp_query_count     = 0;
     $sschp_test_post_terms_calls   = array();
     $sschp_test_registered_blocks  = array();
+    $sschp_test_shortcodes         = array();
     $_POST                    = array();
     $_REQUEST                 = array();
     $_SERVER                  = array();
@@ -1152,6 +1153,24 @@ function sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_res
     sschp_assert_contains( 'aria-live="polite"', $markup, 'shortcode results container should politely announce AJAX updates' );
     sschp_assert_contains( 'aria-busy="false"', $markup, 'shortcode results container should expose an initial not-busy state' );
     sschp_assert_contains( 'data-sschp-mode="guaranteed"', $markup, 'shortcode search should identify the guaranteed integration mode' );
+}
+
+function sschp_test_frontend_registers_legacy_search_shortcode_alias() {
+    global $sschp_test_shortcodes;
+
+    sschp_reset_test_state();
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $frontend->init();
+
+    sschp_assert_true( isset( $sschp_test_shortcodes['sschp_search'] ), 'frontend should register the documented guaranteed search shortcode' );
+    sschp_assert_true( isset( $sschp_test_shortcodes['ssc_search'] ), 'frontend should register the legacy search shortcode alias' );
+    sschp_assert_true( is_callable( $sschp_test_shortcodes['ssc_search'] ), 'legacy shortcode alias should render through the normal search form callback' );
+
+    $markup = call_user_func( $sschp_test_shortcodes['ssc_search'], array( 'placeholder' => 'Try searching: tea' ) );
+
+    sschp_assert_contains( 'placeholder="Try searching: tea"', $markup, 'legacy shortcode alias should pass attributes to the guaranteed search form' );
+    sschp_assert_contains( 'data-sschp-mode="guaranteed"', $markup, 'legacy shortcode alias should render the guaranteed search UI' );
 }
 
 function sschp_test_frontend_registers_guaranteed_search_block() {
@@ -3234,6 +3253,7 @@ sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_explains_mixed_units_and_low_confidence' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_labels_sources_for_non_developers' );
 sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_results();
+sschp_test_frontend_registers_legacy_search_shortcode_alias();
 sschp_test_frontend_registers_guaranteed_search_block();
 sschp_test_frontend_search_block_renders_shortcode_ui();
 sschp_test_search_handler_normalizes_active_tags_case_insensitively();

@@ -46,6 +46,7 @@ $sschp_test_mail            = array();
 $sschp_test_wp_query_count  = 0;
 $sschp_test_post_terms_calls = array();
 $sschp_test_registered_blocks = array();
+$sschp_test_shortcodes      = array();
 
 if ( ! class_exists( 'SSCHP_Test_WPDB' ) ) {
     class SSCHP_Test_WPDB {
@@ -567,7 +568,11 @@ if ( ! function_exists( 'add_settings_error' ) ) {
 }
 
 if ( ! function_exists( 'add_shortcode' ) ) {
-    function add_shortcode( $tag, $callback ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+    function add_shortcode( $tag, $callback ) {
+        global $sschp_test_shortcodes;
+
+        $sschp_test_shortcodes[ $tag ] = $callback;
+
         return true;
     }
 }
@@ -608,8 +613,10 @@ if ( ! function_exists( 'shortcode_atts' ) ) {
 }
 
 if ( ! function_exists( 'shortcode_exists' ) ) {
-    function shortcode_exists( $tag ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-        return 'sschp_search' === $tag;
+    function shortcode_exists( $tag ) {
+        global $sschp_test_shortcodes;
+
+        return 'sschp_search' === $tag || isset( $sschp_test_shortcodes[ $tag ] );
     }
 }
 

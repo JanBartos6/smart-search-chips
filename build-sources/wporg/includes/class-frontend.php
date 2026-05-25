@@ -35,6 +35,7 @@ class SSCHP_Frontend {
         add_action( 'init', array( $this, 'register_search_block' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
         add_shortcode( 'sschp_search', array( $this, 'render_search_form' ) );
+        add_shortcode( 'ssc_search', array( $this, 'render_search_form' ) );
         add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
         add_filter( 'the_posts', array( $this, 'filter_archive_posts' ), 10, 2 );
         add_action( 'loop_start', array( $this, 'render_archive_chips_before_loop' ) );
