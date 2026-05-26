@@ -1387,7 +1387,7 @@ class SSCHP_Range_Filters {
         $number_prefix = '(?:[Øø⌀]\s*)?';
         $delimiter     = '(?:[-–—/x×]|až|to)';
         $unit          = '°\s*C|°C|Kč|CZK|USD|EUR|[\pLµμ%]+(?:\s*(?:AC|DC))?';
-        $pattern       = '/(?<![\pL\pN])(?P<series>' . $number_prefix . $number . '(?:\s*' . $delimiter . '\s*' . $number_prefix . $number . ')+)\s*(?P<unit>' . $unit . ')(?![\pL\pN])/iu';
+        $pattern       = '~(?<![\pL\pN])(?P<series>' . $number_prefix . $number . '(?:\s*' . $delimiter . '\s*' . $number_prefix . $number . ')+)\s*(?P<unit>' . $unit . ')(?![\pL\pN])~iu';
 
         if ( ! preg_match_all( $pattern, $text, $matches, PREG_SET_ORDER ) ) {
             return array();
