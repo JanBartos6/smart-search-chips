@@ -2,10 +2,12 @@ const { test, expect } = require("@playwright/test");
 const path = require("path");
 
 const settingsScriptPath = path.join(__dirname, "..", "..", "assets", "js", "settings.js");
+const settingsStylePath = path.join(__dirname, "..", "..", "assets", "css", "settings.css");
 
 async function installSettingsFixture(page, values = {}, body = "") {
   await page.setContent(`
-    <main>
+    <main id="ssc-settings-layout">
+      <div id="ssc-settings-left">
       <input type="text" name="sschp_search_input_selector" value="${values.inputSelector || ".theme-search input"}" />
       <input type="text" name="sschp_result_container_selector" value="${values.resultSelector || ".theme-search-results"}" />
       <input type="text" name="sschp_override_ajax" value="${values.ajaxAction || ""}" />
@@ -14,20 +16,36 @@ async function installSettingsFixture(page, values = {}, body = "") {
         <h2>First-run Setup Wizard</h2>
         <p>For the most reliable setup, add the Smart Search Chips search block or shortcode to your search page.</p>
         <p>Existing theme search enhancement is automatic when compatible and configurable when needed.</p>
-        <div>
-          <strong>2. Guaranteed Search Mode</strong>
-          <p>Guaranteed Search Mode uses the Smart Search Chips endpoint and does not depend on theme AJAX.</p>
-          <input id="sschp-guaranteed-shortcode" type="text" value="[sschp_search]" readonly />
-          <button type="button" data-sschp-copy="[sschp_search]">Copy shortcode</button>
-          <div class="ssc-setup-paths">
-            <p><strong>Block</strong><span>Find and add the Smart Search Chips Search block from the block inserter.</span></p>
-            <p><strong>Shortcode fallback</strong><span>Search for WordPress's built-in Shortcode block and paste [sschp_search].</span></p>
+        <div class="ssc-setup-grid">
+          <div class="ssc-setup-step">
+            <strong>1. Catalog Source</strong>
+            <p>Products selected.</p>
+            <span class="ssc-badge ssc-badge--neutral">Products</span>
+          </div>
+          <div class="ssc-setup-step">
+            <strong>2. Guaranteed Search Mode</strong>
+            <p>Guaranteed Search Mode uses the Smart Search Chips endpoint and does not depend on theme AJAX.</p>
+            <div class="ssc-copy-row">
+              <input id="sschp-guaranteed-shortcode" type="text" class="regular-text code" value="[sschp_search]" readonly />
+              <button type="button" class="button button-secondary" data-sschp-copy="[sschp_search]">Copy shortcode</button>
+            </div>
+            <div class="ssc-setup-paths">
+              <p><strong>Block</strong><span>Find and add the Smart Search Chips Search block from the block inserter.</span></p>
+              <p><strong>Shortcode fallback</strong><span>Search for WordPress's built-in Shortcode block and paste [sschp_search]. If your editor or page builder hides that block, paste the shortcode into its shortcode or widget module instead.</span></p>
+            </div>
+          </div>
+          <div class="ssc-setup-step">
+            <strong>3. Theme Search Enhancement</strong>
+            <span class="ssc-badge ssc-badge--neutral">Passive by default</span>
+            <p>No existing theme AJAX action is configured.</p>
           </div>
         </div>
       </section>
       <button type="button" id="sschp-run-compat-test">Run frontend compatibility test</button>
       <div id="sschp-compat-results" aria-live="polite"></div>
       ${body}
+      </div>
+      <aside id="ssc-settings-right"><div id="ssc-preview-panel">Preview</div></aside>
     </main>
   `);
 
@@ -63,6 +81,7 @@ async function installSettingsFixture(page, values = {}, body = "") {
     };
   }, values);
 
+  await page.addStyleTag({ path: settingsStylePath });
   await page.addScriptTag({ path: settingsScriptPath });
 }
 
@@ -125,5 +144,26 @@ test.describe("Settings compatibility diagnostics", () => {
     await expect(page.locator(".ssc-settings-card--setup")).toContainText("Shortcode fallback");
     await expect(page.locator(".ssc-settings-card--setup")).toContainText("Shortcode block");
     await expect(page.locator(".ssc-settings-card--setup")).toContainText("does not depend on theme AJAX");
+  });
+
+  test("setup wizard does not overflow at medium admin width", async ({ page }) => {
+    await page.setViewportSize({ width: 1120, height: 800 });
+    await installSettingsFixture(page);
+
+    const overflow = await page.locator(".ssc-settings-card--setup").evaluate((card) => {
+      const cardRect = card.getBoundingClientRect();
+
+      return Array.from(card.querySelectorAll("*"))
+        .filter((element) => {
+          const rect = element.getBoundingClientRect();
+          const style = window.getComputedStyle(element);
+
+          return style.display !== "none" && (rect.left < cardRect.left - 1 || rect.right > cardRect.right + 1);
+        })
+        .map((element) => element.className || element.tagName.toLowerCase());
+    });
+
+    await expect(page.locator("#sschp-guaranteed-shortcode")).toBeVisible();
+    expect(overflow).toEqual([]);
   });
 });

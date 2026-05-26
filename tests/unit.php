@@ -1633,6 +1633,17 @@ function sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow() {
     sschp_assert_contains( '.ssc-ai-selected-items { max-height: 320px; }', $css, 'narrow selected items list should remain visible without taking over the page' );
 }
 
+function sschp_test_setup_wizard_card_wraps_medium_width_copy() {
+    $css = file_get_contents( dirname( __DIR__ ) . '/assets/css/settings.css' );
+
+    sschp_assert_contains( '.ssc-settings-card { box-sizing: border-box; max-width: 100%;', $css, 'settings cards should not grow beyond their column' );
+    sschp_assert_contains( '.ssc-setup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));', $css, 'setup wizard columns should reflow before medium-width overflow' );
+    sschp_assert_contains( '.ssc-setup-step { box-sizing: border-box; min-width: 0;', $css, 'setup steps should be allowed to shrink inside the card' );
+    sschp_assert_contains( '.ssc-setup-step p { margin: 0; overflow-wrap: anywhere; }', $css, 'setup explanatory text should wrap inside its panel' );
+    sschp_assert_contains( '.ssc-copy-row { display: flex; flex-wrap: wrap; max-width: 100%; min-width: 0;', $css, 'shortcode copy row should wrap instead of widening the setup panel' );
+    sschp_assert_contains( '.ssc-copy-row input { flex: 1 1 160px; min-width: 0; max-width: 100%; }', $css, 'shortcode input should shrink within the setup panel' );
+}
+
 function sschp_test_language_request_prefers_explicit_request_value() {
     sschp_reset_test_state();
 
@@ -3304,6 +3315,7 @@ sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_manual_mode'
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_rest_mode' );
 sschp_test_ai_settings_card_wraps_narrow_copy();
 sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow();
+sschp_test_setup_wizard_card_wraps_medium_width_copy();
 sschp_test_language_request_prefers_explicit_request_value();
 sschp_test_language_detects_polylang_slug();
 sschp_test_language_applies_wpml_query_args();
