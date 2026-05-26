@@ -1304,6 +1304,7 @@ class SSCHP_Range_Filters {
         $candidates = array_merge(
             $this->match_currency_candidates( $text ),
             $this->match_leading_unit_candidates( $text ),
+            $this->match_shared_unit_series_candidates( $text ),
             $this->match_unit_candidates( $text ),
             $this->match_inferred_unit_candidates( $text, $context )
         );
@@ -1370,6 +1371,48 @@ class SSCHP_Range_Filters {
                 'before' => $this->text_before_match( $text, $match[0] ),
                 'after'  => '',
             );
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * Match shared trailing-unit values such as 1200-1500 W or 127x127 mm.
+     *
+     * @param string $text Text.
+     * @return array
+     */
+    private function match_shared_unit_series_candidates( $text ) {
+        $number        = '[-+]?\d+(?:[\.,]\d+)?';
+        $number_prefix = '(?:[Øø⌀]\s*)?';
+        $delimiter     = '(?:[-–—/x×]|až|to)';
+        $unit          = '°\s*C|°C|Kč|CZK|USD|EUR|[\pLµμ%]+(?:\s*(?:AC|DC))?';
+        $pattern       = '/(?<![\pL\pN])(?P<series>' . $number_prefix . $number . '(?:\s*' . $delimiter . '\s*' . $number_prefix . $number . ')+)\s*(?P<unit>' . $unit . ')(?![\pL\pN])/iu';
+
+        if ( ! preg_match_all( $pattern, $text, $matches, PREG_SET_ORDER ) ) {
+            return array();
+        }
+
+        $candidates = array();
+        foreach ( $matches as $match ) {
+            if ( preg_match( '/^(?:DN|PN)$/iu', trim( $match['unit'] ) ) ) {
+                continue;
+            }
+
+            if ( ! preg_match_all( '/' . $number . '/u', $match['series'], $numbers ) ) {
+                continue;
+            }
+
+            foreach ( $numbers[0] as $raw_number ) {
+                $candidates[] = array(
+                    'number' => $raw_number,
+                    'unit'   => $match['unit'],
+                    'raw'    => $match[0],
+                    'before' => $this->text_before_match( $text, $match[0] ),
+                    'after'  => '',
+                    'syntax' => 'shared_unit_series',
+                );
+            }
         }
 
         return $candidates;
@@ -2234,6 +2277,10 @@ class SSCHP_Range_Filters {
 
         if ( isset( $candidate['before'] ) && preg_match( '/[:=]\s*$/u', (string) $candidate['before'] ) ) {
             $score += 5;
+        }
+
+        if ( isset( $candidate['syntax'] ) && 'shared_unit_series' === $candidate['syntax'] ) {
+            $score += 10;
         }
 
         if ( $label === $unit_data['display'] && in_array( isset( $context['source'] ) ? $context['source'] : '', array( 'title', 'content' ), true ) ) {

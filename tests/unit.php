@@ -1024,6 +1024,29 @@ function sschp_test_range_filters_normalize_dimensions_to_common_unit() {
     sschp_assert_same( 200.0, $chips['sschp_range|length|mm']['range']['max'], '20 cm should normalize to 200 mm' );
 }
 
+function sschp_test_range_filters_create_sliders_from_title_shared_unit_series() {
+    $range = new SSCHP_Range_Filters();
+    $chips = $range->add_range_chips(
+        array(),
+        array(
+            sschp_make_range_post( 1, array(), 'Miniaturní DC ventilátor (40 / 60 mm)' ),
+            sschp_make_range_post( 2, array(), 'Kruhový axiální ventilátor (Ø 220 / Ø 254 mm)' ),
+            sschp_make_range_post( 3, array(), 'Axiální ventilátor 172×150 mm (velký, AC / DC)' ),
+            sschp_make_range_post( 4, array(), 'Superkompaktní ventilátorové PTC topení TMC (200–350 W)' ),
+            sschp_make_range_post( 5, array(), 'Ventilátorové PTC topení TMX Touch-Safe (150-600 W)' ),
+        ),
+        array()
+    );
+
+    sschp_assert_true( isset( $chips['sschp_range|mm|mm'] ), 'shared trailing-unit dimensions in titles should create an mm range chip' );
+    sschp_assert_same( 40.0, $chips['sschp_range|mm|mm']['range']['min'], 'slash dimensions should expose the lowest title dimension' );
+    sschp_assert_same( 254.0, $chips['sschp_range|mm|mm']['range']['max'], 'diameter dimensions should expose the highest title dimension' );
+
+    sschp_assert_true( isset( $chips['sschp_range|w|w'] ), 'shared trailing-unit wattage ranges in titles should create a watt range chip' );
+    sschp_assert_same( 150.0, $chips['sschp_range|w|w']['range']['min'], 'dash ranges should expose the lowest title wattage' );
+    sschp_assert_same( 600.0, $chips['sschp_range|w|w']['range']['max'], 'dash ranges should expose the highest title wattage' );
+}
+
 function sschp_test_range_filters_do_not_mix_prices_with_wattage() {
     $range = new SSCHP_Range_Filters();
     $chips = $range->add_range_chips(
@@ -3247,6 +3270,7 @@ sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_prio
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_ip_ratings_as_categorical' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_model_numbers' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_normalize_dimensions_to_common_unit' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_sliders_from_title_shared_unit_series' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_do_not_mix_prices_with_wattage' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_splits_accepted_and_rejected_groups' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_uses_structured_rejection_reason_codes' );
