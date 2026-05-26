@@ -1383,7 +1383,7 @@ class SSCHP_Range_Filters {
      * @return array
      */
     private function match_shared_unit_series_candidates( $text ) {
-        $number        = '[-+]?\d+(?:[\.,]\d+)?';
+        $number        = '\d+(?:[\.,]\d+)?';
         $number_prefix = '(?:[Øø⌀]\s*)?';
         $delimiter     = '(?:[-–—/x×]|až|to)';
         $unit          = '°\s*C|°C|Kč|CZK|USD|EUR|[\pLµμ%]+(?:\s*(?:AC|DC))?';
