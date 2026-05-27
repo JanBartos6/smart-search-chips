@@ -440,7 +440,7 @@ class SSCHP_Settings {
         $setup       = $this->get_setup_wizard_data();
         $post_labels = ! empty( $setup['selectedPostTypeLabels'] ) ? implode( ', ', $setup['selectedPostTypeLabels'] ) : __( 'No public post types selected', 'smart-search-chips' );
         ?>
-        <div class="ssc-settings-card ssc-settings-card--setup">
+        <div class="ssc-settings-card ssc-settings-card--setup" data-sschp-settings-section="start">
             <h2><?php esc_html_e( 'First-run Setup Wizard', 'smart-search-chips' ); ?></h2>
             <p class="description"><?php esc_html_e( 'For the most reliable setup, add the Smart Search Chips search block or shortcode to your search page.', 'smart-search-chips' ); ?></p>
             <p class="description"><?php esc_html_e( 'Existing theme search enhancement is automatic when compatible and configurable when needed.', 'smart-search-chips' ); ?></p>
@@ -507,7 +507,7 @@ class SSCHP_Settings {
             'empty'       => __( 'Empty', 'smart-search-chips' ),
         );
         ?>
-        <div class="ssc-settings-card ssc-settings-card--index">
+        <div class="ssc-settings-card ssc-settings-card--index" data-sschp-settings-section="index">
             <h2><?php esc_html_e( 'Local Search Index', 'smart-search-chips' ); ?></h2>
             <p class="description"><?php esc_html_e( 'Smart Search Chips stores a local index on this WordPress site so large catalogs can search and generate chips without sending content externally.', 'smart-search-chips' ); ?></p>
             <dl class="ssc-compat-config">
@@ -548,7 +548,7 @@ class SSCHP_Settings {
         $selected_post_types = $this->sanitize_post_types( get_option( 'sschp_post_types', array( 'post' ) ) );
         $post_types          = get_post_types( array( 'public' => true ), 'objects' );
         ?>
-        <div class="ssc-settings-card ssc-settings-card--search-debug">
+        <div class="ssc-settings-card ssc-settings-card--search-debug" data-sschp-settings-section="start diagnostics">
             <h2><?php esc_html_e( 'Test Search', 'smart-search-chips' ); ?></h2>
             <p class="description"><?php esc_html_e( 'Run the Smart Search Chips server-side search pipeline from this settings screen to confirm which search path is used and whether usable chips are generated.', 'smart-search-chips' ); ?></p>
             <table class="form-table">
@@ -617,7 +617,7 @@ class SSCHP_Settings {
     private function render_theme_compatibility_card() {
         $diagnostics = $this->get_theme_compatibility_diagnostics();
         ?>
-        <div class="ssc-settings-card ssc-settings-card--diagnostics">
+        <div class="ssc-settings-card ssc-settings-card--diagnostics" data-sschp-settings-section="diagnostics">
             <h2><?php esc_html_e( 'Theme Compatibility Test', 'smart-search-chips' ); ?></h2>
             <p class="description"><?php esc_html_e( 'Use this before assuming the plugin is broken. Most theme-search issues come from a different input selector, result container, AJAX action, or keyword field.', 'smart-search-chips' ); ?></p>
 
@@ -784,12 +784,25 @@ class SSCHP_Settings {
             <form method="post" action="options.php">
                 <?php settings_fields( 'smart-search-chips' ); ?>
 
+                <nav class="ssc-settings-tabs" aria-label="<?php esc_attr_e( 'Smart Search Chips settings sections', 'smart-search-chips' ); ?>">
+                    <a href="#sschp-settings-start" class="ssc-settings-tab" data-sschp-settings-tab="start"><?php esc_html_e( 'Start Here', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-search" class="ssc-settings-tab" data-sschp-settings-tab="search"><?php esc_html_e( 'Search', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-chips" class="ssc-settings-tab" data-sschp-settings-tab="chips"><?php esc_html_e( 'Chips', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-index" class="ssc-settings-tab" data-sschp-settings-tab="index"><?php esc_html_e( 'Index', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-diagnostics" class="ssc-settings-tab" data-sschp-settings-tab="diagnostics"><?php esc_html_e( 'Diagnostics', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-pro-rules" class="ssc-settings-tab" data-sschp-settings-tab="pro-rules"><?php esc_html_e( 'Pro Rules', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-range" class="ssc-settings-tab" data-sschp-settings-tab="range"><?php esc_html_e( 'Range', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-analytics" class="ssc-settings-tab" data-sschp-settings-tab="analytics"><?php esc_html_e( 'Analytics', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-ai" class="ssc-settings-tab" data-sschp-settings-tab="ai"><?php esc_html_e( 'AI', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-advanced" class="ssc-settings-tab" data-sschp-settings-tab="advanced"><?php esc_html_e( 'Advanced', 'smart-search-chips' ); ?></a>
+                </nav>
+
                 <div id="ssc-settings-layout">
                     <!-- LEFT: Settings -->
                     <div id="ssc-settings-left">
 
                         <!-- License -->
-                        <div class="ssc-settings-card">
+                        <div class="ssc-settings-card" data-sschp-settings-section="start">
                             <h2><?php esc_html_e( 'License', 'smart-search-chips' ); ?></h2>
                             <?php if ( $is_pro ) : ?>
                                 <div class="ssc-badge ssc-badge--pro">Pro</div>
@@ -817,13 +830,22 @@ class SSCHP_Settings {
                         <?php $this->render_search_debug_card(); ?>
 
                         <!-- Search Settings -->
-                        <div class="ssc-settings-card">
+                        <div class="ssc-settings-card" data-sschp-settings-section="search">
                             <h2><?php esc_html_e( 'Search', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr>
                                     <th><?php esc_html_e( 'Post Types', 'smart-search-chips' ); ?></th>
                                     <td><?php $this->render_post_types(); ?></td>
                                 </tr>
+                            </table>
+                        </div>
+
+                        <?php $this->render_theme_compatibility_card(); ?>
+
+                        <!-- Chip Settings -->
+                        <div class="ssc-settings-card" data-sschp-settings-section="chips">
+                            <h2><?php esc_html_e( 'Chips', 'smart-search-chips' ); ?></h2>
+                            <table class="form-table">
                                 <tr>
                                     <th><?php esc_html_e( 'Tag Source', 'smart-search-chips' ); ?></th>
                                     <td>
@@ -854,15 +876,6 @@ class SSCHP_Settings {
                                     </td>
                                 </tr>
                                 <?php endif; ?>
-                            </table>
-                        </div>
-
-                        <?php $this->render_theme_compatibility_card(); ?>
-
-                        <!-- Chip Settings -->
-                        <div class="ssc-settings-card">
-                            <h2><?php esc_html_e( 'Chips', 'smart-search-chips' ); ?></h2>
-                            <table class="form-table">
                                 <tr>
                                     <th><?php esc_html_e( 'Max Chips', 'smart-search-chips' ); ?></th>
                                     <td>
@@ -873,48 +886,47 @@ class SSCHP_Settings {
                                     <th><?php esc_html_e( 'Max Tag Length', 'smart-search-chips' ); ?></th>
                                     <td><input type="number" name="sschp_max_tag_length" value="<?php echo esc_attr( get_option( 'sschp_max_tag_length', '40' ) ); ?>" class="small-text" min="5" /></td>
                                 </tr>
-                                <?php if ( $is_pro ) : ?>
-                                <tr>
-                                    <th><?php esc_html_e( 'Synonym Rules', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <textarea name="sschp_synonym_rules" rows="5" class="large-text code" placeholder="Sofa = couch, settee&#10;Organic = bio, eco"><?php echo esc_textarea( get_option( 'sschp_synonym_rules', '' ) ); ?></textarea>
-                                        <p class="description"><?php esc_html_e( 'Pro: normalize several tag names into one canonical chip. Use one rule per line: Canonical = alias, alias.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th><?php esc_html_e( 'Numeric Range Chips', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <p><?php esc_html_e( 'Pro automatically groups numeric chip variants such as "100 W" and "200 W" into one slider chip.', 'smart-search-chips' ); ?></p>
-                                        <p class="description"><?php esc_html_e( 'Use the same catalog label or unit near each value for best results, for example "100 W", "Length: 120 cm", or a mapped numeric field.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th><?php esc_html_e( 'Pinned Chips', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <textarea name="sschp_pinned_chips" rows="3" class="large-text code" placeholder="Bestseller, New arrival, Eco"><?php echo esc_textarea( get_option( 'sschp_pinned_chips', '' ) ); ?></textarea>
-                                        <p class="description"><?php esc_html_e( 'Pro: show these chips first whenever they exist in the current result set, even if the normal ranking would hide them.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th><?php esc_html_e( 'Hidden Chips', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <textarea name="sschp_hidden_chips" rows="3" class="large-text code" placeholder="Internal, Old SKU, Supplier only"><?php echo esc_textarea( get_option( 'sschp_hidden_chips', '' ) ); ?></textarea>
-                                        <p class="description"><?php esc_html_e( 'Pro: prevent noisy or internal chips from being suggested. Active chips remain visible so users can clear them.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th><?php esc_html_e( 'Chip Label Overrides', 'smart-search-chips' ); ?></th>
-                                    <td>
-                                        <textarea name="sschp_renamed_chips" rows="4" class="large-text code" placeholder="eco => Eco friendly&#10;small => Compact"><?php echo esc_textarea( get_option( 'sschp_renamed_chips', '' ) ); ?></textarea>
-                                        <p class="description"><?php esc_html_e( 'Pro: change the displayed chip label without editing product field values. Use one rule per line: source => display label.', 'smart-search-chips' ); ?></p>
-                                    </td>
-                                </tr>
-                                <?php else : ?>
-                                <tr>
-                                    <td colspan="2"><p class="description"><?php esc_html_e( 'Upgrade to Pro for synonym rules, numeric range slider chips, pinned chips, hidden chips, and display label overrides.', 'smart-search-chips' ); ?></p></td>
-                                </tr>
-                                <?php endif; ?>
                             </table>
+                            <p class="description"><?php esc_html_e( 'Use this section for the everyday chip controls: tag source, length limits, WooCommerce helper tags, and visual behavior. Advanced curation and numeric sliders live in their own Pro sections.', 'smart-search-chips' ); ?></p>
+                        </div>
+
+                        <div class="ssc-settings-card" data-sschp-settings-section="pro-rules">
+                            <h2><?php esc_html_e( 'Pro: Chip Rules', 'smart-search-chips' ); ?></h2>
+                            <?php if ( $is_pro ) : ?>
+                                <table class="form-table">
+                                    <tr>
+                                        <th><?php esc_html_e( 'Synonym Rules', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <textarea name="sschp_synonym_rules" rows="5" class="large-text code" placeholder="Sofa = couch, settee&#10;Organic = bio, eco"><?php echo esc_textarea( get_option( 'sschp_synonym_rules', '' ) ); ?></textarea>
+                                            <p class="description"><?php esc_html_e( 'Normalize several tag names into one canonical chip. Use one rule per line: Canonical = alias, alias.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Pinned Chips', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <textarea name="sschp_pinned_chips" rows="3" class="large-text code" placeholder="Bestseller, New arrival, Eco"><?php echo esc_textarea( get_option( 'sschp_pinned_chips', '' ) ); ?></textarea>
+                                            <p class="description"><?php esc_html_e( 'Show these chips first whenever they exist in the current result set, even if the normal ranking would hide them.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Hidden Chips', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <textarea name="sschp_hidden_chips" rows="3" class="large-text code" placeholder="Internal, Old SKU, Supplier only"><?php echo esc_textarea( get_option( 'sschp_hidden_chips', '' ) ); ?></textarea>
+                                            <p class="description"><?php esc_html_e( 'Prevent noisy or internal chips from being suggested. Active chips remain visible so users can clear them.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Chip Label Overrides', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <textarea name="sschp_renamed_chips" rows="4" class="large-text code" placeholder="eco => Eco friendly&#10;small => Compact"><?php echo esc_textarea( get_option( 'sschp_renamed_chips', '' ) ); ?></textarea>
+                                            <p class="description"><?php esc_html_e( 'Change the displayed chip label without editing product field values. Use one rule per line: source => display label.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            <?php else : ?>
+                                <p><?php esc_html_e( 'Chip rule curation is part of Pro.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'Upgrade to Pro for synonym rules, pinned chips, hidden chips, display label overrides, and JSON import/export.', 'smart-search-chips' ); ?></p>
+                            <?php endif; ?>
                             <?php if ( $is_pro && class_exists( 'SSCHP_Chip_Rules' ) ) : ?>
                                 <div class="ssc-chip-rules-transfer">
                                     <h3><?php esc_html_e( 'Import / Export Chip Rules', 'smart-search-chips' ); ?></h3>
@@ -976,8 +988,20 @@ class SSCHP_Settings {
                             <?php endif; ?>
                         </div>
 
+                        <div class="ssc-settings-card" data-sschp-settings-section="range">
+                            <h2><?php esc_html_e( 'Pro: Range Chips', 'smart-search-chips' ); ?></h2>
+                            <?php if ( $is_pro ) : ?>
+                                <p><?php esc_html_e( 'Numeric range chips automatically group compatible numeric chip variants such as "100 W" and "200 W" into one slider chip.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'Use the same catalog label or unit near each value for best results, for example "100 W", "Length: 120 cm", or a mapped numeric field. The dedicated range diagnostics page shows accepted and rejected groups with confidence details.', 'smart-search-chips' ); ?></p>
+                                <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-range-debug' ) ); ?>"><?php esc_html_e( 'Open Range Diagnostics', 'smart-search-chips' ); ?></a></p>
+                            <?php else : ?>
+                                <p><?php esc_html_e( 'Numeric range slider chips are part of Pro.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'Pro can group compatible numeric values into sliders for wattage, voltage, dimensions, weight, and other structured measurements.', 'smart-search-chips' ); ?></p>
+                            <?php endif; ?>
+                        </div>
+
                         <!-- Design -->
-                        <div class="ssc-settings-card">
+                        <div class="ssc-settings-card" data-sschp-settings-section="chips">
                             <h2><?php esc_html_e( 'Design', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr>
@@ -1022,7 +1046,7 @@ class SSCHP_Settings {
                         </div>
 
                         <!-- Results -->
-                        <div class="ssc-settings-card">
+                        <div class="ssc-settings-card" data-sschp-settings-section="search">
                             <h2><?php esc_html_e( 'Results', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr>
@@ -1064,7 +1088,7 @@ class SSCHP_Settings {
                             </table>
                         </div>
 
-                        <div class="ssc-settings-card">
+                        <div class="ssc-settings-card" data-sschp-settings-section="analytics">
                             <h2><?php esc_html_e( 'Analytics', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
                                 <p><?php esc_html_e( 'Analytics is part of Pro. It shows which search chips get clicked, what visitors search for, and which queries return no results.', 'smart-search-chips' ); ?></p>
@@ -1267,7 +1291,7 @@ class SSCHP_Settings {
                             <?php endif; ?>
                         </div>
 
-                        <div class="ssc-settings-card ssc-settings-card--ai">
+                        <div class="ssc-settings-card ssc-settings-card--ai" data-sschp-settings-section="ai">
                             <h2><?php esc_html_e( 'AI Prompt Builder', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
                                 <p><?php esc_html_e( 'The AI Prompt Builder is part of Pro. It prepares a structured agent prompt that you can paste into Codex, Claude Code, ChatGPT, Gemini, or another external AI tool. That external tool can then use your own WordPress REST credentials to fetch and write tags.', 'smart-search-chips' ); ?></p>
@@ -1330,7 +1354,7 @@ class SSCHP_Settings {
                             <?php endif; ?>
                         </div>
 
-                        <div class="ssc-settings-card ssc-settings-card--ai-lab">
+                        <div class="ssc-settings-card ssc-settings-card--ai-lab" data-sschp-settings-section="ai">
                             <h2><?php esc_html_e( 'Agent Prompt', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
                                 <p class="description"><?php esc_html_e( 'The agent prompt builder becomes available in Pro. It prepares a long-form prompt that tells an external LLM agent to compare similar products together and, when enabled, write semicolon-separated tags back through the WordPress REST API.', 'smart-search-chips' ); ?></p>
@@ -1395,7 +1419,7 @@ class SSCHP_Settings {
                             <?php endif; ?>
                         </div>
 
-                        <details class="ssc-settings-card ssc-settings-card--collapsible">
+                        <details class="ssc-settings-card ssc-settings-card--collapsible" data-sschp-settings-section="search advanced">
                             <summary class="ssc-settings-card__summary">
                                 <span class="ssc-settings-card__summary-title"><?php esc_html_e( 'Advanced', 'smart-search-chips' ); ?></span>
                             </summary>
@@ -1483,7 +1507,7 @@ class SSCHP_Settings {
                             </div>
                         </details>
 
-                        <div class="ssc-settings-card ssc-settings-card--danger">
+                        <div class="ssc-settings-card ssc-settings-card--danger" data-sschp-settings-section="advanced">
                             <h2><?php esc_html_e( 'Data Cleanup', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr>

@@ -1693,6 +1693,25 @@ function sschp_test_setup_wizard_card_wraps_medium_width_copy() {
     sschp_assert_contains( '.ssc-copy-row input { flex: 1 1 160px; min-width: 0; max-width: 100%; }', $css, 'shortcode input should shrink within the setup panel' );
 }
 
+function sschp_test_settings_page_has_section_navigation() {
+    $root_settings  = file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' );
+    $wporg_settings = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-settings.php' );
+    $css            = file_get_contents( dirname( __DIR__ ) . '/assets/css/settings.css' );
+    $js             = file_get_contents( dirname( __DIR__ ) . '/assets/js/settings.js' );
+    $tabs           = array( 'start', 'search', 'chips', 'index', 'diagnostics', 'pro-rules', 'range', 'analytics', 'ai', 'advanced' );
+
+    foreach ( $tabs as $tab ) {
+        sschp_assert_contains( 'data-sschp-settings-tab="' . $tab . '"', $root_settings, 'Pro settings should expose the ' . $tab . ' navigation tab' );
+        sschp_assert_contains( 'data-sschp-settings-tab="' . $tab . '"', $wporg_settings, 'WP.org settings should expose the ' . $tab . ' navigation tab' );
+        sschp_assert_contains( 'data-sschp-settings-section="' . $tab, $root_settings, 'Pro settings should have content assigned to the ' . $tab . ' section' );
+        sschp_assert_contains( 'data-sschp-settings-section="' . $tab, $wporg_settings, 'WP.org settings should have content assigned to the ' . $tab . ' section' );
+    }
+
+    sschp_assert_contains( '.ssc-settings-tabs { position: sticky;', $css, 'settings navigation should remain reachable while scrolling the admin page' );
+    sschp_assert_contains( 'function initSettingsTabs()', $js, 'settings script should initialize section navigation' );
+    sschp_assert_contains( 'data-sschp-settings-section', $js, 'settings script should show and hide cards by section' );
+}
+
 function sschp_test_language_request_prefers_explicit_request_value() {
     sschp_reset_test_state();
 
@@ -3366,6 +3385,7 @@ sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_rest_mode' )
 sschp_test_ai_settings_card_wraps_narrow_copy();
 sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow();
 sschp_test_setup_wizard_card_wraps_medium_width_copy();
+sschp_test_settings_page_has_section_navigation();
 sschp_test_language_request_prefers_explicit_request_value();
 sschp_test_language_detects_polylang_slug();
 sschp_test_language_applies_wpml_query_args();

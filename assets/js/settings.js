@@ -450,6 +450,70 @@
         });
     }
 
+    function initSettingsTabs() {
+        var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-sschp-settings-tab]'));
+        var cards = Array.prototype.slice.call(document.querySelectorAll('[data-sschp-settings-section]'));
+        var tabsByKey = {};
+
+        if (!tabs.length || !cards.length) {
+            return;
+        }
+
+        tabs.forEach(function (tab) {
+            var key = tab.getAttribute('data-sschp-settings-tab') || '';
+            if (key) {
+                tabsByKey[key] = tab;
+            }
+        });
+
+        function keyFromHash() {
+            var hash = (window.location.hash || '').replace(/^#sschp-settings-/, '');
+            return tabsByKey[hash] ? hash : '';
+        }
+
+        function cardMatches(card, key) {
+            var sections = (card.getAttribute('data-sschp-settings-section') || '').split(/\s+/);
+            return sections.indexOf(key) !== -1;
+        }
+
+        function activateSettingsTab(key, updateHash) {
+            if (!tabsByKey[key]) {
+                key = 'start';
+            }
+
+            tabs.forEach(function (tab) {
+                var isActive = tab === tabsByKey[key];
+                tab.classList.toggle('is-active', isActive);
+                if (isActive) {
+                    tab.setAttribute('aria-current', 'page');
+                } else {
+                    tab.removeAttribute('aria-current');
+                }
+            });
+
+            cards.forEach(function (card) {
+                card.hidden = !cardMatches(card, key);
+            });
+
+            if (updateHash && window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', '#sschp-settings-' + key);
+            }
+        }
+
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function (event) {
+                event.preventDefault();
+                activateSettingsTab(tab.getAttribute('data-sschp-settings-tab') || 'start', true);
+            });
+        });
+
+        window.addEventListener('hashchange', function () {
+            activateSettingsTab(keyFromHash() || 'start', false);
+        });
+
+        activateSettingsTab(keyFromHash() || 'start', false);
+    }
+
     var inputs = ['sschp_chip_color', 'sschp_chip_text_color', 'sschp_chip_inactive_color', 'sschp_chip_inactive_text_color', 'sschp_chip_radius', 'sschp_chip_font_size', 'sschp_chip_padding_x', 'sschp_chip_padding_y'];
     inputs.forEach(function (name) {
         var el = document.querySelector('[name="' + name + '"]');
@@ -460,6 +524,7 @@
     });
 
     renderPreview();
+    initSettingsTabs();
 
     var compatButton = document.getElementById('sschp-run-compat-test');
     if (compatButton) {

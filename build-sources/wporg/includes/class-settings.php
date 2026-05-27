@@ -236,7 +236,7 @@ class SSCHP_Settings {
         $setup       = $this->get_setup_wizard_data();
         $post_labels = ! empty( $setup['selectedPostTypeLabels'] ) ? implode( ', ', $setup['selectedPostTypeLabels'] ) : __( 'No public post types selected', 'smart-search-chips' );
         ?>
-        <div class="ssc-settings-card ssc-settings-card--setup">
+        <div class="ssc-settings-card ssc-settings-card--setup" data-sschp-settings-section="start">
             <h2><?php esc_html_e( 'First-run Setup Wizard', 'smart-search-chips' ); ?></h2>
             <p class="description"><?php esc_html_e( 'For the most reliable setup, add the Smart Search Chips search block or shortcode to your search page.', 'smart-search-chips' ); ?></p>
             <p class="description"><?php esc_html_e( 'Existing theme search enhancement is automatic when compatible and configurable when needed.', 'smart-search-chips' ); ?></p>
@@ -303,7 +303,7 @@ class SSCHP_Settings {
             'empty'       => __( 'Empty', 'smart-search-chips' ),
         );
         ?>
-        <div class="ssc-settings-card ssc-settings-card--index">
+        <div class="ssc-settings-card ssc-settings-card--index" data-sschp-settings-section="index">
             <h2><?php esc_html_e( 'Local Search Index', 'smart-search-chips' ); ?></h2>
             <p class="description"><?php esc_html_e( 'Smart Search Chips stores a local index on this WordPress site so large catalogs can search and generate chips without sending content externally.', 'smart-search-chips' ); ?></p>
             <dl class="ssc-compat-config">
@@ -344,7 +344,7 @@ class SSCHP_Settings {
         $selected_post_types = $this->sanitize_post_types( get_option( 'sschp_post_types', array( 'post' ) ) );
         $post_types          = get_post_types( array( 'public' => true ), 'objects' );
         ?>
-        <div class="ssc-settings-card ssc-settings-card--search-debug">
+        <div class="ssc-settings-card ssc-settings-card--search-debug" data-sschp-settings-section="start diagnostics">
             <h2><?php esc_html_e( 'Test Search', 'smart-search-chips' ); ?></h2>
             <p class="description"><?php esc_html_e( 'Run the Smart Search Chips server-side search pipeline from this settings screen to confirm which search path is used and whether usable chips are generated.', 'smart-search-chips' ); ?></p>
             <table class="form-table">
@@ -413,7 +413,7 @@ class SSCHP_Settings {
     private function render_theme_compatibility_card() {
         $diagnostics = $this->get_theme_compatibility_diagnostics();
         ?>
-        <div class="ssc-settings-card ssc-settings-card--diagnostics">
+        <div class="ssc-settings-card ssc-settings-card--diagnostics" data-sschp-settings-section="diagnostics">
             <h2><?php esc_html_e( 'Theme Compatibility Test', 'smart-search-chips' ); ?></h2>
             <p class="description"><?php esc_html_e( 'Use this before assuming the plugin is broken. Most theme-search issues come from a different input selector, result container, AJAX action, or keyword field.', 'smart-search-chips' ); ?></p>
 
@@ -578,10 +578,23 @@ class SSCHP_Settings {
             <form method="post" action="options.php">
                 <?php settings_fields( 'smart-search-chips' ); ?>
 
+                <nav class="ssc-settings-tabs" aria-label="<?php esc_attr_e( 'Smart Search Chips settings sections', 'smart-search-chips' ); ?>">
+                    <a href="#sschp-settings-start" class="ssc-settings-tab" data-sschp-settings-tab="start"><?php esc_html_e( 'Start Here', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-search" class="ssc-settings-tab" data-sschp-settings-tab="search"><?php esc_html_e( 'Search', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-chips" class="ssc-settings-tab" data-sschp-settings-tab="chips"><?php esc_html_e( 'Chips', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-index" class="ssc-settings-tab" data-sschp-settings-tab="index"><?php esc_html_e( 'Index', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-diagnostics" class="ssc-settings-tab" data-sschp-settings-tab="diagnostics"><?php esc_html_e( 'Diagnostics', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-pro-rules" class="ssc-settings-tab" data-sschp-settings-tab="pro-rules"><?php esc_html_e( 'Pro Rules', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-range" class="ssc-settings-tab" data-sschp-settings-tab="range"><?php esc_html_e( 'Range', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-analytics" class="ssc-settings-tab" data-sschp-settings-tab="analytics"><?php esc_html_e( 'Analytics', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-ai" class="ssc-settings-tab" data-sschp-settings-tab="ai"><?php esc_html_e( 'AI', 'smart-search-chips' ); ?></a>
+                    <a href="#sschp-settings-advanced" class="ssc-settings-tab" data-sschp-settings-tab="advanced"><?php esc_html_e( 'Advanced', 'smart-search-chips' ); ?></a>
+                </nav>
+
                 <div id="ssc-settings-layout">
                     <div id="ssc-settings-left">
 
-                        <div class="ssc-settings-card">
+                        <div class="ssc-settings-card" data-sschp-settings-section="start">
                             <h2><?php esc_html_e( 'WordPress.org Edition', 'smart-search-chips' ); ?></h2>
                             <div class="ssc-badge ssc-badge--free"><?php esc_html_e( 'Included', 'smart-search-chips' ); ?></div>
                             <p><strong><?php echo esc_html( SSCHP_Edition::get_status_label() ); ?></strong></p>
@@ -592,12 +605,40 @@ class SSCHP_Settings {
                         <?php $this->render_search_index_card(); ?>
                         <?php $this->render_search_debug_card(); ?>
 
-                        <div class="ssc-settings-card">
+                        <div class="ssc-settings-card" data-sschp-settings-section="search">
                             <h2><?php esc_html_e( 'Search', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr>
                                     <th><?php esc_html_e( 'Post Types', 'smart-search-chips' ); ?></th>
                                     <td><?php $this->render_post_types(); ?></td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div class="ssc-settings-card" data-sschp-settings-section="search">
+                            <h2><?php esc_html_e( 'Custom Fields and ACF', 'smart-search-chips' ); ?></h2>
+                            <p class="description"><?php esc_html_e( 'This WordPress.org edition uses the built-in Search Chips Tags field and optional WooCommerce helper tags. If your catalog already stores search labels in ACF or custom fields, field mapping is available separately in Smart Search Chips Pro.', 'smart-search-chips' ); ?></p>
+                            <?php
+                            $this->render_pro_context_card(
+                                __( 'ACF/custom field mapping', 'smart-search-chips' ),
+                                __( 'Pro add-on feature for sites that already maintain searchable labels in ACF, product meta, or other structured fields.', 'smart-search-chips' ),
+                                array(
+                                    __( 'Map an existing field as a chip source.', 'smart-search-chips' ),
+                                    __( 'Use structured product fields in advanced tagging workflows.', 'smart-search-chips' ),
+                                )
+                            );
+                            ?>
+                        </div>
+
+                        <div class="ssc-settings-card" data-sschp-settings-section="chips">
+                            <h2><?php esc_html_e( 'Chips', 'smart-search-chips' ); ?></h2>
+                            <table class="form-table">
+                                <tr>
+                                    <th><?php esc_html_e( 'Tag Source', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <p><?php esc_html_e( 'Built-in "Search Chips Tags" field (`sschp_tags`) is used by default.', 'smart-search-chips' ); ?></p>
+                                        <p class="description"><?php esc_html_e( 'Need ACF/custom fields? Smart Search Chips Pro supports mapped fields as a separate upgrade.', 'smart-search-chips' ); ?></p>
+                                    </td>
                                 </tr>
                                 <?php if ( class_exists( 'WooCommerce' ) ) : ?>
                                 <tr>
@@ -618,27 +659,6 @@ class SSCHP_Settings {
                                     </td>
                                 </tr>
                                 <?php endif; ?>
-                            </table>
-                        </div>
-
-                        <div class="ssc-settings-card">
-                            <h2><?php esc_html_e( 'Custom Fields and ACF', 'smart-search-chips' ); ?></h2>
-                            <p class="description"><?php esc_html_e( 'This WordPress.org edition uses the built-in Search Chips Tags field and optional WooCommerce helper tags. If your catalog already stores search labels in ACF or custom fields, field mapping is available separately in Smart Search Chips Pro.', 'smart-search-chips' ); ?></p>
-                            <?php
-                            $this->render_pro_context_card(
-                                __( 'ACF/custom field mapping', 'smart-search-chips' ),
-                                __( 'Pro add-on feature for sites that already maintain searchable labels in ACF, product meta, or other structured fields.', 'smart-search-chips' ),
-                                array(
-                                    __( 'Map an existing field as a chip source.', 'smart-search-chips' ),
-                                    __( 'Use structured product fields in advanced tagging workflows.', 'smart-search-chips' ),
-                                )
-                            );
-                            ?>
-                        </div>
-
-                        <div class="ssc-settings-card">
-                            <h2><?php esc_html_e( 'Chips', 'smart-search-chips' ); ?></h2>
-                            <table class="form-table">
                                 <tr>
                                     <th><?php esc_html_e( 'Max Chips', 'smart-search-chips' ); ?></th>
                                     <td><input type="number" name="sschp_max_chips" value="<?php echo esc_attr( min( (int) get_option( 'sschp_max_chips', '8' ), SSCHP_Edition::max_chips() ) ); ?>" class="small-text" min="1" max="<?php echo (int) SSCHP_Edition::max_chips(); ?>" /></td>
@@ -648,10 +668,14 @@ class SSCHP_Settings {
                                     <td><input type="number" name="sschp_max_tag_length" value="<?php echo esc_attr( get_option( 'sschp_max_tag_length', '40' ) ); ?>" class="small-text" min="5" /></td>
                                 </tr>
                             </table>
+                        </div>
+
+                        <div class="ssc-settings-card" data-sschp-settings-section="pro-rules">
+                            <h2><?php esc_html_e( 'Pro: Chip Rules', 'smart-search-chips' ); ?></h2>
                             <?php
                             $this->render_pro_context_card(
                                 __( 'Advanced chip rules', 'smart-search-chips' ),
-                                __( 'Synonym rules, manual chip curation, pinned chips, hidden chips, and display-label overrides are available separately in Smart Search Chips Pro.', 'smart-search-chips' ),
+                                __( 'Synonym rules, manual chip curation, pinned chips, hidden chips, display-label overrides, and JSON import/export are available separately in Smart Search Chips Pro.', 'smart-search-chips' ),
                                 array(
                                     __( 'Normalize related tags into one canonical chip.', 'smart-search-chips' ),
                                     __( 'Curate which chips appear first for important searches.', 'smart-search-chips' ),
@@ -660,7 +684,7 @@ class SSCHP_Settings {
                             ?>
                         </div>
 
-                        <div class="ssc-settings-card">
+                        <div class="ssc-settings-card" data-sschp-settings-section="range">
                             <h2><?php esc_html_e( 'Numeric Range Chips', 'smart-search-chips' ); ?></h2>
                             <p class="description"><?php esc_html_e( 'The WordPress.org edition displays normal clickable chips. Numeric range slider chips are available separately in Smart Search Chips Pro for catalogs with structured values such as wattage, voltage, dimensions, weight, or other comparable measurements.', 'smart-search-chips' ); ?></p>
                             <?php
@@ -675,7 +699,7 @@ class SSCHP_Settings {
                             ?>
                         </div>
 
-                        <div class="ssc-settings-card">
+                        <div class="ssc-settings-card" data-sschp-settings-section="chips">
                             <h2><?php esc_html_e( 'Design', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr><th><?php esc_html_e( 'Active Color', 'smart-search-chips' ); ?></th><td><input type="color" name="sschp_chip_color" value="<?php echo esc_attr( $chip_color ); ?>" /></td></tr>
@@ -689,7 +713,7 @@ class SSCHP_Settings {
                             </table>
                         </div>
 
-                        <div class="ssc-settings-card">
+                        <div class="ssc-settings-card" data-sschp-settings-section="search">
                             <h2><?php esc_html_e( 'Results', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr><th><?php esc_html_e( 'Results Shown', 'smart-search-chips' ); ?></th><td><input type="number" name="sschp_max_results" value="<?php echo esc_attr( $render_limit ); ?>" class="small-text" min="1" max="100" /><?php if ( $render_limit > 50 ) : ?><p class="description notice-warning"><?php esc_html_e( 'High render limits can make live search feel slow. Keep this near 10-20 unless the theme really needs more visible results.', 'smart-search-chips' ); ?></p><?php endif; ?></td></tr>
@@ -699,7 +723,7 @@ class SSCHP_Settings {
                             </table>
                         </div>
 
-                        <div class="ssc-settings-card">
+                        <div class="ssc-settings-card" data-sschp-settings-section="analytics">
                             <h2><?php esc_html_e( 'Analytics and Reporting', 'smart-search-chips' ); ?></h2>
                             <p class="description"><?php esc_html_e( 'This WordPress.org edition does not track visitor searches. Local analytics, reporting, CSV export, and optional scheduled email digests are available separately in Smart Search Chips Pro.', 'smart-search-chips' ); ?></p>
                             <?php
@@ -714,7 +738,22 @@ class SSCHP_Settings {
                             ?>
                         </div>
 
-                        <details class="ssc-settings-card ssc-settings-card--collapsible">
+                        <div class="ssc-settings-card ssc-settings-card--ai" data-sschp-settings-section="ai">
+                            <h2><?php esc_html_e( 'Pro: AI Workflows', 'smart-search-chips' ); ?></h2>
+                            <p class="description"><?php esc_html_e( 'The WordPress.org edition does not ask for or store LLM-provider credentials. Smart Search Chips Pro can build structured external-agent prompts for catalog tag review and optional WordPress REST write-back using credentials you manage outside the plugin.', 'smart-search-chips' ); ?></p>
+                            <?php
+                            $this->render_pro_context_card(
+                                __( 'AI prompt builder', 'smart-search-chips' ),
+                                __( 'Pro add-on workflow for teams that want an external AI agent to compare selected catalog items and suggest semicolon-separated search tags.', 'smart-search-chips' ),
+                                array(
+                                    __( 'Build prompts from selected products or taxonomy groups.', 'smart-search-chips' ),
+                                    __( 'Optionally include REST write-back instructions for your own WordPress authentication flow.', 'smart-search-chips' ),
+                                )
+                            );
+                            ?>
+                        </div>
+
+                        <details class="ssc-settings-card ssc-settings-card--collapsible" data-sschp-settings-section="search advanced">
                             <summary class="ssc-settings-card__summary"><span class="ssc-settings-card__summary-title"><?php esc_html_e( 'Advanced', 'smart-search-chips' ); ?></span></summary>
                             <div class="ssc-settings-card__body">
                                 <p class="description"><?php esc_html_e( 'Only change these if you already know your field names or need to integrate with an existing setup.', 'smart-search-chips' ); ?></p>
@@ -732,7 +771,7 @@ class SSCHP_Settings {
 
                         <?php $this->render_theme_compatibility_card(); ?>
 
-                        <div class="ssc-settings-card ssc-settings-card--danger">
+                        <div class="ssc-settings-card ssc-settings-card--danger" data-sschp-settings-section="advanced">
                             <h2><?php esc_html_e( 'Data Cleanup', 'smart-search-chips' ); ?></h2>
                             <table class="form-table">
                                 <tr><th><?php esc_html_e( 'Delete on Uninstall', 'smart-search-chips' ); ?></th><td><label><input type="hidden" name="sschp_delete_data_on_uninstall" value="0" /><input type="checkbox" name="sschp_delete_data_on_uninstall" value="1" <?php checked( $delete_on_uninstall, '1' ); ?> /><?php esc_html_e( 'Delete all plugin data when the plugin is uninstalled', 'smart-search-chips' ); ?></label></td></tr>
