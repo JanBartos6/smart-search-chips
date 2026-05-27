@@ -146,6 +146,131 @@
         return getSafeConfiguredSelector(config.resultSelector, DEFAULT_RESULTS_SELECTOR, "results container");
     }
 
+    function parseEscapedSearchShortcode(text) {
+        var match = String(text || "").trim().match(/^\[(sschp_search|ssc_search)([^\]]*)\]$/i);
+        var attrs = {};
+        var attrText;
+        var attrPattern = /([a-z0-9_-]+)\s*=\s*("([^"]*)"|'([^']*)'|([^\s\]]+))/gi;
+        var attrMatch;
+
+        if (!match) {
+            return null;
+        }
+
+        attrText = match[2] || "";
+        attrMatch = attrPattern.exec(attrText);
+        while (attrMatch) {
+            attrs[attrMatch[1].toLowerCase()] = attrMatch[3] || attrMatch[4] || attrMatch[5] || "";
+            attrMatch = attrPattern.exec(attrText);
+        }
+
+        return attrs;
+    }
+
+    function sanitizeClassNames(classNames) {
+        return String(classNames || "").replace(/[^a-zA-Z0-9_\-\s]/g, " ").replace(/\s+/g, " ").trim();
+    }
+
+    function createGuaranteedSearchElement(attrs) {
+        var wrapper = document.createElement("div");
+        var form = document.createElement("form");
+        var input = document.createElement("input");
+        var button = document.createElement("button");
+        var results = document.createElement("div");
+        var extraClass = sanitizeClassNames(attrs["class"] || attrs.classname || "");
+
+        wrapper.className = "ssc-search" + (extraClass ? " " + extraClass : "");
+        wrapper.setAttribute("data-sschp-mode", "guaranteed");
+
+        form.className = "ssc-search__form js-ssc-search";
+        form.setAttribute("role", "search");
+        form.method = "get";
+        form.action = window.location.origin ? window.location.origin + "/" : "/";
+
+        input.type = "search";
+        input.className = "ssc-search__input";
+        input.name = "s";
+        input.placeholder = attrs.placeholder || "Search...";
+        input.autocomplete = "off";
+        input.required = true;
+
+        button.type = "submit";
+        button.className = "ssc-search__button";
+        button.setAttribute("aria-label", "Search");
+        button.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>';
+
+        results.className = "ssc-search__results js-ssc-results";
+        results.setAttribute("aria-live", "polite");
+        results.setAttribute("aria-busy", "false");
+
+        form.appendChild(input);
+        form.appendChild(button);
+        wrapper.appendChild(form);
+        wrapper.appendChild(results);
+
+        return wrapper;
+    }
+
+    function shouldSkipEscapedShortcodeRoot(node) {
+        var el = node && node.parentElement;
+        var tagName;
+
+        if (!el) {
+            return true;
+        }
+
+        tagName = el.tagName ? el.tagName.toLowerCase() : "";
+        if (tagName === "script" || tagName === "style" || tagName === "textarea" || tagName === "pre" || tagName === "code") {
+            return true;
+        }
+
+        return !!safeClosest(el, ".ssc-search");
+    }
+
+    function hydrateEscapedSearchShortcodes() {
+        var walker;
+        var textNodes = [];
+        var node;
+
+        if (!document.body || !document.createTreeWalker || typeof NodeFilter === "undefined") {
+            return;
+        }
+
+        walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+            acceptNode: function (textNode) {
+                if (shouldSkipEscapedShortcodeRoot(textNode)) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+
+                return parseEscapedSearchShortcode(textNode.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+            }
+        });
+
+        while ((node = walker.nextNode())) {
+            textNodes.push(node);
+        }
+
+        textNodes.forEach(function (textNode) {
+            var attrs = parseEscapedSearchShortcode(textNode.nodeValue);
+            var parent = textNode.parentNode;
+            var searchElement;
+
+            if (!attrs || !parent) {
+                return;
+            }
+
+            searchElement = createGuaranteedSearchElement(attrs);
+
+            if (parent.textContent.trim() === textNode.nodeValue.trim() && parent.children.length === 0) {
+                parent.textContent = "";
+                parent.appendChild(searchElement);
+                return;
+            }
+
+            parent.replaceChild(searchElement, textNode);
+        });
+    }
+
     function getKeywordField() {
         return config.keywordField || "keyword";
     }
@@ -1629,6 +1754,8 @@
     });
 
     function handleReady() {
+        hydrateEscapedSearchShortcodes();
+
         debugLog("Frontend selector scan", {
             inputSelector: getInputSelector(),
             resultSelector: getResultsSelector(),

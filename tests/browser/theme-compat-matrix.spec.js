@@ -31,6 +31,10 @@ async function installCompatFixture(page, options = {}) {
         <div class="ssc-search__results js-ssc-results" aria-live="polite" aria-busy="false"></div>
       </section>
 
+      <section data-testid="escaped-shortcode-search">
+        [ssc_search placeholder="Try searching: tea, stoneware, serving..." class="demo-search"]
+      </section>
+
       <section class="js-search" data-testid="header-xhr-formdata" data-transport="xhr-formdata">
         <form><input type="search" name="keyword" /></form>
         <button type="button">Run header search</button>
@@ -427,6 +431,29 @@ test.describe("Theme compatibility matrix", () => {
     const shortcode = page.getByTestId("shortcode-search");
     await shortcode.locator(".ssc-search__input").fill("Steel");
     await shortcode.locator(".ssc-search__input").dispatchEvent("input");
+
+    await expect(shortcode.getByRole("button", { name: /Filter by Steel/i })).toBeVisible();
+
+    const request = last(await requests(page));
+    expect(request.action).toBe("sschp_search");
+    expect(request.managed).toBe("1");
+    expect(request.nonce).toBe("compat-nonce");
+  });
+
+  test("escaped guaranteed search shortcode text is hydrated into the live search UI", async ({ page }) => {
+    await installCompatFixture(page, {
+      themeAction: "",
+    });
+
+    const shortcode = page.getByTestId("escaped-shortcode-search");
+    const input = shortcode.locator(".ssc-search__input");
+
+    await expect(shortcode).not.toContainText("[ssc_search");
+    await expect(shortcode.locator(".ssc-search.demo-search")).toBeVisible();
+    await expect(input).toHaveAttribute("placeholder", "Try searching: tea, stoneware, serving...");
+
+    await input.fill("Steel");
+    await input.dispatchEvent("input");
 
     await expect(shortcode.getByRole("button", { name: /Filter by Steel/i })).toBeVisible();
 

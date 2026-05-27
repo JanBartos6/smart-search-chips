@@ -4,7 +4,7 @@ Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.13
+Stable tag: 1.1.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -96,6 +96,9 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 3. The Smart Search Chips demo homepage
 
 == Changelog ==
+
+= 1.1.14 =
+* Hydrates bare guaranteed-search shortcode text into the live search UI when a page builder or theme prints the shortcode literally.
 
 = 1.1.13 =
 * Improved the Guaranteed Search Mode setup card so shortcode and block guidance stays contained at medium admin widths.
@@ -214,6 +217,9 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 Smart Search Chips uses [Freemius](https://freemius.com/) for license management and optional usage tracking. When you opt in during activation, basic diagnostic data (WordPress version, PHP version, site URL) is shared with Freemius. You can opt out at any time. The Pro analytics feature stores search data locally in your WordPress database. Optional analytics email digests are sent only by your WordPress site to recipients configured by the administrator; the plugin does not send analytics reports to Smart Search Chips or any third party. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.1.14 =
+Restores the live guaranteed-search UI when a theme or builder outputs the search shortcode as plain text.
 
 = 1.1.13 =
 Improves the Guaranteed Search Mode setup card layout at medium admin widths.
