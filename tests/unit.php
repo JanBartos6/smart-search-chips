@@ -852,6 +852,55 @@ function sschp_test_chip_rules_import_export_handlers_are_admin_secured() {
     sschp_assert_contains( 'check_admin_referer( self::IMPORT_ACTION )', $contents, 'chip rule import handler should verify a nonce' );
 }
 
+function sschp_test_chip_rules_preserve_range_chip_keys_for_prioritizer() {
+    if ( ! class_exists( 'SSCHP_Range_Filters' ) ) {
+        return;
+    }
+
+    sschp_reset_test_state();
+
+    $range = new SSCHP_Range_Filters();
+    $rules = new SSCHP_Chip_Rules();
+    $posts = array(
+        sschp_make_range_post( 1, array( '307 mm' ) ),
+        sschp_make_range_post( 2, array( '940 mm' ) ),
+    );
+
+    $tag_counts = $range->add_range_chips( array(), $posts, array() );
+    $range_key  = 'sschp_range|mm|mm';
+    $chips      = array(
+        $range_key => $tag_counts[ $range_key ],
+    );
+
+    $curated = $rules->apply_curation_rules( $chips, $tag_counts, $posts, array(), 4, 40 );
+
+    sschp_assert_true( isset( $curated[ $range_key ] ), 'chip rules should preserve virtual range chip keys' );
+    sschp_assert_true( ! isset( $curated[ $chips[ $range_key ]['value'] ] ), 'chip rules should not re-key range chips by encoded range value' );
+
+    $prioritized = $range->prioritize_range_chips( $curated, $tag_counts, $posts, array(), 4, 40 );
+    $range_count = 0;
+    foreach ( $prioritized as $chip ) {
+        if ( is_array( $chip ) && isset( $chip['type'] ) && 'range' === $chip['type'] ) {
+            $range_count++;
+        }
+    }
+
+    sschp_assert_same( 1, $range_count, 'range prioritization should not duplicate a curated range chip' );
+
+    $rekeyed = array(
+        $chips[ $range_key ]['value'] => $chips[ $range_key ],
+    );
+    $prioritized_rekeyed = $range->prioritize_range_chips( $rekeyed, $tag_counts, $posts, array(), 4, 40 );
+    $rekeyed_range_count = 0;
+    foreach ( $prioritized_rekeyed as $chip ) {
+        if ( is_array( $chip ) && isset( $chip['type'] ) && 'range' === $chip['type'] ) {
+            $rekeyed_range_count++;
+        }
+    }
+
+    sschp_assert_same( 1, $rekeyed_range_count, 'range prioritization should recognize an existing range chip even if another filter changed its array key' );
+}
+
 function sschp_test_wporg_build_excludes_pro_chip_rules_class() {
     $root      = dirname( __DIR__ );
     $build     = $root . '/scripts/build-release.ps1';
@@ -3272,6 +3321,7 @@ sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_import_dry
 sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_invalid_import_is_rejected' );
 sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_unauthorized_import_is_rejected' );
 sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_import_export_handlers_are_admin_secured' );
+sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_preserve_range_chip_keys_for_prioritizer' );
 sschp_test_wporg_build_excludes_pro_chip_rules_class();
 sschp_test_range_chip_css_uses_aligned_desktop_thumbs();
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_watt_slider_from_consistent_facts' );

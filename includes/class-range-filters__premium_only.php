@@ -347,9 +347,14 @@ class SSCHP_Range_Filters {
         }
 
         $visible = 0;
+        $visible_range_identities = array();
         foreach ( (array) $chips as $chip ) {
             if ( $this->is_range_chip( $chip ) ) {
                 $visible++;
+                $identity = $this->range_chip_identity_key( $chip );
+                if ( '' !== $identity ) {
+                    $visible_range_identities[ $identity ] = true;
+                }
             }
         }
 
@@ -366,12 +371,20 @@ class SSCHP_Range_Filters {
                 continue;
             }
 
+            $identity = $this->range_chip_identity_key( $range_chip );
+            if ( '' !== $identity && isset( $visible_range_identities[ $identity ] ) ) {
+                continue;
+            }
+
             $roomy_chips = $this->make_room_for_range_chip( $chips, $active_tags, $max_chips );
             if ( count( $roomy_chips ) >= $max_chips ) {
                 continue;
             }
 
             $chips   = array( $key => $range_chip ) + $roomy_chips;
+            if ( '' !== $identity ) {
+                $visible_range_identities[ $identity ] = true;
+            }
             $visible++;
         }
 
@@ -386,6 +399,28 @@ class SSCHP_Range_Filters {
      */
     private function is_range_chip( $chip ) {
         return is_array( $chip ) && isset( $chip['type'] ) && self::CHIP_TYPE === $chip['type'];
+    }
+
+    /**
+     * Build a stable identity for a range chip even if another filter changed its array key.
+     *
+     * @param array $chip Chip data.
+     * @return string
+     */
+    private function range_chip_identity_key( $chip ) {
+        if ( ! $this->is_range_chip( $chip ) || empty( $chip['range'] ) || ! is_array( $chip['range'] ) ) {
+            return '';
+        }
+
+        $range     = $chip['range'];
+        $group_key = sanitize_key( isset( $range['group_key'] ) ? $range['group_key'] : '' );
+        $unit_key  = sanitize_key( isset( $range['unit_key'] ) ? $range['unit_key'] : '' );
+
+        if ( '' === $group_key && '' === $unit_key ) {
+            return '';
+        }
+
+        return $group_key . '|' . $unit_key;
     }
 
     /**

@@ -506,6 +506,18 @@ class SSCHP_Chip_Rules {
         }
 
         foreach ( $chips as $key => $chip ) {
+            if ( $this->is_virtual_range_chip( $chip ) ) {
+                if ( ! isset( $curated[ $key ] ) ) {
+                    $curated[ $key ] = $chip;
+                }
+
+                if ( count( $curated ) >= $max_chips ) {
+                    break;
+                }
+
+                continue;
+            }
+
             $value = isset( $chip['value'] ) ? $chip['value'] : $chip['label'];
             $key   = $this->label_key( $value );
 
@@ -521,6 +533,16 @@ class SSCHP_Chip_Rules {
         }
 
         return $curated;
+    }
+
+    /**
+     * Range chips use structured keys that must survive curation.
+     *
+     * @param array $chip Chip data.
+     * @return bool
+     */
+    private function is_virtual_range_chip( $chip ) {
+        return is_array( $chip ) && isset( $chip['type'] ) && 'range' === $chip['type'];
     }
 
     /**
