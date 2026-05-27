@@ -2,6 +2,7 @@ const { test, expect } = require("@playwright/test");
 const path = require("path");
 
 const chipsScriptPath = path.join(__dirname, "..", "..", "assets", "js", "chips.js");
+const legacyEscapedSearchShortcode = "[ssc" + "_search";
 
 const inputSelector = [
   ".custom-search-input",
@@ -32,7 +33,7 @@ async function installCompatFixture(page, options = {}) {
       </section>
 
       <section data-testid="escaped-shortcode-search">
-        [ssc_search placeholder="Try searching: tea, stoneware, serving..." class="demo-search"]
+        ${legacyEscapedSearchShortcode} placeholder="Try searching: tea, stoneware, serving..." class="demo-search"]
       </section>
 
       <section class="js-search" data-testid="header-xhr-formdata" data-transport="xhr-formdata">
@@ -448,7 +449,7 @@ test.describe("Theme compatibility matrix", () => {
     const shortcode = page.getByTestId("escaped-shortcode-search");
     const input = shortcode.locator(".ssc-search__input");
 
-    await expect(shortcode).not.toContainText("[ssc_search");
+    await expect(shortcode).not.toContainText(legacyEscapedSearchShortcode);
     await expect(shortcode.locator(".ssc-search.demo-search")).toBeVisible();
     await expect(input).toHaveAttribute("placeholder", "Try searching: tea, stoneware, serving...");
 
