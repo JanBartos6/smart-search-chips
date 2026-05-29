@@ -58,6 +58,21 @@ class SSCHP_Search_Index {
     }
 
     /**
+     * Determine whether the local index table currently exists.
+     *
+     * @return bool
+     */
+    public static function table_exists() {
+        global $wpdb;
+
+        $table_name = self::table_name();
+        $like       = method_exists( $wpdb, 'esc_like' ) ? $wpdb->esc_like( $table_name ) : $table_name;
+        $found      = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+
+        return $found === $table_name;
+    }
+
+    /**
      * Create or update the index table.
      */
     public static function create_table() {
@@ -97,6 +112,28 @@ class SSCHP_Search_Index {
         }
 
         update_option( self::DB_VERSION_OPTION, self::DB_VERSION, false );
+    }
+
+    /**
+     * Create/upgrade the index table for installs updated without reactivation.
+     *
+     * @return bool True when installation or upgrade work was performed.
+     */
+    public static function maybe_install_or_upgrade() {
+        $stored_version = (string) get_option( self::DB_VERSION_OPTION, '' );
+
+        if ( $stored_version === (string) self::DB_VERSION && self::table_exists() ) {
+            return false;
+        }
+
+        self::create_table();
+
+        $status = sanitize_key( get_option( self::STATUS_OPTION, 'not_started' ) );
+        if ( '' === $status || 'not_started' === $status ) {
+            self::queue_initial_index( 'upgrade' );
+        }
+
+        return true;
     }
 
     /**
@@ -573,6 +610,10 @@ class SSCHP_Search_Index {
      */
     private static function count_index_rows() {
         global $wpdb;
+
+        if ( ! self::table_exists() ) {
+            return 0;
+        }
 
         return max( 0, (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . self::table_name() ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
     }

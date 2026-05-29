@@ -40,6 +40,8 @@ require_once SSCHP_PLUGIN_DIR . 'includes/class-woocommerce.php';
  * Initialize the plugin.
  */
 function sschp_init() {
+    SSCHP_Search_Index::maybe_install_or_upgrade();
+
     $settings = new SSCHP_Settings();
     $settings->init();
 

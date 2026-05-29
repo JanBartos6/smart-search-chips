@@ -123,7 +123,7 @@ function sschp_test_scheduled_hooks() {
 }
 
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls, $sschp_test_registered_blocks, $sschp_test_shortcodes;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_index_table_exists, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls, $sschp_test_registered_blocks, $sschp_test_shortcodes;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -151,6 +151,7 @@ function sschp_reset_test_state() {
     $sschp_test_acf_fields         = array();
     $sschp_test_posts              = array();
     $sschp_test_index_rows         = array();
+    $sschp_test_index_table_exists = false;
     $sschp_test_analytics_rows     = array();
     $sschp_test_db_queries         = array();
     $sschp_test_db_delta_sql       = array();
@@ -303,6 +304,7 @@ function sschp_test_wporg_main_loads_search_explainer() {
     $contents = is_file( $path ) ? file_get_contents( $path ) : '';
 
     sschp_assert_contains( 'includes/class-search-explainer.php', $contents, 'WP.org build should load the shared search explanation helper' );
+    sschp_assert_contains( 'SSCHP_Search_Index::maybe_install_or_upgrade()', $contents, 'WP.org build should self-heal missing local search index tables after updates' );
 }
 
 function sschp_test_wporg_frontend_source_registers_search_block() {
@@ -2332,7 +2334,7 @@ function sschp_test_settings_setup_wizard_recommends_guaranteed_shortcode() {
 }
 
 function sschp_test_search_index_table_creation_defines_required_columns() {
-    global $sschp_test_db_delta_sql, $sschp_test_options;
+    global $sschp_test_db_delta_sql, $sschp_test_index_table_exists, $sschp_test_options;
 
     sschp_reset_test_state();
     SSCHP_Search_Index::create_table();
@@ -2350,6 +2352,53 @@ function sschp_test_search_index_table_creation_defines_required_columns() {
     sschp_assert_contains( 'numeric_facts LONGTEXT NOT NULL', $sql, 'search index table should include numeric_facts' );
     sschp_assert_contains( 'updated_at DATETIME NOT NULL', $sql, 'search index table should include updated_at' );
     sschp_assert_same( SSCHP_Search_Index::DB_VERSION, $sschp_test_options[SSCHP_Search_Index::DB_VERSION_OPTION], 'search index table creation should store the DB version' );
+    sschp_assert_true( $sschp_test_index_table_exists, 'search index table creation should mark the table available for later health checks' );
+}
+
+function sschp_test_search_index_upgrade_creates_missing_table_and_queues_index() {
+    global $sschp_test_db_delta_sql, $sschp_test_options;
+
+    sschp_reset_test_state();
+    $sschp_test_options['sschp_post_types'] = array( 'post' );
+    sschp_register_test_post_for_index( 401, 'post', 'Upgrade Beacon' );
+
+    $did_upgrade = SSCHP_Search_Index::maybe_install_or_upgrade();
+
+    sschp_assert_true( $did_upgrade, 'search index upgrade should run when the DB version option is missing' );
+    sschp_assert_true( ! empty( $sschp_test_db_delta_sql ), 'search index upgrade should create the missing table' );
+    sschp_assert_same( SSCHP_Search_Index::DB_VERSION, $sschp_test_options[SSCHP_Search_Index::DB_VERSION_OPTION], 'search index upgrade should store the current DB version' );
+    sschp_assert_same( 'queued', $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION], 'search index upgrade should queue indexing for old installs without progress state' );
+    sschp_assert_same( 1, $sschp_test_options[SSCHP_Search_Index::TOTAL_OPTION], 'search index upgrade should count eligible posts when queueing' );
+    sschp_assert_true( in_array( SSCHP_Search_Index::CRON_HOOK, sschp_test_scheduled_hooks(), true ), 'search index upgrade should schedule a background batch' );
+}
+
+function sschp_test_search_index_upgrade_repairs_missing_table_even_with_current_version() {
+    global $sschp_test_db_delta_sql, $sschp_test_index_table_exists, $sschp_test_options;
+
+    sschp_reset_test_state();
+    $sschp_test_options[SSCHP_Search_Index::DB_VERSION_OPTION] = SSCHP_Search_Index::DB_VERSION;
+    $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION]     = 'complete';
+    $sschp_test_index_table_exists                             = false;
+
+    $did_upgrade = SSCHP_Search_Index::maybe_install_or_upgrade();
+
+    sschp_assert_true( $did_upgrade, 'search index upgrade should repair a missing table even when the stored DB version is current' );
+    sschp_assert_true( ! empty( $sschp_test_db_delta_sql ), 'search index repair should recreate the table' );
+    sschp_assert_same( 'complete', $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION], 'search index repair should not overwrite existing progress state' );
+}
+
+function sschp_test_search_index_upgrade_skips_current_installed_schema() {
+    global $sschp_test_db_delta_sql, $sschp_test_index_table_exists, $sschp_test_options;
+
+    sschp_reset_test_state();
+    $sschp_test_options[SSCHP_Search_Index::DB_VERSION_OPTION] = SSCHP_Search_Index::DB_VERSION;
+    $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION]     = 'complete';
+    $sschp_test_index_table_exists                             = true;
+
+    $did_upgrade = SSCHP_Search_Index::maybe_install_or_upgrade();
+
+    sschp_assert_same( false, $did_upgrade, 'search index upgrade should skip current installed schemas' );
+    sschp_assert_same( array(), $sschp_test_db_delta_sql, 'search index upgrade should not run dbDelta when the schema is current and table exists' );
 }
 
 function sschp_test_search_index_queue_initial_index_schedules_batch() {
@@ -3420,6 +3469,9 @@ sschp_test_frontend_shortcode_uses_guaranteed_ajax_action();
 sschp_test_frontend_exposes_theme_ajax_action_separately();
 sschp_test_settings_setup_wizard_recommends_guaranteed_shortcode();
 sschp_test_search_index_table_creation_defines_required_columns();
+sschp_test_search_index_upgrade_creates_missing_table_and_queues_index();
+sschp_test_search_index_upgrade_repairs_missing_table_even_with_current_version();
+sschp_test_search_index_upgrade_skips_current_installed_schema();
 sschp_test_search_index_queue_initial_index_schedules_batch();
 sschp_test_search_index_rebuild_queues_index();
 sschp_test_search_index_clear_index_clears_rows_and_status();

@@ -38,6 +38,7 @@ $sschp_test_post_autosaves  = array();
 $sschp_test_acf_fields      = array();
 $sschp_test_posts           = array();
 $sschp_test_index_rows      = array();
+$sschp_test_index_table_exists = false;
 $sschp_test_analytics_rows  = array();
 $sschp_test_db_queries      = array();
 $sschp_test_db_delta_sql    = array();
@@ -75,7 +76,7 @@ if ( ! class_exists( 'SSCHP_Test_WPDB' ) ) {
         }
 
         public function query( $sql ) {
-            global $sschp_test_db_queries, $sschp_test_index_rows;
+            global $sschp_test_db_queries, $sschp_test_index_rows, $sschp_test_index_table_exists;
 
             $sschp_test_db_queries[] = (string) $sql;
 
@@ -83,14 +84,21 @@ if ( ! class_exists( 'SSCHP_Test_WPDB' ) ) {
                 $sschp_test_index_rows = array();
             }
 
+            if ( false !== stripos( (string) $sql, 'DROP TABLE IF EXISTS' ) && false !== stripos( (string) $sql, 'sschp_search_index' ) ) {
+                $sschp_test_index_table_exists = false;
+            }
+
             return true;
         }
 
         public function replace( $table, $data, $format = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-            global $sschp_test_index_rows;
+            global $sschp_test_index_rows, $sschp_test_index_table_exists;
 
             $key = (int) $data['object_id'] . '|' . (string) $data['language_code'];
             $sschp_test_index_rows[ $key ] = (object) $data;
+            if ( false !== stripos( (string) $table, 'sschp_search_index' ) ) {
+                $sschp_test_index_table_exists = true;
+            }
 
             return 1;
         }
@@ -121,14 +129,19 @@ if ( ! class_exists( 'SSCHP_Test_WPDB' ) ) {
         }
 
         public function get_var( $sql ) {
-            global $sschp_test_index_rows, $sschp_test_posts;
+            global $sschp_test_index_rows, $sschp_test_index_table_exists, $sschp_test_posts;
 
-            $sql = (string) $sql;
-            if ( false !== stripos( $sql, 'sschp_search_index' ) && false !== stripos( $sql, 'COUNT' ) ) {
+            $sql            = (string) $sql;
+            $normalized_sql = str_replace( '\\_', '_', $sql );
+            if ( false !== stripos( $normalized_sql, 'SHOW TABLES LIKE' ) && false !== stripos( $normalized_sql, 'sschp_search_index' ) ) {
+                return $sschp_test_index_table_exists ? $this->prefix . 'sschp_search_index' : null;
+            }
+
+            if ( false !== stripos( $normalized_sql, 'sschp_search_index' ) && false !== stripos( $normalized_sql, 'COUNT' ) ) {
                 return count( $sschp_test_index_rows );
             }
 
-            if ( false !== stripos( $sql, 'wp_posts' ) && false !== stripos( $sql, 'COUNT' ) ) {
+            if ( false !== stripos( $normalized_sql, 'wp_posts' ) && false !== stripos( $normalized_sql, 'COUNT' ) ) {
                 return count( $this->filter_posts_from_sql( $sql, $sschp_test_posts ) );
             }
 
@@ -1170,9 +1183,12 @@ if ( ! function_exists( 'wp_mail' ) ) {
 
 if ( ! function_exists( 'dbDelta' ) ) {
     function dbDelta( $sql ) {
-        global $sschp_test_db_delta_sql;
+        global $sschp_test_db_delta_sql, $sschp_test_index_table_exists;
 
         $sschp_test_db_delta_sql[] = (string) $sql;
+        if ( false !== stripos( (string) $sql, 'sschp_search_index' ) ) {
+            $sschp_test_index_table_exists = true;
+        }
         return array();
     }
 }

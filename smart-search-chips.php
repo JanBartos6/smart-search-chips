@@ -184,6 +184,8 @@ if ( function_exists( 'sschp_fs' ) ) {
             delete_option( 'sschp_pending_pro_activation_defaults' );
         }
 
+        SSCHP_Search_Index::maybe_install_or_upgrade();
+
         $license = new SSCHP_License();
         $license->init();
 
