@@ -280,6 +280,8 @@ function sschp_test_wporg_settings_source_keeps_selector_safety() {
     sschp_assert_contains( 'Pause indexing', $contents, 'WP.org settings source should render pause indexing control' );
     sschp_assert_contains( 'blockPathLabel', $contents, 'WP.org settings source should keep explicit guaranteed search block guidance' );
     sschp_assert_contains( 'Shortcode fallback', $contents, 'WP.org settings source should keep explicit guaranteed search shortcode fallback guidance' );
+    sschp_assert_contains( 'class="button button-secondary" href="<?php echo esc_url( $diagnostics[\'debugUrl\'] ); ?>"', $contents, 'WP.org settings source should render frontend debug mode as a padded secondary button' );
+    sschp_assert_true( false === strpos( $contents, 'class="button button-link" href="<?php echo esc_url( $diagnostics[\'debugUrl\'] ); ?>"' ), 'WP.org settings source should not render frontend debug mode as an unpadded button link' );
 }
 
 function sschp_test_wporg_search_handler_keeps_admin_test_search_api() {

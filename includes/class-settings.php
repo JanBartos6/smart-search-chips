@@ -692,7 +692,7 @@ class SSCHP_Settings {
             </p>
             <p>
                 <button type="button" class="button button-secondary" id="sschp-run-compat-test"><?php esc_html_e( 'Run frontend compatibility test', 'smart-search-chips' ); ?></button>
-                <a class="button button-link" href="<?php echo esc_url( $diagnostics['debugUrl'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open frontend debug mode', 'smart-search-chips' ); ?></a>
+                <a class="button button-secondary" href="<?php echo esc_url( $diagnostics['debugUrl'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open frontend debug mode', 'smart-search-chips' ); ?></a>
             </p>
             <div id="sschp-compat-results" class="ssc-compat-results" aria-live="polite"></div>
         </div>
