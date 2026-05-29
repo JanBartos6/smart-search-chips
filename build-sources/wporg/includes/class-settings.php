@@ -128,6 +128,7 @@ class SSCHP_Settings {
                 'results'                     => __( 'Results', 'smart-search-chips' ),
                 'taggedResults'               => __( 'Tagged results', 'smart-search-chips' ),
                 'generatedChips'              => __( 'Generated chips', 'smart-search-chips' ),
+                'rangeChip'                   => __( 'Range', 'smart-search-chips' ),
                 'firstResults'                => __( 'First results', 'smart-search-chips' ),
                 'explanations'                => __( 'Explanations', 'smart-search-chips' ),
                 'warnings'                    => __( 'Warnings', 'smart-search-chips' ),

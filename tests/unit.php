@@ -1714,6 +1714,16 @@ function sschp_test_settings_page_has_section_navigation() {
     sschp_assert_contains( 'data-sschp-settings-section', $js, 'settings script should show and hide cards by section' );
 }
 
+function sschp_test_admin_test_search_range_chips_render_as_ranges() {
+    $js  = file_get_contents( dirname( __DIR__ ) . '/assets/js/settings.js' );
+    $css = file_get_contents( dirname( __DIR__ ) . '/assets/css/settings.css' );
+
+    sschp_assert_contains( 'formatTestSearchRangeSummary', $js, 'settings script should format admin test search range summaries' );
+    sschp_assert_contains( 'ssc-test-search-chip__badge', $js, 'settings script should label range chips in admin test search results' );
+    sschp_assert_contains( '.ssc-test-search-chip--range', $css, 'settings CSS should visually distinguish admin test search range chips' );
+    sschp_assert_contains( '.ssc-test-search-chip__detail', $css, 'settings CSS should style admin test search range values' );
+}
+
 function sschp_test_language_request_prefers_explicit_request_value() {
     sschp_reset_test_state();
 
@@ -2938,6 +2948,45 @@ function sschp_test_admin_test_search_reports_local_index_path() {
     sschp_assert_same( 1, $data['taggedResultCount'], 'local-index admin test search should report tagged indexed results' );
 }
 
+function sschp_test_admin_test_search_formats_range_chip_metadata() {
+    $handler = new SSCHP_Search_Handler(
+        new SSCHP_Chip_Engine(),
+        new SSCHP_Test_Settings()
+    );
+
+    $chips = sschp_invoke_private(
+        $handler,
+        'format_admin_test_chips',
+        array(
+            array(
+                array(
+                    'label' => 'mm',
+                    'value' => 'sschp_range|mm|mm|307|940|307|940',
+                    'count' => 12,
+                    'type'  => 'range',
+                    'range' => array(
+                        'group_key'    => 'mm',
+                        'unit_key'     => 'mm',
+                        'unit'         => 'mm',
+                        'min'          => 307,
+                        'max'          => 940,
+                        'selected_min' => 307,
+                        'selected_max' => 940,
+                        'step'         => 1,
+                    ),
+                ),
+            ),
+        )
+    );
+
+    sschp_assert_same( 'range', $chips[0]['type'], 'admin test search should preserve range chip type' );
+    sschp_assert_same( 'mm', $chips[0]['range']['unit'], 'admin test search should expose the range chip unit' );
+    sschp_assert_same( 307.0, $chips[0]['range']['min'], 'admin test search should expose the range minimum' );
+    sschp_assert_same( 940.0, $chips[0]['range']['max'], 'admin test search should expose the range maximum' );
+    sschp_assert_same( 307.0, $chips[0]['range']['selectedMin'], 'admin test search should expose selected range minimum' );
+    sschp_assert_same( 940.0, $chips[0]['range']['selectedMax'], 'admin test search should expose selected range maximum' );
+}
+
 function sschp_test_settings_admin_test_search_ajax_requires_manage_options() {
     sschp_reset_test_state();
     $_POST = array(
@@ -3435,6 +3484,7 @@ sschp_test_ai_settings_card_wraps_narrow_copy();
 sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow();
 sschp_test_setup_wizard_card_wraps_medium_width_copy();
 sschp_test_settings_page_has_section_navigation();
+sschp_test_admin_test_search_range_chips_render_as_ranges();
 sschp_test_language_request_prefers_explicit_request_value();
 sschp_test_language_detects_polylang_slug();
 sschp_test_language_applies_wpml_query_args();
@@ -3492,6 +3542,7 @@ sschp_test_search_explainer_reports_query_and_chip_causes();
 sschp_test_search_explainer_reports_environment_causes();
 sschp_test_admin_test_search_reports_wp_query_fallback_data();
 sschp_test_admin_test_search_reports_local_index_path();
+sschp_test_admin_test_search_formats_range_chip_metadata();
 sschp_test_settings_admin_test_search_ajax_requires_manage_options();
 sschp_test_settings_admin_test_search_ajax_returns_search_json();
 sschp_test_settings_admin_test_search_ajax_returns_short_query_explanations();

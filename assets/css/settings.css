@@ -87,7 +87,10 @@
 .ssc-test-search-explanation--error strong { color: #b32d2e; }
 .ssc-test-search-explanation--warning strong { color: #7a4f01; }
 .ssc-test-search-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.ssc-test-search-chip { display: inline-flex; align-items: center; padding: 4px 9px; border: 1px solid #d0d7de; border-radius: 999px; background: #f6f7f7; color: #1d2327; font-size: 12px; line-height: 1.4; }
+.ssc-test-search-chip { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 5px; padding: 4px 9px; border: 1px solid #d0d7de; border-radius: 999px; background: #f6f7f7; color: #1d2327; font-size: 12px; line-height: 1.4; }
+.ssc-test-search-chip--range { border-color: #72aee6; background: #f0f6fc; }
+.ssc-test-search-chip__badge { padding: 1px 5px; border-radius: 999px; background: #2271b1; color: #fff; font-size: 10px; font-weight: 700; line-height: 1.4; text-transform: uppercase; }
+.ssc-test-search-chip__detail { color: #50575e; font-family: monospace; }
 .ssc-test-search-result-list { display: grid; gap: 8px; margin: 0; padding-left: 20px; }
 .ssc-test-search-result-list li { margin: 0; }
 .ssc-test-search-result-list strong { display: block; color: #1d2327; }

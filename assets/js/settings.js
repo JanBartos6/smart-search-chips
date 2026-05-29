@@ -156,6 +156,48 @@
         return element;
     }
 
+    function formatTestSearchRangeNumber(value) {
+        var number = typeof value === 'number' ? value : parseFloat(value);
+        if (isNaN(number)) {
+            return '';
+        }
+
+        return String(Math.round(number * 1000) / 1000).replace(/\.0+$/, '');
+    }
+
+    function formatTestSearchRangeSummary(chip) {
+        var range = chip && chip.range ? chip.range : {};
+        var min = range.selectedMin !== undefined ? range.selectedMin : range.min;
+        var max = range.selectedMax !== undefined ? range.selectedMax : range.max;
+        var minLabel = formatTestSearchRangeNumber(min);
+        var maxLabel = formatTestSearchRangeNumber(max);
+        var unit = range.unit || '';
+
+        if (!minLabel || !maxLabel) {
+            return '';
+        }
+
+        return minLabel + ' - ' + maxLabel + (unit ? ' ' + unit : '');
+    }
+
+    function renderTestSearchChip(parent, chip) {
+        var isRange = chip && chip.type === 'range' && chip.range;
+        var chipEl = document.createElement('span');
+        chipEl.className = 'ssc-test-search-chip' + (isRange ? ' ssc-test-search-chip--range' : '');
+
+        appendText(chipEl, 'span', 'ssc-test-search-chip__label', (chip.label || chip.value || '') + ' (' + (chip.count || 0) + ')');
+
+        if (isRange) {
+            appendText(chipEl, 'span', 'ssc-test-search-chip__badge', diagnosticStrings().rangeChip || 'Range');
+            var summary = formatTestSearchRangeSummary(chip);
+            if (summary) {
+                appendText(chipEl, 'span', 'ssc-test-search-chip__detail', summary);
+            }
+        }
+
+        parent.appendChild(chipEl);
+    }
+
     function renderTestSearchData(output, data) {
         var strings = diagnosticStrings();
         output.innerHTML = '';
@@ -222,10 +264,7 @@
         chips.className = 'ssc-test-search-chips';
         if (data.chips && data.chips.length) {
             data.chips.forEach(function (chip) {
-                var chipEl = document.createElement('span');
-                chipEl.className = 'ssc-test-search-chip';
-                chipEl.textContent = (chip.label || chip.value || '') + ' (' + (chip.count || 0) + ')';
-                chips.appendChild(chipEl);
+                renderTestSearchChip(chips, chip);
             });
         } else {
             appendText(chips, 'p', 'description', strings.noChips || 'No chips generated.');

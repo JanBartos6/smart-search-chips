@@ -351,15 +351,41 @@ class SSCHP_Search_Handler {
         $formatted = array();
 
         foreach ( (array) $chips as $chip ) {
-            $formatted[] = array(
+            $type = isset( $chip['type'] ) ? sanitize_key( $chip['type'] ) : 'chip';
+            $row  = array(
                 'label' => isset( $chip['label'] ) ? (string) $chip['label'] : '',
                 'value' => isset( $chip['value'] ) ? (string) $chip['value'] : ( isset( $chip['label'] ) ? (string) $chip['label'] : '' ),
                 'count' => isset( $chip['count'] ) ? (int) $chip['count'] : 0,
-                'type'  => isset( $chip['type'] ) ? sanitize_key( $chip['type'] ) : 'chip',
+                'type'  => $type,
             );
+
+            if ( 'range' === $type && ! empty( $chip['range'] ) && is_array( $chip['range'] ) ) {
+                $row['range'] = $this->format_admin_test_range_chip( $chip['range'] );
+            }
+
+            $formatted[] = $row;
         }
 
         return $formatted;
+    }
+
+    /**
+     * Format range-chip metadata for admin diagnostics JSON.
+     *
+     * @param array $range Range chip metadata.
+     * @return array
+     */
+    private function format_admin_test_range_chip( $range ) {
+        return array(
+            'groupKey'    => isset( $range['group_key'] ) ? sanitize_key( $range['group_key'] ) : '',
+            'unitKey'     => isset( $range['unit_key'] ) ? sanitize_key( $range['unit_key'] ) : '',
+            'unit'        => isset( $range['unit'] ) ? sanitize_text_field( (string) $range['unit'] ) : '',
+            'min'         => isset( $range['min'] ) ? (float) $range['min'] : 0.0,
+            'max'         => isset( $range['max'] ) ? (float) $range['max'] : 0.0,
+            'selectedMin' => isset( $range['selected_min'] ) ? (float) $range['selected_min'] : ( isset( $range['min'] ) ? (float) $range['min'] : 0.0 ),
+            'selectedMax' => isset( $range['selected_max'] ) ? (float) $range['selected_max'] : ( isset( $range['max'] ) ? (float) $range['max'] : 0.0 ),
+            'step'        => isset( $range['step'] ) ? (float) $range['step'] : 1.0,
+        );
     }
 
     /**
