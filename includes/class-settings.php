@@ -993,8 +993,11 @@ class SSCHP_Settings {
                             <h2><?php esc_html_e( 'Pro: Range Chips', 'smart-search-chips' ); ?></h2>
                             <?php if ( $is_pro ) : ?>
                                 <p><?php esc_html_e( 'Numeric range chips automatically group compatible numeric chip variants such as "100 W" and "200 W" into one slider chip.', 'smart-search-chips' ); ?></p>
-                                <p class="description"><?php esc_html_e( 'Use the same catalog label or unit near each value for best results, for example "100 W", "Length: 120 cm", or a mapped numeric field. The dedicated range diagnostics page shows accepted and rejected groups with confidence details.', 'smart-search-chips' ); ?></p>
-                                <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-range-debug' ) ); ?>"><?php esc_html_e( 'Open Range Diagnostics', 'smart-search-chips' ); ?></a></p>
+                                <p class="description"><?php esc_html_e( 'Use the Diagnostics tab and Test Search first. Range chips are labeled there when a query produces sliders. For deeper investigation, Range Diagnostics accepts a normal search query and explains accepted/rejected groups with confidence details.', 'smart-search-chips' ); ?></p>
+                                <p>
+                                    <a class="button button-primary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips#sschp-settings-diagnostics' ) ); ?>"><?php esc_html_e( 'Open Test Search', 'smart-search-chips' ); ?></a>
+                                    <a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-range-debug' ) ); ?>"><?php esc_html_e( 'Open Range Diagnostics', 'smart-search-chips' ); ?></a>
+                                </p>
                             <?php else : ?>
                                 <p><?php esc_html_e( 'Numeric range slider chips are part of Pro.', 'smart-search-chips' ); ?></p>
                                 <p class="description"><?php esc_html_e( 'Pro can group compatible numeric values into sliders for wattage, voltage, dimensions, weight, and other structured measurements.', 'smart-search-chips' ); ?></p>

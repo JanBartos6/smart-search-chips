@@ -1219,6 +1219,60 @@ function sschp_test_range_debug_report_labels_sources_for_non_developers() {
     }
 }
 
+function sschp_test_range_debug_context_uses_search_query_first() {
+    global $sschp_test_options, $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    $sschp_test_options['sschp_post_types'] = array( 'product' );
+    sschp_register_test_post_for_index( 41, 'product', 'AULED compact 307 mm fan' );
+    sschp_register_test_post_for_index( 42, 'product', 'AULED tall 940 mm fan' );
+    sschp_register_test_post_for_index( 43, 'product', 'Different product 500 mm' );
+    $sschp_test_post_meta[41][SSCHP_Meta_Box::META_KEY] = '307 mm';
+    $sschp_test_post_meta[42][SSCHP_Meta_Box::META_KEY] = '940 mm';
+    $sschp_test_post_meta[43][SSCHP_Meta_Box::META_KEY] = '500 mm';
+
+    $range   = new SSCHP_Range_Filters();
+    $context = $range->get_debug_context(
+        array(
+            'query'      => 'auled',
+            'post_types' => array( 'product' ),
+            'limit'      => 10,
+        )
+    );
+
+    sschp_assert_same( 'query', $context['mode'], 'range diagnostics should use a normal search query as the primary flow' );
+    sschp_assert_same( 2, $context['post_count'], 'query-based range diagnostics should inspect matching products only' );
+    sschp_assert_same( 1, count( $context['report']['accepted_groups'] ), 'query-based range diagnostics should evaluate accepted range groups' );
+    sschp_assert_same( 'mm', $context['report']['accepted_groups'][0]['unit_key'], 'query-based range diagnostics should keep range units in the report' );
+}
+
+function sschp_test_range_debug_context_uses_ids_as_advanced_override() {
+    global $sschp_test_post_meta;
+
+    sschp_reset_test_state();
+    sschp_register_test_post_for_index( 51, 'product', 'Selected 100 W product' );
+    sschp_register_test_post_for_index( 52, 'product', 'Selected 200 W product' );
+    sschp_register_test_post_for_index( 53, 'product', 'Search-only 300 W product' );
+    $sschp_test_post_meta[51][SSCHP_Meta_Box::META_KEY] = '100 W';
+    $sschp_test_post_meta[52][SSCHP_Meta_Box::META_KEY] = '200 W';
+    $sschp_test_post_meta[53][SSCHP_Meta_Box::META_KEY] = '300 W';
+
+    $range   = new SSCHP_Range_Filters();
+    $context = $range->get_debug_context(
+        array(
+            'query'      => 'product',
+            'post_types' => array( 'product' ),
+            'raw_ids'    => '51, 52',
+            'limit'      => 10,
+        )
+    );
+
+    sschp_assert_same( 'ids', $context['mode'], 'range diagnostics exact IDs should remain available as an advanced override' );
+    sschp_assert_same( array( 51, 52 ), $context['post_ids'], 'range diagnostics should parse exact IDs from the advanced field' );
+    sschp_assert_same( 2, $context['post_count'], 'range diagnostics should inspect exact IDs instead of all query matches when IDs are entered' );
+    sschp_assert_same( 200.0, $context['report']['accepted_groups'][0]['max'], 'advanced ID override should exclude query-only products from the range report' );
+}
+
 function sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_results() {
     sschp_reset_test_state();
 
@@ -3456,6 +3510,8 @@ sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_uses_structured_rejection_reason_codes' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_explains_mixed_units_and_low_confidence' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_labels_sources_for_non_developers' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_context_uses_search_query_first' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_context_uses_ids_as_advanced_override' );
 sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_results();
 sschp_test_frontend_registers_legacy_search_shortcode_alias();
 sschp_test_frontend_registers_guaranteed_search_block();

@@ -77,32 +77,108 @@ class SSCHP_Range_Filters {
         }
 
         $request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
-        $raw_ids        = '';
+        $query          = isset( $_GET['sschp_range_debug_query'] ) ? sanitize_text_field( wp_unslash( $_GET['sschp_range_debug_query'] ) ) : '';
+        $raw_ids        = isset( $_GET['sschp_range_debug_post_ids'] ) ? sanitize_textarea_field( wp_unslash( $_GET['sschp_range_debug_post_ids'] ) ) : '';
+        $limit          = isset( $_GET['sschp_range_debug_limit'] ) ? absint( wp_unslash( $_GET['sschp_range_debug_limit'] ) ) : 20;
+        $post_types     = isset( $_GET['sschp_range_debug_post_types'] )
+            ? $this->normalize_debug_post_types( wp_unslash( $_GET['sschp_range_debug_post_types'] ) )
+            : $this->get_default_debug_post_types();
+
         if ( 'POST' === $request_method ) {
             check_admin_referer( 'sschp_range_debug', 'sschp_range_debug_nonce' );
-            $raw_ids = isset( $_POST['sschp_range_debug_post_ids'] ) ? sanitize_textarea_field( wp_unslash( $_POST['sschp_range_debug_post_ids'] ) ) : '';
+            $query      = isset( $_POST['sschp_range_debug_query'] ) ? sanitize_text_field( wp_unslash( $_POST['sschp_range_debug_query'] ) ) : '';
+            $raw_ids    = isset( $_POST['sschp_range_debug_post_ids'] ) ? sanitize_textarea_field( wp_unslash( $_POST['sschp_range_debug_post_ids'] ) ) : '';
+            $limit      = isset( $_POST['sschp_range_debug_limit'] ) ? absint( wp_unslash( $_POST['sschp_range_debug_limit'] ) ) : 20;
+            $post_types = isset( $_POST['sschp_range_debug_post_types'] )
+                ? $this->normalize_debug_post_types( wp_unslash( $_POST['sschp_range_debug_post_types'] ) )
+                : $this->get_default_debug_post_types();
         }
 
-        $post_ids   = $this->parse_debug_post_ids( $raw_ids );
-        $posts_data = $this->build_debug_posts_data( $post_ids );
-        $report     = ! empty( $posts_data ) ? $this->get_debug_report( $posts_data ) : array(
-            'products'        => array(),
-            'groups'          => array(),
-            'accepted_groups' => array(),
-            'rejected_groups' => array(),
+        $limit         = max( 1, min( 50, $limit ) );
+        $debug_context = $this->get_debug_context(
+            array(
+                'query'      => $query,
+                'post_types' => $post_types,
+                'limit'      => $limit,
+                'raw_ids'    => $raw_ids,
+            )
         );
+        $posts_data    = $debug_context['posts_data'];
+        $report        = $debug_context['report'];
+        $all_post_types = function_exists( 'get_post_types' ) ? get_post_types( array( 'public' => true ), 'objects' ) : array();
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e( 'Smart Search Chips Range Debug', 'smart-search-chips' ); ?></h1>
+            <h1><?php esc_html_e( 'Range Diagnostics', 'smart-search-chips' ); ?></h1>
             <?php $this->render_debug_styles(); ?>
-            <p><?php esc_html_e( 'Enter product or post IDs to inspect detected numeric facts, accepted range sliders, and rejected values with plain-language reasons.', 'smart-search-chips' ); ?></p>
+            <p><?php esc_html_e( 'Start with the same query you use in Test Search. Smart Search Chips inspects matching results and explains which numeric groups become sliders, which were rejected, and why.', 'smart-search-chips' ); ?></p>
             <form method="post">
                 <?php wp_nonce_field( 'sschp_range_debug', 'sschp_range_debug_nonce' ); ?>
-                <textarea name="sschp_range_debug_post_ids" rows="4" class="large-text" placeholder="123, 124, 125"><?php echo esc_textarea( $raw_ids ); ?></textarea>
-                <p><button type="submit" class="button button-primary"><?php esc_html_e( 'Inspect Numeric Facts', 'smart-search-chips' ); ?></button></p>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row"><label for="sschp-range-debug-query"><?php esc_html_e( 'Search query', 'smart-search-chips' ); ?></label></th>
+                        <td>
+                            <input type="search" id="sschp-range-debug-query" name="sschp_range_debug_query" class="regular-text" value="<?php echo esc_attr( $query ); ?>" placeholder="<?php echo esc_attr__( 'Try a product keyword such as ventil or auled', 'smart-search-chips' ); ?>" />
+                            <p class="description"><?php esc_html_e( 'Use the same words you would type into the frontend or the admin Test Search tool.', 'smart-search-chips' ); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Post types', 'smart-search-chips' ); ?></th>
+                        <td>
+                            <div class="sschp-range-debug__post-types">
+                                <?php foreach ( $all_post_types as $post_type ) : ?>
+                                    <?php
+                                    if ( empty( $post_type->name ) || 'attachment' === $post_type->name ) {
+                                        continue;
+                                    }
+                                    $input_id = 'sschp-range-debug-post-type-' . sanitize_key( $post_type->name );
+                                    ?>
+                                    <label for="<?php echo esc_attr( $input_id ); ?>">
+                                        <input
+                                            type="checkbox"
+                                            id="<?php echo esc_attr( $input_id ); ?>"
+                                            name="sschp_range_debug_post_types[]"
+                                            value="<?php echo esc_attr( $post_type->name ); ?>"
+                                            <?php checked( in_array( $post_type->name, $post_types, true ) ); ?>
+                                        />
+                                        <?php echo esc_html( $post_type->label ); ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="sschp-range-debug-limit"><?php esc_html_e( 'Results to inspect', 'smart-search-chips' ); ?></label></th>
+                        <td>
+                            <input type="number" id="sschp-range-debug-limit" name="sschp_range_debug_limit" class="small-text" min="1" max="50" step="1" value="<?php echo esc_attr( (string) $limit ); ?>" />
+                            <p class="description"><?php esc_html_e( 'Range chips need at least two matching results with comparable numeric values.', 'smart-search-chips' ); ?></p>
+                        </td>
+                    </tr>
+                </table>
+                <details class="sschp-range-debug__advanced" <?php echo '' !== trim( $raw_ids ) ? 'open' : ''; ?>>
+                    <summary><?php esc_html_e( 'Advanced: inspect exact post IDs', 'smart-search-chips' ); ?></summary>
+                    <p class="description"><?php esc_html_e( 'Use this only when you already know the exact products to compare. When IDs are entered, they override the search query above.', 'smart-search-chips' ); ?></p>
+                    <textarea name="sschp_range_debug_post_ids" rows="3" class="large-text" placeholder="123, 124, 125"><?php echo esc_textarea( $raw_ids ); ?></textarea>
+                </details>
+                <p>
+                    <button type="submit" class="button button-primary"><?php esc_html_e( 'Inspect ranges', 'smart-search-chips' ); ?></button>
+                    <a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips#sschp-settings-diagnostics' ) ); ?>"><?php esc_html_e( 'Open Test Search', 'smart-search-chips' ); ?></a>
+                </p>
             </form>
 
+            <?php if ( ! empty( $debug_context['notice'] ) ) : ?>
+                <div class="notice notice-info inline"><p><?php echo esc_html( $debug_context['notice'] ); ?></p></div>
+            <?php endif; ?>
+
             <?php if ( ! empty( $posts_data ) ) : ?>
+                <p class="description">
+                    <?php
+                    echo esc_html(
+                        'ids' === $debug_context['mode']
+                            ? sprintf( __( 'Inspecting %d selected post(s) by ID.', 'smart-search-chips' ), (int) $debug_context['post_count'] )
+                            : sprintf( __( 'Inspecting the first %1$d result(s) for "%2$s".', 'smart-search-chips' ), (int) $debug_context['post_count'], $query )
+                    );
+                    ?>
+                </p>
                 <div class="sschp-range-debug__summary" aria-label="<?php echo esc_attr__( 'Range diagnostics summary', 'smart-search-chips' ); ?>">
                     <div>
                         <strong><?php echo esc_html( (string) count( $report['accepted_groups'] ) ); ?></strong>
@@ -128,7 +204,15 @@ class SSCHP_Range_Filters {
 
                 <h2><?php esc_html_e( 'Detected Facts', 'smart-search-chips' ); ?></h2>
                 <?php foreach ( $report['products'] as $product ) : ?>
-                    <h3><?php echo esc_html( sprintf( __( 'Post #%d', 'smart-search-chips' ), $product['post_id'] ) ); ?></h3>
+                    <h3>
+                        <?php
+                        echo esc_html(
+                            ! empty( $product['title'] )
+                                ? sprintf( __( '%1$s (#%2$d)', 'smart-search-chips' ), $product['title'], (int) $product['post_id'] )
+                                : sprintf( __( 'Post #%d', 'smart-search-chips' ), (int) $product['post_id'] )
+                        );
+                        ?>
+                    </h3>
                     <?php if ( empty( $product['facts'] ) && empty( $product['rejected'] ) ) : ?>
                         <p><?php esc_html_e( 'No numeric facts detected.', 'smart-search-chips' ); ?></p>
                     <?php endif; ?>
@@ -204,6 +288,11 @@ class SSCHP_Range_Filters {
             .sschp-range-debug__reason code { width: max-content; max-width: 100%; padding: 2px 6px; border-radius: 4px; background: #f0f2f4; white-space: normal; }
             .sschp-range-debug__reason span { color: #50575e; }
             .sschp-range-debug__confidence { font-weight: 600; color: #1d2327; }
+            .sschp-range-debug__post-types { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+            .sschp-range-debug__post-types label { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+            .sschp-range-debug__advanced { margin: 10px 0 14px; padding: 12px 14px; border: 1px solid #dcdcde; border-radius: 8px; background: #fcfcfd; }
+            .sschp-range-debug__advanced summary { cursor: pointer; font-weight: 600; color: #1d2327; }
+            .sschp-range-debug__advanced textarea { margin-top: 8px; }
             @media (max-width: 782px) {
                 .sschp-range-debug__summary { grid-template-columns: 1fr; }
             }
@@ -698,6 +787,61 @@ class SSCHP_Range_Filters {
     }
 
     /**
+     * Build a complete diagnostics context for query-first or exact-ID debug flows.
+     *
+     * @param array $args Debug arguments.
+     * @return array
+     */
+    public function get_debug_context( $args = array() ) {
+        $query      = isset( $args['query'] ) ? sanitize_text_field( (string) $args['query'] ) : '';
+        $post_types = isset( $args['post_types'] ) ? $this->normalize_debug_post_types( $args['post_types'] ) : $this->get_default_debug_post_types();
+        $limit      = isset( $args['limit'] ) ? absint( $args['limit'] ) : 20;
+        $limit      = max( 1, min( 50, $limit ) );
+        $raw_ids    = isset( $args['raw_ids'] ) ? (string) $args['raw_ids'] : '';
+        $post_ids   = isset( $args['post_ids'] ) ? array_map( 'absint', (array) $args['post_ids'] ) : array();
+        $post_ids   = array_values( array_filter( array_unique( array_merge( $post_ids, $this->parse_debug_post_ids( $raw_ids ) ) ) ) );
+        $mode       = 'idle';
+        $notice     = '';
+        $posts_data = array();
+
+        if ( ! empty( $post_ids ) ) {
+            $mode       = 'ids';
+            $posts_data = $this->build_debug_posts_data( array_slice( $post_ids, 0, $limit ) );
+        } elseif ( '' !== trim( $query ) ) {
+            if ( strlen( $query ) < 2 ) {
+                $notice = __( 'Enter at least two characters to inspect matching results.', 'smart-search-chips' );
+            } else {
+                $mode       = 'query';
+                $posts_data = $this->build_debug_posts_data_for_query( $query, $post_types, $limit );
+                if ( empty( $posts_data ) ) {
+                    $notice = __( 'No matching results were found for this query and post type selection.', 'smart-search-chips' );
+                }
+            }
+        } else {
+            $notice = __( 'Enter a search query to inspect range chips, or open the advanced ID field for an exact comparison.', 'smart-search-chips' );
+        }
+
+        $report = ! empty( $posts_data ) ? $this->get_debug_report( $posts_data ) : array(
+            'products'        => array(),
+            'groups'          => array(),
+            'accepted_groups' => array(),
+            'rejected_groups' => array(),
+        );
+
+        return array(
+            'mode'       => $mode,
+            'query'      => $query,
+            'post_types' => $post_types,
+            'limit'      => $limit,
+            'post_ids'   => $post_ids,
+            'post_count' => count( $posts_data ),
+            'posts_data' => $posts_data,
+            'report'     => $report,
+            'notice'     => $notice,
+        );
+    }
+
+    /**
      * Parse comma/space separated debug post IDs.
      *
      * @param string $raw_ids Raw IDs from the admin form.
@@ -733,15 +877,88 @@ class SSCHP_Range_Filters {
 
             $raw_tags = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true );
             $tags     = $this->split_source_text( $raw_tags );
+            $post      = function_exists( 'get_post' ) ? get_post( $post_id ) : null;
 
             $posts_data[] = array(
                 'id'         => $post_id,
+                'title'      => $post && isset( $post->post_title ) ? (string) $post->post_title : ( function_exists( 'get_the_title' ) ? (string) get_the_title( $post_id ) : '' ),
+                'url'        => function_exists( 'get_permalink' ) ? get_permalink( $post_id ) : '',
+                'post_type'  => function_exists( 'get_post_type' ) ? get_post_type( $post_id ) : '',
                 'tags'       => $tags,
                 'tags_lower' => array_map( 'mb_strtolower', $tags ),
             );
         }
 
         return $posts_data;
+    }
+
+    /**
+     * Build debug post data from a normal catalog search query.
+     *
+     * @param string $query      Search query.
+     * @param array  $post_types Post types.
+     * @param int    $limit      Result limit.
+     * @return array
+     */
+    private function build_debug_posts_data_for_query( $query, $post_types, $limit ) {
+        if ( ! class_exists( 'WP_Query' ) ) {
+            return array();
+        }
+
+        $post_types = $this->normalize_debug_post_types( $post_types );
+        $limit      = max( 1, min( 50, (int) $limit ) );
+        $query_args = array(
+            'post_type'           => $post_types,
+            'post_status'         => 'publish',
+            's'                   => sanitize_text_field( (string) $query ),
+            'posts_per_page'      => $limit,
+            'no_found_rows'       => true,
+            'ignore_sticky_posts' => true,
+        );
+        $query_args = apply_filters( 'sschp_range_debug_query_args', $query_args, $query, $post_types );
+        $wp_query   = new WP_Query( $query_args );
+        $ids        = array();
+
+        foreach ( (array) $wp_query->posts as $post ) {
+            if ( is_object( $post ) && isset( $post->ID ) ) {
+                $ids[] = absint( $post->ID );
+            }
+        }
+
+        if ( function_exists( 'wp_reset_postdata' ) ) {
+            wp_reset_postdata();
+        }
+
+        return $this->build_debug_posts_data( $ids );
+    }
+
+    /**
+     * Return default post types for query-based range diagnostics.
+     *
+     * @return array
+     */
+    private function get_default_debug_post_types() {
+        return $this->normalize_debug_post_types( get_option( 'sschp_post_types', array( 'product' ) ) );
+    }
+
+    /**
+     * Normalize post type values for the debug form.
+     *
+     * @param mixed $post_types Post type input.
+     * @return array
+     */
+    private function normalize_debug_post_types( $post_types ) {
+        $post_types = is_array( $post_types ) ? $post_types : array( $post_types );
+        $post_types = array_values( array_filter( array_map( 'sanitize_key', $post_types ) ) );
+        if ( empty( $post_types ) ) {
+            $post_types = array( 'product' );
+        }
+
+        if ( function_exists( 'post_type_exists' ) ) {
+            $post_types = array_values( array_filter( $post_types, 'post_type_exists' ) );
+        }
+
+        return ! empty( $post_types ) ? $post_types : array( 'product' );
     }
 
     /**
@@ -763,6 +980,7 @@ class SSCHP_Range_Filters {
             if ( is_array( $debug ) ) {
                 $debug['products'][] = array(
                     'post_id'  => $post_id,
+                    'title'    => isset( $post['title'] ) ? (string) $post['title'] : ( $post_id > 0 && function_exists( 'get_the_title' ) ? (string) get_the_title( $post_id ) : '' ),
                     'facts'    => $facts,
                     'rejected' => $rejected,
                 );
