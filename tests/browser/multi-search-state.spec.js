@@ -2,6 +2,7 @@ const { test, expect } = require("@playwright/test");
 const path = require("path");
 
 const chipsScriptPath = path.join(__dirname, "..", "..", "assets", "js", "chips.js");
+const analyticsScriptPath = path.join(__dirname, "..", "..", "assets", "js", "analytics__premium_only.js");
 
 async function installSearchFixture(page, options = {}) {
   await page.setContent(`
@@ -25,6 +26,9 @@ async function installSearchFixture(page, options = {}) {
   `);
 
   await installFakeAjax(page, options);
+  if (options.analytics && options.analytics.enabled) {
+    await page.addScriptTag({ path: analyticsScriptPath });
+  }
   await page.addScriptTag({ path: chipsScriptPath });
 }
 

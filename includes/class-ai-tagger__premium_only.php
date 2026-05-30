@@ -50,13 +50,16 @@ class SSCHP_AI_Tagger {
     }
 
     /**
-     * AJAX: load all items for a specific taxonomy term.
+     * AJAX: load one bounded page of items for a specific taxonomy term.
      */
     public function ajax_load_term_items() {
         $this->assert_admin_request();
 
         $taxonomy = isset( $_POST['taxonomy'] ) ? sanitize_key( wp_unslash( $_POST['taxonomy'] ) ) : '';
         $term_id  = isset( $_POST['term_id'] ) ? absint( wp_unslash( $_POST['term_id'] ) ) : 0;
+        $page     = isset( $_POST['page'] ) ? max( 1, absint( wp_unslash( $_POST['page'] ) ) ) : 1;
+        $per_page = isset( $_POST['per_page'] ) ? absint( wp_unslash( $_POST['per_page'] ) ) : 50;
+        $per_page = max( 1, min( 100, $per_page ) );
 
         if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) || $term_id < 1 ) {
             wp_send_json_error( array( 'message' => __( 'Select a valid category before loading its items.', 'smart-search-chips' ) ), 400 );
@@ -82,7 +85,8 @@ class SSCHP_AI_Tagger {
         $posts = get_posts( array(
             'post_type'           => $query_post_types,
             'post_status'         => array( 'publish', 'draft', 'private' ),
-            'posts_per_page'      => -1,
+            'posts_per_page'      => $per_page + 1,
+            'paged'               => $page,
             'orderby'             => 'title',
             'order'               => 'ASC',
             'ignore_sticky_posts' => true,
@@ -96,8 +100,9 @@ class SSCHP_AI_Tagger {
             ),
         ) );
 
-        $items = array();
-        foreach ( $posts as $post ) {
+        $has_more = count( $posts ) > $per_page;
+        $items    = array();
+        foreach ( array_slice( $posts, 0, $per_page ) as $post ) {
             $items[] = $this->format_browser_item( $post );
         }
 
@@ -106,6 +111,9 @@ class SSCHP_AI_Tagger {
             'termId'   => $term_id,
             'termName' => $term->name,
             'count'    => count( $items ),
+            'page'     => $page,
+            'perPage'  => $per_page,
+            'hasMore'  => $has_more,
             'items'    => $items,
         ) );
     }
@@ -153,7 +161,7 @@ class SSCHP_AI_Tagger {
             'post_ids'           => array_values( array_filter( array_unique( $post_ids ) ) ),
             'custom_read_fields' => isset( $_POST['custom_read_fields'] ) ? sanitize_text_field( wp_unslash( $_POST['custom_read_fields'] ) ) : $this->settings->get( 'ai_custom_read_fields', '' ),
             'target_field'       => isset( $_POST['target_field'] ) ? sanitize_text_field( wp_unslash( $_POST['target_field'] ) ) : $this->settings->get( 'ai_target_field', 'built_in' ),
-            'rest_enabled'       => isset( $_POST['rest_enabled'] ) ? ( '' !== sanitize_text_field( wp_unslash( $_POST['rest_enabled'] ) ) ? '1' : '0' ) : $this->settings->get( 'ai_rest_enabled', '1' ),
+            'rest_enabled'       => isset( $_POST['rest_enabled'] ) ? ( '' !== sanitize_text_field( wp_unslash( $_POST['rest_enabled'] ) ) ? '1' : '0' ) : $this->settings->get( 'ai_rest_enabled', '0' ),
             'max_tags'           => isset( $_POST['max_tags'] ) ? absint( wp_unslash( $_POST['max_tags'] ) ) : (int) $this->settings->get( 'ai_max_tags', 8 ),
             'language'           => isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : $this->settings->get( 'ai_language', '' ),
             'custom_instruction' => isset( $_POST['custom_instruction'] ) ? sanitize_textarea_field( wp_unslash( $_POST['custom_instruction'] ) ) : $this->settings->get( 'ai_custom_instruction', '' ),

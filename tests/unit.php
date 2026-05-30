@@ -345,6 +345,8 @@ function sschp_test_search_block_files_are_release_validated() {
     sschp_assert_contains( "'blocks'", file_get_contents( $build ), 'release build should copy block files into generated packages' );
     sschp_assert_contains( 'blocks/search/block.json', file_get_contents( $validator ), 'WP.org validator should require search block metadata' );
     sschp_assert_contains( 'blocks/search/editor.js', file_get_contents( $validator ), 'WP.org validator should require search block editor script' );
+    sschp_assert_contains( 'sschp_wporg_is_child_path', file_get_contents( $validator ), 'WP.org validator should reject arbitrary package paths outside the generated build directory' );
+    sschp_assert_contains( 'Refusing to validate a path outside the generated WordPress.org package directory', file_get_contents( $validator ), 'WP.org validator should explain when the caller passes the wrong package directory' );
 }
 
 function sschp_test_release_workflow_requires_version_tag_and_freemius_sdk() {
@@ -360,13 +362,19 @@ function sschp_test_release_workflow_requires_version_tag_and_freemius_sdk() {
         strpos( $workflow, 'Verify deployment secrets' ) < strpos( $workflow, 'Create GitHub release' ),
         'release workflow should validate deployment secrets before creating a GitHub release'
     );
+    sschp_assert_contains( "permissions:\n  contents: read", $workflow, 'release workflow should default to read-only repository permissions' );
+    sschp_assert_contains( "permissions:\n      contents: write", $workflow, 'release workflow should grant write permissions only to the deploy job' );
     sschp_assert_contains( 'FREEMIUS_DEVELOPER_ID', $workflow, 'release workflow should accept the Freemius developer ID secret alias' );
     sschp_assert_contains( 'release_mode: released', $workflow, 'Freemius uploads should be released immediately for now' );
     sschp_assert_true( false === strpos( $workflow, 'release_mode: pending' ), 'Freemius uploads should not be left pending by the release workflow' );
+    sschp_assert_true( false === strpos( $workflow, '10up/action-wordpress-plugin-deploy@stable' ), 'WP.org deploy action should not use the floating stable branch' );
+    sschp_assert_contains( '10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2', $workflow, 'WP.org deploy action should be pinned to a concrete revision' );
 
     sschp_assert_contains( 'Ensure-FreemiusSdk', $build, 'release build should prepare the Freemius SDK before building the Pro zip' );
     sschp_assert_contains( 'vendor\freemius\start.php', $build, 'release build should verify the Freemius SDK entrypoint exists' );
     sschp_assert_contains( 'github.com/Freemius/wordpress-sdk', $build, 'release build should download the Freemius SDK when it is absent from the checkout' );
+    sschp_assert_contains( 'Get-FileHash -Algorithm SHA256', $build, 'release build should verify the downloaded Freemius SDK archive checksum' );
+    sschp_assert_contains( 'aab118b5fee33c66c9035fbe6aacc5f4cac6e87d1f8cac40df6610d18ca54442', $build, 'release build should pin the expected Freemius SDK checksum' );
     sschp_assert_contains( 'Get-Command zip', $build, 'release build should prefer the native zip command for Freemius-compatible packages' );
 }
 
@@ -439,6 +447,8 @@ function sschp_test_range_chip_css_uses_aligned_desktop_thumbs() {
     sschp_assert_contains( 'margin-top: calc((var(--ssc-range-track-height) - var(--ssc-range-thumb-size)) / 2);', $css, 'range chip WebKit thumb should align from the track/thumb variables' );
     sschp_assert_contains( '@media (pointer: coarse)', $css, 'range chip should keep larger handles for touch/coarse pointers' );
     sschp_assert_contains( '--ssc-range-thumb-size: 16px;', $css, 'range chip coarse pointer handles should remain touch-friendly' );
+    sschp_assert_contains( '.ssc-range-chip__label', $css, 'range chip stylesheet should style a visible range label above values' );
+    sschp_assert_contains( 'ssc-range-chip__label', file_get_contents( dirname( __DIR__ ) . '/includes/class-range-filters__premium_only.php' ), 'range chip markup should show the range label instead of exposing only numeric values' );
 }
 
 function sschp_test_chip_engine_extract_tags() {
@@ -624,6 +634,15 @@ function sschp_test_chip_engine_active_tag_survives() {
 
     sschp_assert_true( isset( $chips['nonexistent tag'] ), 'generate_chips should preserve an active tag even if it would not normally qualify' );
     sschp_assert_same( 'Nonexistent Tag', $chips['nonexistent tag']['label'], 'active tags should preserve their original label in the chip output' );
+}
+
+function sschp_test_chip_engine_active_tag_survives_zero_results() {
+    $engine = new SSCHP_Chip_Engine();
+    $chips  = $engine->generate_chips( array(), array( 'Nonexistent Tag' ), 5, 40 );
+
+    sschp_assert_true( isset( $chips['nonexistent tag'] ), 'generate_chips should preserve an active tag when filtering returns zero results' );
+    sschp_assert_same( 'Nonexistent Tag', $chips['nonexistent tag']['label'], 'zero-result active tags should preserve their original label in the chip output' );
+    sschp_assert_same( 0, $chips['nonexistent tag']['count'], 'zero-result active tags should expose a zero count' );
 }
 
 function sschp_test_chip_engine_active_tags_are_ordered_first() {
@@ -1242,8 +1261,21 @@ function sschp_test_range_debug_context_uses_search_query_first() {
 
     sschp_assert_same( 'query', $context['mode'], 'range diagnostics should use a normal search query as the primary flow' );
     sschp_assert_same( 2, $context['post_count'], 'query-based range diagnostics should inspect matching products only' );
+    sschp_assert_same( 'wp_query_fallback', $context['search_path'], 'query-based range diagnostics should expose the shared search pipeline path' );
+    sschp_assert_same( 'WP_Query fallback', $context['search_path_label'], 'query-based range diagnostics should expose a human search path label' );
     sschp_assert_same( 1, count( $context['report']['accepted_groups'] ), 'query-based range diagnostics should evaluate accepted range groups' );
     sschp_assert_same( 'mm', $context['report']['accepted_groups'][0]['unit_key'], 'query-based range diagnostics should keep range units in the report' );
+}
+
+function sschp_test_range_debug_context_reuses_search_handler_pipeline() {
+    $range_source   = file_get_contents( dirname( __DIR__ ) . '/includes/class-range-filters__premium_only.php' );
+    $handler_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-search-handler.php' );
+    $wporg_handler  = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-search-handler.php' );
+
+    sschp_assert_contains( 'get_diagnostic_posts_data', $handler_source, 'search handler should expose reusable diagnostic post data for internal tools' );
+    sschp_assert_contains( 'get_diagnostic_posts_data', $wporg_handler, 'WP.org search handler should keep reusable diagnostic post data for free admin tools' );
+    sschp_assert_contains( 'SSCHP_Search_Handler', $range_source, 'range diagnostics should reuse the shared search handler instead of owning a separate search path' );
+    sschp_assert_contains( 'Range Diagnostics uses the same server-side query pipeline as Test Search', $range_source, 'range diagnostics UI should disclose the shared search path' );
 }
 
 function sschp_test_range_debug_context_uses_ids_as_advanced_override() {
@@ -1721,6 +1753,34 @@ function sschp_test_ai_prompt_rest_mode() {
     sschp_assert_contains( 'REST route: http://example.test/wp-json/wp/v2/product/22', $prompt, 'REST-mode prompt should include the selected item route' );
 }
 
+function sschp_test_ai_rest_writeback_defaults_to_manual_mode() {
+    $root     = dirname( __DIR__ );
+    $main     = file_get_contents( $root . '/smart-search-chips.php' );
+    $settings = file_get_contents( $root . '/includes/class-settings.php' );
+    $tagger   = file_get_contents( $root . '/includes/class-ai-tagger__premium_only.php' );
+
+    sschp_assert_contains( "'sschp_ai_rest_enabled'         => '0'", $main, 'AI REST write-back should default off on activation' );
+    sschp_assert_contains( "get_option( 'sschp_ai_rest_enabled', '0' )", $settings, 'AI settings UI should render REST write-back unchecked by default' );
+    sschp_assert_contains( "\$this->settings->get( 'ai_rest_enabled', '0' )", $tagger, 'AI prompt requests should default to manual review when the option is absent' );
+}
+
+function sschp_test_ai_item_browser_uses_bounded_paging() {
+    $root     = dirname( __DIR__ );
+    $tagger   = file_get_contents( $root . '/includes/class-ai-tagger__premium_only.php' );
+    $admin_js = file_get_contents( $root . '/assets/js/admin-ai.js' );
+    $settings = file_get_contents( $root . '/includes/class-settings.php' );
+
+    sschp_assert_true( false === strpos( $tagger, "'posts_per_page'      => -1" ), 'AI item browser should not load entire catalogs in one request' );
+    sschp_assert_contains( "'posts_per_page'      => \$per_page + 1", $tagger, 'AI item browser should request one bounded page plus a has-more sentinel' );
+    sschp_assert_contains( "'paged'               => \$page", $tagger, 'AI item browser should request the selected page' );
+    sschp_assert_contains( "'perPage'  => \$per_page", $tagger, 'AI item browser response should expose the bounded page size' );
+    sschp_assert_contains( "'hasMore'  => \$has_more", $tagger, 'AI item browser response should tell the UI whether more items are available' );
+    sschp_assert_contains( 'data.append("page", String(options.loadMore ? cache.page + 1 : 1))', $admin_js, 'AI item browser JS should request additional pages explicitly' );
+    sschp_assert_contains( 'data.append("per_page", String(cache.perPage || 50))', $admin_js, 'AI item browser JS should send a bounded page size' );
+    sschp_assert_contains( 'data-term-load-more', $admin_js, 'AI item browser JS should expose a load-more control for large categories' );
+    sschp_assert_contains( 'loadMoreItems', $settings, 'AI item browser load-more copy should be localized from PHP' );
+}
+
 function sschp_test_ai_settings_card_wraps_narrow_copy() {
     $css = file_get_contents( dirname( __DIR__ ) . '/assets/css/settings.css' );
 
@@ -1738,6 +1798,12 @@ function sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow() {
     sschp_assert_contains( '.ssc-ai-picker__selection { order: -1; }', $css, 'selected items panel should appear before the browser when the picker stacks' );
     sschp_assert_contains( '.ssc-ai-browser-results { max-height: 420px; }', $css, 'narrow AI browser results should stay scrollable so selected items remain reachable' );
     sschp_assert_contains( '.ssc-ai-selected-items { max-height: 320px; }', $css, 'narrow selected items list should remain visible without taking over the page' );
+}
+
+function sschp_test_free_admin_menu_does_not_add_analytics_upsell_page() {
+    $contents = file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' );
+
+    sschp_assert_contains( "if ( SSCHP_License::is_pro() ) {\n            add_options_page(\n                __( 'Search Chips Analytics'", $contents, 'Standalone analytics menu page should only be registered for Pro sites' );
 }
 
 function sschp_test_setup_wizard_card_wraps_medium_width_copy() {
@@ -1768,6 +1834,11 @@ function sschp_test_settings_page_has_section_navigation() {
     sschp_assert_contains( '.ssc-settings-tabs { position: sticky;', $css, 'settings navigation should remain reachable while scrolling the admin page' );
     sschp_assert_contains( 'function initSettingsTabs()', $js, 'settings script should initialize section navigation' );
     sschp_assert_contains( 'data-sschp-settings-section', $js, 'settings script should show and hide cards by section' );
+    sschp_assert_contains( "card.tagName.toLowerCase() === 'details'", $js, 'settings tabs should open matching collapsible details cards so selected tabs are not visually empty' );
+    sschp_assert_contains( 'card.open = true;', $js, 'settings tabs should expand collapsible cards for the active tab' );
+    sschp_assert_contains( 'data-sschp-relevance-threshold', $root_settings, 'Pro settings should mark the relevance threshold slider for live value sync' );
+    sschp_assert_contains( 'data-sschp-relevance-threshold', $wporg_settings, 'WP.org settings should mark the relevance threshold slider for live value sync' );
+    sschp_assert_contains( 'initRelevanceThresholdValue', $js, 'settings script should keep the relevance threshold value label in sync while dragging' );
 }
 
 function sschp_test_admin_test_search_range_chips_render_as_ranges() {
@@ -1966,6 +2037,7 @@ function sschp_test_analytics_result_click_tracking_stores_post_and_position() {
     sschp_reset_test_state();
     sschp_enable_pro_for_analytics_tests();
     update_option( 'sschp_analytics_enabled', '1' );
+    update_option( 'sschp_analytics_consent_ack', '1' );
     update_option( 'sschp_analytics_ignore_admins', '0' );
     $sschp_test_post_terms['42|product_cat'] = array(
         (object) array(
@@ -1998,11 +2070,74 @@ function sschp_test_analytics_result_click_tracking_stores_post_and_position() {
     sschp_assert_contains( '"tracked":true', $result['message'], 'result click should be tracked when the object ID is present' );
     sschp_assert_same( 1, count( $sschp_test_analytics_rows ), 'result click should insert one analytics row' );
     sschp_assert_same( 'result_click', $sschp_test_analytics_rows[0]['event_type'], 'result click row should keep the event type' );
+    sschp_assert_true( $sschp_test_analytics_rows[0]['visitor_id'] !== 'visitor-one', 'analytics rows should hash browser visitor IDs before storage' );
+    sschp_assert_same( 64, strlen( $sschp_test_analytics_rows[0]['visitor_id'] ), 'hashed analytics visitor IDs should use a fixed SHA-256 length' );
+    sschp_assert_same( 'https://example.test/', $sschp_test_analytics_rows[0]['page_url'], 'analytics rows should strip query strings before storing page URLs' );
     sschp_assert_same( 42, $sschp_test_analytics_rows[0]['result_object_id'], 'result click row should store clicked post/product ID' );
     sschp_assert_same( 3, $sschp_test_analytics_rows[0]['result_position'], 'result click row should store clicked result position' );
     sschp_assert_same( 0, $sschp_test_analytics_rows[0]['user_id'], 'analytics rows should not store personal WordPress user IDs' );
     sschp_assert_same( 'product', $sschp_test_analytics_rows[0]['post_type'], 'result click row should store post type for filtering' );
     sschp_assert_same( 'power-switches', $sschp_test_analytics_rows[0]['product_category'], 'result click row should derive a product category slug when the browser does not send one' );
+}
+
+function sschp_test_analytics_does_not_track_without_consent_acknowledgement() {
+    global $sschp_test_analytics_rows;
+
+    sschp_reset_test_state();
+    sschp_enable_pro_for_analytics_tests();
+    update_option( 'sschp_analytics_enabled', '1' );
+    update_option( 'sschp_analytics_consent_ack', '0' );
+    update_option( 'sschp_analytics_ignore_admins', '0' );
+
+    $_SERVER['REMOTE_ADDR'] = '203.0.113.13';
+    $_POST                  = array(
+        'nonce'        => 'test-nonce',
+        'event_type'   => 'search',
+        'visitor_id'   => 'visitor-one',
+        'search_query' => 'spring handle',
+    );
+
+    $handler = new SSCHP_Analytics();
+    $result  = sschp_capture_wp_die(
+        function() use ( $handler ) {
+            $handler->ajax_track_event();
+        }
+    );
+
+    sschp_assert_true( $result['died'], 'ajax_track_event should finish by sending a JSON response' );
+    sschp_assert_contains( '"tracked":false', $result['message'], 'analytics should not track when consent/legal-basis acknowledgement is missing' );
+    sschp_assert_same( array(), $sschp_test_analytics_rows, 'analytics should not insert rows without consent/legal-basis acknowledgement' );
+}
+
+function sschp_test_analytics_csv_helpers_omit_visitor_and_page_url() {
+    $headers = sschp_invoke_private( 'SSCHP_Analytics', 'get_csv_headers' );
+    $row     = sschp_invoke_private(
+        'SSCHP_Analytics',
+        'get_csv_event_row',
+        array(
+            array(
+                'created_at'       => '2026-05-30 10:00:00',
+                'event_type'       => 'search',
+                'language_code'    => 'en',
+                'post_type'        => 'product',
+                'product_category' => 'handles',
+                'search_query'     => 'spring',
+                'chip_label'       => '',
+                'result_count'     => 4,
+                'active_tag_count' => 0,
+                'result_object_id' => '',
+                'result_position'  => '',
+                'page_url'         => 'https://example.test/?s=spring',
+                'visitor_id'       => 'hashed-visitor',
+            ),
+        )
+    );
+
+    sschp_assert_true( ! in_array( 'page_url', $headers, true ), 'analytics CSV exports should omit page URLs by default' );
+    sschp_assert_true( ! in_array( 'visitor_id', $headers, true ), 'analytics CSV exports should omit visitor IDs by default' );
+    sschp_assert_same( count( $headers ), count( $row ), 'analytics CSV rows should match the privacy-minimized header shape' );
+    sschp_assert_true( ! in_array( 'https://example.test/?s=spring', $row, true ), 'analytics CSV rows should not include page URLs' );
+    sschp_assert_true( ! in_array( 'hashed-visitor', $row, true ), 'analytics CSV rows should not include visitor IDs' );
 }
 
 function sschp_enable_pro_for_analytics_tests() {
@@ -2011,6 +2146,7 @@ function sschp_enable_pro_for_analytics_tests() {
     $sschp_test_freemius          = new SSCHP_Test_Freemius();
     $sschp_test_freemius->premium = true;
     update_option( SSCHP_Analytics::DB_VERSION_OPTION, SSCHP_Analytics::DB_VERSION );
+    update_option( 'sschp_analytics_consent_ack', '1' );
 }
 
 function sschp_test_analytics_digest_schedules_when_enabled() {
@@ -2177,6 +2313,7 @@ function sschp_test_analytics_dashboard_tables_are_scrollable() {
     sschp_assert_contains( 'overflow-x: auto', $css, 'analytics table wrapper should allow horizontal scrolling instead of clipping columns' );
     sschp_assert_contains( 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', $css, 'analytics panels should wrap before tables become too narrow' );
     sschp_assert_contains( '.ssc-analytics-panel { min-width: 0;', $css, 'analytics panels should be allowed to shrink inside the dashboard grid' );
+    sschp_assert_contains( 'Search To Result Click Rate', $settings, 'analytics dashboard should label search-to-result-click rate as a rate' );
 }
 
 function sschp_test_settings_analytics_dashboard_reference_is_styled() {
@@ -2249,6 +2386,8 @@ function sschp_test_settings_source_renders_analytics_digest_preview_ui() {
     sschp_assert_contains( 'Detailed Analytics Dashboard', $contents, 'Pro settings analytics tab should reference the dedicated dashboard near the digest controls' );
     sschp_assert_contains( 'Open Analytics Dashboard', $contents, 'Pro settings analytics tab should link back to detailed analytics' );
     sschp_assert_contains( 'CSV export, and chart export', $contents, 'Pro settings analytics copy should mention both analytics export paths' );
+    sschp_assert_contains( 'sschp_analytics_consent_ack', $contents, 'Pro settings should require consent/legal-basis acknowledgement before analytics tracking' );
+    sschp_assert_contains( 'required visitor consent or legal basis', $contents, 'Pro settings should explain analytics consent/legal-basis requirements' );
     sschp_assert_contains( 'data-sschp-digest-frequency', $contents, 'Pro settings should expose digest frequency to the schedule picker' );
     sschp_assert_contains( 'data-sschp-digest-weekday-select', $contents, 'Pro settings should render a weekday select for weekly digests' );
     sschp_assert_contains( 'ssc-digest-calendar__grid', $contents, 'Pro settings should render a calendar-style monthly digest day grid' );
@@ -2288,8 +2427,11 @@ function sschp_test_wporg_build_excludes_pro_analytics_class() {
     $wporg     = $root . '/build-sources/wporg';
 
     sschp_assert_contains( 'includes\class-analytics__premium_only.php', file_get_contents( $build ), 'WP.org release build should remove the Pro analytics class' );
+    sschp_assert_contains( 'assets\js\analytics__premium_only.js', file_get_contents( $build ), 'WP.org release build should remove the Pro analytics frontend transport' );
     sschp_assert_contains( 'SSCHP_Analytics', file_get_contents( $validator ), 'WP.org validator should reject Pro analytics class references' );
+    sschp_assert_contains( 'sschp_track_event', file_get_contents( $validator ), 'WP.org validator should reject Pro analytics tracking endpoint references' );
     sschp_assert_true( ! is_file( $wporg . '/includes/class-analytics__premium_only.php' ), 'WP.org source overrides should not contain the Pro analytics class file' );
+    sschp_assert_true( ! is_file( $wporg . '/assets/js/analytics__premium_only.js' ), 'WP.org source overrides should not contain the Pro analytics frontend transport' );
 
     $main_contents = file_get_contents( $wporg . '/smart-search-chips.php' );
     sschp_assert_true( false === strpos( $main_contents, 'class-analytics__premium_only.php' ), 'WP.org main plugin source should not load the Pro analytics class' );
@@ -3614,6 +3756,7 @@ sschp_test_chip_engine_min_count_filter_can_force_two();
 sschp_test_chip_engine_min_count_filter_can_force_one();
 sschp_test_chip_engine_all_results_tag_hidden_unless_active();
 sschp_test_chip_engine_active_tag_survives();
+sschp_test_chip_engine_active_tag_survives_zero_results();
 sschp_test_chip_engine_active_tags_are_ordered_first();
 sschp_test_chip_engine_filter_by_tags();
 sschp_test_field_normalizer_handles_acf_checkbox_array();
@@ -3646,6 +3789,7 @@ sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_explains_mixed_units_and_low_confidence' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_labels_sources_for_non_developers' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_context_uses_search_query_first' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_context_reuses_search_handler_pipeline' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_context_uses_ids_as_advanced_override' );
 sschp_test_frontend_shortcode_markup_has_accessible_search_and_live_results();
 sschp_test_frontend_registers_legacy_search_shortcode_alias();
@@ -3673,8 +3817,11 @@ sschp_test_settings_theme_compatibility_diagnostics_report_invalid_selector();
 sschp_test_settings_theme_compatibility_diagnostics_report_valid_defaults();
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_manual_mode' );
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_rest_mode' );
+sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_rest_writeback_defaults_to_manual_mode' );
+sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_item_browser_uses_bounded_paging' );
 sschp_test_ai_settings_card_wraps_narrow_copy();
 sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow();
+sschp_test_free_admin_menu_does_not_add_analytics_upsell_page();
 sschp_test_setup_wizard_card_wraps_medium_width_copy();
 sschp_test_settings_page_has_section_navigation();
 sschp_test_admin_test_search_range_chips_render_as_ranges();
@@ -3690,6 +3837,8 @@ sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_guard_tracki
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_guard_dedupes_chip_impression_batches' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_report_filters_are_sanitized' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_result_click_tracking_stores_post_and_position' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_does_not_track_without_consent_acknowledgement' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_csv_helpers_omit_visitor_and_page_url' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_schedules_when_enabled' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_reports_next_scheduled_run' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_monthly_last_day_fallback' );

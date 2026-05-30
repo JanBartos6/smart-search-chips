@@ -39,13 +39,15 @@ class SSCHP_Settings {
             array( $this, 'render_settings_page' )
         );
 
-        add_options_page(
-            __( 'Search Chips Analytics', 'smart-search-chips' ),
-            __( 'Search Chips Analytics', 'smart-search-chips' ),
-            'manage_options',
-            'smart-search-chips-analytics',
-            array( $this, 'render_analytics_page' )
-        );
+        if ( SSCHP_License::is_pro() ) {
+            add_options_page(
+                __( 'Search Chips Analytics', 'smart-search-chips' ),
+                __( 'Search Chips Analytics', 'smart-search-chips' ),
+                'manage_options',
+                'smart-search-chips-analytics',
+                array( $this, 'render_analytics_page' )
+            );
+        }
     }
 
     public function add_settings_link( $links ) {
@@ -172,6 +174,9 @@ class SSCHP_Settings {
             'sanitize_callback' => 'sanitize_textarea_field',
         ) );
         register_setting( 'smart-search-chips', 'sschp_analytics_enabled', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_consent_ack', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
         register_setting( 'smart-search-chips', 'sschp_analytics_ignore_admins', array(
@@ -345,6 +350,7 @@ class SSCHP_Settings {
                 'browseSummary'       => __( '%1$d taxonomies · %2$d visible categories', 'smart-search-chips' ),
                 'browseEmpty'         => __( 'No categories matched the current filter.', 'smart-search-chips' ),
                 'itemsEmpty'          => __( 'No items were found in this category.', 'smart-search-chips' ),
+                'loadMoreItems'       => __( 'Load more items', 'smart-search-chips' ),
                 'clearAll'            => __( 'Clear all', 'smart-search-chips' ),
                 'addItem'             => __( 'Add to batch', 'smart-search-chips' ),
                 'removeItem'          => __( 'Remove', 'smart-search-chips' ),
@@ -721,9 +727,10 @@ class SSCHP_Settings {
         $chip_pad_x    = $this->get_numeric_option_value( 'sschp_chip_padding_x', 12, 0 );
         $chip_pad_y    = $this->get_numeric_option_value( 'sschp_chip_padding_y', 4, 0 );
         $ai_max_tags   = max( 0, (int) get_option( 'sschp_ai_max_tags', 8 ) );
-        $ai_rest_mode  = get_option( 'sschp_ai_rest_enabled', '1' );
+        $ai_rest_mode  = get_option( 'sschp_ai_rest_enabled', '0' );
         $ai_target     = $this->sanitize_ai_target_field( get_option( 'sschp_ai_target_field', 'built_in' ) );
         $analytics_on  = get_option( 'sschp_analytics_enabled', '0' );
+        $analytics_consent_ack = get_option( 'sschp_analytics_consent_ack', '0' );
         $analytics_ignore_admins = get_option( 'sschp_analytics_ignore_admins', '1' );
         $digest_on     = get_option( 'sschp_analytics_digest_enabled', '0' );
         $digest_recipients = get_option( 'sschp_analytics_digest_recipients', get_option( 'admin_email', '' ) );
@@ -739,10 +746,11 @@ class SSCHP_Settings {
         $digest_next_run   = 0;
         $digest_expected_next_run = 0;
         $digest_preview    = array();
+        $analytics_ready   = $is_pro && class_exists( 'SSCHP_Analytics' ) && SSCHP_Analytics::is_enabled();
         if ( $is_pro && class_exists( 'SSCHP_Analytics' ) ) {
             $digest_next_run          = SSCHP_Analytics::get_next_digest_run_timestamp();
             $digest_expected_next_run = SSCHP_Analytics::get_expected_digest_run_timestamp();
-            $digest_preview           = $analytics_on === '1' ? SSCHP_Analytics::get_digest_preview_data() : array();
+            $digest_preview           = $analytics_ready ? SSCHP_Analytics::get_digest_preview_data() : array();
         }
         $delete_on_uninstall = get_option( 'sschp_delete_data_on_uninstall', '0' );
         $render_limit  = $this->get_numeric_option_value( 'sschp_max_results', 10, 1 );
@@ -1087,8 +1095,8 @@ class SSCHP_Settings {
                                 <tr>
                                     <th><?php esc_html_e( 'Relevance Threshold', 'smart-search-chips' ); ?></th>
                                     <td>
-                                        <input type="range" name="sschp_relevance_threshold" value="<?php echo esc_attr( get_option( 'sschp_relevance_threshold', '0.3' ) ); ?>" min="0" max="1" step="0.05" />
-                                        <span class="ssc-range-val"><?php echo esc_html( get_option( 'sschp_relevance_threshold', '0.3' ) ); ?></span>
+                                        <input type="range" name="sschp_relevance_threshold" value="<?php echo esc_attr( get_option( 'sschp_relevance_threshold', '0.3' ) ); ?>" min="0" max="1" step="0.05" data-sschp-relevance-threshold />
+                                        <span class="ssc-range-val" data-sschp-relevance-threshold-value><?php echo esc_html( get_option( 'sschp_relevance_threshold', '0.3' ) ); ?></span>
                                         <p class="description"><?php esc_html_e( 'Requires Relevanssi. 0 = all results, 1 = exact matches only.', 'smart-search-chips' ); ?></p>
                                     </td>
                                 </tr>
@@ -1100,7 +1108,7 @@ class SSCHP_Settings {
                             <h2><?php esc_html_e( 'Analytics', 'smart-search-chips' ); ?></h2>
                             <?php if ( ! $is_pro ) : ?>
                                 <p><?php esc_html_e( 'Analytics is part of Pro. It shows which search chips get clicked, what visitors search for, and which queries return no results.', 'smart-search-chips' ); ?></p>
-                                <p class="description"><?php esc_html_e( 'Upgrade to Pro to enable anonymous search analytics and view the dashboard directly in WordPress.', 'smart-search-chips' ); ?></p>
+                                <p class="description"><?php esc_html_e( 'Upgrade to Pro to enable local search analytics after confirming your site has the required consent or legal basis.', 'smart-search-chips' ); ?></p>
                             <?php else : ?>
                                 <div class="ssc-analytics-dashboard-reference">
                                     <strong><?php esc_html_e( 'Detailed Analytics Dashboard', 'smart-search-chips' ); ?></strong>
@@ -1114,9 +1122,20 @@ class SSCHP_Settings {
                                             <label>
                                                 <input type="hidden" name="sschp_analytics_enabled" value="0" />
                                                 <input type="checkbox" name="sschp_analytics_enabled" value="1" <?php checked( $analytics_on, '1' ); ?> />
-                                                <?php esc_html_e( 'Track anonymous search, chip-click, and chip-impression events for admins', 'smart-search-chips' ); ?>
+                                                <?php esc_html_e( 'Track local search, chip-click, chip-impression, and result-click events', 'smart-search-chips' ); ?>
                                             </label>
-                                            <p class="description"><?php esc_html_e( 'Stores aggregate search and chip interaction events on this WordPress site. Uses anonymous visitor IDs for unique-visitor counts.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Stores events in this WordPress database. Visitor identifiers are hashed on the server before storage and are used only for aggregate unique-visitor counts.', 'smart-search-chips' ); ?></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><?php esc_html_e( 'Consent / Legal Basis', 'smart-search-chips' ); ?></th>
+                                        <td>
+                                            <label>
+                                                <input type="hidden" name="sschp_analytics_consent_ack" value="0" />
+                                                <input type="checkbox" name="sschp_analytics_consent_ack" value="1" <?php checked( $analytics_consent_ack, '1' ); ?> />
+                                                <?php esc_html_e( 'I confirm this site has the required visitor consent or legal basis before analytics tracking is enabled.', 'smart-search-chips' ); ?>
+                                            </label>
+                                            <p class="description"><?php esc_html_e( 'Analytics will not collect frontend events until this is checked and saved. Smart Search Chips does not add a public cookie banner or consent popup.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -1251,7 +1270,7 @@ class SSCHP_Settings {
                                             <th><?php esc_html_e( 'Test Email', 'smart-search-chips' ); ?></th>
                                             <td>
                                                 <a class="button" href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'action', SSCHP_Analytics::TEST_DIGEST_ACTION, admin_url( 'admin-post.php' ) ), SSCHP_Analytics::TEST_DIGEST_ACTION ) ); ?>"><?php esc_html_e( 'Send test analytics email', 'smart-search-chips' ); ?></a>
-                                                <p class="description"><?php esc_html_e( 'Sends the current digest to the configured recipients. Analytics must be enabled, but the scheduled digest toggle can remain off while testing.', 'smart-search-chips' ); ?></p>
+                                                <p class="description"><?php esc_html_e( 'Sends the current digest to the configured recipients. Analytics and the consent/legal-basis acknowledgement must be enabled, but the scheduled digest toggle can remain off while testing.', 'smart-search-chips' ); ?></p>
                                             </td>
                                         </tr>
                                     <?php endif; ?>
@@ -1314,7 +1333,7 @@ class SSCHP_Settings {
                                         </div>
                                     <?php endif; ?>
                                 <?php endif; ?>
-                                <?php if ( $analytics_on === '1' && SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) : ?>
+                                <?php if ( $analytics_ready ) : ?>
                                     <?php $analytics = SSCHP_Analytics::get_dashboard_data(); ?>
                                     <div class="ssc-analytics-dashboard">
                                         <div class="ssc-analytics-stats">
@@ -1346,7 +1365,7 @@ class SSCHP_Settings {
                                         <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-analytics' ) ); ?>"><?php esc_html_e( 'Open Detailed Analytics', 'smart-search-chips' ); ?></a></p>
                                     </div>
                                 <?php else : ?>
-                                    <p class="description"><?php esc_html_e( 'Enable analytics and save the page to start collecting anonymous usage data. The dashboard will appear here after events are recorded.', 'smart-search-chips' ); ?></p>
+                                    <p class="description"><?php esc_html_e( 'Enable analytics, confirm consent/legal basis, and save the page to start collecting local usage data. The dashboard will appear here after events are recorded.', 'smart-search-chips' ); ?></p>
                                 <?php endif; ?>
                             <?php endif; ?>
                         </div>
@@ -2210,7 +2229,7 @@ class SSCHP_Settings {
                     </div>
                     <div class="ssc-analytics-stat">
                         <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['search_to_result_click_rate'], 1 ) . '%' ); ?></strong>
-                        <span><?php esc_html_e( 'Search To Result Click', 'smart-search-chips' ); ?></span>
+                        <span><?php esc_html_e( 'Search To Result Click Rate', 'smart-search-chips' ); ?></span>
                     </div>
                 </div>
 

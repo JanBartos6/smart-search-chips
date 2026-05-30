@@ -65,6 +65,7 @@ $forbiddenPaths = @(
     'includes\class-analytics__premium_only.php',
     'includes\class-chip-rules__premium_only.php',
     'includes\class-range-filters__premium_only.php',
+    'assets\js\analytics__premium_only.js',
     'assets\js\admin-ai.js',
     'assets\js\range-filters__premium_only.js',
     'assets\css\range-filters__premium_only.css',
@@ -87,6 +88,7 @@ $patterns = [ordered]@{
     "'is_premium'"                     = 'Freemius premium config is present.'
     "'has_paid_plans'"                 = 'Freemius paid-plan config is present.'
     'SSCHP_Analytics'                  = 'Analytics module reference is present in the wp.org build.'
+    'sschp_track_event'                = 'Analytics tracking endpoint reference is present in the wp.org build.'
     'SSCHP_AI_Tagger'                  = 'AI prompt module reference is present in the wp.org build.'
     'SSCHP_License'                    = 'License-gating class reference is present in the wp.org build.'
     'license key'                      = 'License-key wording is present.'

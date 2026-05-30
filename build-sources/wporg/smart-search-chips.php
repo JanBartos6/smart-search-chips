@@ -206,8 +206,9 @@ register_uninstall_hook( __FILE__, 'sschp_uninstall' );
  */
 function sschp_privacy_policy_content() {
     $content = '<h2>' . __( 'Smart Search Chips', 'smart-search-chips' ) . '</h2>'
-        . '<p>' . __( 'This plugin processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this server and are not stored or sent to any third-party service.', 'smart-search-chips' ) . '</p>'
-        . '<p>' . __( 'No personal data is collected, stored, or shared by this plugin beyond the site owner\'s own WordPress configuration.', 'smart-search-chips' ) . '</p>';
+        . '<p>' . __( 'This plugin processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this WordPress site and are not sent to the plugin author or an AI provider by the plugin.', 'smart-search-chips' ) . '</p>'
+        . '<p>' . __( 'The optional local search index stores searchable copies of selected post titles, content excerpts, taxonomy terms, configured meta fields, generated chip tags, and numeric facts in this WordPress database so searches can run locally. Clearing plugin data or uninstalling with data deletion enabled removes this local index.', 'smart-search-chips' ) . '</p>'
+        . '<p>' . __( 'The WordPress.org edition does not include Pro analytics tracking, analytics email digests, or AI prompt workflows.', 'smart-search-chips' ) . '</p>';
 
     wp_add_privacy_policy_content( 'Smart Search Chips', wp_kses_post( $content ) );
 }

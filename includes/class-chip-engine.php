@@ -49,9 +49,11 @@ class SSCHP_Chip_Engine {
     public function generate_chips( $posts_data, $active_tags = array(), $max_chips = 8, $max_length = 40 ) {
         $total = count( $posts_data );
         $active_tags = $this->normalize_active_tags( $active_tags );
+        $tag_counts  = array();
 
         if ( $total < 1 ) {
-            return array();
+            $chips = $this->add_active_tag_chips( array(), $active_tags, $tag_counts, $posts_data, $total );
+            return apply_filters( 'sschp_generated_chips', $chips, $tag_counts, $posts_data, $active_tags, $max_chips, $max_length );
         }
 
         // Count tag frequency across all posts
@@ -102,32 +104,7 @@ class SSCHP_Chip_Engine {
             $selected_keys[] = $key;
         }
 
-        // Re-add active tags as chips even if they wouldn't normally show
-        foreach ( $active_tags as $at ) {
-            $at_lower = mb_strtolower( $at );
-            if ( ! isset( $chips[ $at_lower ] ) ) {
-                $fallback = apply_filters( 'sschp_active_chip_fallback', null, $at, $tag_counts, $posts_data, $total );
-                if ( false === $fallback ) {
-                    continue;
-                }
-
-                if ( is_array( $fallback ) && isset( $fallback['key'], $fallback['chip'] ) && is_array( $fallback['chip'] ) ) {
-                    $chips[ $fallback['key'] ] = $fallback['chip'];
-                    continue;
-                }
-
-                if ( isset( $tag_counts[ $at_lower ] ) ) {
-                    $chips[ $at_lower ] = $tag_counts[ $at_lower ];
-                    continue;
-                }
-
-                $chips[ $at_lower ] = array(
-                    'label' => $at,
-                    'value' => $at,
-                    'count' => $total,
-                );
-            }
-        }
+        $chips = $this->add_active_tag_chips( $chips, $active_tags, $tag_counts, $posts_data, $total );
 
         $chips = apply_filters( 'sschp_generated_chips', $chips, $tag_counts, $posts_data, $active_tags, $max_chips, $max_length );
 
@@ -156,6 +133,50 @@ class SSCHP_Chip_Engine {
         }
 
         return $ordered;
+    }
+
+    /**
+     * Re-add active tags as chips even if the current result set cannot produce
+     * normal chip suggestions. This keeps zero-result filtered searches
+     * reversible from the frontend.
+     *
+     * @param array $chips Existing generated chips.
+     * @param array $active_tags Active tags.
+     * @param array $tag_counts Counted tag data.
+     * @param array $posts_data Current posts.
+     * @param int   $total Current result count.
+     * @return array Chips with active fallbacks included.
+     */
+    private function add_active_tag_chips( $chips, $active_tags, $tag_counts, $posts_data, $total ) {
+        foreach ( $active_tags as $at ) {
+            $at_lower = mb_strtolower( $at );
+            if ( isset( $chips[ $at_lower ] ) ) {
+                continue;
+            }
+
+            $fallback = apply_filters( 'sschp_active_chip_fallback', null, $at, $tag_counts, $posts_data, $total );
+            if ( false === $fallback ) {
+                continue;
+            }
+
+            if ( is_array( $fallback ) && isset( $fallback['key'], $fallback['chip'] ) && is_array( $fallback['chip'] ) ) {
+                $chips[ $fallback['key'] ] = $fallback['chip'];
+                continue;
+            }
+
+            if ( isset( $tag_counts[ $at_lower ] ) ) {
+                $chips[ $at_lower ] = $tag_counts[ $at_lower ];
+                continue;
+            }
+
+            $chips[ $at_lower ] = array(
+                'label' => $at,
+                'value' => $at,
+                'count' => $total,
+            );
+        }
+
+        return $chips;
     }
 
     /**

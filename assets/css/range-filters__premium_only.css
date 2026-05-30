@@ -34,6 +34,15 @@
     box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.18);
 }
 
+.ssc-range-chip__label {
+    min-width: 0;
+    color: var(--ssc-range-color);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
 .ssc-range-chip__values {
     display: flex;
     align-items: center;
