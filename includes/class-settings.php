@@ -1102,6 +1102,11 @@ class SSCHP_Settings {
                                 <p><?php esc_html_e( 'Analytics is part of Pro. It shows which search chips get clicked, what visitors search for, and which queries return no results.', 'smart-search-chips' ); ?></p>
                                 <p class="description"><?php esc_html_e( 'Upgrade to Pro to enable anonymous search analytics and view the dashboard directly in WordPress.', 'smart-search-chips' ); ?></p>
                             <?php else : ?>
+                                <div class="ssc-analytics-dashboard-reference">
+                                    <strong><?php esc_html_e( 'Detailed Analytics Dashboard', 'smart-search-chips' ); ?></strong>
+                                    <p><?php esc_html_e( 'Use the dedicated analytics page for date filters, full tables, CSV export, and chart export. Digest settings below control what gets emailed to configured recipients.', 'smart-search-chips' ); ?></p>
+                                    <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-analytics' ) ); ?>"><?php esc_html_e( 'Open Analytics Dashboard', 'smart-search-chips' ); ?></a></p>
+                                </div>
                                 <table class="form-table">
                                     <tr>
                                         <th><?php esc_html_e( 'Enable Analytics', 'smart-search-chips' ); ?></th>
@@ -1329,7 +1334,7 @@ class SSCHP_Settings {
                                     </div>
                                         <p class="description"><?php
                                             /* translators: %1$s: start date, %2$s: end date */
-                                            printf( esc_html__( 'Current overview: %1$s to %2$s. Open the dedicated analytics page for date filters, detailed tables, and CSV export.', 'smart-search-chips' ), esc_html( $analytics['range']['from'] ), esc_html( $analytics['range']['to'] ) );
+                                            printf( esc_html__( 'Current overview: %1$s to %2$s. Open the dedicated analytics page for date filters, detailed tables, CSV export, and chart export.', 'smart-search-chips' ), esc_html( $analytics['range']['from'] ), esc_html( $analytics['range']['to'] ) );
                                         ?></p>
                                         <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-analytics' ) ); ?>"><?php esc_html_e( 'Open Detailed Analytics', 'smart-search-chips' ); ?></a></p>
                                     </div>

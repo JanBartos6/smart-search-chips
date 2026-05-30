@@ -2179,6 +2179,13 @@ function sschp_test_analytics_dashboard_tables_are_scrollable() {
     sschp_assert_contains( '.ssc-analytics-panel { min-width: 0;', $css, 'analytics panels should be allowed to shrink inside the dashboard grid' );
 }
 
+function sschp_test_settings_analytics_dashboard_reference_is_styled() {
+    $css = file_get_contents( dirname( __DIR__ ) . '/assets/css/settings.css' );
+
+    sschp_assert_contains( '.ssc-analytics-dashboard-reference { display: grid;', $css, 'settings analytics dashboard reference should be styled as a compact callout' );
+    sschp_assert_contains( '.ssc-analytics-dashboard-reference p { margin: 0;', $css, 'settings analytics dashboard reference copy should stay compact' );
+}
+
 function sschp_test_analytics_digest_preview_exposes_next_email_without_sending() {
     global $sschp_test_mail;
 
@@ -2233,6 +2240,9 @@ function sschp_test_settings_source_renders_analytics_digest_preview_ui() {
     sschp_assert_contains( 'sschp_analytics_digest_include_charts', $contents, 'Pro settings should let admins attach chart reports to analytics digests' );
     sschp_assert_contains( 'Chart Attachment', $contents, 'Pro settings should preview whether chart attachments are enabled' );
     sschp_assert_contains( 'CHART_EXPORT_ACTION', $contents, 'Pro analytics page should expose chart export from the dashboard filters' );
+    sschp_assert_contains( 'Detailed Analytics Dashboard', $contents, 'Pro settings analytics tab should reference the dedicated dashboard near the digest controls' );
+    sschp_assert_contains( 'Open Analytics Dashboard', $contents, 'Pro settings analytics tab should link back to detailed analytics' );
+    sschp_assert_contains( 'CSV export, and chart export', $contents, 'Pro settings analytics copy should mention both analytics export paths' );
     sschp_assert_contains( 'data-sschp-digest-frequency', $contents, 'Pro settings should expose digest frequency to the schedule picker' );
     sschp_assert_contains( 'data-sschp-digest-weekday-select', $contents, 'Pro settings should render a weekday select for weekly digests' );
     sschp_assert_contains( 'ssc-digest-calendar__grid', $contents, 'Pro settings should render a calendar-style monthly digest day grid' );
@@ -3672,6 +3682,7 @@ sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_can_a
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_chart_export_builds_svg_report' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_chart_export_requires_manage_options' );
 sschp_test_analytics_dashboard_tables_are_scrollable();
+sschp_test_settings_analytics_dashboard_reference_is_styled();
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_preview_exposes_next_email_without_sending' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_does_not_send_when_analytics_disabled' );
 sschp_test_settings_source_renders_analytics_digest_preview_ui();
