@@ -198,6 +198,9 @@ class SSCHP_Settings {
         register_setting( 'smart-search-chips', 'sschp_analytics_digest_include_csv', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
+        register_setting( 'smart-search-chips', 'sschp_analytics_digest_include_charts', array(
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
         register_setting( 'smart-search-chips', 'sschp_analytics_digest_include_zero_results', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
@@ -307,7 +310,7 @@ class SSCHP_Settings {
                 'smart-search-chips-analytics',
                 SSCHP_PLUGIN_URL . 'assets/css/analytics.css',
                 array(),
-                SSCHP_VERSION
+                file_exists( SSCHP_PLUGIN_DIR . 'assets/css/analytics.css' ) ? filemtime( SSCHP_PLUGIN_DIR . 'assets/css/analytics.css' ) : SSCHP_VERSION
             );
         }
 
@@ -732,6 +735,7 @@ class SSCHP_Settings {
         $digest_zero       = get_option( 'sschp_analytics_digest_include_zero_results', '1' );
         $digest_top_chips  = get_option( 'sschp_analytics_digest_include_top_chips', '1' );
         $digest_low_ctr    = get_option( 'sschp_analytics_digest_include_low_ctr', '1' );
+        $digest_charts     = get_option( 'sschp_analytics_digest_include_charts', '0' );
         $digest_next_run   = 0;
         $digest_expected_next_run = 0;
         $digest_preview    = array();
@@ -1230,9 +1234,11 @@ class SSCHP_Settings {
                                         <th><?php esc_html_e( 'Digest Content', 'smart-search-chips' ); ?></th>
                                         <td>
                                             <label style="display:block;margin-bottom:6px;"><input type="hidden" name="sschp_analytics_digest_include_csv" value="0" /><input type="checkbox" name="sschp_analytics_digest_include_csv" value="1" <?php checked( $digest_csv, '1' ); ?> /> <?php esc_html_e( 'Attach CSV export', 'smart-search-chips' ); ?></label>
+                                            <label style="display:block;margin-bottom:6px;"><input type="hidden" name="sschp_analytics_digest_include_charts" value="0" /><input type="checkbox" name="sschp_analytics_digest_include_charts" value="1" <?php checked( $digest_charts, '1' ); ?> /> <?php esc_html_e( 'Attach chart report', 'smart-search-chips' ); ?></label>
                                             <label style="display:block;margin-bottom:6px;"><input type="hidden" name="sschp_analytics_digest_include_zero_results" value="0" /><input type="checkbox" name="sschp_analytics_digest_include_zero_results" value="1" <?php checked( $digest_zero, '1' ); ?> /> <?php esc_html_e( 'Include top zero-result searches', 'smart-search-chips' ); ?></label>
                                             <label style="display:block;margin-bottom:6px;"><input type="hidden" name="sschp_analytics_digest_include_top_chips" value="0" /><input type="checkbox" name="sschp_analytics_digest_include_top_chips" value="1" <?php checked( $digest_top_chips, '1' ); ?> /> <?php esc_html_e( 'Include top clicked chips', 'smart-search-chips' ); ?></label>
                                             <label style="display:block;margin-bottom:6px;"><input type="hidden" name="sschp_analytics_digest_include_low_ctr" value="0" /><input type="checkbox" name="sschp_analytics_digest_include_low_ctr" value="1" <?php checked( $digest_low_ctr, '1' ); ?> /> <?php esc_html_e( 'Include low CTR chips', 'smart-search-chips' ); ?></label>
+                                            <p class="description"><?php esc_html_e( 'The chart report is generated locally as an HTML attachment with SVG graphs.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <?php if ( class_exists( 'SSCHP_Analytics' ) ) : ?>
@@ -1279,6 +1285,10 @@ class SSCHP_Settings {
                                                 <div>
                                                     <dt><?php esc_html_e( 'CSV Attachment', 'smart-search-chips' ); ?></dt>
                                                     <dd><?php echo esc_html( ! empty( $digest_preview['include_csv'] ) ? __( 'Enabled', 'smart-search-chips' ) : __( 'Not attached', 'smart-search-chips' ) ); ?></dd>
+                                                </div>
+                                                <div>
+                                                    <dt><?php esc_html_e( 'Chart Attachment', 'smart-search-chips' ); ?></dt>
+                                                    <dd><?php echo esc_html( ! empty( $digest_preview['include_charts'] ) ? __( 'Enabled', 'smart-search-chips' ) : __( 'Not attached', 'smart-search-chips' ) ); ?></dd>
                                                 </div>
                                             </dl>
                                             <div class="ssc-analytics-email-preview__body">
@@ -2015,6 +2025,23 @@ class SSCHP_Settings {
             ),
             'sschp_export_analytics'
         );
+        $chart_export_url = '';
+        if ( $is_pro && class_exists( 'SSCHP_Analytics' ) ) {
+            $chart_export_url = wp_nonce_url(
+                add_query_arg(
+                    array(
+                        'action' => SSCHP_Analytics::CHART_EXPORT_ACTION,
+                        'from'   => $range['from'],
+                        'to'     => $range['to'],
+                        'language' => isset( $range_args['language'] ) ? $range_args['language'] : '',
+                        'post_type' => isset( $range_args['post_type'] ) ? $range_args['post_type'] : '',
+                        'product_category' => isset( $range_args['product_category'] ) ? $range_args['product_category'] : '',
+                    ),
+                    admin_url( 'admin-post.php' )
+                ),
+                SSCHP_Analytics::CHART_EXPORT_ACTION
+            );
+        }
         ?>
         <div class="wrap">
             <h1><?php esc_html_e( 'Search Chips Analytics', 'smart-search-chips' ); ?></h1>
@@ -2067,6 +2094,9 @@ class SSCHP_Settings {
                 <?php endif; ?>
                 <button type="submit" class="button button-primary"><?php esc_html_e( 'Apply Filters', 'smart-search-chips' ); ?></button>
                 <a class="button" href="<?php echo esc_url( $export_url ); ?>"><?php esc_html_e( 'Export CSV', 'smart-search-chips' ); ?></a>
+                <?php if ( $chart_export_url ) : ?>
+                    <a class="button" href="<?php echo esc_url( $chart_export_url ); ?>"><?php esc_html_e( 'Export Charts', 'smart-search-chips' ); ?></a>
+                <?php endif; ?>
             </form>
 
             <div class="ssc-analytics-dashboard">
@@ -2212,7 +2242,9 @@ class SSCHP_Settings {
             return;
         }
 
-        echo '<table>';
+        $wrap_class = count( $columns ) > 4 ? 'ssc-analytics-table-wrap ssc-analytics-table-wrap--wide' : 'ssc-analytics-table-wrap';
+
+        echo '<div class="' . esc_attr( $wrap_class ) . '"><table>';
         echo '<thead><tr>';
         foreach ( $columns as $label ) {
             echo '<th>' . esc_html( $label ) . '</th>';
@@ -2238,7 +2270,7 @@ class SSCHP_Settings {
             echo '</tr>';
         }
 
-        echo '</tbody></table>';
+        echo '</tbody></table></div>';
     }
 
     /**

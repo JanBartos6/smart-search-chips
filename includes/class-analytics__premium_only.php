@@ -17,6 +17,9 @@ class SSCHP_Analytics {
     /** @var string Admin-post action for sending a test digest */
     const TEST_DIGEST_ACTION = 'sschp_send_test_analytics_digest';
 
+    /** @var string Admin-post action for exporting chart reports */
+    const CHART_EXPORT_ACTION = 'sschp_export_analytics_charts';
+
     /** @var string Database version option */
     const DB_VERSION_OPTION = 'sschp_analytics_db_version';
 
@@ -43,6 +46,7 @@ class SSCHP_Analytics {
         add_action( 'wp_ajax_sschp_track_event', array( $this, 'ajax_track_event' ) );
         add_action( 'wp_ajax_nopriv_sschp_track_event', array( $this, 'ajax_track_event' ) );
         add_action( 'admin_post_sschp_export_analytics', array( $this, 'handle_export' ) );
+        add_action( 'admin_post_' . self::CHART_EXPORT_ACTION, array( $this, 'handle_chart_export' ) );
         add_action( 'admin_post_' . self::TEST_DIGEST_ACTION, array( $this, 'handle_send_test_digest' ) );
         add_action( self::DIGEST_HOOK, array( __CLASS__, 'send_scheduled_digest' ) );
         add_action( 'updated_option', array( __CLASS__, 'handle_digest_option_changed' ), 10, 3 );
@@ -181,6 +185,7 @@ class SSCHP_Analytics {
             'sschp_analytics_digest_time',
             'sschp_analytics_digest_date_range',
             'sschp_analytics_digest_include_csv',
+            'sschp_analytics_digest_include_charts',
             'sschp_analytics_digest_include_zero_results',
             'sschp_analytics_digest_include_top_chips',
             'sschp_analytics_digest_include_low_ctr',
@@ -424,6 +429,13 @@ class SSCHP_Analytics {
             }
         }
 
+        if ( self::get_digest_checkbox( 'sschp_analytics_digest_include_charts', '0' ) ) {
+            $chart_file = self::create_digest_chart_attachment( $analytics );
+            if ( '' !== $chart_file ) {
+                $files[] = $chart_file;
+            }
+        }
+
         $sent = false;
         if ( function_exists( 'wp_mail' ) ) {
             $sent = (bool) wp_mail( $recipients, $subject, $message, $headers, $files );
@@ -457,6 +469,7 @@ class SSCHP_Analytics {
             'message'      => self::build_digest_message( $analytics, false ),
             'range'        => isset( $analytics['range'] ) && is_array( $analytics['range'] ) ? $analytics['range'] : $range,
             'include_csv'  => self::get_digest_checkbox( 'sschp_analytics_digest_include_csv', '0' ),
+            'include_charts' => self::get_digest_checkbox( 'sschp_analytics_digest_include_charts', '0' ),
             'generated_by' => __( 'This preview is generated locally in WordPress. Scheduled and test emails are sent only to the configured recipients.', 'smart-search-chips' ),
         );
     }
@@ -497,6 +510,7 @@ class SSCHP_Analytics {
         $include_zero    = self::get_digest_checkbox( 'sschp_analytics_digest_include_zero_results', '1' );
         $include_chips   = self::get_digest_checkbox( 'sschp_analytics_digest_include_top_chips', '1' );
         $include_low_ctr = self::get_digest_checkbox( 'sschp_analytics_digest_include_low_ctr', '1' );
+        $include_charts  = self::get_digest_checkbox( 'sschp_analytics_digest_include_charts', '0' );
         $recommendations = self::build_digest_recommendations( $analytics );
 
         ob_start();
@@ -526,6 +540,10 @@ class SSCHP_Analytics {
                 <tr><th align="left"><?php esc_html_e( 'Zero-result searches', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_number( $summary['zero_result_search'] ?? 0 ) ); ?></td></tr>
                 <tr><th align="left"><?php esc_html_e( 'Zero-result rate', 'smart-search-chips' ); ?></th><td><?php echo esc_html( self::format_percent( $summary['zero_result_rate'] ?? 0 ) ); ?></td></tr>
             </table>
+
+            <?php if ( $include_charts ) : ?>
+                <p><strong><?php esc_html_e( 'Chart report attached:', 'smart-search-chips' ); ?></strong> <?php esc_html_e( 'The email includes a locally generated HTML file with the same analytics graphs from the dashboard.', 'smart-search-chips' ); ?></p>
+            <?php endif; ?>
 
             <h2><?php esc_html_e( 'Top queries', 'smart-search-chips' ); ?></h2>
             <?php echo self::render_email_table( $analytics['top_queries'] ?? array(), array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'searches' => __( 'Searches', 'smart-search-chips' ), 'chip_clicks' => __( 'Chip clicks', 'smart-search-chips' ), 'result_clicks' => __( 'Result clicks', 'smart-search-chips' ), 'result_click_rate' => __( 'Result CTR', 'smart-search-chips' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- table renderer escapes cells. ?>
@@ -688,6 +706,234 @@ class SSCHP_Analytics {
         }
 
         fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- temporary CSV attachment.
+
+        return $file;
+    }
+
+    /**
+     * Create a temporary chart report attachment for digest emails.
+     *
+     * @param array $analytics Dashboard data.
+     * @return string Temporary file path or empty string.
+     */
+    private static function create_digest_chart_attachment( $analytics ) {
+        $file = self::create_temp_attachment_path( 'sschp-analytics-charts-', 'html' );
+
+        if ( '' === $file ) {
+            return '';
+        }
+
+        $written = file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- temporary email attachment.
+            $file,
+            self::build_chart_export_html( $analytics )
+        );
+
+        if ( false === $written ) {
+            if ( file_exists( $file ) ) {
+                unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- temporary email attachment cleanup.
+            }
+            return '';
+        }
+
+        return $file;
+    }
+
+    /**
+     * Build an HTML chart export with inline SVG graphs.
+     *
+     * @param array  $analytics Dashboard data.
+     * @param string $title     Optional report title.
+     * @return string
+     */
+    public static function build_chart_export_html( $analytics, $title = '' ) {
+        $range      = isset( $analytics['range'] ) && is_array( $analytics['range'] ) ? $analytics['range'] : array();
+        $timeseries = isset( $analytics['timeseries'] ) && is_array( $analytics['timeseries'] ) ? $analytics['timeseries'] : array();
+        $title      = '' !== trim( (string) $title ) ? trim( (string) $title ) : __( 'Smart Search Chips analytics charts', 'smart-search-chips' );
+        $sections   = self::get_chart_export_sections();
+
+        ob_start();
+        ?>
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title><?php echo esc_html( $title ); ?></title>
+    <style>
+        body { margin: 24px; font-family: Arial, sans-serif; color: #1d2327; background: #fff; }
+        h1 { margin: 0 0 8px; font-size: 24px; }
+        h2 { margin: 24px 0 12px; font-size: 18px; }
+        p { color: #50575e; }
+        .chart-card { margin: 18px 0; padding: 18px; border: 1px solid #dcdcde; border-radius: 12px; page-break-inside: avoid; }
+        .chart-card svg { display: block; width: 100%; max-width: 920px; height: auto; }
+        .chart-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; color: #50575e; font-size: 13px; }
+        .chart-legend span::before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 50%; background: var(--chart-color); }
+    </style>
+</head>
+<body>
+    <h1><?php echo esc_html( $title ); ?></h1>
+    <p>
+        <?php
+        printf(
+            /* translators: %1$s: start date, %2$s: end date */
+            esc_html__( 'Date range: %1$s to %2$s. Generated locally by this WordPress site.', 'smart-search-chips' ),
+            esc_html( $range['from'] ?? '' ),
+            esc_html( $range['to'] ?? '' )
+        );
+        ?>
+    </p>
+    <?php foreach ( $sections as $section ) : ?>
+        <section class="chart-card">
+            <h2><?php echo esc_html( $section['title'] ); ?></h2>
+            <?php echo self::render_chart_svg_markup( $timeseries, $section['metrics'], $section['title'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG renderer escapes values. ?>
+            <?php echo self::render_chart_legend_markup( $section['metrics'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- legend renderer escapes values. ?>
+        </section>
+    <?php endforeach; ?>
+</body>
+</html>
+        <?php
+
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * Return chart sections used for admin export and digest attachments.
+     *
+     * @return array
+     */
+    private static function get_chart_export_sections() {
+        return array(
+            array(
+                'title'   => __( 'Search Activity Over Time', 'smart-search-chips' ),
+                'metrics' => array(
+                    'searches'      => array( 'label' => __( 'Searches', 'smart-search-chips' ), 'color' => '#1d4ed8' ),
+                    'chip_clicks'   => array( 'label' => __( 'Chip Clicks', 'smart-search-chips' ), 'color' => '#d97706' ),
+                    'result_clicks' => array( 'label' => __( 'Result Clicks', 'smart-search-chips' ), 'color' => '#7c3aed' ),
+                ),
+            ),
+            array(
+                'title'   => __( 'Visitors And Zero-Result Searches', 'smart-search-chips' ),
+                'metrics' => array(
+                    'unique_visitors' => array( 'label' => __( 'Unique Visitors', 'smart-search-chips' ), 'color' => '#059669' ),
+                    'zero_results'    => array( 'label' => __( 'Zero-Result Searches', 'smart-search-chips' ), 'color' => '#dc2626' ),
+                ),
+            ),
+        );
+    }
+
+    /**
+     * Render one SVG line chart for a chart export.
+     *
+     * @param array  $rows       Daily time-series rows.
+     * @param array  $metrics    Metric map.
+     * @param string $aria_label Chart label.
+     * @return string
+     */
+    private static function render_chart_svg_markup( $rows, $metrics, $aria_label ) {
+        if ( empty( $rows ) || empty( $metrics ) ) {
+            return '<p>' . esc_html__( 'No analytics data yet.', 'smart-search-chips' ) . '</p>';
+        }
+
+        $width       = 920;
+        $height      = 300;
+        $left_pad    = 48;
+        $right_pad   = 18;
+        $top_pad     = 18;
+        $bottom_pad  = 42;
+        $plot_w      = $width - $left_pad - $right_pad;
+        $plot_h      = $height - $top_pad - $bottom_pad;
+        $point_count = count( $rows );
+        $max_value   = 0;
+
+        foreach ( $rows as $row ) {
+            foreach ( array_keys( $metrics ) as $metric ) {
+                $max_value = max( $max_value, isset( $row[ $metric ] ) ? (int) $row[ $metric ] : 0 );
+            }
+        }
+
+        $max_value = max( 1, $max_value );
+        $grid_vals = array( 0, (int) ceil( $max_value / 2 ), $max_value );
+
+        ob_start();
+        echo '<svg viewBox="0 0 ' . esc_attr( $width ) . ' ' . esc_attr( $height ) . '" role="img" aria-label="' . esc_attr( $aria_label ) . '" xmlns="http://www.w3.org/2000/svg">';
+        echo '<rect x="0" y="0" width="' . esc_attr( $width ) . '" height="' . esc_attr( $height ) . '" fill="#ffffff" />';
+
+        foreach ( $grid_vals as $grid_value ) {
+            $y = $top_pad + $plot_h - ( $grid_value / $max_value ) * $plot_h;
+            echo '<line x1="' . esc_attr( $left_pad ) . '" y1="' . esc_attr( round( $y, 2 ) ) . '" x2="' . esc_attr( $left_pad + $plot_w ) . '" y2="' . esc_attr( round( $y, 2 ) ) . '" stroke="#e6e9ed" stroke-width="1" />';
+            echo '<text x="' . esc_attr( $left_pad - 8 ) . '" y="' . esc_attr( round( $y + 4, 2 ) ) . '" text-anchor="end" font-size="12" fill="#6b7280">' . esc_html( self::format_number( $grid_value ) ) . '</text>';
+        }
+
+        foreach ( $rows as $index => $row ) {
+            $x = $point_count === 1 ? $left_pad + ( $plot_w / 2 ) : $left_pad + ( $plot_w * $index / ( $point_count - 1 ) );
+            if ( $index === 0 || $index === $point_count - 1 || $index === (int) floor( ( $point_count - 1 ) / 2 ) ) {
+                echo '<text x="' . esc_attr( round( $x, 2 ) ) . '" y="' . esc_attr( $top_pad + $plot_h + 24 ) . '" text-anchor="middle" font-size="12" fill="#6b7280">' . esc_html( $row['label'] ?? $row['date'] ?? '' ) . '</text>';
+            }
+        }
+
+        foreach ( $metrics as $metric => $meta ) {
+            $color = isset( $meta['color'] ) ? $meta['color'] : '#2271b1';
+            $path  = '';
+
+            foreach ( $rows as $index => $row ) {
+                $value = isset( $row[ $metric ] ) ? (int) $row[ $metric ] : 0;
+                $x     = $point_count === 1 ? $left_pad + ( $plot_w / 2 ) : $left_pad + ( $plot_w * $index / ( $point_count - 1 ) );
+                $y     = $top_pad + $plot_h - ( $value / $max_value ) * $plot_h;
+                $path .= ( 0 === $index ? 'M ' : ' L ' ) . round( $x, 2 ) . ' ' . round( $y, 2 );
+            }
+
+            echo '<path d="' . esc_attr( $path ) . '" fill="none" stroke="' . esc_attr( $color ) . '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />';
+        }
+
+        echo '</svg>';
+
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * Render chart legend markup for exports.
+     *
+     * @param array $metrics Metric map.
+     * @return string
+     */
+    private static function render_chart_legend_markup( $metrics ) {
+        if ( empty( $metrics ) ) {
+            return '';
+        }
+
+        ob_start();
+        echo '<div class="chart-legend">';
+        foreach ( $metrics as $meta ) {
+            $color = isset( $meta['color'] ) ? $meta['color'] : '#2271b1';
+            $label = isset( $meta['label'] ) ? $meta['label'] : '';
+            echo '<span style="--chart-color:' . esc_attr( $color ) . '">' . esc_html( $label ) . '</span>';
+        }
+        echo '</div>';
+
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * Return a writable temporary attachment path with a useful suffix.
+     *
+     * @param string $prefix    File prefix.
+     * @param string $extension File extension without dot.
+     * @return string
+     */
+    private static function create_temp_attachment_path( $prefix, $extension ) {
+        $file = function_exists( 'wp_tempnam' ) ? wp_tempnam( $prefix . '.' . $extension ) : tempnam( sys_get_temp_dir(), $prefix );
+
+        if ( ! is_string( $file ) || '' === $file ) {
+            return '';
+        }
+
+        if ( substr( $file, -1 * ( strlen( $extension ) + 1 ) ) === '.' . $extension ) {
+            return $file;
+        }
+
+        $target = $file . '.' . $extension;
+        if ( @rename( $file, $target ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- best-effort temporary filename suffix.
+            return $target;
+        }
 
         return $file;
     }
@@ -1215,14 +1461,8 @@ class SSCHP_Analytics {
             wp_die( esc_html__( 'Analytics is not enabled.', 'smart-search-chips' ) );
         }
 
-        $args   = array(
-            'from'             => self::get_request_text_arg( 'from' ),
-            'to'               => self::get_request_text_arg( 'to' ),
-            'language'         => self::get_request_key_arg( 'language' ),
-            'post_type'        => self::get_request_key_arg( 'post_type' ),
-            'product_category' => sanitize_title( self::get_request_text_arg( 'product_category' ) ),
-            'limit'            => 0,
-        );
+        $args   = self::get_export_request_args();
+        $args['limit'] = 0;
         $range  = self::get_date_range( $args );
         $events = self::get_recent_events( $args );
 
@@ -1258,6 +1498,47 @@ class SSCHP_Analytics {
 
         fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- streaming CSV to php://output.
         exit;
+    }
+
+    /**
+     * Export analytics charts as a local HTML report.
+     */
+    public function handle_chart_export() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have permission to export analytics charts.', 'smart-search-chips' ) );
+        }
+
+        check_admin_referer( self::CHART_EXPORT_ACTION );
+
+        if ( ! self::is_enabled() ) {
+            wp_die( esc_html__( 'Analytics is not enabled.', 'smart-search-chips' ) );
+        }
+
+        $args      = self::get_export_request_args();
+        $analytics = self::get_dashboard_data( $args );
+        $range     = isset( $analytics['range'] ) && is_array( $analytics['range'] ) ? $analytics['range'] : self::get_date_range( $args );
+
+        nocache_headers();
+        header( 'Content-Type: text/html; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename=ssc-analytics-charts-' . $range['from'] . '-to-' . $range['to'] . '.html' );
+
+        echo self::build_chart_export_html( $analytics ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- export builder escapes values.
+        exit;
+    }
+
+    /**
+     * Read common analytics export filters from the admin request.
+     *
+     * @return array
+     */
+    private static function get_export_request_args() {
+        return array(
+            'from'             => self::get_request_text_arg( 'from' ),
+            'to'               => self::get_request_text_arg( 'to' ),
+            'language'         => self::get_request_key_arg( 'language' ),
+            'post_type'        => self::get_request_key_arg( 'post_type' ),
+            'product_category' => sanitize_title( self::get_request_text_arg( 'product_category' ) ),
+        );
     }
 
     /**
