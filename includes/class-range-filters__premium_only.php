@@ -179,6 +179,17 @@ class SSCHP_Range_Filters {
                     );
                     ?>
                 </p>
+                <?php if ( 'query' === $debug_context['mode'] && ! empty( $debug_context['search_path_label'] ) ) : ?>
+                    <p class="description">
+                        <?php
+                        printf(
+                            /* translators: %s: search path label such as Local index, Relevanssi, or WP_Query fallback. */
+                            esc_html__( 'Search path: %s. Range Diagnostics uses the same server-side query pipeline as Test Search before inspecting numeric groups.', 'smart-search-chips' ),
+                            esc_html( $debug_context['search_path_label'] )
+                        );
+                        ?>
+                    </p>
+                <?php endif; ?>
                 <div class="sschp-range-debug__summary" aria-label="<?php echo esc_attr__( 'Range diagnostics summary', 'smart-search-chips' ); ?>">
                     <div>
                         <strong><?php echo esc_html( (string) count( $report['accepted_groups'] ) ); ?></strong>
@@ -712,6 +723,7 @@ class SSCHP_Range_Filters {
             data-range-value="<?php echo esc_attr( $value ); ?>"
             data-range-label="<?php echo esc_attr( $chip['label'] ); ?>"
         >
+            <div class="ssc-range-chip__label"><?php echo esc_html( $chip['label'] ); ?></div>
             <div class="ssc-range-chip__values" aria-live="polite">
                 <span class="ssc-range-chip__value" data-range-role="min-label"><?php echo esc_html( $selected_min ); ?></span>
                 <span class="ssc-range-chip__separator">-</span>
@@ -800,9 +812,12 @@ class SSCHP_Range_Filters {
         $raw_ids    = isset( $args['raw_ids'] ) ? (string) $args['raw_ids'] : '';
         $post_ids   = isset( $args['post_ids'] ) ? array_map( 'absint', (array) $args['post_ids'] ) : array();
         $post_ids   = array_values( array_filter( array_unique( array_merge( $post_ids, $this->parse_debug_post_ids( $raw_ids ) ) ) ) );
-        $mode       = 'idle';
-        $notice     = '';
-        $posts_data = array();
+        $mode              = 'idle';
+        $notice            = '';
+        $search_path       = '';
+        $search_path_label = '';
+        $search_warnings   = array();
+        $posts_data        = array();
 
         if ( ! empty( $post_ids ) ) {
             $mode       = 'ids';
@@ -811,8 +826,12 @@ class SSCHP_Range_Filters {
             if ( strlen( $query ) < 2 ) {
                 $notice = __( 'Enter at least two characters to inspect matching results.', 'smart-search-chips' );
             } else {
-                $mode       = 'query';
-                $posts_data = $this->build_debug_posts_data_for_query( $query, $post_types, $limit );
+                $mode              = 'query';
+                $search_data       = $this->build_debug_posts_data_for_query( $query, $post_types, $limit );
+                $posts_data        = $search_data['posts_data'];
+                $search_path       = $search_data['path'];
+                $search_path_label = $search_data['path_label'];
+                $search_warnings   = $search_data['warnings'];
                 if ( empty( $posts_data ) ) {
                     $notice = __( 'No matching results were found for this query and post type selection.', 'smart-search-chips' );
                 }
@@ -829,15 +848,18 @@ class SSCHP_Range_Filters {
         );
 
         return array(
-            'mode'       => $mode,
-            'query'      => $query,
-            'post_types' => $post_types,
-            'limit'      => $limit,
-            'post_ids'   => $post_ids,
-            'post_count' => count( $posts_data ),
-            'posts_data' => $posts_data,
-            'report'     => $report,
-            'notice'     => $notice,
+            'mode'              => $mode,
+            'query'             => $query,
+            'post_types'        => $post_types,
+            'limit'             => $limit,
+            'post_ids'          => $post_ids,
+            'post_count'        => count( $posts_data ),
+            'posts_data'        => $posts_data,
+            'report'            => $report,
+            'notice'            => $notice,
+            'search_path'       => $search_path,
+            'search_path_label' => $search_path_label,
+            'search_warnings'   => $search_warnings,
         );
     }
 
@@ -901,8 +923,34 @@ class SSCHP_Range_Filters {
      * @return array
      */
     private function build_debug_posts_data_for_query( $query, $post_types, $limit ) {
+        if ( class_exists( 'SSCHP_Search_Handler' ) && class_exists( 'SSCHP_Chip_Engine' ) && class_exists( 'SSCHP_Settings' ) ) {
+            $settings     = new SSCHP_Settings();
+            $engine       = new SSCHP_Chip_Engine();
+            $search_index = class_exists( 'SSCHP_Search_Index' ) ? new SSCHP_Search_Index( $settings, $engine ) : null;
+            $handler      = new SSCHP_Search_Handler( $engine, $settings, $search_index );
+            $search_data  = $handler->get_diagnostic_posts_data(
+                array(
+                    'keyword'     => $query,
+                    'post_types'  => $post_types,
+                    'max_results' => $limit,
+                )
+            );
+
+            return array(
+                'posts_data' => array_slice( (array) $search_data['postsData'], 0, $limit ),
+                'path'       => isset( $search_data['path'] ) ? (string) $search_data['path'] : '',
+                'path_label' => isset( $search_data['pathLabel'] ) ? (string) $search_data['pathLabel'] : '',
+                'warnings'   => isset( $search_data['warnings'] ) ? (array) $search_data['warnings'] : array(),
+            );
+        }
+
         if ( ! class_exists( 'WP_Query' ) ) {
-            return array();
+            return array(
+                'posts_data' => array(),
+                'path'       => '',
+                'path_label' => '',
+                'warnings'   => array(),
+            );
         }
 
         $post_types = $this->normalize_debug_post_types( $post_types );
@@ -929,7 +977,12 @@ class SSCHP_Range_Filters {
             wp_reset_postdata();
         }
 
-        return $this->build_debug_posts_data( $ids );
+        return array(
+            'posts_data' => $this->build_debug_posts_data( $ids ),
+            'path'       => 'wp_query_fallback',
+            'path_label' => __( 'WP_Query fallback', 'smart-search-chips' ),
+            'warnings'   => array(),
+        );
     }
 
     /**

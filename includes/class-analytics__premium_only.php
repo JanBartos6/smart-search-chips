@@ -147,7 +147,19 @@ class SSCHP_Analytics {
      * @return bool
      */
     public static function is_enabled() {
-        return SSCHP_License::is_pro() && get_option( 'sschp_analytics_enabled', '0' ) === '1';
+        return SSCHP_License::is_pro()
+            && get_option( 'sschp_analytics_enabled', '0' ) === '1'
+            && self::has_tracking_consent_acknowledgement();
+    }
+
+    /**
+     * Whether the administrator explicitly acknowledged the consent/legal-basis
+     * requirement for frontend analytics tracking.
+     *
+     * @return bool
+     */
+    public static function has_tracking_consent_acknowledgement() {
+        return get_option( 'sschp_analytics_consent_ack', '0' ) === '1';
     }
 
     /**
@@ -178,6 +190,7 @@ class SSCHP_Analytics {
     public static function digest_option_keys() {
         return array(
             'sschp_analytics_enabled',
+            'sschp_analytics_consent_ack',
             'sschp_analytics_digest_enabled',
             'sschp_analytics_digest_recipients',
             'sschp_analytics_digest_frequency',
@@ -682,27 +695,13 @@ class SSCHP_Analytics {
             return '';
         }
 
-        self::write_csv_row( $handle, array( 'created_at_utc', 'event_type', 'language_code', 'post_type', 'product_category', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'result_object_id', 'result_position', 'page_url', 'visitor_id' ) );
+        self::write_csv_row( $handle, self::get_csv_headers() );
 
         foreach ( $events as $event ) {
             self::write_csv_row(
                 $handle,
                 self::escape_csv_row(
-                    array(
-                        $event['created_at'] ?? '',
-                        $event['event_type'] ?? '',
-                        $event['language_code'] ?? '',
-                        $event['post_type'] ?? '',
-                        $event['product_category'] ?? '',
-                        $event['search_query'] ?? '',
-                        $event['chip_label'] ?? '',
-                        $event['result_count'] ?? '',
-                        $event['active_tag_count'] ?? '',
-                        $event['result_object_id'] ?? '',
-                        $event['result_position'] ?? '',
-                        $event['page_url'] ?? '',
-                        $event['visitor_id'] ?? '',
-                    )
+                    self::get_csv_event_row( $event )
                 )
             );
         }
@@ -1155,7 +1154,7 @@ class SSCHP_Analytics {
         $chip_label       = isset( $_POST['chip_label'] ) ? sanitize_text_field( wp_unslash( $_POST['chip_label'] ) ) : '';
         $post_type        = isset( $_POST['post_type'] ) ? sanitize_key( wp_unslash( $_POST['post_type'] ) ) : '';
         $product_category = isset( $_POST['product_category'] ) ? sanitize_title( wp_unslash( $_POST['product_category'] ) ) : '';
-        $page_url         = isset( $_POST['page_url'] ) ? esc_url_raw( wp_unslash( $_POST['page_url'] ) ) : '';
+        $page_url         = self::sanitize_page_url( isset( $_POST['page_url'] ) ? wp_unslash( $_POST['page_url'] ) : '' );
         $result_count     = isset( $_POST['result_count'] ) ? intval( wp_unslash( $_POST['result_count'] ) ) : null;
         $active_tag_count = isset( $_POST['active_tag_count'] ) ? max( 0, intval( wp_unslash( $_POST['active_tag_count'] ) ) ) : null;
         $result_object_id = isset( $_POST['result_object_id'] ) ? absint( wp_unslash( $_POST['result_object_id'] ) ) : 0;
@@ -1211,7 +1210,7 @@ class SSCHP_Analytics {
         $timestamp = current_time( 'mysql', true );
         $base_row  = array(
             'created_at'       => $timestamp,
-            'visitor_id'       => substr( $visitor_id, 0, 64 ),
+            'visitor_id'       => self::hash_visitor_id( $visitor_id ),
             'user_id'          => 0,
             'event_type'       => $event_type,
             'language_code'    => substr( $language_code, 0, 32 ),
@@ -1501,27 +1500,13 @@ class SSCHP_Analytics {
         header( 'Content-Disposition: attachment; filename=ssc-analytics-' . $range['from'] . '-to-' . $range['to'] . '.csv' );
 
         $out = fopen( 'php://output', 'w' );
-        self::write_csv_row( $out, array( 'created_at_utc', 'event_type', 'language_code', 'post_type', 'product_category', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'result_object_id', 'result_position', 'page_url', 'visitor_id' ) );
+        self::write_csv_row( $out, self::get_csv_headers() );
 
         foreach ( $events as $event ) {
             self::write_csv_row(
                 $out,
                 self::escape_csv_row(
-                    array(
-                        $event['created_at'] ?? '',
-                        $event['event_type'] ?? '',
-                        $event['language_code'] ?? '',
-                        $event['post_type'] ?? '',
-                        $event['product_category'] ?? '',
-                        $event['search_query'] ?? '',
-                        $event['chip_label'] ?? '',
-                        $event['result_count'] ?? '',
-                        $event['active_tag_count'] ?? '',
-                        $event['result_object_id'] ?? '',
-                        $event['result_position'] ?? '',
-                        $event['page_url'] ?? '',
-                        $event['visitor_id'] ?? '',
-                    )
+                    self::get_csv_event_row( $event )
                 )
             );
         }
@@ -1751,7 +1736,7 @@ class SSCHP_Analytics {
     }
 
     /**
-     * Sanitize a visitor identifier used for anonymous analytics correlation.
+     * Sanitize a browser-provided visitor identifier before rate limiting and hashing.
      *
      * @param mixed $value Raw visitor ID.
      * @return string
@@ -1761,6 +1746,55 @@ class SSCHP_Analytics {
         $value = preg_replace( '/[^A-Za-z0-9_-]/', '', $value );
 
         return substr( (string) $value, 0, 64 );
+    }
+
+    /**
+     * Hash a browser-provided visitor ID before database storage.
+     *
+     * @param string $visitor_id Sanitized visitor ID.
+     * @return string
+     */
+    private static function hash_visitor_id( $visitor_id ) {
+        $visitor_id = self::sanitize_visitor_id( $visitor_id );
+        if ( '' === $visitor_id ) {
+            return '';
+        }
+
+        $salt = defined( 'AUTH_KEY' ) ? AUTH_KEY : (string) parse_url( home_url( '/' ), PHP_URL_HOST );
+        return hash_hmac( 'sha256', $visitor_id, $salt );
+    }
+
+    /**
+     * Keep only same-site page URLs and strip query/fragment data before storage.
+     *
+     * @param mixed $value Raw page URL.
+     * @return string
+     */
+    private static function sanitize_page_url( $value ) {
+        $url = esc_url_raw( (string) $value );
+        if ( '' === $url ) {
+            return '';
+        }
+
+        $home_host = strtolower( (string) parse_url( home_url( '/' ), PHP_URL_HOST ) );
+        $url_host  = strtolower( (string) parse_url( $url, PHP_URL_HOST ) );
+
+        if ( '' !== $home_host && '' !== $url_host && $home_host !== $url_host ) {
+            return '';
+        }
+
+        $scheme = parse_url( $url, PHP_URL_SCHEME );
+        $path   = parse_url( $url, PHP_URL_PATH );
+
+        if ( '' === $path || null === $path ) {
+            $path = '/';
+        }
+
+        if ( '' === $url_host ) {
+            return esc_url_raw( $path );
+        }
+
+        return esc_url_raw( ( $scheme ? $scheme : 'https' ) . '://' . $url_host . $path );
     }
 
     /**
@@ -1799,6 +1833,37 @@ class SSCHP_Analytics {
      */
     private static function write_csv_row( $handle, $row ) {
         return fputcsv( $handle, $row, ',', '"', '' );
+    }
+
+    /**
+     * CSV export headers intentionally omit visitor IDs and page URLs.
+     *
+     * @return array
+     */
+    private static function get_csv_headers() {
+        return array( 'created_at_utc', 'event_type', 'language_code', 'post_type', 'product_category', 'search_query', 'chip_label', 'result_count', 'active_tag_count', 'result_object_id', 'result_position' );
+    }
+
+    /**
+     * Return one privacy-minimized CSV row for an analytics event.
+     *
+     * @param array $event Analytics event row.
+     * @return array
+     */
+    private static function get_csv_event_row( $event ) {
+        return array(
+            $event['created_at'] ?? '',
+            $event['event_type'] ?? '',
+            $event['language_code'] ?? '',
+            $event['post_type'] ?? '',
+            $event['product_category'] ?? '',
+            $event['search_query'] ?? '',
+            $event['chip_label'] ?? '',
+            $event['result_count'] ?? '',
+            $event['active_tag_count'] ?? '',
+            $event['result_object_id'] ?? '',
+            $event['result_position'] ?? '',
+        );
     }
 
     /**

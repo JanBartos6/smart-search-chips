@@ -13,7 +13,7 @@
         collections: [],
         search: "",
         loading: false,
-        itemCache: {}
+            itemCache: {}
     };
     var selectedItems = {};
     var searchDebounce = null;
@@ -41,7 +41,10 @@
                 loaded: false,
                 expanded: false,
                 items: [],
-                termName: ""
+                termName: "",
+                page: 0,
+                perPage: 50,
+                hasMore: false
             };
         }
 
@@ -166,7 +169,7 @@
             return;
         }
 
-        if (cache.loaded) {
+        if (cache.loaded && !options.loadMore) {
             if (options.expand !== false) {
                 cache.expanded = true;
             }
@@ -187,6 +190,8 @@
         data.append("nonce", config.nonce || "");
         data.append("taxonomy", taxonomy);
         data.append("term_id", String(termId));
+        data.append("page", String(options.loadMore ? cache.page + 1 : 1));
+        data.append("per_page", String(cache.perPage || 50));
 
         fetch(config.ajaxUrl, {
             method: "POST",
@@ -202,7 +207,10 @@
             cache.loading = false;
             cache.loaded = true;
             cache.expanded = options.expand !== false;
-            cache.items = json.data.items || [];
+            cache.page = Number(json.data.page || (options.loadMore ? cache.page + 1 : 1));
+            cache.perPage = Number(json.data.perPage || cache.perPage || 50);
+            cache.hasMore = !!json.data.hasMore;
+            cache.items = options.loadMore ? cache.items.concat(json.data.items || []) : (json.data.items || []);
             cache.termName = json.data.termName || "";
 
             if (options.selectAll) {
@@ -324,6 +332,10 @@
                 content = '<div class="ssc-ai-term-items">' + cache.items.map(function (item) {
                     return renderTermItem(termKey, item);
                 }).join("") + "</div>";
+
+                if (cache.hasMore) {
+                    content += '<div class="ssc-ai-term__more"><button type="button" class="button button-secondary" data-term-load-more="' + escapeHtml(termKey) + '">' + escapeHtml(config.strings && config.strings.loadMoreItems ? config.strings.loadMoreItems : "Load more items") + "</button></div>";
+                }
             }
         }
 
@@ -705,6 +717,7 @@
             browserResults.addEventListener("click", function (event) {
                 var toggle = event.target.closest("[data-term-toggle]");
                 var select = event.target.closest("[data-term-select]");
+                var loadMore = event.target.closest("[data-term-load-more]");
                 var itemToggle = event.target.closest("[data-item-toggle]");
 
                 if (toggle) {
@@ -738,6 +751,15 @@
                     } else {
                         loadTermItems(selectParts[0], selectParts[1], { expand: true, selectAll: true });
                     }
+                    return;
+                }
+
+                if (loadMore) {
+                    var loadMoreKey = loadMore.getAttribute("data-term-load-more");
+                    if (!loadMoreKey) return;
+
+                    var loadMoreParts = loadMoreKey.split(":");
+                    loadTermItems(loadMoreParts[0], loadMoreParts[1], { expand: true, loadMore: true });
                     return;
                 }
 

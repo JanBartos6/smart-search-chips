@@ -14,6 +14,7 @@ $WpOrgDir = Join-Path $BuildRoot "$Slug-wporg\$Slug"
 $ProZip = Join-Path $BuildRoot "$Slug-pro.zip"
 $WpOrgZip = Join-Path $BuildRoot "$Slug-wporg.zip"
 $FreemiusVersion = '2.13.1'
+$FreemiusSha256 = 'aab118b5fee33c66c9035fbe6aacc5f4cac6e87d1f8cac40df6610d18ca54442'
 
 function Assert-ChildPath {
     param(
@@ -95,6 +96,11 @@ function Ensure-FreemiusSdk {
 
     try {
         Invoke-WebRequest -Uri $url -OutFile $archive
+        $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash.ToLowerInvariant()
+        if ($actualHash -ne $FreemiusSha256) {
+            throw "Freemius SDK checksum mismatch for v$FreemiusVersion. Expected $FreemiusSha256, got $actualHash."
+        }
+
         tar -xzf $archive -C $tempRoot
 
         $sourceDir = Join-Path $tempRoot "wordpress-sdk-$FreemiusVersion"
@@ -170,6 +176,7 @@ function Remove-WpOrgExcludedFiles {
         'includes\class-range-filters__premium_only.php',
         'includes\class-ai-tagger__premium_only.php',
         'includes\class-analytics__premium_only.php',
+        'assets\js\analytics__premium_only.js',
         'assets\js\admin-ai.js',
         'assets\js\range-filters__premium_only.js',
         'assets\css\range-filters__premium_only.css',

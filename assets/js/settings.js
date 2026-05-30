@@ -531,7 +531,11 @@
             });
 
             cards.forEach(function (card) {
-                card.hidden = !cardMatches(card, key);
+                var matches = cardMatches(card, key);
+                card.hidden = !matches;
+                if (matches && card.tagName && card.tagName.toLowerCase() === 'details') {
+                    card.open = true;
+                }
             });
 
             if (updateHash && window.history && window.history.replaceState) {
@@ -551,6 +555,23 @@
         });
 
         activateSettingsTab(keyFromHash() || 'start', false);
+    }
+
+    function initRelevanceThresholdValue() {
+        var input = document.querySelector('[data-sschp-relevance-threshold]');
+        var output = document.querySelector('[data-sschp-relevance-threshold-value]');
+
+        if (!input || !output) {
+            return;
+        }
+
+        function sync() {
+            output.textContent = input.value;
+        }
+
+        input.addEventListener('input', sync);
+        input.addEventListener('change', sync);
+        sync();
     }
 
     function initAnalyticsDigestDayPicker() {
@@ -595,6 +616,7 @@
     renderPreview();
     initSettingsTabs();
     initAnalyticsDigestDayPicker();
+    initRelevanceThresholdValue();
 
     var compatButton = document.getElementById('sschp-run-compat-test');
     if (compatButton) {

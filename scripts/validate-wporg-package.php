@@ -10,6 +10,7 @@
 $repo_root       = dirname( __DIR__ );
 $slug            = 'smart-search-chips';
 $default_package = $repo_root . DIRECTORY_SEPARATOR . 'build' . DIRECTORY_SEPARATOR . $slug . '-wporg' . DIRECTORY_SEPARATOR . $slug;
+$expected_parent = realpath( $repo_root . DIRECTORY_SEPARATOR . 'build' . DIRECTORY_SEPARATOR . $slug . '-wporg' );
 $package_arg     = isset( $argv[1] ) ? $argv[1] : $default_package;
 $package_path    = realpath( $package_arg );
 
@@ -21,7 +22,27 @@ if ( false === $package_path || ! is_dir( $package_path ) ) {
 	exit( 2 );
 }
 
+if ( false === $expected_parent || ! sschp_wporg_is_child_path( $expected_parent, $package_path ) || basename( $package_path ) !== $slug ) {
+	fwrite( STDERR, "Refusing to validate a path outside the generated WordPress.org package directory.\n" );
+	fwrite( STDERR, "Expected package: {$default_package}\n" );
+	exit( 2 );
+}
+
 $failures = array();
+
+/**
+ * Check whether a resolved path is inside a resolved parent directory.
+ *
+ * @param string $parent Parent directory.
+ * @param string $child Child path.
+ * @return bool
+ */
+function sschp_wporg_is_child_path( $parent, $child ) {
+	$parent = rtrim( $parent, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+	$child  = rtrim( $child, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+
+	return 0 === strpos( $child, $parent );
+}
 
 /**
  * Normalize paths for readable output.
@@ -87,6 +108,16 @@ $required_files = array(
 	'includes/class-search-explainer.php',
 );
 
+$forbidden_paths = array(
+	'assets/js/analytics__premium_only.js',
+);
+
+foreach ( $forbidden_paths as $forbidden_path ) {
+	if ( is_file( $package_path . DIRECTORY_SEPARATOR . str_replace( '/', DIRECTORY_SEPARATOR, $forbidden_path ) ) ) {
+		$failures[] = "Forbidden package file: {$forbidden_path}";
+	}
+}
+
 foreach ( $required_files as $required_file ) {
 	if ( ! is_file( $package_path . DIRECTORY_SEPARATOR . str_replace( '/', DIRECTORY_SEPARATOR, $required_file ) ) ) {
 		$failures[] = "Missing required package file: {$required_file}";
@@ -125,6 +156,7 @@ $forbidden_patterns = array(
 	'is_premium',
 	'SSCHP_License',
 	'SSCHP_Analytics',
+	'sschp_track_event',
 	'SSCHP_AI_Tagger',
 	'SSCHP_Chip_Rules',
 	'sschp_export_chip_rules',

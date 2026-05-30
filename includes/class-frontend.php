@@ -135,15 +135,6 @@ class SSCHP_Frontend {
             );
         }
 
-        wp_enqueue_script(
-            'smart-search-chips',
-            SSCHP_PLUGIN_URL . 'assets/js/chips.js',
-            array(),
-            file_exists( $script_path ) ? filemtime( $script_path ) : SSCHP_VERSION,
-            true
-        );
-
-        // Pass settings to JS
         $analytics_enabled = false;
         $analytics_nonce   = '';
         if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) {
@@ -151,6 +142,28 @@ class SSCHP_Frontend {
             $analytics_nonce   = wp_create_nonce( 'sschp_analytics_nonce' );
         }
 
+        $dependencies = array();
+        $analytics_script_path = SSCHP_PLUGIN_DIR . 'assets/js/analytics__premium_only.js';
+        if ( $analytics_enabled && file_exists( $analytics_script_path ) ) {
+            wp_enqueue_script(
+                'smart-search-chips-analytics',
+                SSCHP_PLUGIN_URL . 'assets/js/analytics__premium_only.js',
+                array(),
+                filemtime( $analytics_script_path ),
+                true
+            );
+            $dependencies[] = 'smart-search-chips-analytics';
+        }
+
+        wp_enqueue_script(
+            'smart-search-chips',
+            SSCHP_PLUGIN_URL . 'assets/js/chips.js',
+            $dependencies,
+            file_exists( $script_path ) ? filemtime( $script_path ) : SSCHP_VERSION,
+            true
+        );
+
+        // Pass settings to JS
         wp_localize_script( 'smart-search-chips', 'sschpConfig', array(
             'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
             'action'        => $this->get_ajax_action_name(),

@@ -199,15 +199,19 @@ class SSCHP_Search_Handler {
             'path'     => 'wp_query_fallback',
             'warnings' => array(),
         );
-
-        $posts_data = $this->query_posts_data_for_keyword(
-            $keyword,
-            $post_types,
-            array(),
-            $language,
-            $max_results,
-            $threshold_pct,
-            $diagnostics
+        $search_data = $this->get_diagnostic_posts_data(
+            array(
+                'keyword'       => $keyword,
+                'post_types'    => $post_types,
+                'language'      => $language,
+                'max_results'   => $max_results,
+                'threshold_pct' => $threshold_pct,
+            )
+        );
+        $posts_data  = $search_data['postsData'];
+        $diagnostics = array(
+            'path'     => $search_data['path'],
+            'warnings' => $search_data['warnings'],
         );
 
         $chips = $this->engine->generate_chips( $posts_data, array(), $max_chips, $max_tag_length );
@@ -245,6 +249,53 @@ class SSCHP_Search_Handler {
             'results'           => $this->format_admin_test_results( array_slice( $posts_data, 0, $preview_results ) ),
             'warnings'          => array_values( array_unique( array_filter( $warnings ) ) ),
             'explanations'      => $explanations,
+        );
+    }
+
+    /**
+     * Return raw post data from the same search/index/relevance pipeline used by
+     * the frontend and admin Test Search diagnostics.
+     *
+     * @param array $args Diagnostic search arguments.
+     * @return array
+     */
+    public function get_diagnostic_posts_data( $args = array() ) {
+        $keyword = isset( $args['keyword'] ) ? sanitize_text_field( (string) $args['keyword'] ) : '';
+
+        $post_types = isset( $args['post_types'] )
+            ? $this->normalize_post_types( $args['post_types'] )
+            : $this->normalize_post_types( $this->settings->get( 'post_types', array( 'post' ) ) );
+
+        $active_tags = isset( $args['active_tags'] )
+            ? $this->normalize_active_tags( $args['active_tags'] )
+            : array();
+
+        $language      = isset( $args['language'] ) ? sanitize_key( (string) $args['language'] ) : SSCHP_Language::current_language();
+        $max_results   = isset( $args['max_results'] ) ? $this->limit_analyzed_results( absint( $args['max_results'] ) ) : $this->limit_analyzed_results( (int) $this->settings->get( 'search_results_count', 50 ) );
+        $threshold_pct = isset( $args['threshold_pct'] ) ? (float) $args['threshold_pct'] : (float) $this->settings->get( 'relevance_threshold', 0.3 );
+        $diagnostics   = array(
+            'path'     => 'wp_query_fallback',
+            'warnings' => array(),
+        );
+
+        $posts_data = $this->query_posts_data_for_keyword(
+            $keyword,
+            $post_types,
+            $active_tags,
+            $language,
+            $max_results,
+            $threshold_pct,
+            $diagnostics
+        );
+
+        return array(
+            'query'     => $keyword,
+            'path'      => $diagnostics['path'],
+            'pathLabel' => $this->get_search_path_label( $diagnostics['path'] ),
+            'postTypes' => $post_types,
+            'language'  => $language,
+            'postsData' => $posts_data,
+            'warnings'  => isset( $diagnostics['warnings'] ) ? array_values( array_filter( (array) $diagnostics['warnings'] ) ) : array(),
         );
     }
 
