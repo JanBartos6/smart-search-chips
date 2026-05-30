@@ -1166,17 +1166,28 @@ class SSCHP_Settings {
                                                         <?php endforeach; ?>
                                                     </select>
                                                 </label>
-                                                <label class="ssc-digest-schedule__day" data-sschp-digest-day-monthly <?php echo 'monthly' === $digest_frequency ? '' : 'hidden'; ?>>
-                                                    <span class="screen-reader-text"><?php esc_html_e( 'Monthly digest day', 'smart-search-chips' ); ?></span>
-                                                    <select name="sschp_analytics_digest_day" data-sschp-digest-monthday-select <?php echo 'monthly' === $digest_frequency ? '' : 'disabled="disabled"'; ?>>
+                                                <fieldset class="ssc-digest-calendar" data-sschp-digest-day-monthly <?php echo 'monthly' === $digest_frequency ? '' : 'hidden'; ?>>
+                                                    <legend><?php esc_html_e( 'Monthly run day', 'smart-search-chips' ); ?></legend>
+                                                    <div class="ssc-digest-calendar__grid" role="radiogroup" aria-label="<?php esc_attr_e( 'Monthly digest day', 'smart-search-chips' ); ?>">
                                                         <?php foreach ( $digest_monthday_options as $value => $label ) : ?>
-                                                            <option value="<?php echo esc_attr( $value ); ?>" <?php selected( $digest_monthday_value, $value ); ?>><?php echo esc_html( $label ); ?></option>
+                                                            <label class="ssc-digest-calendar__day">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="sschp_analytics_digest_day"
+                                                                    value="<?php echo esc_attr( $value ); ?>"
+                                                                    data-sschp-digest-monthday-input
+                                                                    aria-label="<?php echo esc_attr( $label ); ?>"
+                                                                    <?php checked( $digest_monthday_value, $value ); ?>
+                                                                    <?php echo 'monthly' === $digest_frequency ? '' : 'disabled="disabled"'; ?>
+                                                                />
+                                                                <span><?php echo esc_html( $value ); ?></span>
+                                                            </label>
                                                         <?php endforeach; ?>
-                                                    </select>
-                                                </label>
+                                                    </div>
+                                                </fieldset>
                                                 <input type="time" name="sschp_analytics_digest_time" value="<?php echo esc_attr( $digest_time ); ?>" />
                                             </div>
-                                            <p class="description"><?php esc_html_e( 'Choose a weekday for weekly digests or day 1-28 for monthly digests. Time uses the site timezone.', 'smart-search-chips' ); ?></p>
+                                            <p class="description"><?php esc_html_e( 'Choose a weekday for weekly digests or day 1-31 for monthly digests. If a selected day does not exist in a month, the report runs on that month\'s last day. Time uses the site timezone.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -1680,7 +1691,7 @@ class SSCHP_Settings {
     private function get_digest_monthday_options() {
         $options = array();
 
-        for ( $day = 1; $day <= 28; $day++ ) {
+        for ( $day = 1; $day <= 31; $day++ ) {
             $options[ (string) $day ] = sprintf(
                 /* translators: %d: day of month */
                 __( 'Day %d', 'smart-search-chips' ),
@@ -2388,14 +2399,14 @@ class SSCHP_Settings {
         $value    = sanitize_key( $value );
         $weekdays = array( 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' );
 
-        if ( in_array( $value, $weekdays, true ) || preg_match( '/^(?:[1-9]|1[0-9]|2[0-8])$/', $value ) ) {
+        if ( in_array( $value, $weekdays, true ) || preg_match( '/^(?:[1-9]|[12][0-9]|3[01])$/', $value ) ) {
             return $value;
         }
 
         add_settings_error(
             'smart-search-chips',
             'sschp_digest_invalid_day',
-            __( 'Analytics digest day must be a weekday name or a monthly day from 1 to 28.', 'smart-search-chips' ),
+            __( 'Analytics digest day must be a weekday name or a monthly day from 1 to 31.', 'smart-search-chips' ),
             'warning'
         );
 

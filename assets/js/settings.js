@@ -558,26 +558,28 @@
         var weeklyWrap = document.querySelector('[data-sschp-digest-day-weekly]');
         var monthlyWrap = document.querySelector('[data-sschp-digest-day-monthly]');
         var weekdaySelect = document.querySelector('[data-sschp-digest-weekday-select]');
-        var monthdaySelect = document.querySelector('[data-sschp-digest-monthday-select]');
+        var monthdayInputs = Array.prototype.slice.call(document.querySelectorAll('[data-sschp-digest-monthday-input]'));
 
-        if (!frequency || !weeklyWrap || !monthlyWrap || !weekdaySelect || !monthdaySelect) {
+        if (!frequency || !weeklyWrap || !monthlyWrap || !weekdaySelect || !monthdayInputs.length) {
             return;
         }
 
         function syncDigestDay() {
             var isMonthly = frequency.value === 'monthly';
-            var activeSelect = isMonthly ? monthdaySelect : weekdaySelect;
-            var inactiveSelect = isMonthly ? weekdaySelect : monthdaySelect;
 
             weeklyWrap.hidden = isMonthly;
             monthlyWrap.hidden = !isMonthly;
-            activeSelect.disabled = false;
-            inactiveSelect.disabled = true;
+            weekdaySelect.disabled = isMonthly;
+            monthdayInputs.forEach(function (input) {
+                input.disabled = !isMonthly;
+            });
         }
 
         frequency.addEventListener('change', syncDigestDay);
         weekdaySelect.addEventListener('change', syncDigestDay);
-        monthdaySelect.addEventListener('change', syncDigestDay);
+        monthdayInputs.forEach(function (input) {
+            input.addEventListener('change', syncDigestDay);
+        });
         syncDigestDay();
     }
 

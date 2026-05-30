@@ -312,15 +312,11 @@ class SSCHP_Analytics {
         $day       = self::get_digest_day();
 
         if ( 'monthly' === $frequency ) {
-            $day_number = ctype_digit( $day ) ? max( 1, min( 28, (int) $day ) ) : 1;
-            $candidate  = $base->setDate( (int) $base->format( 'Y' ), (int) $base->format( 'm' ), $day_number )->setTime( $time['hour'], $time['minute'] );
+            $day_number = ctype_digit( $day ) ? max( 1, min( 31, (int) $day ) ) : 1;
+            $candidate  = self::monthly_digest_candidate( $base, $day_number, $time );
 
             if ( $candidate <= $base ) {
-                $candidate = $candidate->modify( 'first day of next month' )->setDate(
-                    (int) $candidate->modify( 'first day of next month' )->format( 'Y' ),
-                    (int) $candidate->modify( 'first day of next month' )->format( 'm' ),
-                    $day_number
-                )->setTime( $time['hour'], $time['minute'] );
+                $candidate = self::monthly_digest_candidate( $base->modify( 'first day of next month' ), $day_number, $time );
             }
 
             return $candidate->getTimestamp();
@@ -337,6 +333,23 @@ class SSCHP_Analytics {
         }
 
         return $candidate->getTimestamp();
+    }
+
+    /**
+     * Return a monthly digest candidate, using the month end when needed.
+     *
+     * @param DateTimeImmutable $base Base date in the site timezone.
+     * @param int               $day_number Desired day of month.
+     * @param array             $time Digest time parts.
+     * @return DateTimeImmutable
+     */
+    private static function monthly_digest_candidate( DateTimeImmutable $base, $day_number, $time ) {
+        $year          = (int) $base->format( 'Y' );
+        $month         = (int) $base->format( 'm' );
+        $days_in_month = (int) $base->format( 't' );
+        $day           = min( max( 1, (int) $day_number ), $days_in_month );
+
+        return $base->setDate( $year, $month, $day )->setTime( (int) $time['hour'], (int) $time['minute'] );
     }
 
     /**
@@ -751,7 +764,7 @@ class SSCHP_Analytics {
     private static function get_digest_day() {
         $day = sanitize_key( get_option( 'sschp_analytics_digest_day', 'monday' ) );
 
-        if ( isset( self::get_weekday_map()[ $day ] ) || preg_match( '/^(?:[1-9]|1[0-9]|2[0-8])$/', $day ) ) {
+        if ( isset( self::get_weekday_map()[ $day ] ) || preg_match( '/^(?:[1-9]|[12][0-9]|3[01])$/', $day ) ) {
             return $day;
         }
 

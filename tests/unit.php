@@ -2048,6 +2048,20 @@ function sschp_test_analytics_digest_reports_next_scheduled_run() {
     sschp_assert_true( SSCHP_Analytics::get_expected_digest_run_timestamp() > 0, 'expected digest run helper should calculate a timestamp when scheduling is enabled' );
 }
 
+function sschp_test_analytics_digest_monthly_last_day_fallback() {
+    sschp_reset_test_state();
+    sschp_enable_pro_for_analytics_tests();
+    update_option( 'sschp_analytics_digest_frequency', 'monthly' );
+    update_option( 'sschp_analytics_digest_day', '31' );
+    update_option( 'sschp_analytics_digest_time', '09:00' );
+
+    $february_run = SSCHP_Analytics::calculate_next_run_timestamp( strtotime( '2026-02-10 08:00:00 UTC' ) );
+    $march_run    = SSCHP_Analytics::calculate_next_run_timestamp( strtotime( '2026-02-28 10:00:00 UTC' ) );
+
+    sschp_assert_same( '2026-02-28 09:00', gmdate( 'Y-m-d H:i', $february_run ), 'monthly digest day 31 should fall back to February month end' );
+    sschp_assert_same( '2026-03-31 09:00', gmdate( 'Y-m-d H:i', $march_run ), 'monthly digest day 31 should use the selected day when the next month has it' );
+}
+
 function sschp_test_analytics_digest_unschedules_when_disabled() {
     global $sschp_test_scheduled_events;
 
@@ -2147,8 +2161,10 @@ function sschp_test_settings_source_renders_analytics_digest_preview_ui() {
     sschp_assert_contains( 'TEST_DIGEST_ACTION', $contents, 'Pro settings should keep the existing send-test-email flow' );
     sschp_assert_contains( 'data-sschp-digest-frequency', $contents, 'Pro settings should expose digest frequency to the schedule picker' );
     sschp_assert_contains( 'data-sschp-digest-weekday-select', $contents, 'Pro settings should render a weekday select for weekly digests' );
-    sschp_assert_contains( 'data-sschp-digest-monthday-select', $contents, 'Pro settings should render a monthly day select for monthly digests' );
+    sschp_assert_contains( 'ssc-digest-calendar__grid', $contents, 'Pro settings should render a calendar-style monthly digest day grid' );
+    sschp_assert_contains( 'data-sschp-digest-monthday-input', $contents, 'Pro settings should render controlled monthly day choices' );
     sschp_assert_contains( 'get_digest_monthday_options', $contents, 'Pro settings should generate monthly digest day choices instead of asking for free text' );
+    sschp_assert_contains( 'does not exist in a month', $contents, 'Pro settings should explain the last-day fallback for 29th through 31st schedules' );
     sschp_assert_true( false === strpos( $contents, 'type="text" name="sschp_analytics_digest_day"' ), 'Pro settings should not render analytics digest day as a free-text input' );
     sschp_assert_contains( 'initAnalyticsDigestDayPicker', $js, 'settings script should switch the visible digest day picker based on frequency' );
 }
@@ -2159,8 +2175,8 @@ function sschp_test_settings_digest_day_sanitizer_accepts_controlled_choices() {
     $settings = new SSCHP_Settings();
 
     sschp_assert_same( 'monday', $settings->sanitize_digest_day( 'Monday' ), 'digest day sanitizer should accept case-insensitive weekday values' );
-    sschp_assert_same( '28', $settings->sanitize_digest_day( '28' ), 'digest day sanitizer should accept monthly days from 1 to 28' );
-    sschp_assert_same( 'monday', $settings->sanitize_digest_day( '29' ), 'digest day sanitizer should reject monthly days after 28' );
+    sschp_assert_same( '31', $settings->sanitize_digest_day( '31' ), 'digest day sanitizer should accept monthly days from 1 to 31' );
+    sschp_assert_same( 'monday', $settings->sanitize_digest_day( '32' ), 'digest day sanitizer should reject monthly days after 31' );
 }
 
 function sschp_test_wporg_build_excludes_pro_analytics_class() {
@@ -3574,6 +3590,7 @@ sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_report_filte
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_result_click_tracking_stores_post_and_position' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_schedules_when_enabled' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_reports_next_scheduled_run' );
+sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_monthly_last_day_fallback' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_unschedules_when_disabled' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_test_email_uses_wp_mail' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_can_attach_csv_export' );
