@@ -2506,6 +2506,10 @@ class SSCHP_Settings {
         $value    = sanitize_key( $value );
         $weekdays = array( 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' );
 
+        if ( '' === $value ) {
+            return 'monday';
+        }
+
         if ( in_array( $value, $weekdays, true ) || preg_match( '/^(?:[1-9]|[12][0-9]|3[01])$/', $value ) ) {
             return $value;
         }
@@ -2528,6 +2532,10 @@ class SSCHP_Settings {
      */
     public function sanitize_digest_time( $value ) {
         $value = trim( (string) $value );
+
+        if ( '' === $value ) {
+            return '09:00';
+        }
 
         if ( preg_match( '/^([01]\d|2[0-3]):([0-5]\d)$/', $value ) ) {
             return $value;

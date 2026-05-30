@@ -6,7 +6,7 @@ function escapedChipRegexp(label) {
 async function loginAsAdmin(page) {
   await page.goto("/wp-login.php");
   await page.fill("#user_login", "admin");
-  await page.fill("#user_pass", "admin");
+  await page.fill("#user_pass", process.env.SSCHP_TEST_ADMIN_PASS || "password");
   await Promise.all([
     page.waitForNavigation({ waitUntil: "networkidle" }),
     page.click("#wp-submit"),
@@ -168,7 +168,17 @@ async function countAjaxResults(page) {
 }
 
 async function countArchiveResults(page) {
-  return page.locator("main .wp-block-query.alignfull .wp-block-post-template > li.wp-block-post").count();
+  const blockResults = await page.locator("main .wp-block-query.alignfull .wp-block-post-template > li.wp-block-post").count();
+  if (blockResults > 0) {
+    return blockResults;
+  }
+
+  const wooResults = await page.locator("main ul.products > li.product").count();
+  if (wooResults > 0) {
+    return wooResults;
+  }
+
+  return page.locator("main .tf-grid .tf-card.tf-product").count();
 }
 
 async function ensureAnalyticsEnabled(page) {

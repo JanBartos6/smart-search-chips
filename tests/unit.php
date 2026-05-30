@@ -2269,6 +2269,18 @@ function sschp_test_settings_digest_day_sanitizer_accepts_controlled_choices() {
     sschp_assert_same( 'monday', $settings->sanitize_digest_day( '32' ), 'digest day sanitizer should reject monthly days after 31' );
 }
 
+function sschp_test_settings_digest_sanitizers_default_empty_without_warning() {
+    global $sschp_test_settings_errors;
+
+    sschp_reset_test_state();
+
+    $settings = new SSCHP_Settings();
+
+    sschp_assert_same( 'monday', $settings->sanitize_digest_day( '' ), 'empty digest day should default without treating an omitted Pro-only field as invalid' );
+    sschp_assert_same( '09:00', $settings->sanitize_digest_time( '' ), 'empty digest time should default without treating an omitted Pro-only field as invalid' );
+    sschp_assert_same( array(), $sschp_test_settings_errors, 'empty digest fields should not show analytics warnings on free settings saves' );
+}
+
 function sschp_test_wporg_build_excludes_pro_analytics_class() {
     $root      = dirname( __DIR__ );
     $build     = $root . '/scripts/build-release.ps1';
@@ -3693,6 +3705,7 @@ sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_previ
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_does_not_send_when_analytics_disabled' );
 sschp_test_settings_source_renders_analytics_digest_preview_ui();
 sschp_test_settings_digest_day_sanitizer_accepts_controlled_choices();
+sschp_test_settings_digest_sanitizers_default_empty_without_warning();
 sschp_test_wporg_build_excludes_pro_analytics_class();
 sschp_test_meta_auth_callback_requires_edit_post_capability();
 sschp_test_woocommerce_bulk_generation_skips_uneditable_products();

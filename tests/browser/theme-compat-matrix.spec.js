@@ -121,6 +121,7 @@ async function installCompatFixture(page, options = {}) {
       nonce: "compat-nonce",
       lang: "",
       isAdmin: !!config.isAdmin,
+      debug: !!config.debug,
       analytics: { enabled: false, nonce: "" },
     };
     window.__compatResponseDelays = config.responseDelays || {};
@@ -439,6 +440,27 @@ test.describe("Theme compatibility matrix", () => {
     expect(request.action).toBe("sschp_search");
     expect(request.managed).toBe("1");
     expect(request.nonce).toBe("compat-nonce");
+  });
+
+  test("admin frontend debug mode renders visible diagnostics", async ({ page }) => {
+    await installCompatFixture(page, {
+      themeAction: "",
+      isAdmin: true,
+      debug: true,
+      debounceMs: 50,
+    });
+
+    const panel = page.locator(".ssc-debug-panel");
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText("Smart Search Chips Debug");
+    await expect(panel).toContainText("Frontend selector scan");
+
+    const shortcode = page.getByTestId("shortcode-search");
+    await shortcode.locator(".ssc-search__input").fill("Steel");
+    await shortcode.locator(".ssc-search__input").dispatchEvent("input");
+
+    await expect(shortcode.getByRole("button", { name: /Filter by Steel/i })).toBeVisible();
+    await expect(panel).toContainText("Managed AJAX request prepared");
   });
 
   test("escaped guaranteed search shortcode text is hydrated into the live search UI", async ({ page }) => {

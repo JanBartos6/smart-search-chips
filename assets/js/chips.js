@@ -20,6 +20,8 @@
     var VISITOR_STORAGE_KEY = "sschp_visitor_id";
     var DEFAULT_INPUT_SELECTOR = '.ssc-search__input, input[type="search"], input[name="keyword"], input[name="s"], input[name="query"], input[name="search"]';
     var DEFAULT_RESULTS_SELECTOR = ".js-ssc-results, .js-search__results, .ssc-search__results";
+    var debugEntries = [];
+    var debugSnapshot = {};
 
     window.sschpDiagnostics = window.sschpDiagnostics || {
         lastDetectedRequestMethod: "",
@@ -37,6 +39,10 @@
             return false;
         }
 
+        if (config.debug) {
+            return true;
+        }
+
         try {
             return new URLSearchParams(window.location.search).get("sschp_debug") === "1";
         } catch (error) {
@@ -44,12 +50,122 @@
         }
     }
 
-    function debugLog(message, data) {
-        if (!debugEnabled() || !window.console || typeof window.console.info !== "function") {
+    function formatDebugValue(value) {
+        if (value === true) {
+            return "yes";
+        }
+
+        if (value === false) {
+            return "no";
+        }
+
+        if (value === null || value === undefined || value === "") {
+            return "not detected";
+        }
+
+        if (Array.isArray(value)) {
+            return value.length ? value.join(", ") : "none";
+        }
+
+        if (typeof value === "object") {
+            try {
+                return JSON.stringify(value);
+            } catch (error) {
+                return "[object]";
+            }
+        }
+
+        return String(value);
+    }
+
+    function appendDebugRow(list, label, value) {
+        var term = document.createElement("dt");
+        var detail = document.createElement("dd");
+
+        term.textContent = label;
+        detail.textContent = formatDebugValue(value);
+        list.appendChild(term);
+        list.appendChild(detail);
+    }
+
+    function getDebugPanel() {
+        var panel;
+
+        if (!debugEnabled() || !document.body) {
+            return null;
+        }
+
+        panel = document.getElementById("sschp-frontend-debug-panel");
+        if (panel) {
+            return panel;
+        }
+
+        panel = document.createElement("aside");
+        panel.id = "sschp-frontend-debug-panel";
+        panel.className = "ssc-debug-panel";
+        panel.setAttribute("aria-live", "polite");
+        panel.setAttribute("aria-label", "Smart Search Chips frontend debug mode");
+        document.body.appendChild(panel);
+
+        return panel;
+    }
+
+    function renderDebugPanel() {
+        var panel = getDebugPanel();
+        var latest = debugEntries.length ? debugEntries[debugEntries.length - 1] : null;
+        var diagnostics = window.sschpDiagnostics || {};
+        var heading;
+        var note;
+        var list;
+
+        if (!panel) {
             return;
         }
 
-        window.console.info("[Smart Search Chips Debug] " + message, data || {});
+        panel.innerHTML = "";
+        heading = document.createElement("h2");
+        heading.textContent = "Smart Search Chips Debug";
+        note = document.createElement("p");
+        note.textContent = "Admin-only frontend diagnostics are active.";
+        list = document.createElement("dl");
+
+        appendDebugRow(list, "Latest event", latest ? latest.message : "Frontend loaded");
+        appendDebugRow(list, "Search action", debugSnapshot.action || config.action || "sschp_search");
+        appendDebugRow(list, "Theme action", debugSnapshot.themeAction || config.themeAction || "none");
+        appendDebugRow(list, "Input selector", debugSnapshot.inputSelector || config.inputSelector || DEFAULT_INPUT_SELECTOR);
+        appendDebugRow(list, "Result selector", debugSnapshot.resultSelector || config.resultSelector || DEFAULT_RESULTS_SELECTOR);
+        appendDebugRow(list, "Inputs found", debugSnapshot.inputCount);
+        appendDebugRow(list, "Result containers found", debugSnapshot.resultContainerCount);
+        appendDebugRow(list, "Transport", debugSnapshot.transport || diagnostics.transport);
+        appendDebugRow(list, "Keyword field", debugSnapshot.keywordField || config.keywordField || "keyword");
+        appendDebugRow(list, "Nonce attached", debugSnapshot.nonceAttached || diagnostics.nonceAttached);
+        appendDebugRow(list, "Request modified", debugSnapshot.modified || diagnostics.modified);
+
+        panel.appendChild(heading);
+        panel.appendChild(note);
+        panel.appendChild(list);
+    }
+
+    function debugLog(message, data) {
+        if (!debugEnabled()) {
+            return;
+        }
+
+        debugEntries.push({
+            message: message,
+            data: data || {}
+        });
+        debugSnapshot = Object.assign(debugSnapshot, data || {});
+
+        if (debugEntries.length > 10) {
+            debugEntries.shift();
+        }
+
+        if (window.console && typeof window.console.info === "function") {
+            window.console.info("[Smart Search Chips Debug] " + message, data || {});
+        }
+
+        renderDebugPanel();
     }
 
     function warnInvalidSelectorOnce(label, selector) {

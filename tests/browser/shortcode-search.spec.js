@@ -10,7 +10,7 @@ test.describe("Shortcode AJAX search", () => {
   });
 
   test("stays on the page, searches live, and resets when cleared", async ({ page }) => {
-    await page.goto("/search/");
+    await page.goto("/search-gear/");
 
     const input = page.locator(".ssc-search__input");
 
@@ -23,11 +23,11 @@ test.describe("Shortcode AJAX search", () => {
 
     await input.fill("");
     await input.click();
-    await input.pressSequentially("Trapped", { delay: 80 });
+    await input.pressSequentially("tent", { delay: 80 });
     await expect(page.locator(".ssc-results .ssc-result").first()).toBeVisible();
-    await expect(page).toHaveURL(/\/search\/$/);
-    await expect(page.locator(".ssc-chips .ssc-chip")).toHaveCount(5);
-    await expect(page.locator(".ssc-results .ssc-result")).toHaveCount(8);
+    await expect(page).toHaveURL(/\/search-gear\/$/);
+    await expect(page.locator(".ssc-chips .ssc-chip")).toHaveCount(8);
+    await expect(page.locator(".ssc-results .ssc-result")).toHaveCount(5);
 
     await input.fill("");
     await page.waitForTimeout(500);
@@ -36,35 +36,35 @@ test.describe("Shortcode AJAX search", () => {
   });
 
   test("supports multi-chip AND filtering via AJAX", async ({ page }) => {
-    await page.goto("/search/");
+    await page.goto("/search-gear/");
 
     const input = page.locator(".ssc-search__input");
     await input.click();
-    await input.pressSequentially("Trapped", { delay: 80 });
-    await expect(page.locator(".ssc-results .ssc-result")).toHaveCount(8);
+    await input.pressSequentially("tent", { delay: 80 });
+    await expect(page.locator(".ssc-results .ssc-result")).toHaveCount(5);
 
-    await page.getByRole("button", { name: escapedChipRegexp("spring handle") }).click();
-    await expect(page.locator(".ssc-results .ssc-result")).toHaveCount(4);
-    await expect(page.locator(".ssc-chip--active")).toContainText(["spring handle"]);
+    await page.getByRole("button", { name: escapedChipRegexp("waterproof") }).click();
+    await expect(page.locator(".ssc-results .ssc-result")).toHaveCount(3);
+    await expect(page.locator(".ssc-chip--active")).toContainText(["waterproof"]);
 
-    await page.getByRole("button", { name: escapedChipRegexp("trapped key interlock") }).click();
+    await page.getByRole("button", { name: escapedChipRegexp("tent") }).click();
     await expect(page.locator(".ssc-results .ssc-result")).toHaveCount(2);
 
     const titles = page.locator(".ssc-result__title");
     await expect(titles).toContainText([
-      "Trapped Key Guard Door Interlock",
-      "Trapped Key Interlock with Lockout"
+      "Pinebreak Family Tent",
+      "RidgeLite Two-Person Tent"
     ]);
   });
 
   test("submit with Enter keeps the shortcode flow in AJAX mode", async ({ page }) => {
-    await page.goto("/search/");
+    await page.goto("/search-gear/");
 
     const input = page.locator(".ssc-search__input");
-    await input.fill("Trapped");
+    await input.fill("tent");
     await input.press("Enter");
 
-    await expect(page).toHaveURL(/\/search\/$/);
-    await expect(page.locator(".ssc-results .ssc-result")).toHaveCount(8);
+    await expect(page).toHaveURL(/\/search-gear\/$/);
+    await expect(page.locator(".ssc-results .ssc-result")).toHaveCount(5);
   });
 });
