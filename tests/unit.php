@@ -2137,6 +2137,7 @@ function sschp_test_analytics_digest_does_not_send_when_analytics_disabled() {
 function sschp_test_settings_source_renders_analytics_digest_preview_ui() {
     $path     = dirname( __DIR__ ) . '/includes/class-settings.php';
     $contents = is_file( $path ) ? file_get_contents( $path ) : '';
+    $js       = file_get_contents( dirname( __DIR__ ) . '/assets/js/settings.js' );
 
     sschp_assert_contains( 'Next Scheduled Run', $contents, 'Pro settings should render the analytics digest next-run display' );
     sschp_assert_contains( 'Preview Next Analytics Email', $contents, 'Pro settings should render the analytics digest email preview card' );
@@ -2144,6 +2145,22 @@ function sschp_test_settings_source_renders_analytics_digest_preview_ui() {
     sschp_assert_contains( 'generated locally', $contents, 'Pro settings should tell admins reports are generated locally' );
     sschp_assert_contains( 'configured recipients', $contents, 'Pro settings should tell admins emails go only to configured recipients' );
     sschp_assert_contains( 'TEST_DIGEST_ACTION', $contents, 'Pro settings should keep the existing send-test-email flow' );
+    sschp_assert_contains( 'data-sschp-digest-frequency', $contents, 'Pro settings should expose digest frequency to the schedule picker' );
+    sschp_assert_contains( 'data-sschp-digest-weekday-select', $contents, 'Pro settings should render a weekday select for weekly digests' );
+    sschp_assert_contains( 'data-sschp-digest-monthday-select', $contents, 'Pro settings should render a monthly day select for monthly digests' );
+    sschp_assert_contains( 'get_digest_monthday_options', $contents, 'Pro settings should generate monthly digest day choices instead of asking for free text' );
+    sschp_assert_true( false === strpos( $contents, 'type="text" name="sschp_analytics_digest_day"' ), 'Pro settings should not render analytics digest day as a free-text input' );
+    sschp_assert_contains( 'initAnalyticsDigestDayPicker', $js, 'settings script should switch the visible digest day picker based on frequency' );
+}
+
+function sschp_test_settings_digest_day_sanitizer_accepts_controlled_choices() {
+    sschp_reset_test_state();
+
+    $settings = new SSCHP_Settings();
+
+    sschp_assert_same( 'monday', $settings->sanitize_digest_day( 'Monday' ), 'digest day sanitizer should accept case-insensitive weekday values' );
+    sschp_assert_same( '28', $settings->sanitize_digest_day( '28' ), 'digest day sanitizer should accept monthly days from 1 to 28' );
+    sschp_assert_same( 'monday', $settings->sanitize_digest_day( '29' ), 'digest day sanitizer should reject monthly days after 28' );
 }
 
 function sschp_test_wporg_build_excludes_pro_analytics_class() {
@@ -3563,6 +3580,7 @@ sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_can_a
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_preview_exposes_next_email_without_sending' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_does_not_send_when_analytics_disabled' );
 sschp_test_settings_source_renders_analytics_digest_preview_ui();
+sschp_test_settings_digest_day_sanitizer_accepts_controlled_choices();
 sschp_test_wporg_build_excludes_pro_analytics_class();
 sschp_test_meta_auth_callback_requires_edit_post_capability();
 sschp_test_woocommerce_bulk_generation_skips_uneditable_products();

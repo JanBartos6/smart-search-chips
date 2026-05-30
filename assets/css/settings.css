@@ -35,6 +35,9 @@
 .ssc-settings-card__body { padding: 0 20px 12px; }
 .ssc-settings-card .form-table th { width: 140px; padding: 10px 8px; font-weight: 500; }
 .ssc-settings-card .form-table td { padding: 10px 8px; }
+.ssc-digest-schedule { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ssc-digest-schedule select { max-width: 190px; }
+.ssc-digest-schedule input[type="time"] { max-width: 130px; }
 .ssc-compat-config { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin: 14px 0; }
 .ssc-compat-config div { min-width: 0; padding: 10px 12px; border: 1px solid #ebecef; border-radius: 8px; background: #fcfcfd; }
 .ssc-compat-config dt { margin: 0 0 5px; color: #646970; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -211,4 +214,12 @@
     .ssc-ai-term__row, .ssc-ai-term-item { grid-template-columns: 1fr; }
     .ssc-ai-term__actions { justify-content: flex-start; }
     .ssc-ai-term__items { padding-left: 14px; }
+}
+
+@media (max-width: 782px) {
+    .ssc-digest-schedule { align-items: stretch; }
+    .ssc-digest-schedule,
+    .ssc-digest-schedule__day,
+    .ssc-digest-schedule select,
+    .ssc-digest-schedule input[type="time"] { width: 100%; max-width: 100%; }
 }

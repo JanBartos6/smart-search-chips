@@ -553,6 +553,34 @@
         activateSettingsTab(keyFromHash() || 'start', false);
     }
 
+    function initAnalyticsDigestDayPicker() {
+        var frequency = document.querySelector('[data-sschp-digest-frequency]');
+        var weeklyWrap = document.querySelector('[data-sschp-digest-day-weekly]');
+        var monthlyWrap = document.querySelector('[data-sschp-digest-day-monthly]');
+        var weekdaySelect = document.querySelector('[data-sschp-digest-weekday-select]');
+        var monthdaySelect = document.querySelector('[data-sschp-digest-monthday-select]');
+
+        if (!frequency || !weeklyWrap || !monthlyWrap || !weekdaySelect || !monthdaySelect) {
+            return;
+        }
+
+        function syncDigestDay() {
+            var isMonthly = frequency.value === 'monthly';
+            var activeSelect = isMonthly ? monthdaySelect : weekdaySelect;
+            var inactiveSelect = isMonthly ? weekdaySelect : monthdaySelect;
+
+            weeklyWrap.hidden = isMonthly;
+            monthlyWrap.hidden = !isMonthly;
+            activeSelect.disabled = false;
+            inactiveSelect.disabled = true;
+        }
+
+        frequency.addEventListener('change', syncDigestDay);
+        weekdaySelect.addEventListener('change', syncDigestDay);
+        monthdaySelect.addEventListener('change', syncDigestDay);
+        syncDigestDay();
+    }
+
     var inputs = ['sschp_chip_color', 'sschp_chip_text_color', 'sschp_chip_inactive_color', 'sschp_chip_inactive_text_color', 'sschp_chip_radius', 'sschp_chip_font_size', 'sschp_chip_padding_x', 'sschp_chip_padding_y'];
     inputs.forEach(function (name) {
         var el = document.querySelector('[name="' + name + '"]');
@@ -564,6 +592,7 @@
 
     renderPreview();
     initSettingsTabs();
+    initAnalyticsDigestDayPicker();
 
     var compatButton = document.getElementById('sschp-run-compat-test');
     if (compatButton) {

@@ -1142,7 +1142,7 @@ class SSCHP_Settings {
                                     <tr>
                                         <th><?php esc_html_e( 'Frequency', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <select name="sschp_analytics_digest_frequency">
+                                            <select name="sschp_analytics_digest_frequency" data-sschp-digest-frequency>
                                                 <option value="weekly" <?php selected( $digest_frequency, 'weekly' ); ?>><?php esc_html_e( 'Weekly', 'smart-search-chips' ); ?></option>
                                                 <option value="monthly" <?php selected( $digest_frequency, 'monthly' ); ?>><?php esc_html_e( 'Monthly', 'smart-search-chips' ); ?></option>
                                             </select>
@@ -1151,9 +1151,32 @@ class SSCHP_Settings {
                                     <tr>
                                         <th><?php esc_html_e( 'Day / Time', 'smart-search-chips' ); ?></th>
                                         <td>
-                                            <input type="text" name="sschp_analytics_digest_day" value="<?php echo esc_attr( $digest_day ); ?>" class="regular-text" />
-                                            <input type="time" name="sschp_analytics_digest_time" value="<?php echo esc_attr( $digest_time ); ?>" />
-                                            <p class="description"><?php esc_html_e( 'For weekly digests, use monday through sunday. For monthly digests, use a day number from 1 to 28. Time uses the site timezone.', 'smart-search-chips' ); ?></p>
+                                            <?php
+                                            $digest_weekday_options = $this->get_digest_weekday_options();
+                                            $digest_monthday_options = $this->get_digest_monthday_options();
+                                            $digest_weekday_value = isset( $digest_weekday_options[ $digest_day ] ) ? $digest_day : 'monday';
+                                            $digest_monthday_value = isset( $digest_monthday_options[ $digest_day ] ) ? $digest_day : '1';
+                                            ?>
+                                            <div class="ssc-digest-schedule" data-sschp-digest-schedule>
+                                                <label class="ssc-digest-schedule__day" data-sschp-digest-day-weekly <?php echo 'weekly' === $digest_frequency ? '' : 'hidden'; ?>>
+                                                    <span class="screen-reader-text"><?php esc_html_e( 'Weekly digest day', 'smart-search-chips' ); ?></span>
+                                                    <select name="sschp_analytics_digest_day" data-sschp-digest-weekday-select <?php echo 'weekly' === $digest_frequency ? '' : 'disabled="disabled"'; ?>>
+                                                        <?php foreach ( $digest_weekday_options as $value => $label ) : ?>
+                                                            <option value="<?php echo esc_attr( $value ); ?>" <?php selected( $digest_weekday_value, $value ); ?>><?php echo esc_html( $label ); ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </label>
+                                                <label class="ssc-digest-schedule__day" data-sschp-digest-day-monthly <?php echo 'monthly' === $digest_frequency ? '' : 'hidden'; ?>>
+                                                    <span class="screen-reader-text"><?php esc_html_e( 'Monthly digest day', 'smart-search-chips' ); ?></span>
+                                                    <select name="sschp_analytics_digest_day" data-sschp-digest-monthday-select <?php echo 'monthly' === $digest_frequency ? '' : 'disabled="disabled"'; ?>>
+                                                        <?php foreach ( $digest_monthday_options as $value => $label ) : ?>
+                                                            <option value="<?php echo esc_attr( $value ); ?>" <?php selected( $digest_monthday_value, $value ); ?>><?php echo esc_html( $label ); ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </label>
+                                                <input type="time" name="sschp_analytics_digest_time" value="<?php echo esc_attr( $digest_time ); ?>" />
+                                            </div>
+                                            <p class="description"><?php esc_html_e( 'Choose a weekday for weekly digests or day 1-28 for monthly digests. Time uses the site timezone.', 'smart-search-chips' ); ?></p>
                                         </td>
                                     </tr>
                                     <tr>
@@ -1630,6 +1653,42 @@ class SSCHP_Settings {
         }
 
         return gmdate( 'Y-m-d H:i', $timestamp );
+    }
+
+    /**
+     * Return weekday choices for analytics digest schedules.
+     *
+     * @return array
+     */
+    private function get_digest_weekday_options() {
+        return array(
+            'monday'    => __( 'Monday', 'smart-search-chips' ),
+            'tuesday'   => __( 'Tuesday', 'smart-search-chips' ),
+            'wednesday' => __( 'Wednesday', 'smart-search-chips' ),
+            'thursday'  => __( 'Thursday', 'smart-search-chips' ),
+            'friday'    => __( 'Friday', 'smart-search-chips' ),
+            'saturday'  => __( 'Saturday', 'smart-search-chips' ),
+            'sunday'    => __( 'Sunday', 'smart-search-chips' ),
+        );
+    }
+
+    /**
+     * Return monthly day choices for analytics digest schedules.
+     *
+     * @return array
+     */
+    private function get_digest_monthday_options() {
+        $options = array();
+
+        for ( $day = 1; $day <= 28; $day++ ) {
+            $options[ (string) $day ] = sprintf(
+                /* translators: %d: day of month */
+                __( 'Day %d', 'smart-search-chips' ),
+                $day
+            );
+        }
+
+        return $options;
     }
 
     /**
