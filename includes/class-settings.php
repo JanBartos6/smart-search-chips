@@ -1299,6 +1299,13 @@ class SSCHP_Settings {
                                             <div class="ssc-analytics-email-preview__body">
                                                 <?php echo wp_kses( $digest_preview['message'] ?? '', $this->get_analytics_email_preview_allowed_html() ); ?>
                                             </div>
+                                            <?php if ( ! empty( $digest_preview['chart_preview'] ) ) : ?>
+                                                <div class="ssc-analytics-chart-attachment-preview">
+                                                    <h3><?php esc_html_e( 'Preview Chart Attachment', 'smart-search-chips' ); ?></h3>
+                                                    <p class="description"><?php esc_html_e( 'These graphs are sent as the HTML chart attachment. They are not embedded directly inside the email body above.', 'smart-search-chips' ); ?></p>
+                                                    <?php echo wp_kses( $digest_preview['chart_preview'], $this->get_analytics_chart_preview_allowed_html() ); ?>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
                                     <?php else : ?>
                                         <div class="ssc-analytics-email-preview ssc-analytics-email-preview--empty">
@@ -1742,6 +1749,69 @@ class SSCHP_Settings {
             'thead'  => $style_attribute,
             'tr'     => $style_attribute,
             'ul'     => $style_attribute,
+        );
+    }
+
+    /**
+     * Allow inline chart SVG markup inside the admin digest preview.
+     *
+     * @return array
+     */
+    private function get_analytics_chart_preview_allowed_html() {
+        $style_attribute = array( 'style' => true );
+        $svg_position    = array(
+            'x' => true,
+            'y' => true,
+        );
+
+        return array_merge(
+            $this->get_analytics_email_preview_allowed_html(),
+            array(
+                'section' => array( 'class' => true ),
+                'h4'      => array(),
+                'svg'     => array(
+                    'viewBox'    => true,
+                    'viewbox'    => true,
+                    'role'       => true,
+                    'aria-label' => true,
+                    'xmlns'      => true,
+                    'class'      => true,
+                ),
+                'rect'    => array_merge(
+                    $svg_position,
+                    array(
+                        'width'  => true,
+                        'height' => true,
+                        'fill'   => true,
+                    )
+                ),
+                'line'    => array(
+                    'x1'           => true,
+                    'y1'           => true,
+                    'x2'           => true,
+                    'y2'           => true,
+                    'stroke'       => true,
+                    'stroke-width' => true,
+                ),
+                'text'    => array_merge(
+                    $svg_position,
+                    array(
+                        'text-anchor' => true,
+                        'font-size'   => true,
+                        'fill'        => true,
+                    )
+                ),
+                'path'    => array(
+                    'd'               => true,
+                    'fill'            => true,
+                    'stroke'          => true,
+                    'stroke-width'    => true,
+                    'stroke-linecap'  => true,
+                    'stroke-linejoin' => true,
+                ),
+                'title'   => array(),
+                'span'    => $style_attribute,
+            )
         );
     }
 

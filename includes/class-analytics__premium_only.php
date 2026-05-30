@@ -462,6 +462,7 @@ class SSCHP_Analytics {
 
         $range     = self::get_digest_range_args();
         $analytics = self::get_dashboard_data( $range );
+        $include_charts = self::get_digest_checkbox( 'sschp_analytics_digest_include_charts', '0' );
 
         return array(
             'recipients'   => self::get_digest_recipients(),
@@ -469,7 +470,8 @@ class SSCHP_Analytics {
             'message'      => self::build_digest_message( $analytics, false ),
             'range'        => isset( $analytics['range'] ) && is_array( $analytics['range'] ) ? $analytics['range'] : $range,
             'include_csv'  => self::get_digest_checkbox( 'sschp_analytics_digest_include_csv', '0' ),
-            'include_charts' => self::get_digest_checkbox( 'sschp_analytics_digest_include_charts', '0' ),
+            'include_charts' => $include_charts,
+            'chart_preview' => $include_charts ? self::build_chart_preview_html( $analytics ) : '',
             'generated_by' => __( 'This preview is generated locally in WordPress. Scheduled and test emails are sent only to the configured recipients.', 'smart-search-chips' ),
         );
     }
@@ -749,7 +751,6 @@ class SSCHP_Analytics {
         $range      = isset( $analytics['range'] ) && is_array( $analytics['range'] ) ? $analytics['range'] : array();
         $timeseries = isset( $analytics['timeseries'] ) && is_array( $analytics['timeseries'] ) ? $analytics['timeseries'] : array();
         $title      = '' !== trim( (string) $title ) ? trim( (string) $title ) : __( 'Smart Search Chips analytics charts', 'smart-search-chips' );
-        $sections   = self::get_chart_export_sections();
 
         ob_start();
         ?>
@@ -781,16 +782,45 @@ class SSCHP_Analytics {
         );
         ?>
     </p>
-    <?php foreach ( $sections as $section ) : ?>
-        <section class="chart-card">
-            <h2><?php echo esc_html( $section['title'] ); ?></h2>
-            <?php echo self::render_chart_svg_markup( $timeseries, $section['metrics'], $section['title'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG renderer escapes values. ?>
-            <?php echo self::render_chart_legend_markup( $section['metrics'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- legend renderer escapes values. ?>
-        </section>
-    <?php endforeach; ?>
+    <?php echo self::render_chart_sections_markup( $timeseries, 'h2' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- chart renderer escapes values. ?>
 </body>
 </html>
         <?php
+
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * Build the chart attachment preview shown on the settings page.
+     *
+     * @param array $analytics Dashboard data.
+     * @return string
+     */
+    public static function build_chart_preview_html( $analytics ) {
+        $timeseries = isset( $analytics['timeseries'] ) && is_array( $analytics['timeseries'] ) ? $analytics['timeseries'] : array();
+
+        return self::render_chart_sections_markup( $timeseries, 'h4' );
+    }
+
+    /**
+     * Render chart sections for exports and admin previews.
+     *
+     * @param array  $timeseries Daily time-series rows.
+     * @param string $heading_tag Heading tag to use.
+     * @return string
+     */
+    private static function render_chart_sections_markup( $timeseries, $heading_tag = 'h2' ) {
+        $sections    = self::get_chart_export_sections();
+        $heading_tag = in_array( $heading_tag, array( 'h2', 'h4' ), true ) ? $heading_tag : 'h2';
+
+        ob_start();
+        foreach ( $sections as $section ) {
+            echo '<section class="chart-card">';
+            echo '<' . $heading_tag . '>' . esc_html( $section['title'] ) . '</' . $heading_tag . '>';
+            echo self::render_chart_svg_markup( $timeseries, $section['metrics'], $section['title'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG renderer escapes values.
+            echo self::render_chart_legend_markup( $section['metrics'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- legend renderer escapes values.
+            echo '</section>';
+        }
 
         return (string) ob_get_clean();
     }

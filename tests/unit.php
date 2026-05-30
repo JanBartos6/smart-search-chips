@@ -2184,6 +2184,8 @@ function sschp_test_settings_analytics_dashboard_reference_is_styled() {
 
     sschp_assert_contains( '.ssc-analytics-dashboard-reference { display: grid;', $css, 'settings analytics dashboard reference should be styled as a compact callout' );
     sschp_assert_contains( '.ssc-analytics-dashboard-reference p { margin: 0;', $css, 'settings analytics dashboard reference copy should stay compact' );
+    sschp_assert_contains( '.ssc-analytics-chart-attachment-preview { display: grid;', $css, 'settings analytics preview should style the chart attachment preview' );
+    sschp_assert_contains( '.ssc-analytics-chart-attachment-preview svg { display: block; width: 100%; height: auto; }', $css, 'settings analytics preview should scale chart SVGs inside the preview card' );
 }
 
 function sschp_test_analytics_digest_preview_exposes_next_email_without_sending() {
@@ -2205,6 +2207,8 @@ function sschp_test_analytics_digest_preview_exposes_next_email_without_sending(
     sschp_assert_contains( 'generated locally', $preview['generated_by'], 'digest preview should describe local report generation' );
     sschp_assert_true( ! empty( $preview['include_csv'] ), 'digest preview should report whether CSV attachments are enabled' );
     sschp_assert_true( ! empty( $preview['include_charts'] ), 'digest preview should report whether chart attachments are enabled' );
+    sschp_assert_contains( '<svg', $preview['chart_preview'], 'digest preview should include chart attachment SVG markup when charts are enabled' );
+    sschp_assert_contains( 'Search Activity Over Time', $preview['chart_preview'], 'digest preview should show the chart attachment content when charts are enabled' );
     sschp_assert_same( array(), $sschp_test_mail, 'digest preview should not send email' );
 }
 
@@ -2239,6 +2243,8 @@ function sschp_test_settings_source_renders_analytics_digest_preview_ui() {
     sschp_assert_contains( 'TEST_DIGEST_ACTION', $contents, 'Pro settings should keep the existing send-test-email flow' );
     sschp_assert_contains( 'sschp_analytics_digest_include_charts', $contents, 'Pro settings should let admins attach chart reports to analytics digests' );
     sschp_assert_contains( 'Chart Attachment', $contents, 'Pro settings should preview whether chart attachments are enabled' );
+    sschp_assert_contains( 'Preview Chart Attachment', $contents, 'Pro settings should render the chart attachment preview when chart emails are enabled' );
+    sschp_assert_contains( 'get_analytics_chart_preview_allowed_html', $contents, 'Pro settings should allow safe SVG chart markup in the digest preview' );
     sschp_assert_contains( 'CHART_EXPORT_ACTION', $contents, 'Pro analytics page should expose chart export from the dashboard filters' );
     sschp_assert_contains( 'Detailed Analytics Dashboard', $contents, 'Pro settings analytics tab should reference the dedicated dashboard near the digest controls' );
     sschp_assert_contains( 'Open Analytics Dashboard', $contents, 'Pro settings analytics tab should link back to detailed analytics' );
