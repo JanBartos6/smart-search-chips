@@ -77,6 +77,7 @@ function sschp_register_test_post_for_index( $post_id, $post_type = 'post', $tit
         'post_content' => $content,
         'post_excerpt' => $excerpt,
         'post_status'  => $status,
+        'post_date'    => '2026-05-01 12:00:00',
     );
 
     $sschp_test_posts[ $post_id ]      = $post;
@@ -123,7 +124,7 @@ function sschp_test_scheduled_hooks() {
 }
 
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_index_rows, $sschp_test_index_table_exists, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls, $sschp_test_registered_blocks, $sschp_test_shortcodes;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_taxonomies, $sschp_test_terms, $sschp_test_last_get_posts_args, $sschp_test_registered_meta_keys, $sschp_test_index_rows, $sschp_test_index_table_exists, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls, $sschp_test_registered_blocks, $sschp_test_shortcodes;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -150,6 +151,10 @@ function sschp_reset_test_state() {
     $sschp_test_post_autosaves     = array();
     $sschp_test_acf_fields         = array();
     $sschp_test_posts              = array();
+    $sschp_test_taxonomies         = array();
+    $sschp_test_terms              = array();
+    $sschp_test_last_get_posts_args = array();
+    $sschp_test_registered_meta_keys = array();
     $sschp_test_index_rows         = array();
     $sschp_test_index_table_exists = false;
     $sschp_test_analytics_rows     = array();
@@ -163,6 +168,7 @@ function sschp_reset_test_state() {
     $sschp_test_shortcodes         = array();
     $_POST                    = array();
     $_REQUEST                 = array();
+    $_GET                     = array();
     $_SERVER                  = array();
 }
 
@@ -194,6 +200,14 @@ function sschp_capture_wp_die( $callback ) {
             'output'  => $output,
         );
     }
+}
+
+function sschp_decode_json_die_message( $result ) {
+    $data = json_decode( $result['message'], true );
+
+    sschp_assert_true( is_array( $data ), 'captured wp_die message should contain JSON data' );
+
+    return is_array( $data ) ? $data : array();
 }
 
 function sschp_test_no_legacy_public_interface_references_in_fixtures() {
@@ -376,6 +390,50 @@ function sschp_test_release_workflow_requires_version_tag_and_freemius_sdk() {
     sschp_assert_contains( 'Get-FileHash -Algorithm SHA256', $build, 'release build should verify the downloaded Freemius SDK archive checksum' );
     sschp_assert_contains( 'aab118b5fee33c66c9035fbe6aacc5f4cac6e87d1f8cac40df6610d18ca54442', $build, 'release build should pin the expected Freemius SDK checksum' );
     sschp_assert_contains( 'Get-Command zip', $build, 'release build should prefer the native zip command for Freemius-compatible packages' );
+}
+
+function sschp_test_ci_workflow_runs_expanded_release_gates() {
+    $workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/ci.yml' );
+
+    foreach ( array(
+        'npm ci',
+        'npm run lint:php',
+        'npm run test:unit',
+        'npm run build:wporg',
+        'npm run validate:wporg',
+        'npm run lint:wporg',
+        'npm run build:release',
+        'npm run test:browser:compat',
+        'npm run local:wp:reset',
+        'npm run test:browser',
+    ) as $command ) {
+        sschp_assert_contains( $command, $workflow, 'CI workflow should run release gate: ' . $command );
+    }
+
+    sschp_assert_contains( 'release-package-candidates', $workflow, 'CI workflow should upload release package candidates as artifacts' );
+    sschp_assert_contains( 'playwright-report', $workflow, 'CI workflow should upload Playwright debugging artifacts on failure' );
+    sschp_assert_contains( 'SSCHP_TEST_BASE_URL: http://localhost:8899', $workflow, 'CI full browser tests should target the local WordPress integration site' );
+}
+
+function sschp_test_release_smoke_checklist_covers_manual_risks() {
+    $path     = dirname( __DIR__ ) . '/docs/release-smoke-checklist.md';
+    $contents = is_file( $path ) ? file_get_contents( $path ) : '';
+
+    sschp_assert_true( is_file( $path ), 'manual release smoke checklist should exist for non-automatable checks' );
+    foreach ( array(
+        'Freemius checkout',
+        'free-to-Pro handoff',
+        'Pro-to-free downgrade',
+        'real analytics test digest',
+        'real WooCommerce catalog',
+        'block theme',
+        'classic theme',
+        'page-builder-like',
+        'WordPress.org package',
+        'smartsearchchips.app',
+    ) as $manual_check ) {
+        sschp_assert_contains( $manual_check, $contents, 'manual release smoke checklist should cover: ' . $manual_check );
+    }
 }
 
 function sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant() {
@@ -1268,6 +1326,8 @@ function sschp_test_range_debug_context_uses_search_query_first() {
 }
 
 function sschp_test_range_debug_context_reuses_search_handler_pipeline() {
+    global $sschp_test_options, $sschp_test_post_meta;
+
     $range_source   = file_get_contents( dirname( __DIR__ ) . '/includes/class-range-filters__premium_only.php' );
     $handler_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-search-handler.php' );
     $wporg_handler  = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-search-handler.php' );
@@ -1276,6 +1336,34 @@ function sschp_test_range_debug_context_reuses_search_handler_pipeline() {
     sschp_assert_contains( 'get_diagnostic_posts_data', $wporg_handler, 'WP.org search handler should keep reusable diagnostic post data for free admin tools' );
     sschp_assert_contains( 'SSCHP_Search_Handler', $range_source, 'range diagnostics should reuse the shared search handler instead of owning a separate search path' );
     sschp_assert_contains( 'Range Diagnostics uses the same server-side query pipeline as Test Search', $range_source, 'range diagnostics UI should disclose the shared search path' );
+
+    sschp_reset_test_state();
+    $sschp_test_options['sschp_post_types']                  = array( 'product' );
+    $sschp_test_options[SSCHP_Search_Index::STATUS_OPTION]   = 'complete';
+    $sschp_test_options[SSCHP_Search_Index::TOTAL_OPTION]    = 2;
+    $sschp_test_options[SSCHP_Search_Index::PROCESSED_OPTION] = 2;
+
+    $first  = sschp_register_test_post_for_index( 331, 'product', 'Indexed AULED 307 mm fan', 'Indexed range detail.' );
+    $second = sschp_register_test_post_for_index( 332, 'product', 'Indexed AULED 940 mm fan', 'Indexed range detail.' );
+    $sschp_test_post_meta[331][SSCHP_Meta_Box::META_KEY] = '307 mm';
+    $sschp_test_post_meta[332][SSCHP_Meta_Box::META_KEY] = '940 mm';
+
+    $engine = new SSCHP_Chip_Engine();
+    $index  = new SSCHP_Search_Index( new SSCHP_Test_Settings( array( 'post_types' => array( 'product' ) ) ), $engine );
+    $index->index_post( 331, $first );
+    $index->index_post( 332, $second );
+
+    $context = ( new SSCHP_Range_Filters() )->get_debug_context(
+        array(
+            'query'      => 'auled',
+            'post_types' => array( 'product' ),
+            'limit'      => 10,
+        )
+    );
+
+    sschp_assert_same( 'local_index', $context['search_path'], 'range diagnostics should use the shared local-index search path when the index is ready' );
+    sschp_assert_same( 2, $context['post_count'], 'range diagnostics should inspect the posts returned by the shared diagnostic search pipeline' );
+    sschp_assert_same( 1, count( $context['report']['accepted_groups'] ), 'range diagnostics should build range groups from shared search results' );
 }
 
 function sschp_test_range_debug_context_uses_ids_as_advanced_override() {
@@ -1753,32 +1841,180 @@ function sschp_test_ai_prompt_rest_mode() {
     sschp_assert_contains( 'REST route: http://example.test/wp-json/wp/v2/product/22', $prompt, 'REST-mode prompt should include the selected item route' );
 }
 
-function sschp_test_ai_rest_writeback_defaults_to_manual_mode() {
-    $root     = dirname( __DIR__ );
-    $main     = file_get_contents( $root . '/smart-search-chips.php' );
-    $settings = file_get_contents( $root . '/includes/class-settings.php' );
-    $tagger   = file_get_contents( $root . '/includes/class-ai-tagger__premium_only.php' );
+function sschp_enable_pro_for_unit_tests() {
+    global $sschp_test_freemius;
 
-    sschp_assert_contains( "'sschp_ai_rest_enabled'         => '0'", $main, 'AI REST write-back should default off on activation' );
-    sschp_assert_contains( "get_option( 'sschp_ai_rest_enabled', '0' )", $settings, 'AI settings UI should render REST write-back unchecked by default' );
-    sschp_assert_contains( "\$this->settings->get( 'ai_rest_enabled', '0' )", $tagger, 'AI prompt requests should default to manual review when the option is absent' );
+    $sschp_test_freemius          = new SSCHP_Test_Freemius();
+    $sschp_test_freemius->premium = true;
+}
+
+function sschp_register_ai_item_browser_fixture() {
+    global $sschp_test_current_user_can, $sschp_test_taxonomies, $sschp_test_terms, $sschp_test_post_terms;
+
+    sschp_reset_test_state();
+    sschp_enable_pro_for_unit_tests();
+
+    $sschp_test_current_user_can['manage_options'] = true;
+    update_option( 'sschp_post_types', array( 'product' ) );
+
+    $taxonomy = (object) array(
+        'name'         => 'product_cat',
+        'labels'       => (object) array(
+            'name'          => 'Product categories',
+            'singular_name' => 'Product category',
+        ),
+        'public'       => true,
+        'show_ui'      => true,
+        'hierarchical' => true,
+        'object_type'  => array( 'product' ),
+    );
+    $term     = (object) array(
+        'term_id'  => 7,
+        'taxonomy' => 'product_cat',
+        'name'     => 'Valves',
+        'slug'     => 'valves',
+        'count'    => 4,
+        'parent'   => 0,
+    );
+
+    $sschp_test_taxonomies['product_cat'] = $taxonomy;
+    $sschp_test_terms['product_cat|7']    = $term;
+
+    $titles = array(
+        401 => 'Alpha Valve',
+        402 => 'Beta Valve',
+        403 => 'Delta Valve',
+        404 => 'Gamma Valve',
+    );
+
+    foreach ( $titles as $post_id => $title ) {
+        sschp_register_test_post_for_index( $post_id, 'product', $title, 'Catalog item.', 'publish' );
+        $sschp_test_post_terms[ $post_id . '|product_cat' ] = array( $term );
+    }
+}
+
+function sschp_test_ai_rest_writeback_defaults_to_manual_mode() {
+    sschp_reset_test_state();
+
+    $tagger = new SSCHP_AI_Tagger( new SSCHP_Test_Settings() );
+    $config = sschp_invoke_private( $tagger, 'get_request_config' );
+
+    sschp_assert_same( '0', $config['rest_enabled'], 'AI REST write-back should default to manual review when no request value or saved option exists' );
+
+    $_POST['rest_enabled'] = '1';
+    $config                = sschp_invoke_private( $tagger, 'get_request_config' );
+
+    sschp_assert_same( '1', $config['rest_enabled'], 'AI REST write-back should turn on only when the admin submits the REST checkbox value' );
+
+    sschp_reset_test_state();
+    $saved_on_config = sschp_invoke_private( new SSCHP_AI_Tagger( new SSCHP_Test_Settings( array( 'ai_rest_enabled' => '1' ) ) ), 'get_request_config' );
+
+    sschp_assert_same( '1', $saved_on_config['rest_enabled'], 'AI prompt requests should honor an explicitly saved REST write-back setting' );
 }
 
 function sschp_test_ai_item_browser_uses_bounded_paging() {
-    $root     = dirname( __DIR__ );
-    $tagger   = file_get_contents( $root . '/includes/class-ai-tagger__premium_only.php' );
-    $admin_js = file_get_contents( $root . '/assets/js/admin-ai.js' );
-    $settings = file_get_contents( $root . '/includes/class-settings.php' );
+    global $sschp_test_last_get_posts_args;
 
-    sschp_assert_true( false === strpos( $tagger, "'posts_per_page'      => -1" ), 'AI item browser should not load entire catalogs in one request' );
-    sschp_assert_contains( "'posts_per_page'      => \$per_page + 1", $tagger, 'AI item browser should request one bounded page plus a has-more sentinel' );
-    sschp_assert_contains( "'paged'               => \$page", $tagger, 'AI item browser should request the selected page' );
-    sschp_assert_contains( "'perPage'  => \$per_page", $tagger, 'AI item browser response should expose the bounded page size' );
-    sschp_assert_contains( "'hasMore'  => \$has_more", $tagger, 'AI item browser response should tell the UI whether more items are available' );
-    sschp_assert_contains( 'data.append("page", String(options.loadMore ? cache.page + 1 : 1))', $admin_js, 'AI item browser JS should request additional pages explicitly' );
-    sschp_assert_contains( 'data.append("per_page", String(cache.perPage || 50))', $admin_js, 'AI item browser JS should send a bounded page size' );
-    sschp_assert_contains( 'data-term-load-more', $admin_js, 'AI item browser JS should expose a load-more control for large categories' );
-    sschp_assert_contains( 'loadMoreItems', $settings, 'AI item browser load-more copy should be localized from PHP' );
+    sschp_register_ai_item_browser_fixture();
+
+    $_POST = array(
+        'nonce'    => 'test-nonce',
+        'taxonomy' => 'product_cat',
+        'term_id'  => '7',
+        'page'     => '1',
+        'per_page' => '2',
+    );
+
+    $tagger = new SSCHP_AI_Tagger( new SSCHP_Test_Settings() );
+    $result = sschp_capture_wp_die(
+        function() use ( $tagger ) {
+            $tagger->ajax_load_term_items();
+        }
+    );
+    $data   = sschp_decode_json_die_message( $result );
+
+    sschp_assert_true( $result['died'], 'AI item browser should complete the AJAX request with a JSON response' );
+    sschp_assert_same( 2, $data['count'], 'AI item browser should return only the requested page size' );
+    sschp_assert_same( true, $data['hasMore'], 'AI item browser should report more items when the sentinel row exists' );
+    sschp_assert_same( 2, $data['perPage'], 'AI item browser response should expose the bounded page size' );
+    sschp_assert_same( array( 401, 402 ), wp_list_pluck( $data['items'], 'id' ), 'AI item browser should return the first sorted page of selected term items' );
+    sschp_assert_same( 3, $sschp_test_last_get_posts_args['posts_per_page'], 'AI item browser should request one extra sentinel row, not the whole catalog' );
+    sschp_assert_same( 0, $sschp_test_last_get_posts_args['offset'], 'AI item browser first page should start at offset zero' );
+    sschp_assert_same( array( 'product' ), $sschp_test_last_get_posts_args['post_type'], 'AI item browser should query only configured post types that belong to the taxonomy' );
+}
+
+function sschp_test_ai_item_browser_load_more_uses_non_overlapping_offsets() {
+    global $sschp_test_last_get_posts_args;
+
+    sschp_register_ai_item_browser_fixture();
+
+    $_POST = array(
+        'nonce'    => 'test-nonce',
+        'taxonomy' => 'product_cat',
+        'term_id'  => '7',
+        'page'     => '2',
+        'per_page' => '2',
+    );
+
+    $tagger = new SSCHP_AI_Tagger( new SSCHP_Test_Settings() );
+    $result = sschp_capture_wp_die(
+        function() use ( $tagger ) {
+            $tagger->ajax_load_term_items();
+        }
+    );
+    $data   = sschp_decode_json_die_message( $result );
+
+    sschp_assert_same( 2, $sschp_test_last_get_posts_args['offset'], 'AI item browser load-more pages should advance by the displayed page size, not the sentinel size' );
+    sschp_assert_same( array( 403, 404 ), wp_list_pluck( $data['items'], 'id' ), 'AI item browser load-more should not skip the first item after the sentinel row' );
+    sschp_assert_same( false, $data['hasMore'], 'AI item browser should stop showing load more after the final page' );
+}
+
+function sschp_test_ai_item_browser_caps_large_page_sizes() {
+    global $sschp_test_last_get_posts_args;
+
+    sschp_register_ai_item_browser_fixture();
+
+    $_POST = array(
+        'nonce'    => 'test-nonce',
+        'taxonomy' => 'product_cat',
+        'term_id'  => '7',
+        'page'     => '1',
+        'per_page' => '999',
+    );
+
+    $tagger = new SSCHP_AI_Tagger( new SSCHP_Test_Settings() );
+    $result = sschp_capture_wp_die(
+        function() use ( $tagger ) {
+            $tagger->ajax_load_term_items();
+        }
+    );
+    $data   = sschp_decode_json_die_message( $result );
+
+    sschp_assert_same( 100, $data['perPage'], 'AI item browser should cap oversized requested page sizes at 100' );
+    sschp_assert_same( 101, $sschp_test_last_get_posts_args['posts_per_page'], 'AI item browser should still use only one bounded sentinel row after capping' );
+}
+
+function sschp_test_ai_item_browser_requires_manage_options() {
+    sschp_register_ai_item_browser_fixture();
+
+    global $sschp_test_current_user_can;
+    $sschp_test_current_user_can['manage_options'] = false;
+
+    $_POST = array(
+        'nonce'    => 'test-nonce',
+        'taxonomy' => 'product_cat',
+        'term_id'  => '7',
+    );
+
+    $tagger = new SSCHP_AI_Tagger( new SSCHP_Test_Settings() );
+    $result = sschp_capture_wp_die(
+        function() use ( $tagger ) {
+            $tagger->ajax_load_term_items();
+        }
+    );
+
+    sschp_assert_true( $result['died'], 'AI item browser should stop unauthorized AJAX requests' );
+    sschp_assert_contains( 'permission', $result['message'], 'AI item browser should explain the manage_options requirement' );
 }
 
 function sschp_test_ai_settings_card_wraps_narrow_copy() {
@@ -3819,6 +4055,9 @@ sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_manual_mode'
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_prompt_rest_mode' );
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_rest_writeback_defaults_to_manual_mode' );
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_item_browser_uses_bounded_paging' );
+sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_item_browser_load_more_uses_non_overlapping_offsets' );
+sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_item_browser_caps_large_page_sizes' );
+sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_item_browser_requires_manage_options' );
 sschp_test_ai_settings_card_wraps_narrow_copy();
 sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow();
 sschp_test_free_admin_menu_does_not_add_analytics_upsell_page();
@@ -3918,6 +4157,8 @@ sschp_test_wporg_main_loads_search_explainer();
 sschp_test_wporg_frontend_source_registers_search_block();
 sschp_test_search_block_files_are_release_validated();
 sschp_test_release_workflow_requires_version_tag_and_freemius_sdk();
+sschp_test_ci_workflow_runs_expanded_release_gates();
+sschp_test_release_smoke_checklist_covers_manual_risks();
 sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant();
 sschp_test_premium_ajax_numeric_inputs_are_unslashed();
 

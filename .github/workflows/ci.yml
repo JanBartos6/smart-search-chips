@@ -39,6 +39,9 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
+      - name: Run PHP lint
+        run: npm run lint:php
+
       - name: Run unit tests
         run: npm run test:unit
 
@@ -51,5 +54,39 @@ jobs:
       - name: Lint WordPress.org package
         run: npm run lint:wporg
 
+      - name: Build release packages
+        run: npm run build:release
+
+      - name: Upload release package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-package-candidates
+          path: |
+            build/smart-search-chips-pro.zip
+            build/smart-search-chips-wporg.zip
+          if-no-files-found: error
+
       - name: Run browser compatibility tests
         run: npm run test:browser:compat
+
+      - name: Start local WordPress integration environment
+        run: npm run local:wp:reset
+
+      - name: Run full browser and WordPress integration tests
+        env:
+          SSCHP_TEST_BASE_URL: http://localhost:8899
+        run: npm run test:browser
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/**
+            test-results/**
+          if-no-files-found: ignore
+
+      - name: Stop local WordPress integration environment
+        if: always()
+        run: npm run local:wp:stop
