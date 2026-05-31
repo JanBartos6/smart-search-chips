@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Smart Search Chips adds a reliable search shortcode and block, guided filter chips, local indexing, diagnostics, and optional Pro workflows to WordPress search results.">
+  <title>Smart Search Chips - Guided WordPress Search</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="scroll-progress" aria-hidden="true"></div>
+
+  <header class="site-header" data-header>
+    <a class="brand" href="#top" aria-label="Smart Search Chips home">
+      <img src="../../icon.png" alt="" width="40" height="40">
+      <span>Smart Search Chips</span>
+    </a>
+
+    <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav">
+      <span></span>
+      <span></span>
+      <span></span>
+      <span class="sr-only">Menu</span>
+    </button>
+
+    <nav class="site-nav" id="site-nav" aria-label="Main navigation">
+      <a href="#product">Product</a>
+      <a href="#free">Free</a>
+      <a href="#diagnostics">Diagnostics</a>
+      <a href="#pro">Pro</a>
+      <a href="#pricing">Pricing</a>
+      <!-- Production: replace local build zip links with the WP.org plugin/download URL. -->
+      <a class="nav-action" href="../../build/smart-search-chips-wporg.zip" download>Download Free</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero" id="product" aria-labelledby="hero-title">
+      <div class="hero-layout">
+        <div class="hero-copy reveal">
+          <h1 id="hero-title">Guided search chips for WordPress results</h1>
+          <p>
+            A reliable shortcode and block search UI, clickable filter chips,
+            local indexing with fallback, and clear diagnostics. Pro adds opt-in,
+            local-first analytics and advanced catalog workflows.
+          </p>
+
+          <div class="hero-actions" aria-label="Primary actions">
+            <a class="button primary" href="../../build/smart-search-chips-wporg.zip" download>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
+              Download Free
+            </a>
+            <a class="button secondary" href="#pricing">
+              Compare Editions
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="product-shell reveal" aria-label="Interactive Smart Search Chips product preview">
+          <div class="preview-toolbar">
+            <div class="preview-title">
+              <span class="toolbar-dot"></span>
+              Search results
+            </div>
+            <div class="preview-actions">
+              <span class="preview-badge">WooCommerce catalog demo</span>
+            </div>
+          </div>
+
+          <section class="search-preview" aria-label="Public search result preview">
+            <label class="search-box" for="demo-query">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg>
+              <input id="demo-query" type="search" value="backpack" autocomplete="off" spellcheck="false">
+              <button type="button" data-clear-query aria-label="Clear search">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+              </button>
+            </label>
+
+            <div class="chip-row" id="chip-zone" aria-label="Generated search chips"></div>
+
+            <div class="result-meta" aria-live="polite">
+              <span><strong id="result-count">18</strong> results</span>
+              <span><strong id="active-filter-count">0</strong> chips selected</span>
+            </div>
+
+            <div class="result-list" id="result-stream" aria-label="Search results"></div>
+          </section>
+        </div>
+      </div>
+
+      <div class="hero-lower" aria-label="Trust signals">
+        <div>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v10H6z"/></svg>
+          <strong>Private and local-first</strong>
+          <span>Pro analytics run only when enabled and confirmed by the site owner.</span>
+        </div>
+        <div>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 18-6-6 6-6M16 6l6 6-6 6"/></svg>
+          <strong>Developer friendly</strong>
+          <span>Shortcode and block use the plugin endpoint. Compatible theme AJAX can be enhanced safely.</span>
+        </div>
+        <div>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7l8 4 8-4-8-4Zm-8 8 8 4 8-4M4 15l8 4 8-4"/></svg>
+          <strong>Built for catalogs</strong>
+          <span>Free uses Search Chips Tags and optional WooCommerce helpers. Pro adds fields and ranges.</span>
+        </div>
+        <div>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 7v6c0 5-3.4 7.7-8 9-4.6-1.3-8-4-8-9V7l8-4Z"/></svg>
+          <strong>WP.org aware</strong>
+          <span>The WP.org package excludes premium-only classes, assets, and workflows.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section free-section" id="free" aria-labelledby="free-title">
+      <div class="section-intro reveal">
+        <h2 id="free-title">A free plugin that is genuinely useful</h2>
+        <p>
+          Core search, chips, indexing, and troubleshooting are not paywalled.
+        </p>
+      </div>
+
+      <div class="free-layout">
+        <article class="feature-panel reveal">
+          <h3>Search UI</h3>
+          <ul class="check-list">
+            <li>Guaranteed Search Mode via <code>[sschp_search]</code></li>
+            <li>Gutenberg search block with the same server-rendered UI</li>
+            <li>Legacy <code>[ssc_search]</code> shortcode alias for existing installs</li>
+            <li>Safe optional enhancement for compatible theme AJAX searches</li>
+          </ul>
+        </article>
+
+        <article class="feature-panel reveal">
+          <h3>Index and fallback</h3>
+          <ul class="check-list">
+            <li>Queue, batch, pause, resume, rebuild, and clear index controls</li>
+            <li>Local index path when the index is ready</li>
+            <li>Relevanssi path when available, with WP_Query fallback when needed</li>
+          </ul>
+        </article>
+
+        <article class="feature-panel reveal">
+          <h3>Commerce help</h3>
+          <ul class="check-list">
+            <li>Built-in Search Chips Tags field for posts, pages, and products</li>
+            <li>Optional WooCommerce helper tags from attributes, categories, and product tags</li>
+            <li>SKU chips are available but disabled by default to avoid noisy unique chips</li>
+            <li>Product-type and helper-tag warnings in diagnostics</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section diagnostics-section" id="diagnostics" aria-labelledby="diagnostics-title">
+      <div class="diagnostics-layout">
+        <div class="section-intro reveal">
+        <h2 id="diagnostics-title">Know exactly why chips did or did not appear</h2>
+        <p>
+          Admin Test Search runs the same server-side pipeline and reports the
+          path, results, chips, first matches, warnings, and suggested fixes.
+        </p>
+        </div>
+
+        <div class="admin-card reveal" aria-label="Admin Test Search preview">
+          <div class="admin-card-head">
+            <div>
+              <strong>Admin Test Search</strong>
+              <span>Query: backpack</span>
+            </div>
+            <span class="static-action">Run Test Search</span>
+          </div>
+
+          <div class="admin-query">
+            <div><span>Selected post types</span><strong>product, post</strong></div>
+            <div><span>Inferred post types</span><strong>product</strong></div>
+          </div>
+
+          <div class="admin-kpis">
+            <div><span>Path used</span><strong>Relevanssi</strong></div>
+            <div><span>Results</span><strong>18</strong></div>
+            <div><span>Tagged</span><strong>18</strong></div>
+            <div><span>Generated chips</span><strong>11</strong></div>
+          </div>
+
+          <div class="admin-table" role="table" aria-label="Generated chip preview">
+            <div role="row">
+              <span role="columnheader">Chip</span>
+              <span role="columnheader">Count</span>
+              <span role="columnheader">First result</span>
+            </div>
+            <div role="row">
+              <span data-label="Chip">water resistant</span>
+              <span data-label="Count">12</span>
+              <span data-label="First result">Everyday Backpack</span>
+            </div>
+            <div role="row">
+              <span data-label="Chip">everyday</span>
+              <span data-label="Count">8</span>
+              <span data-label="First result">Everyday Backpack</span>
+            </div>
+            <div role="row">
+              <span data-label="Chip">travel</span>
+              <span data-label="Count">7</span>
+              <span data-label="First result">Travel Backpack 30L</span>
+            </div>
+          </div>
+
+          <div class="first-results" aria-label="First results preview">
+            <strong>First results</strong>
+            <ol>
+              <li><span>Everyday Backpack</span><small>product #1842 / tags: everyday, 20L, water resistant</small></li>
+              <li><span>Travel Backpack 30L</span><small>product #1908 / tags: travel, 30L, carry-on</small></li>
+              <li><span>Rolltop Commuter Pack</span><small>product #2031 / tags: commuter, laptop, water resistant</small></li>
+            </ol>
+          </div>
+
+          <div class="explain-grid" aria-label="Why no chips reasons">
+            <span>No query</span>
+            <span>Query too short</span>
+            <span>No results</span>
+            <span>No tags</span>
+            <span>Redundant tags</span>
+            <span>Max tag length filtering</span>
+            <span>Products not included when WooCommerce is active</span>
+            <span>Index not ready</span>
+            <span>WooCommerce helper tags disabled</span>
+            <span>Invalid or missing theme selector</span>
+          </div>
+
+          <p class="admin-warning">
+            Warning: local index is still queued, so this test used Relevanssi.
+          </p>
+          <p class="admin-success">
+            Explanation: enough tagged results were found and labels passed length and redundancy checks.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section pro-section" id="pro" aria-labelledby="pro-title">
+      <div class="section-intro reveal">
+        <h2 id="pro-title">Advanced workflows for serious search sites</h2>
+        <p>
+          Pro adds field mapping, chip rules, range chips, analytics, reports,
+          and AI-assisted tagging workflows for larger or client-facing sites.
+        </p>
+      </div>
+
+      <div class="pro-console reveal">
+        <div class="pro-tabs" role="tablist" aria-label="Pro feature preview">
+          <button class="pro-tab is-active" type="button" data-panel="rules" role="tab" aria-selected="true">Chip Rules</button>
+          <button class="pro-tab" type="button" data-panel="range" role="tab" aria-selected="false">Range Chips</button>
+          <button class="pro-tab" type="button" data-panel="analytics" role="tab" aria-selected="false">Analytics</button>
+          <button class="pro-tab" type="button" data-panel="ai" role="tab" aria-selected="false">AI Workflows</button>
+        </div>
+
+        <div class="pro-panel is-active" id="panel-rules" role="tabpanel">
+          <div>
+            <h3>Shape chip language without editing every post or product</h3>
+            <p>
+              Synonyms, pinned chips, hidden chips, label overrides, JSON export,
+              and validated import with preview mode.
+            </p>
+          </div>
+          <div class="rule-list" aria-label="Example chip rules">
+            <span><strong>Synonym</strong> rucksack -> backpack</span>
+            <span><strong>Pinned</strong> carry-on</span>
+            <span><strong>Hidden</strong> discontinued</span>
+            <span><strong>Rename</strong> waterproof-ish -> water resistant</span>
+          </div>
+        </div>
+
+        <div class="pro-panel" id="panel-range" role="tabpanel">
+          <div>
+            <h3>Turn numeric product noise into useful filters</h3>
+            <p>
+              Compatible numeric measurements can become slider chips. Diagnostics
+              show confidence, source, accepted groups, and rejected values such
+              as model numbers, SKU-like values, IP ratings, mixed units,
+              price-like text, too few products, or low confidence.
+            </p>
+          </div>
+          <div class="range-preview" aria-label="Range chip preview">
+            <div class="range-track">
+              <span style="--x: 8%"></span>
+              <span style="--x: 34%"></span>
+              <span style="--x: 67%"></span>
+              <span style="--x: 92%"></span>
+            </div>
+            <strong>307 - 940 mm</strong>
+            <small>Accepted length group / WooCommerce attribute / confidence 0.91</small>
+          </div>
+        </div>
+
+        <div class="pro-panel" id="panel-analytics" role="tabpanel">
+          <div>
+            <h3>Measure search quality without third-party tracking</h3>
+            <p>
+              Track local searches, chip impressions, chip clicks, result clicks,
+              zero-result searches, CSV/chart exports, and scheduled email digests.
+            </p>
+          </div>
+          <div class="analytics-preview" aria-label="Analytics graph preview">
+            <span style="--h: 42%"></span>
+            <span style="--h: 66%"></span>
+            <span style="--h: 50%"></span>
+            <span style="--h: 84%"></span>
+            <span style="--h: 61%"></span>
+            <span style="--h: 76%"></span>
+            <span style="--h: 57%"></span>
+          </div>
+        </div>
+
+        <div class="pro-panel" id="panel-ai" role="tabpanel">
+          <div>
+            <h3>Prepare better tags with admin-controlled AI workflows</h3>
+            <p>
+              Build an external-agent prompt from selected items. REST write-back
+              is optional and uses WordPress credentials outside the plugin.
+            </p>
+          </div>
+          <div class="prompt-preview" aria-label="AI prompt preview">
+            <span>Selected items: 24</span>
+            <span>Goal: normalized search chips</span>
+            <span>Output: semicolon tags for review</span>
+            <span>Write-back: optional</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section pricing-section" id="pricing" aria-labelledby="pricing-title">
+      <div class="section-intro reveal">
+        <h2 id="pricing-title">Free where it matters. Pro where teams need control.</h2>
+        <p>
+          Simple pricing by site count. Every Pro tier includes the same feature set.
+        </p>
+      </div>
+
+      <div class="pricing-grid">
+        <article class="price-card free-price reveal">
+          <span class="plan-label">Free / WP.org</span>
+          <h3>$0</h3>
+          <p>Reliable shortcode and block search, Search Chips Tags, WooCommerce helpers, local index controls, fallback, and diagnostics.</p>
+          <a class="button secondary" href="../../build/smart-search-chips-wporg.zip" download>Download Free</a>
+        </article>
+
+        <!-- Production: replace Pro anchor links with the real checkout flow. -->
+        <article class="price-card pro-price reveal">
+          <span class="plan-label">Pro Single</span>
+          <h3>$59<span>/year</span></h3>
+          <p>1 site, or $5.99/month. For one serious WordPress or WooCommerce site that needs smarter search, filtering, and search analytics.</p>
+          <a class="button primary" href="#pro">View Pro</a>
+        </article>
+
+        <article class="price-card pro-price reveal">
+          <span class="plan-label">Pro Studio</span>
+          <h3>$99<span>/year</span></h3>
+          <p>3 sites. For freelancers and builders managing a few client websites with the same Pro search toolkit.</p>
+          <a class="button secondary" href="#pro">View Pro</a>
+        </article>
+
+        <article class="price-card pro-price reveal">
+          <span class="plan-label">Pro Agency</span>
+          <h3>$199<span>/year</span></h3>
+          <p>10 sites. For agencies building WooCommerce, catalog, or content-heavy sites where search quality and reporting matter.</p>
+          <a class="button secondary" href="#pro">View Pro</a>
+        </article>
+
+        <article class="price-card pro-price reveal">
+          <span class="plan-label">Pro Scale</span>
+          <h3>$399<span>/year</span></h3>
+          <p>50 sites. For larger agencies or site portfolios deploying Smart Search Chips Pro across many owned or client websites.</p>
+          <a class="button secondary" href="#pro">View Pro</a>
+        </article>
+      </div>
+
+      <div class="pro-includes reveal" aria-label="Included in Pro">
+        <span>ACF/custom field mapping</span>
+        <span>Chip rules</span>
+        <span>JSON import/export</span>
+        <span>Range chips</span>
+        <span>Search analytics</span>
+        <span>Zero-result reports</span>
+        <span>Result-click tracking</span>
+        <span>Email digests</span>
+        <span>CSV/chart exports</span>
+        <span>AI prompt workflows</span>
+      </div>
+
+      <div class="compliance-panel reveal" aria-label="Compliance commitments">
+        <div>
+          <strong>No frontend ads</strong>
+          <span>No powered-by links, popups, public tracking by default, or site-wide nags.</span>
+        </div>
+        <div>
+          <strong>WP.org package boundaries</strong>
+          <span>Premium-only files and classes are excluded from the WP.org build.</span>
+        </div>
+        <div>
+          <strong>Admin-only upsells</strong>
+          <span>Contextual, non-blocking prompts stay inside WordPress admin.</span>
+        </div>
+        <div>
+          <strong>Analytics opt-in</strong>
+          <span>Pro search and click reports run only when enabled and consent or legal basis is confirmed.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="closing-section" aria-labelledby="closing-title">
+      <div class="closing-inner reveal">
+        <h2 id="closing-title">Make WordPress search easier to continue.</h2>
+        <p>
+          Ship reliable guided search now. Add Pro when search quality, reporting, and catalog workflows become a team responsibility.
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="../../build/smart-search-chips-wporg.zip" download>Download Free</a>
+          <a class="button secondary" href="#pro">Explore Pro</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="#top" aria-label="Smart Search Chips home">
+      <img src="../../icon.png" alt="" width="34" height="34">
+      <span>Smart Search Chips</span>
+    </a>
+    <p>Guided search chips for WordPress and WooCommerce.</p>
+  </footer>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
