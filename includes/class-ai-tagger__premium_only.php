@@ -86,7 +86,7 @@ class SSCHP_AI_Tagger {
             'post_type'           => $query_post_types,
             'post_status'         => array( 'publish', 'draft', 'private' ),
             'posts_per_page'      => $per_page + 1,
-            'paged'               => $page,
+            'offset'              => ( $page - 1 ) * $per_page,
             'orderby'             => 'title',
             'order'               => 'ASC',
             'ignore_sticky_posts' => true,

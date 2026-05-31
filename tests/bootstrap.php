@@ -37,6 +37,10 @@ $sschp_test_post_revisions  = array();
 $sschp_test_post_autosaves  = array();
 $sschp_test_acf_fields      = array();
 $sschp_test_posts           = array();
+$sschp_test_taxonomies      = array();
+$sschp_test_terms           = array();
+$sschp_test_last_get_posts_args = array();
+$sschp_test_registered_meta_keys = array();
 $sschp_test_index_rows      = array();
 $sschp_test_index_table_exists = false;
 $sschp_test_analytics_rows  = array();
@@ -694,6 +698,18 @@ if ( ! function_exists( 'admin_url' ) ) {
     }
 }
 
+if ( ! function_exists( 'rest_url' ) ) {
+    function rest_url( $path = '' ) {
+        return 'http://example.test/wp-json/' . ltrim( (string) $path, '/' );
+    }
+}
+
+if ( ! function_exists( 'trailingslashit' ) ) {
+    function trailingslashit( $string ) {
+        return rtrim( (string) $string, '/\\' ) . '/';
+    }
+}
+
 if ( ! function_exists( 'plugin_dir_url' ) ) {
     function plugin_dir_url( $file ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         return 'http://example.test/wp-content/plugins/smart-search-chips/';
@@ -906,13 +922,284 @@ if ( ! function_exists( 'get_post_type' ) ) {
     }
 }
 
-if ( ! function_exists( 'get_object_taxonomies' ) ) {
-    function get_object_taxonomies( $object_type, $output = 'names' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-        if ( 'product' === $object_type ) {
-            return array( 'product_cat', 'product_tag', 'pa_material', 'pa_power' );
+if ( ! function_exists( 'get_post_type_object' ) ) {
+    function get_post_type_object( $post_type ) {
+        $post_type = sanitize_key( $post_type );
+
+        if ( ! post_type_exists( $post_type ) ) {
+            return null;
         }
 
-        return array( 'category', 'post_tag' );
+        $labels = (object) array(
+            'name'          => ucfirst( $post_type ) . 's',
+            'singular_name' => ucfirst( $post_type ),
+        );
+
+        return (object) array(
+            'name'           => $post_type,
+            'label'          => $labels->name,
+            'labels'         => $labels,
+            'show_in_rest'   => true,
+            'rest_namespace' => 'wp/v2',
+            'rest_base'      => 'post' === $post_type ? 'posts' : $post_type . 's',
+        );
+    }
+}
+
+if ( ! function_exists( 'get_post_status_object' ) ) {
+    function get_post_status_object( $status ) {
+        $status = sanitize_key( $status );
+        if ( '' === $status ) {
+            return null;
+        }
+
+        return (object) array(
+            'name'  => $status,
+            'label' => ucfirst( $status ),
+        );
+    }
+}
+
+if ( ! function_exists( 'get_object_taxonomies' ) ) {
+    function get_object_taxonomies( $object_type, $output = 'names' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $sschp_test_taxonomies;
+
+        $matching = array();
+        foreach ( $sschp_test_taxonomies as $taxonomy ) {
+            if ( in_array( (string) $object_type, (array) $taxonomy->object_type, true ) ) {
+                $matching[ $taxonomy->name ] = $taxonomy;
+            }
+        }
+
+        if ( ! empty( $matching ) ) {
+            return 'objects' === $output ? $matching : array_keys( $matching );
+        }
+
+        if ( 'product' === $object_type ) {
+            $names = array( 'product_cat', 'product_tag', 'pa_material', 'pa_power' );
+        } else {
+            $names = array( 'category', 'post_tag' );
+        }
+
+        if ( 'objects' !== $output ) {
+            return $names;
+        }
+
+        $objects = array();
+        foreach ( $names as $name ) {
+            $objects[ $name ] = (object) array(
+                'name'         => $name,
+                'labels'       => (object) array(
+                    'name'          => ucfirst( str_replace( '_', ' ', $name ) ),
+                    'singular_name' => ucfirst( str_replace( '_', ' ', $name ) ),
+                ),
+                'public'       => true,
+                'show_ui'      => true,
+                'hierarchical' => in_array( $name, array( 'category', 'product_cat' ), true ),
+                'object_type'  => array( (string) $object_type ),
+            );
+        }
+
+        return $objects;
+    }
+}
+
+function sschp_test_get_post_id_from_object( $post_or_id ) {
+    if ( is_object( $post_or_id ) && isset( $post_or_id->ID ) ) {
+        return (int) $post_or_id->ID;
+    }
+
+    return (int) $post_or_id;
+}
+
+function sschp_test_term_matches_query_terms( $term, $query_terms, $field ) {
+    foreach ( (array) $query_terms as $query_term ) {
+        if ( 'term_id' === $field && isset( $term->term_id ) && (int) $term->term_id === (int) $query_term ) {
+            return true;
+        }
+
+        if ( 'slug' === $field && isset( $term->slug ) && (string) $term->slug === (string) $query_term ) {
+            return true;
+        }
+
+        if ( 'name' === $field && isset( $term->name ) && (string) $term->name === (string) $query_term ) {
+            return true;
+        }
+
+        if ( ! is_object( $term ) && (string) $term === (string) $query_term ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function sschp_test_post_matches_tax_query( $post_id, $tax_query ) {
+    global $sschp_test_post_terms;
+
+    foreach ( (array) $tax_query as $clause ) {
+        if ( ! is_array( $clause ) || empty( $clause['taxonomy'] ) ) {
+            continue;
+        }
+
+        $taxonomy   = (string) $clause['taxonomy'];
+        $terms      = isset( $clause['terms'] ) ? (array) $clause['terms'] : array();
+        $field      = isset( $clause['field'] ) ? (string) $clause['field'] : 'term_id';
+        $post_terms = isset( $sschp_test_post_terms[ (int) $post_id . '|' . $taxonomy ] ) ? (array) $sschp_test_post_terms[ (int) $post_id . '|' . $taxonomy ] : array();
+        $matched    = false;
+
+        foreach ( $post_terms as $term ) {
+            if ( sschp_test_term_matches_query_terms( $term, $terms, $field ) ) {
+                $matched = true;
+                break;
+            }
+        }
+
+        if ( ! $matched ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+if ( ! function_exists( 'taxonomy_exists' ) ) {
+    function taxonomy_exists( $taxonomy ) {
+        global $sschp_test_taxonomies;
+
+        if ( isset( $sschp_test_taxonomies[ (string) $taxonomy ] ) ) {
+            return true;
+        }
+
+        return in_array( (string) $taxonomy, array( 'category', 'post_tag', 'product_cat', 'product_tag', 'pa_material', 'pa_power' ), true );
+    }
+}
+
+if ( ! function_exists( 'get_taxonomy' ) ) {
+    function get_taxonomy( $taxonomy ) {
+        global $sschp_test_taxonomies;
+
+        if ( isset( $sschp_test_taxonomies[ (string) $taxonomy ] ) ) {
+            return $sschp_test_taxonomies[ (string) $taxonomy ];
+        }
+
+        if ( ! taxonomy_exists( $taxonomy ) ) {
+            return null;
+        }
+
+        $is_product      = 0 === strpos( (string) $taxonomy, 'product_' ) || 0 === strpos( (string) $taxonomy, 'pa_' );
+        $is_hierarchical = in_array( (string) $taxonomy, array( 'category', 'product_cat' ), true );
+
+        return (object) array(
+            'name'         => (string) $taxonomy,
+            'labels'       => (object) array(
+                'name'          => ucfirst( str_replace( '_', ' ', (string) $taxonomy ) ),
+                'singular_name' => ucfirst( str_replace( '_', ' ', (string) $taxonomy ) ),
+            ),
+            'public'       => true,
+            'show_ui'      => true,
+            'hierarchical' => $is_hierarchical,
+            'object_type'  => array( $is_product ? 'product' : 'post' ),
+        );
+    }
+}
+
+if ( ! function_exists( 'is_taxonomy_hierarchical' ) ) {
+    function is_taxonomy_hierarchical( $taxonomy ) {
+        $taxonomy_object = get_taxonomy( $taxonomy );
+
+        return $taxonomy_object && ! empty( $taxonomy_object->hierarchical );
+    }
+}
+
+if ( ! function_exists( 'get_term' ) ) {
+    function get_term( $term_id, $taxonomy = '' ) {
+        global $sschp_test_terms;
+
+        $key = (string) $taxonomy . '|' . (int) $term_id;
+        if ( isset( $sschp_test_terms[ $key ] ) ) {
+            return $sschp_test_terms[ $key ];
+        }
+
+        return null;
+    }
+}
+
+if ( ! function_exists( 'get_terms' ) ) {
+    function get_terms( $args = array() ) {
+        global $sschp_test_terms;
+
+        $taxonomy = isset( $args['taxonomy'] ) ? (string) $args['taxonomy'] : '';
+        $terms    = array();
+
+        foreach ( $sschp_test_terms as $term ) {
+            if ( '' !== $taxonomy && isset( $term->taxonomy ) && $term->taxonomy !== $taxonomy ) {
+                continue;
+            }
+
+            if ( ! empty( $args['hide_empty'] ) && isset( $term->count ) && (int) $term->count < 1 ) {
+                continue;
+            }
+
+            $terms[] = $term;
+        }
+
+        usort(
+            $terms,
+            function( $left, $right ) {
+                return strcmp( isset( $left->name ) ? $left->name : '', isset( $right->name ) ? $right->name : '' );
+            }
+        );
+
+        return $terms;
+    }
+}
+
+if ( ! function_exists( 'get_posts' ) ) {
+    function get_posts( $args = array() ) {
+        global $sschp_test_posts, $sschp_test_last_get_posts_args;
+
+        $sschp_test_last_get_posts_args = (array) $args;
+
+        $post_types = isset( $args['post_type'] ) ? (array) $args['post_type'] : array( 'post' );
+        $statuses   = isset( $args['post_status'] ) ? (array) $args['post_status'] : array( 'publish' );
+        $per_page   = isset( $args['posts_per_page'] ) ? (int) $args['posts_per_page'] : 5;
+        $page       = isset( $args['paged'] ) ? max( 1, (int) $args['paged'] ) : 1;
+        $offset     = isset( $args['offset'] ) ? max( 0, (int) $args['offset'] ) : ( $page - 1 ) * max( 1, $per_page );
+        $tax_query  = isset( $args['tax_query'] ) ? (array) $args['tax_query'] : array();
+        $posts      = array();
+
+        foreach ( $sschp_test_posts as $post ) {
+            if ( ! empty( $post_types ) && ! in_array( $post->post_type, $post_types, true ) ) {
+                continue;
+            }
+
+            if ( ! empty( $statuses ) && ! in_array( $post->post_status, $statuses, true ) ) {
+                continue;
+            }
+
+            if ( ! empty( $tax_query ) && ! sschp_test_post_matches_tax_query( $post->ID, $tax_query ) ) {
+                continue;
+            }
+
+            $posts[] = $post;
+        }
+
+        if ( isset( $args['orderby'] ) && 'title' === $args['orderby'] ) {
+            usort(
+                $posts,
+                function( $left, $right ) use ( $args ) {
+                    $comparison = strcmp( $left->post_title, $right->post_title );
+                    return isset( $args['order'] ) && 'DESC' === strtoupper( (string) $args['order'] ) ? -$comparison : $comparison;
+                }
+            );
+        }
+
+        if ( $per_page < 0 ) {
+            return $posts;
+        }
+
+        return array_slice( $posts, $offset, $per_page );
     }
 }
 
@@ -945,6 +1232,23 @@ if ( ! function_exists( 'get_field' ) ) {
         return isset( $sschp_test_acf_fields[ $post_id ] ) && array_key_exists( $field_name, $sschp_test_acf_fields[ $post_id ] )
             ? $sschp_test_acf_fields[ $post_id ][ $field_name ]
             : null;
+    }
+}
+
+if ( ! function_exists( 'get_registered_meta_keys' ) ) {
+    function get_registered_meta_keys( $object_type = '', $object_subtype = '' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        global $sschp_test_registered_meta_keys;
+
+        if ( isset( $sschp_test_registered_meta_keys[ $object_subtype ] ) ) {
+            return $sschp_test_registered_meta_keys[ $object_subtype ];
+        }
+
+        return array(
+            SSCHP_Meta_Box::META_KEY => array(
+                'single'       => true,
+                'show_in_rest' => true,
+            ),
+        );
     }
 }
 
@@ -989,7 +1293,23 @@ if ( ! function_exists( 'is_wp_error' ) ) {
 }
 
 if ( ! class_exists( 'WP_Error' ) ) {
-    class WP_Error {}
+    class WP_Error {
+        private $code;
+        private $message;
+
+        public function __construct( $code = '', $message = '' ) {
+            $this->code    = $code;
+            $this->message = $message;
+        }
+
+        public function get_error_code() {
+            return $this->code;
+        }
+
+        public function get_error_message() {
+            return $this->message;
+        }
+    }
 }
 
 if ( ! function_exists( 'wc_get_product' ) ) {
@@ -1004,7 +1324,8 @@ if ( ! function_exists( 'wp_get_post_terms' ) ) {
     function wp_get_post_terms( $post_id, $taxonomy, $args = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         global $sschp_test_post_terms, $sschp_test_post_terms_calls;
 
-        $key = (int) $post_id . '|' . (string) $taxonomy;
+        $post_id = sschp_test_get_post_id_from_object( $post_id );
+        $key     = (int) $post_id . '|' . (string) $taxonomy;
         $sschp_test_post_terms_calls[] = $key;
         return isset( $sschp_test_post_terms[ $key ] ) ? $sschp_test_post_terms[ $key ] : array();
     }
@@ -1014,7 +1335,8 @@ if ( ! function_exists( 'get_the_terms' ) ) {
     function get_the_terms( $post_id, $taxonomy ) {
         global $sschp_test_post_terms;
 
-        $key = (int) $post_id . '|' . (string) $taxonomy;
+        $post_id = sschp_test_get_post_id_from_object( $post_id );
+        $key     = (int) $post_id . '|' . (string) $taxonomy;
         return isset( $sschp_test_post_terms[ $key ] ) ? $sschp_test_post_terms[ $key ] : array();
     }
 }
@@ -1041,6 +1363,10 @@ if ( ! function_exists( 'wp_verify_nonce' ) ) {
     function wp_verify_nonce( $nonce, $action = -1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         global $sschp_test_nonce_valid;
 
+        if ( '' === (string) $nonce ) {
+            return false;
+        }
+
         return $sschp_test_nonce_valid ? 1 : false;
     }
 }
@@ -1052,8 +1378,32 @@ if ( ! function_exists( 'check_admin_referer' ) ) {
 }
 
 if ( ! function_exists( 'check_ajax_referer' ) ) {
-    function check_ajax_referer( $action = -1, $query_arg = false, $stop = true ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-        return true;
+    function check_ajax_referer( $action = -1, $query_arg = false, $stop = true ) {
+        $key   = false === $query_arg ? '_ajax_nonce' : $query_arg;
+        $nonce = '';
+
+        if ( isset( $_REQUEST[ $key ] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_REQUEST[ $key ] ) );
+        } elseif ( isset( $_POST[ $key ] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
+        } elseif ( isset( $_GET[ $key ] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_GET[ $key ] ) );
+        } elseif ( isset( $_REQUEST['_ajax_nonce'] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_REQUEST['_ajax_nonce'] ) );
+        } elseif ( isset( $_POST['_ajax_nonce'] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_POST['_ajax_nonce'] ) );
+        } elseif ( isset( $_REQUEST['_wpnonce'] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) );
+        } elseif ( isset( $_POST['_wpnonce'] ) ) {
+            $nonce = sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) );
+        }
+
+        $result = wp_verify_nonce( $nonce, $action );
+        if ( ! $result && $stop ) {
+            wp_die( esc_html__( 'Security check failed.', 'smart-search-chips' ) );
+        }
+
+        return $result;
     }
 }
 
@@ -1096,6 +1446,15 @@ if ( ! function_exists( 'wp_timezone' ) ) {
 if ( ! function_exists( 'current_time' ) ) {
     function current_time( $type, $gmt = 0 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
         return gmdate( 'Y-m-d H:i:s' );
+    }
+}
+
+if ( ! function_exists( 'mysql2date' ) ) {
+    function mysql2date( $format, $date ) {
+        $format    = is_string( $format ) && '' !== $format ? $format : 'F j, Y';
+        $timestamp = strtotime( (string) $date );
+
+        return false === $timestamp ? '' : gmdate( $format, $timestamp );
     }
 }
 
