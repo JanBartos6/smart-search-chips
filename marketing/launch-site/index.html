@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Smart Search Chips adds a reliable search shortcode and block, guided filter chips, local indexing, diagnostics, and optional Pro workflows to WordPress search results.">
   <title>Smart Search Chips - Guided WordPress Search</title>
-  <link rel="stylesheet" href="./styles.css?v=dashboard-analytics-v3">
+  <link rel="stylesheet" href="./styles.css?v=analytics-tab-model-v4">
 </head>
 <body>
   <div class="scroll-progress" aria-hidden="true"></div>
@@ -428,73 +428,110 @@
                   <p>Chips are generated from matching terms and rules based on your settings.</p>
                 </div>
 
-                <div class="plugin-observability">
-                  <section class="plugin-analytics-panel" aria-label="Analytics preview">
-                    <header>
-                      <strong>Search analytics</strong>
-                      <span>(last 30 days)</span>
-                    </header>
-                    <div class="analytics-metrics">
-                      <div><span>Searches</span><strong>1,248</strong><small>18%</small></div>
-                      <div><span>Zero-result searches</span><strong>96</strong><small>12%</small></div>
-                      <div><span>Clicks</span><strong>312</strong><small>21%</small></div>
-                      <div><span>Avg. CTR</span><strong>14.6%</strong><small>2.1 pp</small></div>
+                <div class="plugin-analytics-tab-model" aria-label="Analytics tab preview">
+                  <header class="plugin-analytics-tab-head">
+                    <div>
+                      <strong>Analytics</strong>
+                      <span>Local dashboard data for May 1 - May 31</span>
                     </div>
-                    <div class="chart-legend" aria-hidden="true">
-                      <span class="chart-searches">Searches</span>
-                      <span class="chart-clicks">Clicks</span>
-                      <span class="chart-ctr">CTR (%)</span>
+                    <div class="plugin-analytics-actions" aria-hidden="true">
+                      <span>Export CSV</span>
+                      <span>Export charts</span>
                     </div>
-                    <div class="analytics-chart" aria-hidden="true">
-                      <div class="chart-axis"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div>
-                      <div class="chart-bars">
-                        <span style="--h: 38%"></span>
-                        <span style="--h: 71%"></span>
-                        <span style="--h: 55%"></span>
-                        <span style="--h: 46%"></span>
-                        <span style="--h: 62%"></span>
-                        <span style="--h: 48%"></span>
-                        <span style="--h: 85%"></span>
-                        <span style="--h: 66%"></span>
-                        <span style="--h: 78%"></span>
-                        <span style="--h: 58%"></span>
-                        <span style="--h: 70%"></span>
-                        <span style="--h: 52%"></span>
-                        <span style="--h: 81%"></span>
-                        <svg viewBox="0 0 280 120" preserveAspectRatio="none">
-                          <polyline class="chart-line chart-line--clicks" points="0,82 24,48 48,70 72,54 96,72 120,66 144,38 168,68 192,51 216,74 240,80 264,58 280,62"/>
-                          <polyline class="chart-line chart-line--ctr" points="0,42 24,30 48,38 72,29 96,35 120,24 144,32 168,26 192,39 216,25 240,31 264,22 280,29"/>
-                        </svg>
-                      </div>
-                      <div class="chart-dates"><span>Apr 24</span><span>Apr 29</span><span>May 4</span><span>May 9</span><span>May 14</span><span>May 19</span><span>May 24</span></div>
-                    </div>
-                    <a href="#pricing">View full analytics</a>
-                  </section>
+                  </header>
 
-                  <section class="plugin-low-ctr-panel" aria-label="Low CTR chips preview">
-                    <header>
-                      <strong>Low CTR chips</strong>
-                    </header>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Chip</th>
-                          <th>Impr.</th>
-                          <th>Clicks</th>
-                          <th>CTR</th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr><td>Backpack Accessories</td><td>342</td><td>1</td><td>0.3%</td><td><span>Low</span></td></tr>
-                        <tr><td>Backpack Brands</td><td>289</td><td>1</td><td>0.3%</td><td><span>Low</span></td></tr>
-                        <tr><td>Travel Backpacks</td><td>412</td><td>2</td><td>0.5%</td><td><span>Low</span></td></tr>
-                        <tr><td>Kids' Backpacks</td><td>365</td><td>2</td><td>0.5%</td><td><span>Low</span></td></tr>
-                        <tr><td>Backpacking Tips</td><td>278</td><td>2</td><td>0.7%</td><td><span>Low</span></td></tr>
-                      </tbody>
-                    </table>
-                    <a href="#pricing">View all low CTR chips</a>
-                  </section>
+                  <div class="analytics-metrics">
+                    <div><span>Total searches</span><strong>1,842</strong><small>+18%</small></div>
+                    <div><span>Unique visitors</span><strong>612</strong><small>+9%</small></div>
+                    <div><span>Zero-result searches</span><strong>96</strong><small>5.2%</small></div>
+                    <div><span>Chip click rate</span><strong>23.2%</strong><small>+2.1 pp</small></div>
+                  </div>
+
+                  <div class="plugin-analytics-primary">
+                    <section class="plugin-analytics-panel plugin-analytics-panel--chart" aria-label="Analytics chart preview">
+                      <header>
+                        <strong>Searches, clicks, and zero results</strong>
+                        <span>Daily events</span>
+                      </header>
+                      <div class="chart-legend" aria-hidden="true">
+                        <span class="chart-searches">Searches</span>
+                        <span class="chart-clicks">Chip clicks</span>
+                        <span class="chart-ctr">Zero results</span>
+                      </div>
+                      <div class="analytics-chart" aria-hidden="true">
+                        <div class="chart-axis"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div>
+                        <div class="chart-bars">
+                          <span style="--h: 42%"></span>
+                          <span style="--h: 76%"></span>
+                          <span style="--h: 59%"></span>
+                          <span style="--h: 51%"></span>
+                          <span style="--h: 67%"></span>
+                          <span style="--h: 48%"></span>
+                          <span style="--h: 88%"></span>
+                          <span style="--h: 70%"></span>
+                          <span style="--h: 82%"></span>
+                          <span style="--h: 61%"></span>
+                          <span style="--h: 74%"></span>
+                          <span style="--h: 54%"></span>
+                          <span style="--h: 79%"></span>
+                          <svg viewBox="0 0 280 120" preserveAspectRatio="none">
+                            <polyline class="chart-line chart-line--clicks" points="0,82 24,51 48,72 72,57 96,75 120,66 144,42 168,69 192,50 216,70 240,76 264,57 280,61"/>
+                            <polyline class="chart-line chart-line--ctr" points="0,100 24,86 48,92 72,88 96,96 120,82 144,90 168,84 192,94 216,78 240,86 264,80 280,84"/>
+                          </svg>
+                        </div>
+                        <div class="chart-dates"><span>May 1</span><span>May 6</span><span>May 11</span><span>May 16</span><span>May 21</span><span>May 26</span><span>May 31</span></div>
+                      </div>
+                    </section>
+
+                    <section class="plugin-analytics-panel" aria-label="Top search queries preview">
+                      <header>
+                        <strong>Top Search Queries</strong>
+                        <span>Search, chip, result CTR</span>
+                      </header>
+                      <table>
+                        <thead><tr><th>Query</th><th>Searches</th><th>Chip CTR</th><th>Result CTR</th></tr></thead>
+                        <tbody>
+                          <tr><td>backpack</td><td>326</td><td>31%</td><td>18%</td></tr>
+                          <tr><td>travel pack</td><td>214</td><td>28%</td><td>16%</td></tr>
+                          <tr><td>laptop bag</td><td>188</td><td>24%</td><td>22%</td></tr>
+                          <tr><td>water resistant</td><td>141</td><td>19%</td><td>14%</td></tr>
+                        </tbody>
+                      </table>
+                    </section>
+                  </div>
+
+                  <div class="plugin-analytics-secondary">
+                    <section class="plugin-analytics-panel">
+                      <h4>Top Query Refinements</h4>
+                      <table>
+                        <tbody>
+                          <tr><td>backpack -> travel</td><td>74</td></tr>
+                          <tr><td>backpack -> laptop</td><td>52</td></tr>
+                          <tr><td>travel pack -> carry-on</td><td>49</td></tr>
+                        </tbody>
+                      </table>
+                    </section>
+                    <section class="plugin-analytics-panel">
+                      <h4>Top Chips By Click-Through Rate</h4>
+                      <table>
+                        <tbody>
+                          <tr><td>carry-on</td><td>38%</td></tr>
+                          <tr><td>laptop</td><td>34%</td></tr>
+                          <tr><td>water resistant</td><td>27%</td></tr>
+                        </tbody>
+                      </table>
+                    </section>
+                    <section class="plugin-analytics-panel">
+                      <h4>Top Zero-Result Queries Over Time</h4>
+                      <table>
+                        <tbody>
+                          <tr><td>child carrier</td><td>18 misses</td></tr>
+                          <tr><td>45l cabin</td><td>14 misses</td></tr>
+                          <tr><td>pink hiking</td><td>11 misses</td></tr>
+                        </tbody>
+                      </table>
+                    </section>
+                  </div>
                 </div>
 
                 <p class="plugin-local-note"><span>i</span>Reports are generated locally on your site. No data leaves your server.</p>
@@ -606,6 +643,6 @@
     <p>Guided search chips for WordPress and WooCommerce.</p>
   </footer>
 
-  <script src="./app.js?v=dashboard-analytics-v3" defer></script>
+  <script src="./app.js?v=analytics-tab-model-v4" defer></script>
 </body>
 </html>
