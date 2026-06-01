@@ -2258,10 +2258,17 @@ code {
 }
 
 .plugin-window--concept .plugin-metrics span {
+  display: block;
+  min-height: 30px;
+  line-height: 1.15;
   font-size: 12px;
 }
 
 .plugin-window--concept .plugin-metrics strong {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-height: 31px;
   font-size: 26px;
   line-height: 1.05;
 }
@@ -2296,20 +2303,21 @@ code {
 
 .plugin-window--concept .plugin-metrics i {
   display: inline-block;
-  width: 19px;
-  height: 19px;
-  margin-right: 7px;
+  width: 14px;
+  height: 14px;
+  margin-right: 5px;
   border-radius: 50%;
   background: #20a05a;
-  vertical-align: -3px;
+  vertical-align: -2px;
 }
 
 .plugin-window--concept .plugin-metrics article:last-child strong {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 18px;
-  white-space: nowrap;
+  gap: 5px;
+  font-size: 13.5px;
+  line-height: 1.15;
+  white-space: normal;
 }
 
 .plugin-window--concept .plugin-metrics article:last-child i {
@@ -2362,9 +2370,12 @@ code {
 }
 
 .plugin-window--concept .plugin-generated-chips span {
+  display: inline-flex;
+  align-items: center;
   min-height: 26px;
   padding: 4px 9px;
   border-radius: 4px;
+  line-height: 1.15;
   font-weight: 600;
 }
 
