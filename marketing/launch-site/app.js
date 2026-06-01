@@ -178,7 +178,9 @@
     volumeMinLabel.textContent = String(activeVolumeMin);
     volumeMaxLabel.textContent = String(activeVolumeMax);
 
-    volumeRangeChip.classList.toggle("ssc-range-chip--active", volumeRangeIsActive());
+    const rangeIsActive = volumeRangeIsActive();
+    volumeRangeChip.classList.toggle("ssc-range-chip--active", rangeIsActive);
+    volumeRangeChip.dataset.selected = rangeIsActive ? "true" : "false";
     volumeRangeChip.setAttribute("data-range-value", `range|volume|l|${activeVolumeMin}|${activeVolumeMax}|${volumeBounds.min}|${volumeBounds.max}`);
   }
 

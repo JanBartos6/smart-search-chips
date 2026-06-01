@@ -530,8 +530,12 @@ code {
 }
 
 .search-preview .ssc-range-chip--active {
+  --ssc-range-accent: #ffffff;
+  --ssc-range-color: #ffffff;
   border-color: var(--green);
-  box-shadow: 0 0 0 2px rgba(8, 123, 63, 0.12);
+  background: var(--green);
+  color: #ffffff;
+  box-shadow: none;
 }
 
 .search-preview .ssc-range-chip__label {
@@ -542,6 +546,11 @@ code {
   font-weight: 760;
   line-height: 1.35;
   white-space: nowrap;
+}
+
+.search-preview .ssc-range-chip--active .ssc-range-chip__label,
+.search-preview .ssc-range-chip--active .ssc-range-chip__values {
+  color: #ffffff;
 }
 
 .search-preview .ssc-range-chip__values {
@@ -581,6 +590,10 @@ code {
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.12);
   transform: translateY(-50%);
+}
+
+.search-preview .ssc-range-chip--active .ssc-range-chip__sliders::before {
+  background: rgba(255, 255, 255, 0.34);
 }
 
 .search-preview .ssc-range-chip__input {
@@ -635,6 +648,16 @@ code {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
   cursor: grab;
   pointer-events: auto;
+}
+
+.search-preview .ssc-range-chip--active .ssc-range-chip__input::-webkit-slider-thumb {
+  border-color: rgba(8, 123, 63, 0.5);
+  background: #ffffff;
+}
+
+.search-preview .ssc-range-chip--active .ssc-range-chip__input::-moz-range-thumb {
+  border-color: rgba(8, 123, 63, 0.5);
+  background: #ffffff;
 }
 
 .search-preview .ssc-range-chip__input:focus::-webkit-slider-thumb {
