@@ -2403,7 +2403,11 @@ code {
 }
 
 .plugin-window--concept .analytics-metrics span {
-  white-space: nowrap;
+  min-height: 27px;
+  font-size: 10.5px;
+  line-height: 1.16;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .plugin-window--concept .analytics-metrics strong {
@@ -2453,6 +2457,7 @@ code {
 
 .plugin-window--concept .analytics-chart {
   display: grid;
+  align-items: stretch;
   grid-template-columns: 34px minmax(0, 1fr);
   grid-template-rows: 148px auto;
   gap: 4px 8px;
@@ -2478,6 +2483,7 @@ code {
   display: flex;
   align-items: end;
   gap: 5px;
+  height: 100%;
   min-width: 0;
   padding: 12px 8px 0;
   border-bottom: 1px solid #dcdcde;
@@ -2525,6 +2531,7 @@ code {
   color: #646970;
   font-size: 11px;
   font-weight: 600;
+  line-height: 1.15;
 }
 
 .plugin-window--concept .plugin-analytics-panel > a,
@@ -3197,7 +3204,7 @@ code {
   }
 
   .diagnostics-workspace .plugin-window--concept .plugin-observability {
-    grid-template-columns: minmax(0, 1.05fr) minmax(290px, 0.95fr);
+    grid-template-columns: minmax(380px, 1fr) minmax(290px, 0.76fr);
   }
 
   .diagnostics-workspace .plugin-window--concept .plugin-main {
@@ -3223,6 +3230,28 @@ code {
 
   .diagnostics-workspace .plugin-window--concept .plugin-low-ctr-panel {
     overflow: visible;
+  }
+
+  .diagnostics-workspace .plugin-window--concept .plugin-low-ctr-panel table {
+    table-layout: fixed;
+    font-size: 10.5px;
+  }
+
+  .diagnostics-workspace .plugin-window--concept .plugin-low-ctr-panel th,
+  .diagnostics-workspace .plugin-window--concept .plugin-low-ctr-panel td {
+    padding: 7px 6px;
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  .diagnostics-workspace .plugin-window--concept .plugin-low-ctr-panel th:first-child,
+  .diagnostics-workspace .plugin-window--concept .plugin-low-ctr-panel td:first-child {
+    width: 38%;
+  }
+
+  .diagnostics-workspace .plugin-window--concept .plugin-low-ctr-panel th:nth-child(2),
+  .diagnostics-workspace .plugin-window--concept .plugin-low-ctr-panel td:nth-child(2) {
+    width: 21%;
   }
 }
 
