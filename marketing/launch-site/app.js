@@ -54,6 +54,8 @@
   const volumeMinLabel = document.querySelector("#volume-min-label");
   const volumeMaxLabel = document.querySelector("#volume-max-label");
   const volumeRangeChip = document.querySelector("#volume-range-chip");
+  const diagnosticsWorkspace = document.querySelector(".diagnostics-workspace");
+  const dashboardMockup = document.querySelector(".plugin-window--concept");
 
   let activeChips = [];
   let activeVolumeMin = volumeBounds.min;
@@ -340,6 +342,34 @@
     header.classList.toggle("is-scrolled", window.scrollY > 20);
   }
 
+  function syncDashboardMockupScale() {
+    if (!diagnosticsWorkspace || !dashboardMockup) {
+      return;
+    }
+
+    if (window.matchMedia("(min-width: 901px)").matches) {
+      diagnosticsWorkspace.style.removeProperty("--dashboard-scale");
+      diagnosticsWorkspace.style.removeProperty("--dashboard-height");
+      return;
+    }
+
+    const workspaceWidth = diagnosticsWorkspace.getBoundingClientRect().width;
+    const baseWidth = dashboardMockup.offsetWidth
+      || Number(dashboardMockup.dataset.dashboardWidth)
+      || dashboardMockup.scrollWidth
+      || 1080;
+    const scale = Math.min(1, workspaceWidth / baseWidth);
+    const height = Math.ceil(dashboardMockup.scrollHeight * scale);
+
+    diagnosticsWorkspace.style.setProperty("--dashboard-scale", scale.toFixed(4));
+    diagnosticsWorkspace.style.setProperty("--dashboard-height", `${height}px`);
+  }
+
+  function handleResize() {
+    updateChrome();
+    syncDashboardMockupScale();
+  }
+
   queryInput.addEventListener("input", () => {
     activeChips = [];
     renderDemo(queryInput.value);
@@ -379,9 +409,11 @@
   });
 
   window.addEventListener("scroll", updateChrome, { passive: true });
-  window.addEventListener("resize", updateChrome);
+  window.addEventListener("resize", handleResize);
+  window.addEventListener("load", syncDashboardMockupScale);
 
   renderDemo(queryInput.value);
   setupReveal();
   updateChrome();
+  syncDashboardMockupScale();
 })();
