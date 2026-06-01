@@ -56,6 +56,13 @@
   const volumeRangeChip = document.querySelector("#volume-range-chip");
   const diagnosticsWorkspace = document.querySelector(".diagnostics-workspace");
   const dashboardMockup = document.querySelector(".plugin-window--concept");
+  const checkoutButtons = document.querySelectorAll("[data-sschp-checkout]");
+  const checkoutConfig = {
+    productId: "27046",
+    planId: "45154",
+    publicKey: "pk_69b2a1db30add56864a42e4ea9929",
+    productName: "Smart Search Chips"
+  };
 
   let activeChips = [];
   let activeVolumeMin = volumeBounds.min;
@@ -335,6 +342,38 @@
     document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
   }
 
+  function setupCheckout() {
+    if (!checkoutButtons.length) {
+      return;
+    }
+
+    let checkoutHandler = null;
+
+    checkoutButtons.forEach((button) => {
+      button.addEventListener("click", (event) => {
+        if (!window.FS || typeof window.FS.Checkout !== "function") {
+          return;
+        }
+
+        event.preventDefault();
+
+        if (!checkoutHandler) {
+          checkoutHandler = new window.FS.Checkout({
+            product_id: checkoutConfig.productId,
+            plan_id: checkoutConfig.planId,
+            public_key: checkoutConfig.publicKey,
+            image: "https://smartsearchchips.app/icon.png"
+          });
+        }
+
+        checkoutHandler.open({
+          name: checkoutConfig.productName,
+          licenses: Number(button.dataset.licenses) || 1
+        });
+      });
+    });
+  }
+
   function updateChrome() {
     const max = document.documentElement.scrollHeight - window.innerHeight;
     const progressWidth = max > 0 ? (window.scrollY / max) * 100 : 0;
@@ -414,6 +453,7 @@
 
   renderDemo(queryInput.value);
   setupReveal();
+  setupCheckout();
   updateChrome();
   syncDashboardMockupScale();
 })();
