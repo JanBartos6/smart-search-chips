@@ -212,12 +212,12 @@
       activeVolumeMax = Math.max(midpoint, activeVolumeMin);
     }
 
-    volumeMinInput.value = String(activeVolumeMin);
-    volumeMaxInput.value = String(activeVolumeMax);
     volumeMinInput.min = String(visibleVolumeBounds.min);
     volumeMinInput.max = String(visibleVolumeBounds.max);
     volumeMaxInput.min = String(visibleVolumeBounds.min);
     volumeMaxInput.max = String(visibleVolumeBounds.max);
+    volumeMinInput.value = String(activeVolumeMin);
+    volumeMaxInput.value = String(activeVolumeMax);
     volumeMinLabel.textContent = String(activeVolumeMin);
     volumeMaxLabel.textContent = String(activeVolumeMax);
 
