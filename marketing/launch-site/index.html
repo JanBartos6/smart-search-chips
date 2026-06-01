@@ -294,51 +294,87 @@
     <section class="section diagnostics-section" id="diagnostics" aria-labelledby="diagnostics-title">
       <div class="diagnostics-layout">
         <div class="section-intro diagnostics-copy reveal">
-          <h2 id="diagnostics-title">Debug search with the same tools the plugin uses.</h2>
+          <div class="diagnostics-brandline">
+            <img src="../../icon.png" alt="" width="40" height="40">
+            <strong>Smart Search Chips</strong>
+          </div>
+          <span class="diagnostic-kicker">Diagnostics</span>
+          <h2 id="diagnostics-title">Debug search with the same tools the plugin uses</h2>
           <p>
-            Test Search runs the server-side pipeline from WordPress admin.
-            Pro analytics then shows which searches, chips, and clicks are
-            helping visitors move through the catalog.
+            Test Search shows exactly how Smart Search Chips processes a query:
+            what matches, which rules fire, and which chips are generated.
+            Analytics reveals what your visitors search for and which chips
+            drive engagement, all stored locally on your site.
           </p>
           <div class="diagnostic-proof-list" aria-label="Diagnostics capabilities">
-            <div>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.2-4.2M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg>
-              <span>Test any query</span>
-            </div>
-            <div>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7v-4"/></svg>
-              <span>Understand engagement</span>
-            </div>
-            <div>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 7v6c0 5-3.4 7.7-8 9-4.6-1.3-8-4-8-9V7l8-4Z"/></svg>
-              <span>Keep reports local</span>
-            </div>
+            <article>
+              <span class="diagnostic-proof-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.2-4.2M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg></span>
+              <div>
+                <strong>Test any query</strong>
+                <span>See results, tagged terms, rules, and the chips that would be generated.</span>
+              </div>
+            </article>
+            <article>
+              <span class="diagnostic-proof-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7v-4"/></svg></span>
+              <div>
+                <strong>Understand engagement</strong>
+                <span>Track searches, clicks, CTR, and zero-result queries with local analytics.</span>
+              </div>
+            </article>
+            <article>
+              <span class="diagnostic-proof-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 7v6c0 5-3.4 7.7-8 9-4.6-1.3-8-4-8-9V7l8-4Z"/></svg></span>
+              <div>
+                <strong>Privacy-first by design</strong>
+                <span>All diagnostics and reports are generated locally; your data stays on your site.</span>
+              </div>
+            </article>
           </div>
+          <p class="diagnostic-local-pill"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 12 3 3 6-7"/></svg>Built for WordPress. Runs on your site.</p>
         </div>
 
         <div class="diagnostics-workspace reveal" aria-label="Smart Search Chips admin diagnostics and analytics preview">
-          <div class="plugin-window">
-            <div class="plugin-window__topbar" aria-hidden="true">
-              <span>WordPress</span>
-              <span>Smart Search Chips</span>
-              <span>Howdy, admin</span>
+          <div class="plugin-window plugin-window--concept">
+            <div class="plugin-window__topbar">
+              <div class="wp-topbar-left">
+                <span class="wp-mark">W</span>
+                <span>My Site</span>
+                <span>8</span>
+                <span>0</span>
+                <span>+ New</span>
+              </div>
+              <div class="wp-topbar-right">
+                <span>Howdy, admin</span>
+                <span class="wp-avatar" aria-hidden="true"></span>
+              </div>
             </div>
             <div class="plugin-window__body">
               <aside class="plugin-sidebar" aria-hidden="true">
                 <span>Dashboard</span>
                 <span>Posts</span>
-                <span>Products</span>
-                <span class="is-active">Smart Search Chips</span>
+                <span>Media</span>
+                <span>Pages</span>
+                <span>Comments</span>
+                <span>Appearance</span>
+                <span>Plugins <em>2</em></span>
+                <span>Users</span>
+                <span>Tools</span>
                 <span>Settings</span>
+                <span class="is-active">Smart Search Chips</span>
+                <small>Dashboard</small>
+                <small>Search Preview</small>
+                <small>Statistics</small>
+                <small class="is-current">Diagnostics</small>
+                <small>Settings</small>
+                <small>Help &amp; Docs</small>
+                <small>Collapse menu</small>
               </aside>
 
               <div class="plugin-main">
                 <header class="plugin-main__head">
                   <div>
+                    <img src="../../icon.png" alt="" width="28" height="28">
                     <strong>Smart Search Chips</strong>
-                    <span>Diagnostics</span>
                   </div>
-                  <span class="plugin-status">Index up to date</span>
                 </header>
 
                 <div class="plugin-tabs" role="presentation">
@@ -350,88 +386,118 @@
                 <div class="plugin-test-row">
                   <label>
                     <span>Search query</span>
-                    <strong>backpack</strong>
+                    <strong>backpack <em>x</em></strong>
                   </label>
+                  <button type="button">Test Search</button>
                   <label>
-                    <span>Path used</span>
+                    <span>Index source</span>
                     <strong>Local index</strong>
                   </label>
-                  <button type="button">Run Test Search</button>
+                  <span class="plugin-help">?</span>
                 </div>
 
                 <div class="plugin-metrics" aria-label="Test search metrics">
-                  <div><span>Results</span><strong>24</strong><small>products</small></div>
-                  <div><span>Tagged</span><strong>24</strong><small>with chips</small></div>
-                  <div><span>Generated chips</span><strong>8</strong><small>usable</small></div>
-                  <div><span>Search time</span><strong>42</strong><small>ms</small></div>
+                  <article><span>Results</span><strong>24 <small>posts</small></strong><a href="#pricing">View results</a></article>
+                  <article><span>Tagged</span><strong>18 <small>terms</small></strong><a href="#pricing">View terms</a></article>
+                  <article><span>Generated chips</span><strong>8</strong><a href="#pricing">View chips</a></article>
+                  <article><span>Search time</span><strong>42 <small>ms</small></strong><em>Good</em></article>
+                  <article><span>Index status</span><strong><i></i>Up to date</strong><a href="#pricing">View details</a></article>
                 </div>
 
                 <div class="plugin-warning">
+                  <span class="plugin-warning-icon" aria-hidden="true">!</span>
                   <div>
                     <strong>Low click-through rate on some chips</strong>
-                    <span>Suggested fix: rename or hide labels that visitors often see but rarely click.</span>
+                    <span>2 chips have &lt; 1% CTR. Consider updating labels or reviewing targeting rules.</span>
                   </div>
-                  <span>Warning</span>
+                  <button type="button">View low CTR chips</button>
                 </div>
 
                 <div class="plugin-generated-chips" aria-label="Generated chips preview">
-                  <strong>Generated chips</strong>
+                  <strong>Generated chips (8)</strong>
                   <div>
-                    <span>travel <small>11</small></span>
-                    <span>water resistant <small>12</small></span>
-                    <span>laptop <small>6</small></span>
-                    <span>commuter <small>5</small></span>
-                    <span>Volume range</span>
+                    <span>Backpacks</span>
+                    <span>Hiking Backpacks</span>
+                    <span>Kids' Backpacks</span>
+                    <span>Travel Backpacks</span>
+                    <span>Backpack Brands</span>
+                    <span>Backpack Accessories</span>
+                    <span>Backpacking Tips</span>
+                    <span>How to Choose a Backpack</span>
                   </div>
+                  <p>Chips are generated from matching terms and rules based on your settings.</p>
                 </div>
 
                 <div class="plugin-observability">
                   <section class="plugin-analytics-panel" aria-label="Analytics preview">
                     <header>
                       <strong>Search analytics</strong>
-                      <span>Last 30 days</span>
+                      <span>(last 30 days)</span>
                     </header>
                     <div class="analytics-metrics">
-                      <div><span>Searches</span><strong>12,842</strong></div>
-                      <div><span>Chip clicks</span><strong>2,918</strong></div>
-                      <div><span>Zero results</span><strong>8.4%</strong></div>
+                      <div><span>Searches</span><strong>1,248</strong><small>18%</small></div>
+                      <div><span>Zero-result searches</span><strong>96</strong><small>12%</small></div>
+                      <div><span>Clicks</span><strong>312</strong><small>21%</small></div>
+                      <div><span>Avg. CTR</span><strong>14.6%</strong><small>2.1 pp</small></div>
+                    </div>
+                    <div class="chart-legend" aria-hidden="true">
+                      <span class="chart-searches">Searches</span>
+                      <span class="chart-clicks">Clicks</span>
+                      <span class="chart-ctr">CTR (%)</span>
                     </div>
                     <div class="analytics-chart" aria-hidden="true">
-                      <span style="--h:42%"></span>
-                      <span style="--h:58%"></span>
-                      <span style="--h:47%"></span>
-                      <span style="--h:70%"></span>
-                      <span style="--h:64%"></span>
-                      <span style="--h:82%"></span>
-                      <span style="--h:74%"></span>
-                      <span style="--h:90%"></span>
-                      <i></i>
+                      <div class="chart-axis"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div>
+                      <div class="chart-bars">
+                        <span style="--h: 38%"></span>
+                        <span style="--h: 71%"></span>
+                        <span style="--h: 55%"></span>
+                        <span style="--h: 46%"></span>
+                        <span style="--h: 62%"></span>
+                        <span style="--h: 48%"></span>
+                        <span style="--h: 85%"></span>
+                        <span style="--h: 66%"></span>
+                        <span style="--h: 78%"></span>
+                        <span style="--h: 58%"></span>
+                        <span style="--h: 70%"></span>
+                        <span style="--h: 52%"></span>
+                        <span style="--h: 81%"></span>
+                        <svg viewBox="0 0 280 120" preserveAspectRatio="none">
+                          <polyline class="chart-line chart-line--clicks" points="0,82 24,48 48,70 72,54 96,72 120,66 144,38 168,68 192,51 216,74 240,80 264,58 280,62"/>
+                          <polyline class="chart-line chart-line--ctr" points="0,42 24,30 48,38 72,29 96,35 120,24 144,32 168,26 192,39 216,25 240,31 264,22 280,29"/>
+                        </svg>
+                      </div>
+                      <div class="chart-dates"><span>Apr 24</span><span>Apr 29</span><span>May 4</span><span>May 9</span><span>May 14</span><span>May 19</span><span>May 24</span></div>
                     </div>
+                    <a href="#pricing">View full analytics</a>
                   </section>
 
                   <section class="plugin-low-ctr-panel" aria-label="Low CTR chips preview">
                     <header>
-                      <strong>Often seen, rarely clicked</strong>
-                      <span>CTR</span>
+                      <strong>Low CTR chips</strong>
                     </header>
-                    <div role="table" aria-label="Low CTR chips table">
-                      <div role="row">
-                        <span role="cell">Backpack accessories</span>
-                        <strong role="cell">0.3%</strong>
-                      </div>
-                      <div role="row">
-                        <span role="cell">Kids backpacks</span>
-                        <strong role="cell">0.5%</strong>
-                      </div>
-                      <div role="row">
-                        <span role="cell">Backpacking tips</span>
-                        <strong role="cell">0.7%</strong>
-                      </div>
-                    </div>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Chip</th>
+                          <th>Impressions</th>
+                          <th>Clicks</th>
+                          <th>CTR</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr><td>Backpack Accessories</td><td>342</td><td>1</td><td>0.3%</td><td><span>Low</span></td></tr>
+                        <tr><td>Backpack Brands</td><td>289</td><td>1</td><td>0.3%</td><td><span>Low</span></td></tr>
+                        <tr><td>Travel Backpacks</td><td>412</td><td>2</td><td>0.5%</td><td><span>Low</span></td></tr>
+                        <tr><td>Kids' Backpacks</td><td>365</td><td>2</td><td>0.5%</td><td><span>Low</span></td></tr>
+                        <tr><td>Backpacking Tips</td><td>278</td><td>2</td><td>0.7%</td><td><span>Low</span></td></tr>
+                      </tbody>
+                    </table>
+                    <a href="#pricing">View all low CTR chips</a>
                   </section>
                 </div>
 
-                <p class="plugin-local-note">Reports are generated locally on your WordPress site and emailed only to configured recipients.</p>
+                <p class="plugin-local-note"><span>i</span>Reports are generated locally on your site. No data leaves your server.</p>
               </div>
             </div>
           </div>
