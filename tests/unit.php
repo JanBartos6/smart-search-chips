@@ -505,7 +505,13 @@ function sschp_test_range_chip_css_uses_aligned_desktop_thumbs() {
     sschp_assert_contains( 'margin-top: calc((var(--ssc-range-track-height) - var(--ssc-range-thumb-size)) / 2);', $css, 'range chip WebKit thumb should align from the track/thumb variables' );
     sschp_assert_contains( '@media (pointer: coarse)', $css, 'range chip should keep larger handles for touch/coarse pointers' );
     sschp_assert_contains( '--ssc-range-thumb-size: 16px;', $css, 'range chip coarse pointer handles should remain touch-friendly' );
-    sschp_assert_contains( '.ssc-range-chip__label', $css, 'range chip stylesheet should style a visible range label above values' );
+    sschp_assert_contains( 'flex-direction: row;', $css, 'range chip should keep the label, values, and slider in one compact row' );
+    sschp_assert_contains( 'align-items: center;', $css, 'range chip inline content should align with normal chips' );
+    sschp_assert_contains( 'min-height: calc(var(--ssc-range-hit-size) + 12px);', $css, 'range chip height should be driven by the slider hit area instead of stacked rows' );
+    sschp_assert_contains( 'max-width: 9em;', $css, 'range chip labels should truncate before forcing an oversized chip' );
+    sschp_assert_contains( 'white-space: nowrap;', $css, 'range chip label and values should stay inline in the compact layout' );
+    sschp_assert_contains( 'flex: 0 1 96px;', $css, 'range chip slider should have a compact inline width' );
+    sschp_assert_contains( '.ssc-range-chip__label', $css, 'range chip stylesheet should style a visible inline range label' );
     sschp_assert_contains( 'ssc-range-chip__label', file_get_contents( dirname( __DIR__ ) . '/includes/class-range-filters__premium_only.php' ), 'range chip markup should show the range label instead of exposing only numeric values' );
 }
 

@@ -15,11 +15,13 @@
     --ssc-range-thumb-size: 10px;
     --ssc-range-hit-size: 22px;
     display: inline-flex;
-    flex-direction: column;
-    gap: 5px;
-    min-width: 164px;
-    max-width: 220px;
-    padding: 7px 9px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+    min-height: calc(var(--ssc-range-hit-size) + 12px);
+    padding: 5px 10px;
     border: 1px solid var(--ssc-range-border);
     border-radius: var(--ssc-range-radius);
     background: var(--ssc-range-bg);
@@ -35,26 +37,30 @@
 }
 
 .ssc-range-chip__label {
+    flex: 0 1 auto;
     min-width: 0;
+    max-width: 9em;
     color: var(--ssc-range-color);
-    font-size: 12px;
+    font-size: var(--ssc-range-font);
     font-weight: 600;
-    line-height: 1.25;
-    overflow-wrap: anywhere;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .ssc-range-chip__values {
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 6px;
-}
-
-.ssc-range-chip__values {
+    gap: 4px;
     color: var(--ssc-range-color);
     font-variant-numeric: tabular-nums;
     font-family: inherit;
-    font-size: var(--ssc-range-font);
-    line-height: 1.4;
+    font-size: 0.92em;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
 .ssc-range-chip__value,
@@ -64,7 +70,11 @@
 }
 
 .ssc-range-chip__sliders {
+    flex: 0 1 96px;
     position: relative;
+    width: 96px;
+    min-width: 72px;
+    max-width: 112px;
     height: var(--ssc-range-hit-size);
 }
 
