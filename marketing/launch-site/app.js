@@ -58,6 +58,7 @@
   let activeChips = [];
   let activeVolumeMin = volumeBounds.min;
   let activeVolumeMax = volumeBounds.max;
+  let visibleVolumeBounds = { min: volumeBounds.min, max: volumeBounds.max };
 
   function normalizeTag(value) {
     return String(value || "").trim().toLowerCase();
@@ -158,8 +159,46 @@
     return Number(result[5]) || 0;
   }
 
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function volumeBoundsForResults(results) {
+    const volumes = results
+      .map(volumeOf)
+      .filter((volume) => Number.isFinite(volume) && volume > 0);
+
+    if (!volumes.length) {
+      return { min: volumeBounds.min, max: volumeBounds.max };
+    }
+
+    return {
+      min: Math.min(...volumes),
+      max: Math.max(...volumes)
+    };
+  }
+
+  function syncVolumeBounds(results, preserveActiveSelection) {
+    const nextBounds = volumeBoundsForResults(results);
+
+    if (preserveActiveSelection) {
+      activeVolumeMin = clamp(activeVolumeMin, nextBounds.min, nextBounds.max);
+      activeVolumeMax = clamp(activeVolumeMax, nextBounds.min, nextBounds.max);
+    } else {
+      activeVolumeMin = nextBounds.min;
+      activeVolumeMax = nextBounds.max;
+    }
+
+    if (activeVolumeMin > activeVolumeMax) {
+      activeVolumeMin = nextBounds.min;
+      activeVolumeMax = nextBounds.max;
+    }
+
+    visibleVolumeBounds = nextBounds;
+  }
+
   function volumeRangeIsActive() {
-    return activeVolumeMin > volumeBounds.min || activeVolumeMax < volumeBounds.max;
+    return activeVolumeMin > visibleVolumeBounds.min || activeVolumeMax < visibleVolumeBounds.max;
   }
 
   function updateVolumeRangeUi() {
@@ -175,13 +214,19 @@
 
     volumeMinInput.value = String(activeVolumeMin);
     volumeMaxInput.value = String(activeVolumeMax);
+    volumeMinInput.min = String(visibleVolumeBounds.min);
+    volumeMinInput.max = String(visibleVolumeBounds.max);
+    volumeMaxInput.min = String(visibleVolumeBounds.min);
+    volumeMaxInput.max = String(visibleVolumeBounds.max);
     volumeMinLabel.textContent = String(activeVolumeMin);
     volumeMaxLabel.textContent = String(activeVolumeMax);
 
     const rangeIsActive = volumeRangeIsActive();
     volumeRangeChip.classList.toggle("ssc-range-chip--active", rangeIsActive);
     volumeRangeChip.dataset.selected = rangeIsActive ? "true" : "false";
-    volumeRangeChip.setAttribute("data-range-value", `range|volume|l|${activeVolumeMin}|${activeVolumeMax}|${volumeBounds.min}|${volumeBounds.max}`);
+    volumeRangeChip.setAttribute("data-range-bounds-min", String(visibleVolumeBounds.min));
+    volumeRangeChip.setAttribute("data-range-bounds-max", String(visibleVolumeBounds.max));
+    volumeRangeChip.setAttribute("data-range-value", `range|volume|l|${activeVolumeMin}|${activeVolumeMax}|${visibleVolumeBounds.min}|${visibleVolumeBounds.max}`);
   }
 
   function filterByVolume(results) {
@@ -194,14 +239,18 @@
   function renderDemo(rawQuery) {
     const tokens = tokenizeQuery(rawQuery);
     const baseResults = searchResults(tokens);
-    const rangeResults = filterByVolume(baseResults);
     const activeKeys = activeChips.map(normalizeTag);
-    const filteredResults = activeKeys.length
-      ? rangeResults.filter((result) => {
+    const chipFilteredResults = activeKeys.length
+      ? baseResults.filter((result) => {
         const tags = (result[3] || []).map(normalizeTag);
         return activeKeys.every((key) => tags.includes(key));
       })
-      : rangeResults;
+      : baseResults;
+    const rangeWasActive = volumeRangeIsActive();
+
+    syncVolumeBounds(chipFilteredResults, rangeWasActive);
+
+    const filteredResults = filterByVolume(chipFilteredResults);
     const suggestions = buildChipSuggestions(filteredResults, tokens);
     const activeFilterTotal = activeChips.length + (volumeRangeIsActive() ? 1 : 0);
 
