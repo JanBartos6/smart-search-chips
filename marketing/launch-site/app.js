@@ -1,143 +1,43 @@
 (function () {
-  const demoData = {
-    connector: {
-      chips: [
-        "M12 connector",
-        "IP67",
-        "sensor cable",
-        "24 V DC",
-        "DIN rail",
-        "stainless",
-        "pneumatic",
-        "IO-Link",
-        "panel mount"
-      ],
-      results: [
-        ["Sensor Cable M12", "Tags: M12 connector, IP67, sensor cable", "$32.00", ["M12 connector", "IP67", "sensor cable"]],
-        ["M12 Right-Angle Cable", "Tags: M12 connector, IP67, sensor cable", "$36.00", ["M12 connector", "IP67", "sensor cable"]],
-        ["Valve Terminal VT-12", "Tags: M12 connector, pneumatic, DIN rail, 24 V DC", "$218.00", ["M12 connector", "pneumatic", "DIN rail", "24 V DC"]],
-        ["DIN Rail Power Module", "Tags: 24 V DC, DIN rail", "$88.00", ["24 V DC", "DIN rail"]],
-        ["IO-Link Master Module", "Tags: M12 connector, 24 V DC, IP67, IO-Link", "$249.00", ["M12 connector", "24 V DC", "IP67", "IO-Link"]],
-        ["Stainless Field Junction Box", "Tags: M12 connector, IP67, stainless", "$176.00", ["M12 connector", "IP67", "stainless"]],
-        ["Panel Mount M12 Socket", "Tags: M12 connector, panel mount, sensor cable", "$24.00", ["M12 connector", "panel mount", "sensor cable"]],
-        ["Compact Pressure Sensor", "Tags: 24 V DC, IP67, sensor cable", "$96.00", ["24 V DC", "IP67", "sensor cable"]],
-        ["DIN Rail Gateway", "Tags: DIN rail, 24 V DC, IO-Link", "$132.00", ["DIN rail", "24 V DC", "IO-Link"]],
-        ["Washdown Connector Kit", "Tags: M12 connector, IP67, stainless", "$54.00", ["M12 connector", "IP67", "stainless"]],
-        ["Pneumatic Manifold Cable Set", "Tags: M12 connector, pneumatic, sensor cable", "$64.00", ["M12 connector", "pneumatic", "sensor cable"]],
-        ["Industrial Connector Guide", "Tags: guide, M12 connector, IP67", "Guide", ["guide", "M12 connector", "IP67"]],
-        ["M12 Shielded Extension Lead", "Tags: M12 connector, sensor cable, IP67", "$42.00", ["M12 connector", "sensor cable", "IP67"]],
-        ["Stainless Bulkhead Connector", "Tags: M12 connector, stainless, panel mount, IP67", "$58.00", ["M12 connector", "stainless", "panel mount", "IP67"]]
-      ]
-    },
-    backpack: {
-      chips: [
-        "everyday",
-        "travel",
-        "water resistant",
-        "laptop",
-        "carry-on",
-        "commuter",
-        "camera",
-        "packable",
-        "hiking",
-        "20L",
-        "30L"
-      ],
-      results: [
-        ["Everyday Backpack", "Tags: everyday, 20L, water resistant", "$79.00", ["everyday", "20L", "water resistant"], "./assets/backpacks/everyday-backpack.jpg"],
-        ["Travel Backpack 30L", "Tags: travel, 30L, carry-on, water resistant", "$129.00", ["travel", "30L", "carry-on", "water resistant"], "./assets/backpacks/travel-backpack-30l.jpg"],
-        ["Laptop Backpack", "Tags: laptop, everyday, water resistant", "$89.00", ["laptop", "everyday", "water resistant"], "./assets/backpacks/laptop-backpack.jpg"],
-        ["Trail Daypack 20L", "Tags: hiking, 20L, water resistant", "$74.00", ["hiking", "20L", "water resistant"], "./assets/backpacks/trail-daypack.jpg"],
-        ["Rolltop Commuter Pack", "Tags: everyday, commuter, laptop, water resistant, 20L", "$104.00", ["everyday", "commuter", "laptop", "water resistant", "20L"], "./assets/backpacks/rolltop-commuter-pack.jpg"],
-        ["Carry-on Travel Pack", "Tags: travel, carry-on, 30L", "$139.00", ["travel", "carry-on", "30L"], "./assets/backpacks/travel-backpack-30l.jpg"],
-        ["Camera Backpack", "Tags: camera, laptop, travel, water resistant", "$149.00", ["camera", "laptop", "travel", "water resistant"], "./assets/backpacks/camera-backpack.jpg"],
-        ["Packable Daypack", "Tags: packable, travel, carry-on, 20L", "$49.00", ["packable", "travel", "carry-on", "20L"], "./assets/backpacks/packable-daypack.jpg"],
-        ["Urban Sling Pack", "Tags: everyday, water resistant", "$54.00", ["everyday", "water resistant"], "./assets/backpacks/everyday-backpack.jpg"],
-        ["Weekend Hiking Pack 30L", "Tags: hiking, 30L, water resistant", "$119.00", ["hiking", "30L", "water resistant"], "./assets/backpacks/trail-daypack.jpg"],
-        ["Student Laptop Pack", "Tags: laptop, everyday", "$69.00", ["laptop", "everyday"], "./assets/backpacks/student-navy-backpack.jpg"],
-        ["Metro Rolltop 24L", "Tags: commuter, laptop, water resistant", "$118.00", ["commuter", "laptop", "water resistant"], "./assets/backpacks/rolltop-commuter-pack.jpg"],
-        ["Photo Daypack 22L", "Tags: camera, travel, laptop, water resistant", "$159.00", ["camera", "travel", "laptop", "water resistant"], "./assets/backpacks/camera-backpack.jpg"],
-        ["Packable Rain Daypack", "Tags: packable, hiking, water resistant, 20L", "$59.00", ["packable", "hiking", "water resistant", "20L"], "./assets/backpacks/packable-daypack.jpg"],
-        ["Campus Laptop Backpack", "Tags: everyday, laptop, 20L", "$72.00", ["everyday", "laptop", "20L"], "./assets/backpacks/student-navy-backpack.jpg"],
-        ["Bike Commuter Pack", "Tags: commuter, everyday, water resistant, 20L", "$96.00", ["commuter", "everyday", "water resistant", "20L"], "./assets/backpacks/rolltop-commuter-pack.jpg"],
-        ["Weekender Camera Pack 30L", "Tags: camera, travel, carry-on, 30L", "$172.00", ["camera", "travel", "carry-on", "30L"], "./assets/backpacks/camera-backpack.jpg"],
-        ["How to Choose the Right Backpack", "Tags: guide, travel, everyday", "Guide", ["guide", "travel", "everyday"], "./assets/backpacks/trail-daypack.jpg"]
-      ]
-    },
-    ceramic: {
-      chips: [
-        "stoneware",
-        "serving",
-        "neutral glaze",
-        "handmade",
-        "hosting",
-        "porcelain"
-      ],
-      results: [
-        ["Stoneware Tea Bowl", "Tags: stoneware, handmade, neutral glaze", "$34.00", ["stoneware", "handmade", "neutral glaze"]],
-        ["Ceramic Serving Plate", "Tags: serving, neutral glaze, hosting", "$58.00", ["serving", "neutral glaze", "hosting"]],
-        ["Porcelain Tasting Cup", "Tags: porcelain, handmade", "$22.00", ["porcelain", "handmade"]],
-        ["Stoneware Pitcher", "Tags: stoneware, serving, hosting", "$64.00", ["stoneware", "serving", "hosting"]]
-      ]
-    },
-    valve: {
-      chips: [
-        "pressure",
-        "pneumatic",
-        "24 V DC",
-        "replacement coil",
-        "brass",
-        "IP67",
-        "stainless",
-        "fail-safe"
-      ],
-      results: [
-        ["Safety Valve VS-24", "Tags: pressure, 24 V DC, IP67", "$118.00", ["pressure", "24 V DC", "IP67"]],
-        ["Compact Pneumatic Valve", "Tags: pneumatic, pressure", "$146.00", ["pneumatic", "pressure"]],
-        ["Replacement Coil Kit", "Tags: replacement coil, 24 V DC", "$42.00", ["replacement coil", "24 V DC"]],
-        ["Brass Check Valve", "Tags: brass, pressure", "$74.00", ["brass", "pressure"]],
-        ["Stainless Process Valve", "Tags: stainless, pressure, IP67", "$188.00", ["stainless", "pressure", "IP67"]],
-        ["Fail-Safe Solenoid Valve", "Tags: fail-safe, pneumatic, 24 V DC", "$164.00", ["fail-safe", "pneumatic", "24 V DC"]],
-        ["Pneumatic Valve Manifold", "Tags: pneumatic, replacement coil, 24 V DC", "$236.00", ["pneumatic", "replacement coil", "24 V DC"]],
-        ["Brass Pressure Regulator", "Tags: brass, pressure, pneumatic", "$92.00", ["brass", "pressure", "pneumatic"]],
-        ["IP67 Valve Connector", "Tags: IP67, 24 V DC, replacement coil", "$39.00", ["IP67", "24 V DC", "replacement coil"]],
-        ["Valve Maintenance Guide", "Tags: guide, replacement coil, pressure", "Guide", ["guide", "replacement coil", "pressure"]]
-      ]
-    }
-  };
+  const chipOrder = [
+    "everyday",
+    "travel",
+    "water resistant",
+    "laptop",
+    "carry-on",
+    "commuter",
+    "camera",
+    "packable",
+    "hiking"
+  ];
 
-  const queries = ["connector", "backpack", "valve", "ceramic"];
-  const demoAliases = {
-    m12: "connector",
-    connector: "connector",
-    connectors: "connector",
-    cable: "connector",
-    sensor: "connector",
-    industrial: "connector",
-    io: "connector",
-    iolink: "connector",
-    ventil: "valve",
-    valve: "valve",
-    valves: "valve",
-    pneumatic: "valve",
-    pressure: "valve",
-    backpack: "backpack",
-    backpacks: "backpack",
-    travel: "backpack",
-    laptop: "backpack",
-    bag: "backpack",
-    bags: "backpack",
-    camera: "backpack",
-    carry: "backpack",
-    commuter: "backpack",
-    hiking: "backpack",
-    packable: "backpack",
-    ceramic: "ceramic",
-    ceramics: "ceramic",
-    stoneware: "ceramic",
-    tea: "ceramic",
-    porcelain: "ceramic"
-  };
+  const searchStopWords = new Set(["backpack", "backpacks", "bag", "bags", "pack", "packs"]);
+  const hiddenSuggestionTags = new Set(["guide"]);
+  const volumeBounds = { min: 12, max: 45 };
+
+  const demoResults = [
+    ["City Mini Backpack 12L", "Tags: everyday, commuter, 12L", "$46.00", ["everyday", "commuter", "12L"], "./assets/backpacks/everyday-backpack.jpg", 12],
+    ["Compact Camera Sling 14L", "Tags: camera, everyday, 14L, water resistant", "$84.00", ["camera", "everyday", "14L", "water resistant"], "./assets/backpacks/camera-backpack.jpg", 14],
+    ["Student Laptop Pack 16L", "Tags: laptop, everyday, 16L", "$69.00", ["laptop", "everyday", "16L"], "./assets/backpacks/student-navy-backpack.jpg", 16],
+    ["Office Commuter Backpack 18L", "Tags: commuter, laptop, 18L, water resistant", "$92.00", ["commuter", "laptop", "18L", "water resistant"], "./assets/backpacks/rolltop-commuter-pack.jpg", 18],
+    ["Everyday Backpack 20L", "Tags: everyday, 20L, water resistant", "$79.00", ["everyday", "20L", "water resistant"], "./assets/backpacks/everyday-backpack.jpg", 20],
+    ["Trail Daypack 20L", "Tags: hiking, 20L, water resistant", "$74.00", ["hiking", "20L", "water resistant"], "./assets/backpacks/trail-daypack.jpg", 20],
+    ["Packable Daypack 20L", "Tags: packable, travel, carry-on, 20L", "$49.00", ["packable", "travel", "carry-on", "20L"], "./assets/backpacks/packable-daypack.jpg", 20],
+    ["Packable Rain Daypack 20L", "Tags: packable, hiking, water resistant, 20L", "$59.00", ["packable", "hiking", "water resistant", "20L"], "./assets/backpacks/packable-daypack.jpg", 20],
+    ["Photo Daypack 22L", "Tags: camera, travel, laptop, 22L, water resistant", "$159.00", ["camera", "travel", "laptop", "22L", "water resistant"], "./assets/backpacks/camera-backpack.jpg", 22],
+    ["Metro Rolltop 24L", "Tags: commuter, laptop, 24L, water resistant", "$118.00", ["commuter", "laptop", "24L", "water resistant"], "./assets/backpacks/rolltop-commuter-pack.jpg", 24],
+    ["Modular Tech Backpack 26L", "Tags: commuter, laptop, travel, 26L, water resistant", "$134.00", ["commuter", "laptop", "travel", "26L", "water resistant"], "./assets/backpacks/laptop-backpack.jpg", 26],
+    ["Studio Camera Pack 28L", "Tags: camera, travel, laptop, 28L", "$168.00", ["camera", "travel", "laptop", "28L"], "./assets/backpacks/camera-backpack.jpg", 28],
+    ["Travel Backpack 30L", "Tags: travel, 30L, carry-on, water resistant", "$129.00", ["travel", "30L", "carry-on", "water resistant"], "./assets/backpacks/travel-backpack-30l.jpg", 30],
+    ["Carry-on Travel Pack 30L", "Tags: travel, carry-on, 30L", "$139.00", ["travel", "carry-on", "30L"], "./assets/backpacks/travel-backpack-30l.jpg", 30],
+    ["Weekend Hiking Pack 30L", "Tags: hiking, 30L, water resistant", "$119.00", ["hiking", "30L", "water resistant"], "./assets/backpacks/trail-daypack.jpg", 30],
+    ["Weekender Camera Pack 30L", "Tags: camera, travel, carry-on, 30L", "$172.00", ["camera", "travel", "carry-on", "30L"], "./assets/backpacks/camera-backpack.jpg", 30],
+    ["Trail Overnight Pack 35L", "Tags: hiking, travel, 35L, water resistant", "$148.00", ["hiking", "travel", "35L", "water resistant"], "./assets/backpacks/trail-daypack.jpg", 35],
+    ["Expedition Carry Pack 40L", "Tags: hiking, travel, 40L, water resistant", "$186.00", ["hiking", "travel", "40L", "water resistant"], "./assets/backpacks/travel-backpack-30l.jpg", 40],
+    ["Family Weekender 45L", "Tags: travel, carry-on, 45L", "$198.00", ["travel", "carry-on", "45L"], "./assets/backpacks/travel-backpack-30l.jpg", 45],
+    ["How to Choose the Right Backpack", "Tags: guide, travel, everyday", "Guide", ["guide", "travel", "everyday"], "./assets/backpacks/trail-daypack.jpg", 24]
+  ];
+
   const header = document.querySelector("[data-header]");
   const menuButton = document.querySelector(".menu-button");
   const progress = document.querySelector(".scroll-progress");
@@ -147,90 +47,90 @@
   const resultStream = document.querySelector("#result-stream");
   const resultCount = document.querySelector("#result-count");
   const activeFilterCount = document.querySelector("#active-filter-count");
+  const suggestionCount = document.querySelector("#suggestion-count");
+  const suggestionLabel = document.querySelector("#suggestion-label");
+  const volumeMinInput = document.querySelector("#volume-min");
+  const volumeMaxInput = document.querySelector("#volume-max");
+  const volumeMinLabel = document.querySelector("#volume-min-label");
+  const volumeMaxLabel = document.querySelector("#volume-max-label");
+  const volumeRangeChip = document.querySelector(".demo-range-chip");
 
   let activeChips = [];
-  let currentQuery = "backpack";
+  let activeVolumeMin = volumeBounds.min;
+  let activeVolumeMax = volumeBounds.max;
 
-  function resolveDemo(value) {
-    const normalized = value.trim().toLowerCase();
-    if (!normalized) {
-      return {
-        key: "empty",
-        data: {
-          chips: [],
-          results: [],
-          emptyMessage: "Enter a query to preview generated chips and matching results."
-        }
-      };
-    }
-
-    if (demoData[normalized]) {
-      return { key: normalized, data: demoData[normalized] };
-    }
-
-    if (demoAliases[normalized]) {
-      return { key: demoAliases[normalized], data: demoData[demoAliases[normalized]] };
-    }
-
-    const prefixMatch = queries.find((query) => query.startsWith(normalized) || normalized.startsWith(query.slice(0, 4)));
-    if (prefixMatch) {
-      return { key: prefixMatch, data: demoData[prefixMatch] };
-    }
-
-    return {
-      key: "dynamic",
-      data: buildDynamicDemo(normalized)
-    };
+  function normalizeTag(value) {
+    return String(value || "").trim().toLowerCase();
   }
 
-  function buildDynamicDemo(normalized) {
-    const tokens = normalized.split(/\s+/).filter(Boolean);
-    const matched = new Map();
+  function tokenizeQuery(value) {
+    const normalized = normalizeTag(value);
+    if (!normalized) {
+      return [];
+    }
 
-    Object.values(demoData).forEach((data) => {
-      data.results.forEach((result) => {
-        const haystack = `${result[0]} ${result[1]} ${(result[3] || []).join(" ")}`.toLowerCase();
-        const matches = tokens.every((token) => haystack.includes(token));
-        if (matches && !matched.has(result[0])) {
-          matched.set(result[0], result);
-        }
-      });
+    return normalized
+      .split(/\s+/)
+      .map((token) => token.trim())
+      .filter((token) => token && !searchStopWords.has(token));
+  }
+
+  function resultText(result) {
+    return `${result[0]} ${result[1]} ${(result[3] || []).join(" ")}`.toLowerCase();
+  }
+
+  function searchResults(tokens) {
+    if (!tokens.length) {
+      return queryInput.value.trim() ? demoResults : [];
+    }
+
+    return demoResults.filter((result) => {
+      const haystack = resultText(result);
+      return tokens.every((token) => haystack.includes(token));
     });
+  }
 
-    const results = Array.from(matched.values());
-    const tagCounts = new Map();
+  function tagCount(results, label) {
+    const key = normalizeTag(label);
+    return results.filter((result) => (result[3] || []).map(normalizeTag).includes(key)).length;
+  }
+
+  function isVolumeTag(label) {
+    return /^\d+\s*l$/i.test(String(label || "").trim());
+  }
+
+  function isRedundantChip(label, tokens) {
+    const key = normalizeTag(label);
+    const queryKey = normalizeTag(tokens.join(" "));
+    return key === queryKey || tokens.includes(key);
+  }
+
+  function buildChipSuggestions(results, tokens) {
+    const counts = new Map();
     results.forEach((result) => {
       (result[3] || []).forEach((tag) => {
         const key = normalizeTag(tag);
-        if (!key) {
+        if (!key || hiddenSuggestionTags.has(key) || isVolumeTag(tag) || isRedundantChip(tag, tokens)) {
           return;
         }
-        tagCounts.set(key, {
+
+        counts.set(key, {
           label: tag,
-          count: (tagCounts.get(key)?.count || 0) + 1
+          count: (counts.get(key)?.count || 0) + 1
         });
       });
     });
 
-    const chips = Array.from(tagCounts.values())
-      .filter((tag) => tag.count > 0 && tag.count < results.length)
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
-      .slice(0, 10)
-      .map((tag) => tag.label);
-
-    return {
-      chips,
-      results,
-      emptyMessage: "No preview results match this sample dataset. Try connector, valve, backpack, or ceramic."
-    };
-  }
-
-  function chipCount(data, label) {
-    const key = normalizeTag(label);
-    return data.results.filter((result) => {
-      const tags = (result[3] || []).map(normalizeTag);
-      return tags.includes(key);
-    }).length;
+    return Array.from(counts.values())
+      .sort((a, b) => {
+        const aIndex = chipOrder.indexOf(a.label);
+        const bIndex = chipOrder.indexOf(b.label);
+        const safeA = aIndex === -1 ? chipOrder.length : aIndex;
+        const safeB = bIndex === -1 ? chipOrder.length : bIndex;
+        return safeA - safeB || b.count - a.count || a.label.localeCompare(b.label);
+      })
+      .slice(0, 11)
+      .map((item) => item.label);
   }
 
   function animateNumber(element, target) {
@@ -250,60 +150,109 @@
     requestAnimationFrame(tick);
   }
 
+  function chipLabel(count) {
+    return count === 1 ? "1 chip" : `${count} chips`;
+  }
+
+  function volumeOf(result) {
+    return Number(result[5]) || 0;
+  }
+
+  function volumeRangeIsActive() {
+    return activeVolumeMin > volumeBounds.min || activeVolumeMax < volumeBounds.max;
+  }
+
+  function updateVolumeRangeUi() {
+    if (!volumeMinInput || !volumeMaxInput || !volumeRangeChip) {
+      return;
+    }
+
+    if (activeVolumeMin > activeVolumeMax) {
+      const midpoint = Math.round((activeVolumeMin + activeVolumeMax) / 2);
+      activeVolumeMin = Math.min(midpoint, activeVolumeMax);
+      activeVolumeMax = Math.max(midpoint, activeVolumeMin);
+    }
+
+    volumeMinInput.value = String(activeVolumeMin);
+    volumeMaxInput.value = String(activeVolumeMax);
+    volumeMinLabel.textContent = String(activeVolumeMin);
+    volumeMaxLabel.textContent = String(activeVolumeMax);
+
+    const span = volumeBounds.max - volumeBounds.min || 1;
+    const minPosition = ((activeVolumeMin - volumeBounds.min) / span) * 100;
+    const maxPosition = ((activeVolumeMax - volumeBounds.min) / span) * 100;
+    volumeRangeChip.style.setProperty("--volume-min", `${minPosition}%`);
+    volumeRangeChip.style.setProperty("--volume-max", `${maxPosition}%`);
+    volumeRangeChip.classList.toggle("is-active", volumeRangeIsActive());
+  }
+
+  function filterByVolume(results) {
+    return results.filter((result) => {
+      const volume = volumeOf(result);
+      return volume >= activeVolumeMin && volume <= activeVolumeMax;
+    });
+  }
+
   function renderDemo(rawQuery) {
-    const resolved = resolveDemo(rawQuery);
-    currentQuery = resolved.key;
-    const data = resolved.data;
+    const tokens = tokenizeQuery(rawQuery);
+    const baseResults = searchResults(tokens);
+    const rangeResults = filterByVolume(baseResults);
     const activeKeys = activeChips.map(normalizeTag);
-    const filtered = activeKeys.length
-      ? data.results.filter((result) => {
+    const filteredResults = activeKeys.length
+      ? rangeResults.filter((result) => {
         const tags = (result[3] || []).map(normalizeTag);
         return activeKeys.every((key) => tags.includes(key));
       })
-      : data.results;
-    const results = filtered;
-    const shownCount = results.length;
+      : rangeResults;
+    const suggestions = buildChipSuggestions(filteredResults, tokens);
+    const activeFilterTotal = activeChips.length + (volumeRangeIsActive() ? 1 : 0);
 
-    animateNumber(resultCount, shownCount);
-    activeFilterCount.textContent = String(activeChips.length);
-    activeFilterCount.parentElement.lastChild.textContent = activeChips.length === 1 ? " chip selected" : " chips selected";
+    updateVolumeRangeUi();
+    animateNumber(resultCount, filteredResults.length);
+    activeFilterCount.textContent = String(activeFilterTotal);
+    activeFilterCount.parentElement.lastChild.textContent = activeFilterTotal === 1 ? " filter selected" : " filters selected";
+    suggestionCount.textContent = String(suggestions.length);
+    suggestionLabel.textContent = suggestions.length === 1 ? "suggested chip" : "suggested chips";
 
     chipZone.replaceChildren();
-    data.chips.forEach((label, index) => {
-      const count = chipCount(data, label);
+    suggestions.forEach((label, index) => {
+      const count = tagCount(filteredResults, label);
+      const key = normalizeTag(label);
+      const isActive = activeKeys.includes(key);
       const chip = document.createElement("button");
       chip.type = "button";
-      const isActive = activeKeys.includes(normalizeTag(label));
       chip.className = "chip" + (isActive ? " is-active" : "");
       chip.style.animationDelay = `${index * 42}ms`;
       chip.setAttribute("aria-pressed", isActive ? "true" : "false");
       chip.innerHTML = `<span>${label}</span><small>${count}</small>`;
       chip.addEventListener("click", () => {
-        const key = normalizeTag(label);
         activeChips = activeChips.some((active) => normalizeTag(active) === key)
           ? activeChips.filter((active) => normalizeTag(active) !== key)
           : activeChips.concat(label);
-        renderDemo(currentQuery);
+        renderDemo(queryInput.value);
       });
       chipZone.appendChild(chip);
     });
 
     resultStream.replaceChildren();
-    if (!results.length) {
+    if (!filteredResults.length) {
       const empty = document.createElement("article");
       empty.className = "result-row result-row--empty";
       empty.innerHTML = `
         <div class="result-thumb" aria-hidden="true"></div>
         <div>
-          <strong>No preview results for this chip combination</strong>
-          <p>${data.emptyMessage || "Remove one chip to broaden this search."}</p>
+          <div class="result-title-line">
+            <strong>No preview results</strong>
+            <span class="result-chip-count">0 chips</span>
+          </div>
+          <p>Try backpack, travel, laptop, commuter, camera, hiking, or widen the volume range.</p>
         </div>
       `;
       resultStream.appendChild(empty);
       return;
     }
 
-    results.forEach(([title, detail, price, tags, image], index) => {
+    filteredResults.forEach(([title, detail, price, tags, image], index) => {
       const row = document.createElement("article");
       row.className = "result-row" + (image ? " has-image" : "");
       row.style.animationDelay = `${index * 58}ms`;
@@ -312,7 +261,10 @@
           ${image ? `<img src="${image}" alt="" loading="lazy">` : ""}
         </div>
         <div>
-          <strong>${title}</strong>
+          <div class="result-title-line">
+            <strong>${title}</strong>
+            <span class="result-chip-count">${chipLabel((tags || []).length)}</span>
+          </div>
           <p>${detail}</p>
         </div>
         <span class="result-price">${price}</span>
@@ -369,12 +321,22 @@
     queryInput.value = "";
     queryInput.focus();
     activeChips = [];
+    activeVolumeMin = volumeBounds.min;
+    activeVolumeMax = volumeBounds.max;
     renderDemo("");
   });
 
-  function normalizeTag(value) {
-    return String(value || "").trim().toLowerCase();
-  }
+  [volumeMinInput, volumeMaxInput].forEach((input) => {
+    if (!input) {
+      return;
+    }
+
+    input.addEventListener("input", () => {
+      activeVolumeMin = Math.min(Number(volumeMinInput.value), Number(volumeMaxInput.value));
+      activeVolumeMax = Math.max(Number(volumeMinInput.value), Number(volumeMaxInput.value));
+      renderDemo(queryInput.value);
+    });
+  });
 
   menuButton.addEventListener("click", () => {
     const isOpen = header.classList.toggle("is-open");

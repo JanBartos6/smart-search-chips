@@ -62,6 +62,10 @@
             <div class="preview-title">
               <span class="toolbar-dot"></span>
               Search results
+              <span class="suggestion-count">
+                <strong id="suggestion-count">9</strong>
+                <span id="suggestion-label">suggested chips</span>
+              </span>
             </div>
             <div class="preview-actions">
               <span class="preview-badge">WooCommerce catalog demo</span>
@@ -77,11 +81,23 @@
               </button>
             </label>
 
+            <div class="demo-range-chip" aria-label="Pro range chip preview">
+              <div class="demo-range-chip__head">
+                <span>Volume range</span>
+                <strong><span id="volume-min-label">12</span> - <span id="volume-max-label">45</span> L</strong>
+                <em>Pro range chip</em>
+              </div>
+              <div class="demo-range-chip__sliders">
+                <input id="volume-min" type="range" min="12" max="45" value="12" step="1" aria-label="Minimum backpack volume">
+                <input id="volume-max" type="range" min="12" max="45" value="45" step="1" aria-label="Maximum backpack volume">
+              </div>
+            </div>
+
             <div class="chip-row" id="chip-zone" aria-label="Generated search chips"></div>
 
             <div class="result-meta" aria-live="polite">
-              <span><strong id="result-count">18</strong> results</span>
-              <span><strong id="active-filter-count">0</strong> chips selected</span>
+              <span><strong id="result-count">20</strong> results</span>
+              <span><strong id="active-filter-count">0</strong> filters selected</span>
             </div>
 
             <div class="result-list" id="result-stream" aria-label="Search results"></div>
@@ -123,31 +139,31 @@
 
       <div class="free-layout">
         <article class="feature-panel reveal">
-          <h3>Search UI</h3>
+          <h3>A search box you can trust</h3>
           <ul class="check-list">
-            <li>Guaranteed Search Mode via <code>[sschp_search]</code></li>
-            <li>Gutenberg search block with the same server-rendered UI</li>
-            <li>Legacy <code>[ssc_search]</code> shortcode alias for existing installs</li>
-            <li>Safe optional enhancement for compatible theme AJAX searches</li>
+            <li>Add the search block or <code>[sschp_search]</code> anywhere you need a reliable search experience.</li>
+            <li>The guaranteed UI uses the plugin endpoint, so it does not depend on theme AJAX.</li>
+            <li>Compatible theme searches can be enhanced safely when you want to keep the existing layout.</li>
+            <li>Existing <code>[ssc_search]</code> embeds keep working through the legacy alias.</li>
           </ul>
         </article>
 
         <article class="feature-panel reveal">
-          <h3>Index and fallback</h3>
+          <h3>Built for real catalogs</h3>
           <ul class="check-list">
-            <li>Queue, batch, pause, resume, rebuild, and clear index controls</li>
-            <li>Local index path when the index is ready</li>
-            <li>Relevanssi path when available, with WP_Query fallback when needed</li>
+            <li>The local index keeps larger catalogs responsive once it is ready.</li>
+            <li>You can rebuild, pause, resume, clear, or process one batch from settings.</li>
+            <li>If the index is not ready, search keeps working through Relevanssi or WP_Query fallback.</li>
           </ul>
         </article>
 
         <article class="feature-panel reveal">
-          <h3>Commerce help</h3>
+          <h3>Chips from product language</h3>
           <ul class="check-list">
-            <li>Built-in Search Chips Tags field for posts, pages, and products</li>
-            <li>Optional WooCommerce helper tags from attributes, categories, and product tags</li>
-            <li>SKU chips are available but disabled by default to avoid noisy unique chips</li>
-            <li>Product-type and helper-tag warnings in diagnostics</li>
+            <li>Use the built-in Search Chips Tags field for posts, pages, and products.</li>
+            <li>WooCommerce helper tags can pull from attributes, categories, and product tags.</li>
+            <li>SKU chips stay optional so unique part numbers do not flood the interface.</li>
+            <li>Diagnostics explain missing product post types, helper tags, and empty chip sets.</li>
           </ul>
         </article>
       </div>
