@@ -293,86 +293,148 @@
 
     <section class="section diagnostics-section" id="diagnostics" aria-labelledby="diagnostics-title">
       <div class="diagnostics-layout">
-        <div class="section-intro reveal">
-        <h2 id="diagnostics-title">Know exactly why chips did or did not appear</h2>
-        <p>
-          Admin Test Search runs the same server-side pipeline and reports the
-          path, results, chips, first matches, warnings, and suggested fixes.
-        </p>
+        <div class="section-intro diagnostics-copy reveal">
+          <h2 id="diagnostics-title">Debug search with the same tools the plugin uses.</h2>
+          <p>
+            Test Search runs the server-side pipeline from WordPress admin.
+            Pro analytics then shows which searches, chips, and clicks are
+            helping visitors move through the catalog.
+          </p>
+          <div class="diagnostic-proof-list" aria-label="Diagnostics capabilities">
+            <div>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.2-4.2M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg>
+              <span>Test any query</span>
+            </div>
+            <div>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7v-4"/></svg>
+              <span>Understand engagement</span>
+            </div>
+            <div>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 7v6c0 5-3.4 7.7-8 9-4.6-1.3-8-4-8-9V7l8-4Z"/></svg>
+              <span>Keep reports local</span>
+            </div>
+          </div>
         </div>
 
-        <div class="admin-card reveal" aria-label="Admin Test Search preview">
-          <div class="admin-card-head">
-            <div>
-              <strong>Admin Test Search</strong>
-              <span>Query: backpack</span>
+        <div class="diagnostics-workspace reveal" aria-label="Smart Search Chips admin diagnostics and analytics preview">
+          <div class="plugin-window">
+            <div class="plugin-window__topbar" aria-hidden="true">
+              <span>WordPress</span>
+              <span>Smart Search Chips</span>
+              <span>Howdy, admin</span>
             </div>
-            <span class="static-action">Run Test Search</span>
-          </div>
+            <div class="plugin-window__body">
+              <aside class="plugin-sidebar" aria-hidden="true">
+                <span>Dashboard</span>
+                <span>Posts</span>
+                <span>Products</span>
+                <span class="is-active">Smart Search Chips</span>
+                <span>Settings</span>
+              </aside>
 
-          <div class="admin-query">
-            <div><span>Selected post types</span><strong>product, post</strong></div>
-            <div><span>Inferred post types</span><strong>product</strong></div>
-          </div>
+              <div class="plugin-main">
+                <header class="plugin-main__head">
+                  <div>
+                    <strong>Smart Search Chips</strong>
+                    <span>Diagnostics</span>
+                  </div>
+                  <span class="plugin-status">Index up to date</span>
+                </header>
 
-          <div class="admin-kpis">
-            <div><span>Path used</span><strong>Relevanssi</strong></div>
-            <div><span>Results</span><strong>18</strong></div>
-            <div><span>Tagged</span><strong>18</strong></div>
-            <div><span>Generated chips</span><strong>11</strong></div>
-          </div>
+                <div class="plugin-tabs" role="presentation">
+                  <span class="is-active">Test Search</span>
+                  <span>Analytics</span>
+                  <span>Email Preview</span>
+                </div>
 
-          <div class="admin-table" role="table" aria-label="Generated chip preview">
-            <div role="row">
-              <span role="columnheader">Chip</span>
-              <span role="columnheader">Count</span>
-              <span role="columnheader">First result</span>
+                <div class="plugin-test-row">
+                  <label>
+                    <span>Search query</span>
+                    <strong>backpack</strong>
+                  </label>
+                  <label>
+                    <span>Path used</span>
+                    <strong>Local index</strong>
+                  </label>
+                  <button type="button">Run Test Search</button>
+                </div>
+
+                <div class="plugin-metrics" aria-label="Test search metrics">
+                  <div><span>Results</span><strong>24</strong><small>products</small></div>
+                  <div><span>Tagged</span><strong>24</strong><small>with chips</small></div>
+                  <div><span>Generated chips</span><strong>8</strong><small>usable</small></div>
+                  <div><span>Search time</span><strong>42</strong><small>ms</small></div>
+                </div>
+
+                <div class="plugin-warning">
+                  <div>
+                    <strong>Low click-through rate on some chips</strong>
+                    <span>Suggested fix: rename or hide labels that visitors often see but rarely click.</span>
+                  </div>
+                  <span>Warning</span>
+                </div>
+
+                <div class="plugin-generated-chips" aria-label="Generated chips preview">
+                  <strong>Generated chips</strong>
+                  <div>
+                    <span>travel <small>11</small></span>
+                    <span>water resistant <small>12</small></span>
+                    <span>laptop <small>6</small></span>
+                    <span>commuter <small>5</small></span>
+                    <span>Volume range</span>
+                  </div>
+                </div>
+
+                <div class="plugin-observability">
+                  <section class="plugin-analytics-panel" aria-label="Analytics preview">
+                    <header>
+                      <strong>Search analytics</strong>
+                      <span>Last 30 days</span>
+                    </header>
+                    <div class="analytics-metrics">
+                      <div><span>Searches</span><strong>12,842</strong></div>
+                      <div><span>Chip clicks</span><strong>2,918</strong></div>
+                      <div><span>Zero results</span><strong>8.4%</strong></div>
+                    </div>
+                    <div class="analytics-chart" aria-hidden="true">
+                      <span style="--h:42%"></span>
+                      <span style="--h:58%"></span>
+                      <span style="--h:47%"></span>
+                      <span style="--h:70%"></span>
+                      <span style="--h:64%"></span>
+                      <span style="--h:82%"></span>
+                      <span style="--h:74%"></span>
+                      <span style="--h:90%"></span>
+                      <i></i>
+                    </div>
+                  </section>
+
+                  <section class="plugin-low-ctr-panel" aria-label="Low CTR chips preview">
+                    <header>
+                      <strong>Often seen, rarely clicked</strong>
+                      <span>CTR</span>
+                    </header>
+                    <div role="table" aria-label="Low CTR chips table">
+                      <div role="row">
+                        <span role="cell">Backpack accessories</span>
+                        <strong role="cell">0.3%</strong>
+                      </div>
+                      <div role="row">
+                        <span role="cell">Kids backpacks</span>
+                        <strong role="cell">0.5%</strong>
+                      </div>
+                      <div role="row">
+                        <span role="cell">Backpacking tips</span>
+                        <strong role="cell">0.7%</strong>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                <p class="plugin-local-note">Reports are generated locally on your WordPress site and emailed only to configured recipients.</p>
+              </div>
             </div>
-            <div role="row">
-              <span data-label="Chip">water resistant</span>
-              <span data-label="Count">12</span>
-              <span data-label="First result">Everyday Backpack</span>
-            </div>
-            <div role="row">
-              <span data-label="Chip">everyday</span>
-              <span data-label="Count">8</span>
-              <span data-label="First result">Everyday Backpack</span>
-            </div>
-            <div role="row">
-              <span data-label="Chip">travel</span>
-              <span data-label="Count">7</span>
-              <span data-label="First result">Travel Backpack 30L</span>
-            </div>
           </div>
-
-          <div class="first-results" aria-label="First results preview">
-            <strong>First results</strong>
-            <ol>
-              <li><span>Everyday Backpack</span><small>product #1842 / tags: everyday, 20L, water resistant</small></li>
-              <li><span>Travel Backpack 30L</span><small>product #1908 / tags: travel, 30L, carry-on</small></li>
-              <li><span>Rolltop Commuter Pack</span><small>product #2031 / tags: commuter, laptop, water resistant</small></li>
-            </ol>
-          </div>
-
-          <div class="explain-grid" aria-label="Why no chips reasons">
-            <span>No query</span>
-            <span>Query too short</span>
-            <span>No results</span>
-            <span>No tags</span>
-            <span>Redundant tags</span>
-            <span>Max tag length filtering</span>
-            <span>Products not included when WooCommerce is active</span>
-            <span>Index not ready</span>
-            <span>WooCommerce helper tags disabled</span>
-            <span>Invalid or missing theme selector</span>
-          </div>
-
-          <p class="admin-warning">
-            Warning: local index is still queued, so this test used Relevanssi.
-          </p>
-          <p class="admin-success">
-            Explanation: enough tagged results were found and labels passed length and redundancy checks.
-          </p>
         </div>
       </div>
     </section>
