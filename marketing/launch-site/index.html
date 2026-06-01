@@ -25,9 +25,8 @@
 
     <nav class="site-nav" id="site-nav" aria-label="Main navigation">
       <a href="#product">Product</a>
-      <a href="#free">Free</a>
+      <a href="#features">Features</a>
       <a href="#diagnostics">Diagnostics</a>
-      <a href="#pro">Pro</a>
       <a href="#pricing">Pricing</a>
       <!-- Production: replace local build zip links with the WP.org plugin/download URL. -->
       <a class="nav-action" href="../../build/smart-search-chips-wporg.zip" download>Download Free</a>
@@ -141,43 +140,154 @@
       </div>
     </section>
 
-    <section class="section free-section" id="free" aria-labelledby="free-title">
-      <div class="section-intro reveal">
-        <h2 id="free-title">A free plugin that is genuinely useful</h2>
-        <p>
-          Core search, chips, indexing, and troubleshooting are not paywalled.
-        </p>
-      </div>
+    <section class="section capabilities-section" id="features" aria-labelledby="features-title">
+      <div class="capabilities-shell">
+        <aside class="capabilities-story reveal">
+          <h2 id="features-title">Six capabilities. Smarter search. Better results.</h2>
+          <p>
+            Smart Search Chips gives WordPress and WooCommerce sites a reliable
+            search UI, catalog-aware chips, range filters, analytics, AI access,
+            and debugging that explains what is happening.
+          </p>
+          <div class="capability-count" aria-label="Six product capabilities">
+            <strong>6</strong>
+            <span>capabilities</span>
+          </div>
+          <div class="capability-actions">
+            <a class="button primary" href="../../build/smart-search-chips-wporg.zip" download>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
+              Download Free
+            </a>
+            <a class="button secondary" href="#pricing">
+              Compare Editions
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+            </a>
+          </div>
+        </aside>
 
-      <div class="free-layout">
-        <article class="feature-panel reveal">
-          <h3>A search box you can trust</h3>
-          <ul class="check-list">
-            <li>Add the search block or <code>[sschp_search]</code> anywhere you need a reliable search experience.</li>
-            <li>The guaranteed UI uses the plugin endpoint, so it does not depend on theme AJAX.</li>
-            <li>Compatible theme searches can be enhanced safely when you want to keep the existing layout.</li>
-            <li>Existing <code>[ssc_search]</code> embeds keep working through the legacy alias.</li>
-          </ul>
-        </article>
+        <div class="capability-list" aria-label="Smart Search Chips capabilities">
+          <article class="capability-item reveal">
+            <div class="capability-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M5 6h14v12H5zM8 10h5m-5 4h8M17 10l2 2-2 2"/></svg>
+            </div>
+            <div class="capability-copy">
+              <span>01</span>
+              <h3>Search UI</h3>
+              <p>Shortcode and block search that uses the plugin endpoint, so it does not depend on theme AJAX.</p>
+            </div>
+            <div class="capability-demo search-demo" aria-hidden="true">
+              <div class="mini-search">
+                <svg viewBox="0 0 24 24"><path d="m21 21-4-4M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg>
+                <strong>backpack</strong>
+                <span></span>
+              </div>
+              <div class="mini-chip-row">
+                <span class="is-active">travel <small>11</small></span>
+                <span>water resistant <small>12</small></span>
+                <span>laptop <small>6</small></span>
+              </div>
+            </div>
+          </article>
 
-        <article class="feature-panel reveal">
-          <h3>Built for real catalogs</h3>
-          <ul class="check-list">
-            <li>The local index keeps larger catalogs responsive once it is ready.</li>
-            <li>You can rebuild, pause, resume, clear, or process one batch from settings.</li>
-            <li>If the index is not ready, search keeps working through Relevanssi or WP_Query fallback.</li>
-          </ul>
-        </article>
+          <article class="capability-item reveal">
+            <div class="capability-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M20 13 11 4H5v6l9 9 6-6ZM8 8h.01"/></svg>
+            </div>
+            <div class="capability-copy">
+              <span>02</span>
+              <h3>Catalog-fit chips</h3>
+              <p>Fast chips shaped from tags, attributes, categories, and the real language of your catalog.</p>
+            </div>
+            <div class="capability-demo source-demo" aria-hidden="true">
+              <div class="mini-chip-row">
+                <span>everyday <small>5</small></span>
+                <span class="is-active">travel <small>11</small></span>
+                <span>commuter <small>4</small></span>
+                <span>packable <small>2</small></span>
+              </div>
+              <p>Source: product tags, attributes, and categories</p>
+            </div>
+          </article>
 
-        <article class="feature-panel reveal">
-          <h3>Chips from product language</h3>
-          <ul class="check-list">
-            <li>Use the built-in Search Chips Tags field for posts, pages, and products.</li>
-            <li>WooCommerce helper tags can pull from attributes, categories, and product tags.</li>
-            <li>SKU chips stay optional so unique part numbers do not flood the interface.</li>
-            <li>Diagnostics explain missing product post types, helper tags, and empty chip sets.</li>
-          </ul>
-        </article>
+          <article class="capability-item reveal">
+            <div class="capability-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M8 7a2 2 0 1 0 0 .01M16 17a2 2 0 1 0 0 .01"/></svg>
+            </div>
+            <div class="capability-copy">
+              <span>03</span>
+              <h3>Numeric ranges</h3>
+              <p>Slider chips for compatible measurements such as volume, length, power, and other product facts.</p>
+            </div>
+            <div class="capability-demo range-demo" aria-hidden="true">
+              <strong>Volume <span>12 - 45 L</span></strong>
+              <div class="mini-range">
+                <i></i>
+                <b style="--x: 34%"></b>
+                <b style="--x: 72%"></b>
+              </div>
+              <div class="range-values">
+                <span>12 L</span>
+                <span>28 L</span>
+                <span>45 L</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="capability-item reveal">
+            <div class="capability-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M5 20V10m7 10V4m7 16v-7"/></svg>
+            </div>
+            <div class="capability-copy">
+              <span>04</span>
+              <h3>Analytics</h3>
+              <p>Local search, chip, click, and zero-result reporting with scheduled email summaries.</p>
+            </div>
+            <div class="capability-demo analytics-demo" aria-hidden="true">
+              <div><small>Searches</small><strong>12,842</strong></div>
+              <div><small>Zero results</small><strong>8.4%</strong></div>
+              <div class="mini-bars">
+                <span style="--h: 38%"></span>
+                <span style="--h: 54%"></span>
+                <span style="--h: 44%"></span>
+                <span style="--h: 72%"></span>
+                <span style="--h: 62%"></span>
+                <span style="--h: 84%"></span>
+              </div>
+            </div>
+          </article>
+
+          <article class="capability-item reveal">
+            <div class="capability-icon capability-icon--blue" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="m12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3ZM18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15Z"/></svg>
+            </div>
+            <div class="capability-copy">
+              <span>05</span>
+              <h3>AI access</h3>
+              <p>Admin-controlled prompt workflows for assisted tagging, without storing provider credentials.</p>
+            </div>
+            <div class="capability-demo prompt-demo" aria-hidden="true">
+              <code>Prompt: suggest product tags</code>
+              <code>Based on: title, content, attributes</code>
+              <code>Suggested: travel, laptop, water resistant</code>
+            </div>
+          </article>
+
+          <article class="capability-item reveal">
+            <div class="capability-icon capability-icon--coral" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 8v5m0 4h.01M8 4h8l4 7-4 9H8l-4-9 4-7Z"/></svg>
+            </div>
+            <div class="capability-copy">
+              <span>06</span>
+              <h3>Integrated debugging</h3>
+              <p>Test Search, path used, warnings, and clear explanations for why chips did or did not appear.</p>
+            </div>
+            <div class="capability-demo debug-demo" aria-hidden="true">
+              <span><strong>Test Search</strong><em>OK</em></span>
+              <span><strong>Path used</strong><em>Local index</em></span>
+              <span><strong>Why no chips?</strong><em>1 warning</em></span>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
 
@@ -267,98 +377,6 @@
       </div>
     </section>
 
-    <section class="section pro-section" id="pro" aria-labelledby="pro-title">
-      <div class="section-intro reveal">
-        <h2 id="pro-title">Advanced workflows for serious search sites</h2>
-        <p>
-          Pro adds field mapping, chip rules, range chips, analytics, reports,
-          and AI-assisted tagging workflows for larger or client-facing sites.
-        </p>
-      </div>
-
-      <div class="pro-console reveal">
-        <div class="pro-tabs" role="tablist" aria-label="Pro feature preview">
-          <button class="pro-tab is-active" type="button" data-panel="rules" role="tab" aria-selected="true">Chip Rules</button>
-          <button class="pro-tab" type="button" data-panel="range" role="tab" aria-selected="false">Range Chips</button>
-          <button class="pro-tab" type="button" data-panel="analytics" role="tab" aria-selected="false">Analytics</button>
-          <button class="pro-tab" type="button" data-panel="ai" role="tab" aria-selected="false">AI Workflows</button>
-        </div>
-
-        <div class="pro-panel is-active" id="panel-rules" role="tabpanel">
-          <div>
-            <h3>Shape chip language without editing every post or product</h3>
-            <p>
-              Synonyms, pinned chips, hidden chips, label overrides, JSON export,
-              and validated import with preview mode.
-            </p>
-          </div>
-          <div class="rule-list" aria-label="Example chip rules">
-            <span><strong>Synonym</strong> rucksack -> backpack</span>
-            <span><strong>Pinned</strong> carry-on</span>
-            <span><strong>Hidden</strong> discontinued</span>
-            <span><strong>Rename</strong> waterproof-ish -> water resistant</span>
-          </div>
-        </div>
-
-        <div class="pro-panel" id="panel-range" role="tabpanel">
-          <div>
-            <h3>Turn numeric product noise into useful filters</h3>
-            <p>
-              Compatible numeric measurements can become slider chips. Diagnostics
-              show confidence, source, accepted groups, and rejected values such
-              as model numbers, SKU-like values, IP ratings, mixed units,
-              price-like text, too few products, or low confidence.
-            </p>
-          </div>
-          <div class="range-preview" aria-label="Range chip preview">
-            <div class="range-track">
-              <span style="--x: 8%"></span>
-              <span style="--x: 34%"></span>
-              <span style="--x: 67%"></span>
-              <span style="--x: 92%"></span>
-            </div>
-            <strong>307 - 940 mm</strong>
-            <small>Accepted length group / WooCommerce attribute / confidence 0.91</small>
-          </div>
-        </div>
-
-        <div class="pro-panel" id="panel-analytics" role="tabpanel">
-          <div>
-            <h3>Measure search quality without third-party tracking</h3>
-            <p>
-              Track local searches, chip impressions, chip clicks, result clicks,
-              zero-result searches, CSV/chart exports, and scheduled email digests.
-            </p>
-          </div>
-          <div class="analytics-preview" aria-label="Analytics graph preview">
-            <span style="--h: 42%"></span>
-            <span style="--h: 66%"></span>
-            <span style="--h: 50%"></span>
-            <span style="--h: 84%"></span>
-            <span style="--h: 61%"></span>
-            <span style="--h: 76%"></span>
-            <span style="--h: 57%"></span>
-          </div>
-        </div>
-
-        <div class="pro-panel" id="panel-ai" role="tabpanel">
-          <div>
-            <h3>Prepare better tags with admin-controlled AI workflows</h3>
-            <p>
-              Build an external-agent prompt from selected items. REST write-back
-              is optional and uses WordPress credentials outside the plugin.
-            </p>
-          </div>
-          <div class="prompt-preview" aria-label="AI prompt preview">
-            <span>Selected items: 24</span>
-            <span>Goal: normalized search chips</span>
-            <span>Output: semicolon tags for review</span>
-            <span>Write-back: optional</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section class="section pricing-section" id="pricing" aria-labelledby="pricing-title">
       <div class="section-intro reveal">
         <h2 id="pricing-title">Free where it matters. Pro where teams need control.</h2>
@@ -380,28 +398,28 @@
           <span class="plan-label">Pro Single</span>
           <h3>$59<span>/year</span></h3>
           <p>1 site, or $5.99/month. For one serious WordPress or WooCommerce site that needs smarter search, filtering, and search analytics.</p>
-          <a class="button primary" href="#pro">View Pro</a>
+          <a class="button primary" href="#features">View Pro</a>
         </article>
 
         <article class="price-card pro-price reveal">
           <span class="plan-label">Pro Studio</span>
           <h3>$99<span>/year</span></h3>
           <p>3 sites. For freelancers and builders managing a few client websites with the same Pro search toolkit.</p>
-          <a class="button secondary" href="#pro">View Pro</a>
+          <a class="button secondary" href="#features">View Pro</a>
         </article>
 
         <article class="price-card pro-price reveal">
           <span class="plan-label">Pro Agency</span>
           <h3>$199<span>/year</span></h3>
           <p>10 sites. For agencies building WooCommerce, catalog, or content-heavy sites where search quality and reporting matter.</p>
-          <a class="button secondary" href="#pro">View Pro</a>
+          <a class="button secondary" href="#features">View Pro</a>
         </article>
 
         <article class="price-card pro-price reveal">
           <span class="plan-label">Pro Scale</span>
           <h3>$399<span>/year</span></h3>
           <p>50 sites. For larger agencies or site portfolios deploying Smart Search Chips Pro across many owned or client websites.</p>
-          <a class="button secondary" href="#pro">View Pro</a>
+          <a class="button secondary" href="#features">View Pro</a>
         </article>
       </div>
 
@@ -446,7 +464,7 @@
         </p>
         <div class="hero-actions">
           <a class="button primary" href="../../build/smart-search-chips-wporg.zip" download>Download Free</a>
-          <a class="button secondary" href="#pro">Explore Pro</a>
+          <a class="button secondary" href="#features">Explore Pro</a>
         </div>
       </div>
     </section>

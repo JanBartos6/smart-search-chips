@@ -333,25 +333,6 @@
     document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
   }
 
-  function setupTabs() {
-    const tabs = Array.from(document.querySelectorAll(".pro-tab"));
-    const panels = Array.from(document.querySelectorAll(".pro-panel"));
-
-    tabs.forEach((tab) => {
-      tab.addEventListener("click", () => {
-        const id = tab.dataset.panel;
-        tabs.forEach((item) => {
-          const isSelected = item === tab;
-          item.classList.toggle("is-active", isSelected);
-          item.setAttribute("aria-selected", isSelected ? "true" : "false");
-        });
-        panels.forEach((panel) => {
-          panel.classList.toggle("is-active", panel.id === `panel-${id}`);
-        });
-      });
-    });
-  }
-
   function updateChrome() {
     const max = document.documentElement.scrollHeight - window.innerHeight;
     const progressWidth = max > 0 ? (window.scrollY / max) * 100 : 0;
@@ -402,6 +383,5 @@
 
   renderDemo(queryInput.value);
   setupReveal();
-  setupTabs();
   updateChrome();
 })();
