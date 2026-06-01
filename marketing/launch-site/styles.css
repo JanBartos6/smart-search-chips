@@ -2836,68 +2836,127 @@ code {
     linear-gradient(180deg, rgba(231, 245, 237, 0.7), rgba(255, 255, 255, 0.94));
 }
 
-.pro-includes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  width: var(--container);
-  margin: 16px auto 0;
-}
-
-.pro-includes span {
-  min-height: 32px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  color: var(--ink-2);
-  background: #fff;
-  font-size: 13px;
-  font-weight: 740;
-}
-
-.compliance-panel {
+.pro-feature-panel {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1px;
+  grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
+  gap: clamp(24px, 3vw, 44px);
+  align-items: stretch;
   width: var(--container);
   margin: 18px auto 0;
+  padding: clamp(22px, 3vw, 34px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(231, 245, 237, 0.78), rgba(255, 255, 255, 0.94) 38%),
+    #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.pro-feature-intro {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  padding-right: clamp(0px, 1.8vw, 20px);
+}
+
+.pro-feature-intro span {
+  width: fit-content;
+  padding: 7px 9px;
+  border: 1px solid rgba(8, 123, 63, 0.22);
+  border-radius: var(--radius);
+  color: var(--green);
+  background: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.pro-feature-intro h3 {
+  max-width: 420px;
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(28px, 3vw, 42px);
+  line-height: 1.02;
+  font-weight: 840;
+}
+
+.pro-feature-intro p {
+  max-width: 430px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.56;
+  font-weight: 560;
+}
+
+.pro-feature-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--line);
 }
 
-.compliance-panel div {
-  min-height: 148px;
+.pro-feature-groups article {
+  min-width: 0;
   padding: 22px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.92);
 }
 
-.compliance-panel strong {
+.pro-feature-groups h4 {
+  margin: 0;
+  color: var(--ink);
   display: block;
   font-size: 15px;
   line-height: 1.25;
   font-weight: 820;
 }
 
-.compliance-panel span {
-  display: block;
-  margin-top: 10px;
+.pro-feature-groups ul {
+  display: grid;
+  gap: 9px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pro-feature-groups li {
+  position: relative;
+  padding-left: 18px;
   color: var(--muted);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.42;
   font-weight: 580;
+}
+
+.pro-feature-groups li::before {
+  content: "";
+  position: absolute;
+  top: 0.58em;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
 }
 
 .site-footer {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
   width: var(--container);
-  min-height: 96px;
+  min-height: 118px;
   margin: 0 auto;
+  padding: 28px 0;
   border-top: 1px solid var(--line);
+}
+
+.footer-identity {
+  display: grid;
+  gap: 12px;
 }
 
 .site-footer .brand {
@@ -2914,6 +2973,37 @@ code {
   color: var(--muted);
   font-size: 14px;
   font-weight: 620;
+}
+
+.footer-meta {
+  display: grid;
+  justify-items: end;
+  gap: 14px;
+  text-align: right;
+}
+
+.footer-meta a {
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 680;
+  text-decoration: none;
+}
+
+.footer-meta a:hover {
+  color: var(--green);
+}
+
+.footer-meta nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 14px;
+}
+
+.footer-meta nav a {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 640;
 }
 
 .reveal {
@@ -2987,9 +3077,16 @@ code {
     margin-left: 0;
   }
 
-  .hero-lower,
-  .compliance-panel {
+  .hero-lower {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pro-feature-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .pro-feature-intro {
+    padding-right: 0;
   }
 
   .pricing-grid {
@@ -3127,7 +3224,7 @@ code {
   }
 
   .hero-lower,
-  .compliance-panel {
+  .pro-feature-groups {
     grid-template-columns: 1fr;
   }
 
@@ -3315,6 +3412,15 @@ code {
     align-items: flex-start;
     justify-content: center;
     padding: 26px 0;
+  }
+
+  .footer-meta {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .footer-meta nav {
+    justify-content: flex-start;
   }
 }
 
