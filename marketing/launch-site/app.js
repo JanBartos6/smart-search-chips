@@ -53,7 +53,7 @@
   const volumeMaxInput = document.querySelector("#volume-max");
   const volumeMinLabel = document.querySelector("#volume-min-label");
   const volumeMaxLabel = document.querySelector("#volume-max-label");
-  const volumeRangeChip = document.querySelector(".demo-range-chip");
+  const volumeRangeChip = document.querySelector("#volume-range-chip");
 
   let activeChips = [];
   let activeVolumeMin = volumeBounds.min;
@@ -178,12 +178,8 @@
     volumeMinLabel.textContent = String(activeVolumeMin);
     volumeMaxLabel.textContent = String(activeVolumeMax);
 
-    const span = volumeBounds.max - volumeBounds.min || 1;
-    const minPosition = ((activeVolumeMin - volumeBounds.min) / span) * 100;
-    const maxPosition = ((activeVolumeMax - volumeBounds.min) / span) * 100;
-    volumeRangeChip.style.setProperty("--volume-min", `${minPosition}%`);
-    volumeRangeChip.style.setProperty("--volume-max", `${maxPosition}%`);
-    volumeRangeChip.classList.toggle("is-active", volumeRangeIsActive());
+    volumeRangeChip.classList.toggle("ssc-range-chip--active", volumeRangeIsActive());
+    volumeRangeChip.setAttribute("data-range-value", `range|volume|l|${activeVolumeMin}|${activeVolumeMax}|${volumeBounds.min}|${volumeBounds.max}`);
   }
 
   function filterByVolume(results) {
@@ -214,7 +210,7 @@
     suggestionCount.textContent = String(suggestions.length);
     suggestionLabel.textContent = suggestions.length === 1 ? "suggested chip" : "suggested chips";
 
-    chipZone.replaceChildren();
+    chipZone.querySelectorAll(".chip").forEach((chip) => chip.remove());
     suggestions.forEach((label, index) => {
       const count = tagCount(filteredResults, label);
       const key = normalizeTag(label);

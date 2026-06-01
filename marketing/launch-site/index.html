@@ -81,19 +81,31 @@
               </button>
             </label>
 
-            <div class="demo-range-chip" aria-label="Pro range chip preview">
-              <div class="demo-range-chip__head">
-                <span>Volume range</span>
-                <strong><span id="volume-min-label">12</span> - <span id="volume-max-label">45</span> L</strong>
-                <em>Pro range chip</em>
-              </div>
-              <div class="demo-range-chip__sliders">
-                <input id="volume-min" type="range" min="12" max="45" value="12" step="1" aria-label="Minimum backpack volume">
-                <input id="volume-max" type="range" min="12" max="45" value="45" step="1" aria-label="Maximum backpack volume">
+            <div class="chip-row" id="chip-zone" aria-label="Generated search chips">
+              <div
+                id="volume-range-chip"
+                class="ssc-range-chip"
+                style="--ssc-range-accent:#087b3f;--ssc-range-bg:#ffffff;--ssc-range-color:#111820;--ssc-range-border:#087b3f;--ssc-range-radius:8px;--ssc-range-font:13px;"
+                data-range-context="ajax"
+                data-range-group-key="volume"
+                data-range-unit-key="l"
+                data-range-bounds-min="12"
+                data-range-bounds-max="45"
+                data-range-label="Volume"
+              >
+                <div class="ssc-range-chip__label">Volume</div>
+                <div class="ssc-range-chip__values" aria-live="polite">
+                  <span class="ssc-range-chip__value" id="volume-min-label" data-range-role="min-label">12</span>
+                  <span class="ssc-range-chip__separator">-</span>
+                  <span class="ssc-range-chip__value" id="volume-max-label" data-range-role="max-label">45</span>
+                  <span class="ssc-range-chip__unit">L</span>
+                </div>
+                <div class="ssc-range-chip__sliders">
+                  <input id="volume-min" class="ssc-range-chip__input ssc-range-chip__input--min" type="range" min="12" max="45" value="12" step="1" data-range-role="min" aria-label="Minimum Volume">
+                  <input id="volume-max" class="ssc-range-chip__input ssc-range-chip__input--max" type="range" min="12" max="45" value="45" step="1" data-range-role="max" aria-label="Maximum Volume">
+                </div>
               </div>
             </div>
-
-            <div class="chip-row" id="chip-zone" aria-label="Generated search chips"></div>
 
             <div class="result-meta" aria-live="polite">
               <span><strong id="result-count">20</strong> results</span>
