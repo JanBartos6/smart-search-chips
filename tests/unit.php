@@ -1490,6 +1490,35 @@ function sschp_test_search_handler_render_chips_marks_case_insensitive_active_ta
     sschp_assert_contains( 'aria-label="Remove filter Spring Handle, 2 results"', $markup, 'active AJAX chip labels should describe the remove action' );
 }
 
+function sschp_test_search_handler_results_do_not_show_per_product_chip_badge() {
+    $handler = new SSCHP_Search_Handler( new SSCHP_Chip_Engine(), new SSCHP_Test_Settings() );
+
+    ob_start();
+    sschp_invoke_private(
+        $handler,
+        'render_results',
+        array(
+            array(
+                array(
+                    'id'         => 77,
+                    'url'        => 'https://example.test/product/beacon',
+                    'thumbnail'  => '',
+                    'title'      => 'Signal Beacon',
+                    'post_type'  => 'product',
+                    'tags'       => array( 'Industrial', '24 V DC' ),
+                    'tags_lower' => array( 'industrial', '24 v dc' ),
+                ),
+            ),
+            10,
+        )
+    );
+    $markup = ob_get_clean();
+
+    sschp_assert_contains( 'Signal Beacon', $markup, 'AJAX result cards should still render the result title' );
+    sschp_assert_true( false === strpos( $markup, 'ssc-result__chip-count' ), 'AJAX result cards should not render per-product chip count badges' );
+    sschp_assert_true( false === strpos( $markup, '2 chips' ), 'AJAX result cards should not expose tag counts as visitor-facing product metadata' );
+}
+
 function sschp_test_frontend_archive_filter_url_toggles_case_insensitively() {
     $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
     $url      = sschp_invoke_private( $frontend, 'build_archive_filter_url', array( 'Spring Handle', array( 'spring handle' ) ) );
@@ -2066,7 +2095,7 @@ function sschp_test_frontend_count_markup_is_supported_in_both_editions() {
         sschp_assert_contains( 'render_search_summary', $contents, 'AJAX search should render a result/chip count summary' );
         sschp_assert_contains( 'ssc-search-summary', $contents, 'Search summary markup should be present' );
         sschp_assert_contains( 'data-ssc-count-to', $contents, 'Search summaries and chip counts should expose animation targets' );
-        sschp_assert_contains( 'ssc-result__chip-count', $contents, 'Result previews should expose their tag count when available' );
+        sschp_assert_true( false === strpos( $contents, 'ssc-result__chip-count' ), 'Result previews should not expose per-product chip count badges to visitors' );
     }
 
     foreach ( array( $frontend, $wporg_frontend ) as $contents ) {
@@ -2076,6 +2105,7 @@ function sschp_test_frontend_count_markup_is_supported_in_both_editions() {
 
     sschp_assert_contains( 'function decorateRenderedOutput', $script, 'Rendered output should be decorated after hydration and AJAX updates' );
     sschp_assert_contains( 'prefers-reduced-motion: reduce', $styles, 'Count/chip animations should respect reduced-motion preferences' );
+    sschp_assert_true( false === strpos( $styles, 'ssc-result__chip-count' ), 'Frontend CSS should not ship visitor-facing per-result chip badge styles' );
 }
 
 function sschp_test_public_contact_links_do_not_expose_private_email() {
@@ -4100,6 +4130,7 @@ sschp_test_frontend_registers_guaranteed_search_block();
 sschp_test_frontend_search_block_renders_shortcode_ui();
 sschp_test_search_handler_normalizes_active_tags_case_insensitively();
 sschp_test_search_handler_render_chips_marks_case_insensitive_active_tag();
+sschp_test_search_handler_results_do_not_show_per_product_chip_badge();
 sschp_test_frontend_archive_filter_url_toggles_case_insensitively();
 sschp_test_frontend_archive_filters_current_page_posts();
 sschp_test_frontend_archive_filters_multiple_tags_with_and_logic();

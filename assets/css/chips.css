@@ -209,22 +209,6 @@
     white-space: nowrap;
 }
 
-.ssc-result__chip-count {
-    display: inline-flex;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: 3px;
-    min-height: 23px;
-    padding: 4px 7px;
-    border: 1px solid #d7eadf;
-    border-radius: 8px;
-    background: #edf8f1;
-    color: #087b3f;
-    font-size: 11px;
-    font-weight: 800;
-    line-height: 1;
-}
-
 /* ─── Loading state ──────────────────────────────────────── */
 
 .ssc-loading {

@@ -1508,14 +1508,9 @@ class SSCHP_Search_Handler {
                 echo '<figure class="ssc-result__image">' . wp_kses_post( $post['thumbnail'] ) . '</figure>';
             }
 
-            $tag_count = isset( $post['tags'] ) ? count( (array) $post['tags'] ) : 0;
-
             echo '<span class="ssc-result__content">';
             echo '<span class="ssc-result__title-line">';
             echo '<span class="ssc-result__title">' . esc_html( $post['title'] ) . '</span>';
-            if ( $tag_count > 0 ) {
-                echo '<span class="ssc-result__chip-count"><span class="ssc-result__chip-count-value" data-ssc-count-to="' . esc_attr( $tag_count ) . '">' . esc_html( $tag_count ) . '</span> ' . esc_html( _n( 'chip', 'chips', $tag_count, 'smart-search-chips' ) ) . '</span>';
-            }
             echo '</span>';
             echo '</span>';
             echo '</a>';
