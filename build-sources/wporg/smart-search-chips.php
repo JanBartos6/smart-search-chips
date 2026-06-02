@@ -3,7 +3,7 @@
  * Plugin Name: Smart Search Chips
  * Plugin URI:  https://smartsearchchips.app
  * Description: Dynamic filter chips for WordPress search. Generates smart, non-redundant filter tags from the built-in Search Chips Tags field. Works with Relevanssi for best results.
- * Version:     1.1.20
+ * Version:     1.1.21
  * Author:      Jan Bartos
  * Author URI:  https://teprostroj.com
  * License:     GPL-2.0-or-later
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'SSCHP_VERSION', '1.1.20' );
+define( 'SSCHP_VERSION', '1.1.21' );
 define( 'SSCHP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSCHP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );

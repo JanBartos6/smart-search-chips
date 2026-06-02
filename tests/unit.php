@@ -2098,7 +2098,7 @@ function sschp_test_public_contact_links_do_not_expose_private_email() {
     }
 
     $plugin_file = file_get_contents( dirname( __DIR__ ) . '/smart-search-chips.php' );
-    sschp_assert_contains( "'contact'        => false", $plugin_file, 'Freemius contact submenu should stay disabled to avoid exposing account contact metadata' );
+    sschp_assert_contains( "'contact'        => true", $plugin_file, 'Freemius contact submenu should remain available for licensed customer support' );
     sschp_assert_contains( 'mailto:support@smartsearchchips.app', file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' ), 'Plugin feedback should use the public support email' );
     sschp_assert_contains( 'mailto:support@smartsearchchips.app', file_get_contents( dirname( __DIR__ ) . '/marketing/launch-site/index.html' ), 'Launch site footer should use the public support email' );
 }
