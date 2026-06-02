@@ -2301,6 +2301,12 @@ code {
   font-weight: 700;
 }
 
+.plugin-window--concept .plugin-metrics em.is-warning {
+  border-color: #e0b849;
+  color: #7a4d00;
+  background: #fff8e5;
+}
+
 .plugin-window--concept .plugin-metrics i {
   display: inline-block;
   width: 14px;
