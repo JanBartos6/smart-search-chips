@@ -2611,6 +2611,12 @@ function sschp_test_analytics_dashboard_tables_are_scrollable() {
     sschp_assert_contains( 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', $css, 'analytics panels should wrap before tables become too narrow' );
     sschp_assert_contains( '.ssc-analytics-panel { min-width: 0;', $css, 'analytics panels should be allowed to shrink inside the dashboard grid' );
     sschp_assert_contains( 'Search To Result Click Rate', $settings, 'analytics dashboard should label search-to-result-click rate as a rate' );
+    sschp_assert_contains( 'ssc-analytics-scorecard', $settings, 'analytics dashboard should render a visual scorecard above detail tables' );
+    sschp_assert_contains( 'render_analytics_funnel', $settings, 'analytics dashboard should render a graphical search funnel from existing metrics' );
+    sschp_assert_contains( 'get_analytics_insight_cards', $settings, 'analytics dashboard should render data-driven insight cards instead of only tables' );
+    sschp_assert_contains( 'Click Rate', $settings, 'top query analytics should expose chip click rate in the visible table' );
+    sschp_assert_contains( '.ssc-analytics-insights', $css, 'analytics insight cards should have dedicated responsive styling' );
+    sschp_assert_contains( '.ssc-analytics-funnel__bar', $css, 'analytics funnel should render graphical bars' );
 }
 
 function sschp_test_settings_analytics_dashboard_reference_is_styled() {

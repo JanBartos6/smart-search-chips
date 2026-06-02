@@ -2227,86 +2227,111 @@ class SSCHP_Settings {
                 </div>
                 <?php return; ?>
             <?php endif; ?>
-            <form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" class="ssc-analytics-toolbar">
-                <input type="hidden" name="page" value="<?php echo esc_attr( self::ANALYTICS_SLUG ); ?>" />
-                <label>
-                    <span><?php esc_html_e( 'From', 'smart-search-chips' ); ?></span>
-                    <input type="date" name="from" value="<?php echo esc_attr( $range['from'] ); ?>" />
-                </label>
-                <label>
-                    <span><?php esc_html_e( 'To', 'smart-search-chips' ); ?></span>
-                    <input type="date" name="to" value="<?php echo esc_attr( $range['to'] ); ?>" />
-                </label>
-                <label>
-                    <span><?php esc_html_e( 'Language', 'smart-search-chips' ); ?></span>
-                    <input type="text" name="language" value="<?php echo esc_attr( isset( $range_args['language'] ) ? $range_args['language'] : '' ); ?>" placeholder="en" />
-                </label>
-                <label>
-                    <span><?php esc_html_e( 'Post Type', 'smart-search-chips' ); ?></span>
-                    <select name="post_type">
-                        <option value=""><?php esc_html_e( 'All', 'smart-search-chips' ); ?></option>
-                        <?php foreach ( get_post_types( array( 'public' => true ), 'objects' ) as $type ) : ?>
+            <?php
+            $summary  = isset( $analytics['summary'] ) && is_array( $analytics['summary'] ) ? $analytics['summary'] : array();
+            $insights = $this->get_analytics_insight_cards( $analytics );
+            ?>
+            <div class="ssc-analytics-page">
+                <section class="ssc-analytics-hero">
+                    <div>
+                        <h2><?php esc_html_e( 'Search performance overview', 'smart-search-chips' ); ?></h2>
+                        <p>
                             <?php
-                            if ( 'attachment' === $type->name ) {
-                                continue;
-                            }
+                            printf(
+                                /* translators: %1$s: start date, %2$s: end date */
+                                esc_html__( '%1$s to %2$s. Generated locally from this WordPress site; exports and email digests only use the data shown here.', 'smart-search-chips' ),
+                                esc_html( $range['from'] ),
+                                esc_html( $range['to'] )
+                            );
                             ?>
-                            <option value="<?php echo esc_attr( $type->name ); ?>" <?php selected( isset( $range_args['post_type'] ) ? $range_args['post_type'] : '', $type->name ); ?>><?php echo esc_html( $type->label ); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <?php if ( class_exists( 'WooCommerce' ) ) : ?>
-                    <label>
-                        <span><?php esc_html_e( 'Product Category', 'smart-search-chips' ); ?></span>
-                        <input type="text" name="product_category" value="<?php echo esc_attr( isset( $range_args['product_category'] ) ? $range_args['product_category'] : '' ); ?>" placeholder="category-slug" />
-                    </label>
-                <?php endif; ?>
-                <button type="submit" class="button button-primary"><?php esc_html_e( 'Apply Filters', 'smart-search-chips' ); ?></button>
-                <a class="button" href="<?php echo esc_url( $export_url ); ?>"><?php esc_html_e( 'Export CSV', 'smart-search-chips' ); ?></a>
-                <?php if ( $chart_export_url ) : ?>
-                    <a class="button" href="<?php echo esc_url( $chart_export_url ); ?>"><?php esc_html_e( 'Export Charts', 'smart-search-chips' ); ?></a>
-                <?php endif; ?>
-            </form>
+                        </p>
+                    </div>
+                    <div class="ssc-analytics-hero__actions">
+                        <a class="button" href="<?php echo esc_url( $export_url ); ?>"><?php esc_html_e( 'Export CSV', 'smart-search-chips' ); ?></a>
+                        <?php if ( $chart_export_url ) : ?>
+                            <a class="button" href="<?php echo esc_url( $chart_export_url ); ?>"><?php esc_html_e( 'Export Charts', 'smart-search-chips' ); ?></a>
+                        <?php endif; ?>
+                    </div>
+                </section>
 
-            <div class="ssc-analytics-dashboard">
-                <div class="ssc-analytics-stats">
-                    <div class="ssc-analytics-stat">
-                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['total_searches'] ) ); ?></strong>
-                        <span><?php esc_html_e( 'Searches', 'smart-search-chips' ); ?></span>
+                <form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" class="ssc-analytics-toolbar">
+                    <input type="hidden" name="page" value="<?php echo esc_attr( self::ANALYTICS_SLUG ); ?>" />
+                    <label>
+                        <span><?php esc_html_e( 'From', 'smart-search-chips' ); ?></span>
+                        <input type="date" name="from" value="<?php echo esc_attr( $range['from'] ); ?>" />
+                    </label>
+                    <label>
+                        <span><?php esc_html_e( 'To', 'smart-search-chips' ); ?></span>
+                        <input type="date" name="to" value="<?php echo esc_attr( $range['to'] ); ?>" />
+                    </label>
+                    <label>
+                        <span><?php esc_html_e( 'Language', 'smart-search-chips' ); ?></span>
+                        <input type="text" name="language" value="<?php echo esc_attr( isset( $range_args['language'] ) ? $range_args['language'] : '' ); ?>" placeholder="en" />
+                    </label>
+                    <label>
+                        <span><?php esc_html_e( 'Post Type', 'smart-search-chips' ); ?></span>
+                        <select name="post_type">
+                            <option value=""><?php esc_html_e( 'All', 'smart-search-chips' ); ?></option>
+                            <?php foreach ( get_post_types( array( 'public' => true ), 'objects' ) as $type ) : ?>
+                                <?php
+                                if ( 'attachment' === $type->name ) {
+                                    continue;
+                                }
+                                ?>
+                                <option value="<?php echo esc_attr( $type->name ); ?>" <?php selected( isset( $range_args['post_type'] ) ? $range_args['post_type'] : '', $type->name ); ?>><?php echo esc_html( $type->label ); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <?php if ( class_exists( 'WooCommerce' ) ) : ?>
+                        <label>
+                            <span><?php esc_html_e( 'Product Category', 'smart-search-chips' ); ?></span>
+                            <input type="text" name="product_category" value="<?php echo esc_attr( isset( $range_args['product_category'] ) ? $range_args['product_category'] : '' ); ?>" placeholder="category-slug" />
+                        </label>
+                    <?php endif; ?>
+                    <button type="submit" class="button button-primary"><?php esc_html_e( 'Apply Filters', 'smart-search-chips' ); ?></button>
+                </form>
+
+                <div class="ssc-analytics-dashboard">
+                    <div class="ssc-analytics-overview">
+                        <section class="ssc-analytics-scorecard">
+                            <span><?php esc_html_e( 'Primary signal', 'smart-search-chips' ); ?></span>
+                            <strong><?php echo esc_html( number_format_i18n( (float) ( $summary['search_to_result_click_rate'] ?? 0 ), 1 ) . '%' ); ?></strong>
+                            <h3><?php esc_html_e( 'Search To Result Click Rate', 'smart-search-chips' ); ?></h3>
+                            <p><?php esc_html_e( 'How often a search leads to a clicked result. Use this with zero-result searches and low-CTR chips to decide what to improve first.', 'smart-search-chips' ); ?></p>
+                            <?php $this->render_analytics_meter( $summary['search_to_result_click_rate'] ?? 0, 'good' ); ?>
+                            <div class="ssc-analytics-scorecard__meta">
+                                <span><?php echo esc_html( number_format_i18n( (float) ( $summary['search_to_click_rate'] ?? 0 ), 1 ) . '%' ); ?> <?php esc_html_e( 'Search To Click Rate', 'smart-search-chips' ); ?></span>
+                                <span><?php echo esc_html( number_format_i18n( (float) ( $summary['zero_result_rate'] ?? 0 ), 1 ) . '%' ); ?> <?php esc_html_e( 'Zero-Result Rate', 'smart-search-chips' ); ?></span>
+                            </div>
+                        </section>
+                        <section class="ssc-analytics-funnel-card">
+                            <h3><?php esc_html_e( 'Search Funnel', 'smart-search-chips' ); ?></h3>
+                            <p><?php esc_html_e( 'Events linked to a search query, shown as a quick health check for discovery, refinement, and result clicks.', 'smart-search-chips' ); ?></p>
+                            <?php $this->render_analytics_funnel( $summary ); ?>
+                        </section>
                     </div>
-                    <div class="ssc-analytics-stat">
-                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['chip_clicks'] ) ); ?></strong>
-                        <span><?php esc_html_e( 'Chip Clicks', 'smart-search-chips' ); ?></span>
+
+                    <div class="ssc-analytics-stats">
+                        <?php
+                        $this->render_analytics_metric_card( __( 'Searches', 'smart-search-chips' ), $summary['total_searches'] ?? 0, __( 'Typed queries tracked in this period.', 'smart-search-chips' ), 'blue' );
+                        $this->render_analytics_metric_card( __( 'Unique Visitors', 'smart-search-chips' ), $summary['unique_visitors'] ?? 0, __( 'Hashed local visitor count.', 'smart-search-chips' ), 'green' );
+                        $this->render_analytics_metric_card( __( 'Chip Impressions', 'smart-search-chips' ), $summary['chip_impressions'] ?? 0, __( 'Visible chip opportunities.', 'smart-search-chips' ), 'amber' );
+                        $this->render_analytics_metric_card( __( 'Chip CTR', 'smart-search-chips' ), $summary['chip_click_through_rate'] ?? 0, __( 'Clicks divided by impressions.', 'smart-search-chips' ), 'violet', true );
+                        $this->render_analytics_metric_card( __( 'Result Clicks', 'smart-search-chips' ), $summary['result_clicks'] ?? 0, __( 'Clicked results after search.', 'smart-search-chips' ), 'indigo' );
+                        $this->render_analytics_metric_card( __( 'Zero-Result Searches', 'smart-search-chips' ), $summary['zero_result_search'] ?? 0, __( 'Queries that need catalog or synonym attention.', 'smart-search-chips' ), 'red' );
+                        ?>
                     </div>
-                    <div class="ssc-analytics-stat">
-                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['unique_visitors'] ) ); ?></strong>
-                        <span><?php esc_html_e( 'Unique Visitors', 'smart-search-chips' ); ?></span>
+
+                    <div class="ssc-analytics-insights" aria-label="<?php esc_attr_e( 'Analytics recommendations', 'smart-search-chips' ); ?>">
+                        <?php foreach ( $insights as $insight ) : ?>
+                            <section class="ssc-analytics-insight ssc-analytics-insight--<?php echo esc_attr( $insight['tone'] ); ?>">
+                                <span><?php echo esc_html( $insight['label'] ); ?></span>
+                                <h3><?php echo esc_html( $insight['title'] ); ?></h3>
+                                <p><?php echo esc_html( $insight['message'] ); ?></p>
+                                <strong><?php echo esc_html( $insight['suggestion'] ); ?></strong>
+                            </section>
+                        <?php endforeach; ?>
                     </div>
-                    <div class="ssc-analytics-stat">
-                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['zero_result_search'] ) ); ?></strong>
-                        <span><?php esc_html_e( 'Zero-Result Searches', 'smart-search-chips' ); ?></span>
-                    </div>
-                    <div class="ssc-analytics-stat">
-                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['zero_result_rate'], 1 ) . '%' ); ?></strong>
-                        <span><?php esc_html_e( 'Zero-Result Rate', 'smart-search-chips' ); ?></span>
-                    </div>
-                    <div class="ssc-analytics-stat">
-                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['chip_impressions'] ) ); ?></strong>
-                        <span><?php esc_html_e( 'Chip Impressions', 'smart-search-chips' ); ?></span>
-                    </div>
-                    <div class="ssc-analytics-stat">
-                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['chip_click_through_rate'], 1 ) . '%' ); ?></strong>
-                        <span><?php esc_html_e( 'Chip CTR', 'smart-search-chips' ); ?></span>
-                    </div>
-                    <div class="ssc-analytics-stat">
-                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['result_clicks'] ) ); ?></strong>
-                        <span><?php esc_html_e( 'Result Clicks', 'smart-search-chips' ); ?></span>
-                    </div>
-                    <div class="ssc-analytics-stat">
-                        <strong><?php echo esc_html( number_format_i18n( $analytics['summary']['search_to_result_click_rate'], 1 ) . '%' ); ?></strong>
-                        <span><?php esc_html_e( 'Search To Result Click Rate', 'smart-search-chips' ); ?></span>
-                    </div>
-                </div>
 
                 <div class="ssc-analytics-charts">
                     <div class="ssc-analytics-panel">
@@ -2343,7 +2368,7 @@ class SSCHP_Settings {
                     </div>
                     <div class="ssc-analytics-panel">
                         <h3><?php esc_html_e( 'Top Search Queries', 'smart-search-chips' ); ?></h3>
-                        <?php $this->render_analytics_table( $analytics['top_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'searches' => __( 'Searches', 'smart-search-chips' ), 'chip_clicks' => __( 'Chip Clicks', 'smart-search-chips' ), 'result_clicks' => __( 'Result Clicks', 'smart-search-chips' ), 'result_click_rate' => __( 'Result CTR', 'smart-search-chips' ), 'avg_results' => __( 'Avg. Results', 'smart-search-chips' ) ) ); ?>
+                        <?php $this->render_analytics_table( $analytics['top_queries'], array( 'search_query' => __( 'Query', 'smart-search-chips' ), 'searches' => __( 'Searches', 'smart-search-chips' ), 'chip_clicks' => __( 'Chip Clicks', 'smart-search-chips' ), 'click_rate' => __( 'Click Rate', 'smart-search-chips' ), 'result_clicks' => __( 'Result Clicks', 'smart-search-chips' ), 'result_click_rate' => __( 'Result CTR', 'smart-search-chips' ), 'avg_results' => __( 'Avg. Results', 'smart-search-chips' ) ) ); ?>
                     </div>
                     <div class="ssc-analytics-panel">
                         <h3><?php esc_html_e( 'Top Zero-Result Queries Over Time', 'smart-search-chips' ); ?></h3>
@@ -2362,6 +2387,7 @@ class SSCHP_Settings {
                 <div class="ssc-analytics-panel">
                     <h3><?php esc_html_e( 'Recent Events', 'smart-search-chips' ); ?></h3>
                     <?php $this->render_analytics_table( $events, array( 'created_at' => __( 'Date', 'smart-search-chips' ), 'event_type' => __( 'Event', 'smart-search-chips' ), 'language_code' => __( 'Lang', 'smart-search-chips' ), 'post_type' => __( 'Type', 'smart-search-chips' ), 'search_query' => __( 'Query', 'smart-search-chips' ), 'chip_label' => __( 'Chip', 'smart-search-chips' ), 'result_object_id' => __( 'Result ID', 'smart-search-chips' ), 'result_position' => __( 'Position', 'smart-search-chips' ), 'result_count' => __( 'Results', 'smart-search-chips' ) ) ); ?>
+                </div>
                 </div>
             </div>
         </div>
@@ -2397,6 +2423,193 @@ class SSCHP_Settings {
         }
 
         return sanitize_text_field( wp_unslash( $value ) );
+    }
+
+    /**
+     * Render one analytics metric card.
+     *
+     * @param string $label      Metric label.
+     * @param mixed  $value      Metric value.
+     * @param string $detail     Supporting text.
+     * @param string $tone       Visual tone class.
+     * @param bool   $is_percent Whether the metric is a percentage.
+     */
+    private function render_analytics_metric_card( $label, $value, $detail, $tone = 'blue', $is_percent = false ) {
+        $formatted = $is_percent
+            ? number_format_i18n( (float) $value, 1 ) . '%'
+            : number_format_i18n( (float) $value );
+
+        echo '<section class="ssc-analytics-stat ssc-analytics-stat--' . esc_attr( sanitize_html_class( $tone ) ) . '">';
+        echo '<span>' . esc_html( $label ) . '</span>';
+        echo '<strong>' . esc_html( $formatted ) . '</strong>';
+        echo '<p>' . esc_html( $detail ) . '</p>';
+        echo '</section>';
+    }
+
+    /**
+     * Render a horizontal percentage meter.
+     *
+     * @param mixed  $value Percentage value.
+     * @param string $tone  Visual tone class.
+     */
+    private function render_analytics_meter( $value, $tone = 'blue' ) {
+        $width = min( 100, max( 0, (float) $value ) );
+
+        echo '<div class="ssc-analytics-meter ssc-analytics-meter--' . esc_attr( sanitize_html_class( $tone ) ) . '" aria-hidden="true">';
+        echo '<span style="width:' . esc_attr( number_format( $width, 2, '.', '' ) ) . '%"></span>';
+        echo '</div>';
+    }
+
+    /**
+     * Render a compact search event funnel.
+     *
+     * @param array $summary Analytics summary.
+     */
+    private function render_analytics_funnel( $summary ) {
+        $searches      = max( 0, (int) ( $summary['total_searches'] ?? 0 ) );
+        $chip_clicks   = max( 0, (int) ( $summary['search_linked_clicks'] ?? 0 ) );
+        $result_clicks = max( 0, (int) ( $summary['search_linked_result_clicks'] ?? 0 ) );
+        $base          = max( 1, $searches );
+        $steps         = array(
+            array(
+                'label' => __( 'Searches', 'smart-search-chips' ),
+                'value' => $searches,
+                'rate'  => 100,
+                'tone'  => 'blue',
+            ),
+            array(
+                'label' => __( 'Chip refinements', 'smart-search-chips' ),
+                'value' => $chip_clicks,
+                'rate'  => (float) ( $summary['search_to_click_rate'] ?? 0 ),
+                'tone'  => 'amber',
+            ),
+            array(
+                'label' => __( 'Result clicks', 'smart-search-chips' ),
+                'value' => $result_clicks,
+                'rate'  => (float) ( $summary['search_to_result_click_rate'] ?? 0 ),
+                'tone'  => 'violet',
+            ),
+        );
+
+        echo '<div class="ssc-analytics-funnel">';
+        foreach ( $steps as $step ) {
+            $width = 0 === $searches ? 0 : min( 100, ( $step['value'] / $base ) * 100 );
+            $width = $step['value'] > 0 ? max( 4, $width ) : $width;
+            echo '<div class="ssc-analytics-funnel__step ssc-analytics-funnel__step--' . esc_attr( $step['tone'] ) . '">';
+            echo '<div class="ssc-analytics-funnel__label"><span>' . esc_html( $step['label'] ) . '</span><strong>' . esc_html( number_format_i18n( $step['value'] ) ) . '</strong></div>';
+            echo '<div class="ssc-analytics-funnel__bar" aria-hidden="true"><span style="width:' . esc_attr( number_format( $width, 2, '.', '' ) ) . '%"></span></div>';
+            echo '<em>' . esc_html( number_format_i18n( (float) $step['rate'], 1 ) . '%' ) . '</em>';
+            echo '</div>';
+        }
+        echo '</div>';
+    }
+
+    /**
+     * Build practical, data-driven insight cards for the analytics page.
+     *
+     * @param array $analytics Dashboard data.
+     * @return array
+     */
+    private function get_analytics_insight_cards( $analytics ) {
+        $summary     = isset( $analytics['summary'] ) && is_array( $analytics['summary'] ) ? $analytics['summary'] : array();
+        $zero_rows   = isset( $analytics['zero_queries'] ) && is_array( $analytics['zero_queries'] ) ? $analytics['zero_queries'] : array();
+        $low_ctr     = isset( $analytics['low_chip_ctr'] ) && is_array( $analytics['low_chip_ctr'] ) ? $analytics['low_chip_ctr'] : array();
+        $top_chips   = isset( $analytics['top_chips'] ) && is_array( $analytics['top_chips'] ) ? $analytics['top_chips'] : array();
+        $cards       = array();
+        $total       = (int) ( $summary['total_searches'] ?? 0 );
+        $zero_count  = (int) ( $summary['zero_result_search'] ?? 0 );
+        $result_rate = (float) ( $summary['search_to_result_click_rate'] ?? 0 );
+
+        if ( $total <= 0 ) {
+            return array(
+                array(
+                    'tone'       => 'neutral',
+                    'label'      => __( 'Waiting for traffic', 'smart-search-chips' ),
+                    'title'      => __( 'No searches tracked yet', 'smart-search-chips' ),
+                    'message'    => __( 'Analytics is ready, but this date range does not contain frontend search events.', 'smart-search-chips' ),
+                    'suggestion' => __( 'Run a test search or widen the date range.', 'smart-search-chips' ),
+                ),
+            );
+        }
+
+        if ( $zero_count > 0 && ! empty( $zero_rows[0]['search_query'] ) ) {
+            $cards[] = array(
+                'tone'       => 'warning',
+                'label'      => __( 'Catalog gap', 'smart-search-chips' ),
+                'title'      => sprintf(
+                    /* translators: %s: search query */
+                    __( '"%s" returned no results', 'smart-search-chips' ),
+                    $zero_rows[0]['search_query']
+                ),
+                'message'    => sprintf(
+                    /* translators: %d: zero-result misses */
+                    _n( '%d miss in this period.', '%d misses in this period.', (int) $zero_rows[0]['misses'], 'smart-search-chips' ),
+                    (int) $zero_rows[0]['misses']
+                ),
+                'suggestion' => __( 'Add content, synonyms, or Search Chips Tags if matching items exist.', 'smart-search-chips' ),
+            );
+        } else {
+            $cards[] = array(
+                'tone'       => 'good',
+                'label'      => __( 'Search coverage', 'smart-search-chips' ),
+                'title'      => __( 'No zero-result query stands out', 'smart-search-chips' ),
+                'message'    => __( 'This period does not show a repeated search gap.', 'smart-search-chips' ),
+                'suggestion' => __( 'Keep watching as traffic grows.', 'smart-search-chips' ),
+            );
+        }
+
+        if ( ! empty( $low_ctr[0]['chip_label'] ) ) {
+            $cards[] = array(
+                'tone'       => 'attention',
+                'label'      => __( 'Chip quality', 'smart-search-chips' ),
+                'title'      => sprintf(
+                    /* translators: %s: chip label */
+                    __( 'Review "%s"', 'smart-search-chips' ),
+                    $low_ctr[0]['chip_label']
+                ),
+                'message'    => sprintf(
+                    /* translators: %1$d: impressions, %2$s: click-through rate */
+                    __( '%1$d impressions with %2$s CTR.', 'smart-search-chips' ),
+                    (int) $low_ctr[0]['impressions'],
+                    number_format_i18n( (float) $low_ctr[0]['click_through_rate'], 1 ) . '%'
+                ),
+                'suggestion' => __( 'Rename, hide, or replace broad chips that visitors rarely use.', 'smart-search-chips' ),
+            );
+        } elseif ( ! empty( $top_chips[0]['chip_label'] ) ) {
+            $cards[] = array(
+                'tone'       => 'good',
+                'label'      => __( 'Chip quality', 'smart-search-chips' ),
+                'title'      => sprintf(
+                    /* translators: %s: chip label */
+                    __( '"%s" is helping visitors refine', 'smart-search-chips' ),
+                    $top_chips[0]['chip_label']
+                ),
+                'message'    => sprintf(
+                    /* translators: %d: chip clicks */
+                    _n( '%d click in this period.', '%d clicks in this period.', (int) $top_chips[0]['clicks'], 'smart-search-chips' ),
+                    (int) $top_chips[0]['clicks']
+                ),
+                'suggestion' => __( 'Use similar catalog language for related items.', 'smart-search-chips' ),
+            );
+        }
+
+        $cards[] = array(
+            'tone'       => $result_rate >= 10 ? 'good' : 'attention',
+            'label'      => __( 'Result engagement', 'smart-search-chips' ),
+            'title'      => sprintf(
+                /* translators: %s: percentage */
+                __( '%s search-to-result click rate', 'smart-search-chips' ),
+                number_format_i18n( $result_rate, 1 ) . '%'
+            ),
+            'message'    => $result_rate >= 10
+                ? __( 'Visitors are finding clickable results after searching.', 'smart-search-chips' )
+                : __( 'Searches are not often turning into clicked results yet.', 'smart-search-chips' ),
+            'suggestion' => $result_rate >= 10
+                ? __( 'Use zero-result and low-CTR reports for smaller improvements.', 'smart-search-chips' )
+                : __( 'Check top queries, result titles, and the first chips shown for those searches.', 'smart-search-chips' ),
+        );
+
+        return $cards;
     }
 
     /**
