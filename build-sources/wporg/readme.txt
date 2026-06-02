@@ -4,7 +4,7 @@ Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.21
+Stable tag: 1.1.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -98,6 +98,10 @@ Smart Search Chips Pro is a separate add-on for advanced workflows such as ACF/c
 3. Local Search Index controls show readiness, progress, indexed rows, and maintenance actions.
 
 == Changelog ==
+
+= 1.1.22 =
+* Removed visitor-facing per-result chip count badges from public search result cards while keeping summary and filter-chip counts.
+* Updated release metadata for the latest public search result polish.
 
 = 1.1.21 =
 * Updated release metadata for the latest Smart Search Chips support-contact correction.
@@ -224,6 +228,9 @@ Smart Search Chips Pro is available separately from https://smartsearchchips.app
 Smart Search Chips processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this server and are not stored or sent to any third-party service by this WordPress.org edition. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.1.22 =
+Removes public per-result chip count badges from search result cards while keeping useful search summary and chip counts.
 
 = 1.1.21 =
 Updates release metadata for the latest Smart Search Chips support-contact correction.
