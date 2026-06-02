@@ -498,13 +498,13 @@ function sschp_test_range_chip_css_uses_aligned_desktop_thumbs() {
     $css = is_file( $path ) ? file_get_contents( $path ) : '';
 
     sschp_assert_contains( '--ssc-range-track-height: 3px;', $css, 'range chip rail should use a compact desktop track height' );
-    sschp_assert_contains( '--ssc-range-thumb-size: 10px;', $css, 'range chip desktop thumb should be smaller for pointer precision' );
+    sschp_assert_contains( '--ssc-range-thumb-size: 8px;', $css, 'range chip desktop thumb should stay visually compact for pointer precision' );
     sschp_assert_contains( '--ssc-range-hit-size: 22px;', $css, 'range chip desktop drag area should remain easy to target' );
     sschp_assert_contains( 'top: 50%;', $css, 'range chip rail should be vertically centered in the drag area' );
     sschp_assert_contains( 'transform: translateY(-50%);', $css, 'range chip rail centering should not depend on hard-coded offsets' );
     sschp_assert_contains( 'margin-top: calc((var(--ssc-range-track-height) - var(--ssc-range-thumb-size)) / 2);', $css, 'range chip WebKit thumb should align from the track/thumb variables' );
     sschp_assert_contains( '@media (pointer: coarse)', $css, 'range chip should keep larger handles for touch/coarse pointers' );
-    sschp_assert_contains( '--ssc-range-thumb-size: 16px;', $css, 'range chip coarse pointer handles should remain touch-friendly' );
+    sschp_assert_contains( '--ssc-range-thumb-size: 13px;', $css, 'range chip coarse pointer handles should remain touch-friendly without looking bulky' );
     sschp_assert_contains( 'flex-direction: row;', $css, 'range chip should keep the label, values, and slider in one compact row' );
     sschp_assert_contains( 'align-items: center;', $css, 'range chip inline content should align with normal chips' );
     sschp_assert_contains( 'min-height: calc(var(--ssc-range-hit-size) + 12px);', $css, 'range chip height should be driven by the slider hit area instead of stacked rows' );

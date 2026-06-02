@@ -472,7 +472,7 @@ code {
   --ssc-range-radius: 8px;
   --ssc-range-font: 13px;
   --ssc-range-track-height: 3px;
-  --ssc-range-thumb-size: 10px;
+  --ssc-range-thumb-size: 8px;
   --ssc-range-hit-size: 18px;
   display: inline-flex;
   flex: 0 0 auto;
@@ -591,11 +591,11 @@ code {
   width: var(--ssc-range-thumb-size);
   height: var(--ssc-range-thumb-size);
   margin-top: calc((var(--ssc-range-track-height) - var(--ssc-range-thumb-size)) / 2);
-  border: 2px solid #ffffff;
+  border: 1px solid #ffffff;
   border-radius: 50%;
   background: var(--ssc-range-accent);
   box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   cursor: grab;
   pointer-events: auto;
   appearance: none;
@@ -605,11 +605,11 @@ code {
 .search-preview .ssc-range-chip__input::-moz-range-thumb {
   width: var(--ssc-range-thumb-size);
   height: var(--ssc-range-thumb-size);
-  border: 2px solid #ffffff;
+  border: 1px solid #ffffff;
   border-radius: 50%;
   background: var(--ssc-range-accent);
   box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   cursor: grab;
   pointer-events: auto;
 }
