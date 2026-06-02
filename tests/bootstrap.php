@@ -668,14 +668,20 @@ if ( ! function_exists( 'register_setting' ) ) {
 }
 
 if ( ! function_exists( 'add_options_page' ) ) {
-    function add_options_page() {
-        return true;
+    function add_options_page( $page_title = '', $menu_title = '', $capability = '', $menu_slug = '' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        return 'settings_page_' . (string) $menu_slug;
+    }
+}
+
+if ( ! function_exists( 'add_menu_page' ) ) {
+    function add_menu_page( $page_title = '', $menu_title = '', $capability = '', $menu_slug = '' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        return 'toplevel_page_' . (string) $menu_slug;
     }
 }
 
 if ( ! function_exists( 'add_submenu_page' ) ) {
-    function add_submenu_page() {
-        return true;
+    function add_submenu_page( $parent_slug = '', $page_title = '', $menu_title = '', $capability = '', $menu_slug = '' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+        return str_replace( '-', '_', (string) $parent_slug ) . '_page_' . (string) $menu_slug;
     }
 }
 

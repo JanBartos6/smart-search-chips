@@ -11,11 +11,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SSCHP_Settings {
 
+    const MENU_SLUG = 'smart-search-chips';
+
     /** @var string Options prefix */
     private $prefix = 'sschp_';
 
+    /** @var array Admin hook suffixes for settings pages. */
+    private $settings_page_hooks = array();
+
     public function init() {
         add_action( 'admin_menu', array( $this, 'add_menu_page' ) );
+        add_action( 'admin_init', array( $this, 'redirect_legacy_settings_url' ), 1 );
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_post_sschp_delete_plugin_data_now', array( $this, 'handle_delete_data_now' ) );
         add_action( 'admin_post_sschp_dismiss_onboarding', array( $this, 'handle_dismiss_onboarding' ) );
@@ -31,17 +37,61 @@ class SSCHP_Settings {
     }
 
     public function add_menu_page() {
-        add_options_page(
+        $this->settings_page_hooks[] = add_menu_page(
             __( 'Smart Search Chips', 'smart-search-chips' ),
             __( 'Search Chips', 'smart-search-chips' ),
             'manage_options',
-            'smart-search-chips',
+            self::MENU_SLUG,
+            array( $this, 'render_settings_page' ),
+            'dashicons-filter',
+            58
+        );
+
+        $this->settings_page_hooks[] = add_submenu_page(
+            self::MENU_SLUG,
+            __( 'Smart Search Chips Settings', 'smart-search-chips' ),
+            __( 'Settings', 'smart-search-chips' ),
+            'manage_options',
+            self::MENU_SLUG,
             array( $this, 'render_settings_page' )
         );
     }
 
+    public function redirect_legacy_settings_url() {
+        global $pagenow;
+
+        if ( 'options-general.php' !== $pagenow || ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        $get_args = filter_input_array( INPUT_GET, FILTER_UNSAFE_RAW );
+        $get_args = is_array( $get_args ) ? $get_args : array();
+        $page     = isset( $get_args['page'] ) ? sanitize_key( wp_unslash( $get_args['page'] ) ) : '';
+
+        if ( self::MENU_SLUG !== $page ) {
+            return;
+        }
+
+        $query_args = array(
+            'page' => self::MENU_SLUG,
+        );
+
+        foreach ( $get_args as $key => $value ) {
+            $key = sanitize_key( $key );
+
+            if ( 'page' === $key || is_array( $value ) ) {
+                continue;
+            }
+
+            $query_args[ $key ] = sanitize_text_field( wp_unslash( $value ) );
+        }
+
+        wp_safe_redirect( add_query_arg( $query_args, admin_url( 'admin.php' ) ) );
+        exit;
+    }
+
     public function add_settings_link( $links ) {
-        $url  = admin_url( 'options-general.php?page=smart-search-chips' );
+        $url  = admin_url( 'admin.php?page=' . self::MENU_SLUG );
         $link = '<a href="' . esc_url( $url ) . '">' . __( 'Settings', 'smart-search-chips' ) . '</a>';
         array_unshift( $links, $link );
         $links[] = '<a href="' . esc_url( SSCHP_Edition::get_product_url() ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View Pro Features', 'smart-search-chips' ) . '</a>';
@@ -83,7 +133,16 @@ class SSCHP_Settings {
      * @param string $hook_suffix Current admin page hook.
      */
     public function enqueue_admin_assets( $hook_suffix ) {
-        if ( 'settings_page_smart-search-chips' !== $hook_suffix ) {
+        $settings_hooks = array_merge(
+            $this->settings_page_hooks,
+            array(
+                'toplevel_page_' . self::MENU_SLUG,
+                'search-chips_page_' . self::MENU_SLUG,
+                'settings_page_' . self::MENU_SLUG,
+            )
+        );
+
+        if ( ! in_array( $hook_suffix, $settings_hooks, true ) ) {
             return;
         }
 
@@ -826,7 +885,7 @@ class SSCHP_Settings {
                 array(
                     'page' => 'smart-search-chips',
                 ),
-                admin_url( 'options-general.php' )
+                admin_url( 'admin.php' )
             )
         );
         exit;
@@ -845,7 +904,7 @@ class SSCHP_Settings {
                 array(
                     'page' => 'smart-search-chips',
                 ),
-                admin_url( 'options-general.php' )
+                admin_url( 'admin.php' )
             )
         );
         exit;

@@ -28,7 +28,6 @@ Unlike traditional faceted search plugins that require you to predefine every fi
 **Key Features:**
 
 * Search block and `[sschp_search]` shortcode for a guaranteed search UI
-* Legacy `[ssc_search]` shortcode alias for existing installs
 * Dynamic chip generation from Search Chips Tags and optional Pro custom field mappings
 * Smart redundancy elimination so chips that do not narrow results stay hidden
 * Admin Test Search tool showing search path, result counts, chips, warnings, and sample results
@@ -60,7 +59,7 @@ Unlike traditional faceted search plugins that require you to predefine every fi
 
 1. Upload the `smart-search-chips` folder to `/wp-content/plugins/`
 2. Activate the plugin through the Plugins menu
-3. Go to Settings > Search Chips to configure
+3. Go to Search Chips in the WordPress admin sidebar to configure
 4. Add Search Chips Tags to your posts/products, or map existing custom fields in Pro
 5. Select which post types to search
 6. Optionally install Relevanssi (free) for better search ranking
@@ -68,7 +67,7 @@ Unlike traditional faceted search plugins that require you to predefine every fi
 **Quick Start:**
 
 1. Add semicolon-separated tags to the built-in Search Chips Tags field on your posts/products
-2. Select which post types to search in Settings > Search Chips
+2. Select which post types to search in Search Chips
 3. For the most reliable setup, add `[sschp_search]` to any page or paste it into a WordPress Shortcode block
 4. Optional: use "Override AJAX Action" only when you want to enhance a compatible existing theme search
 

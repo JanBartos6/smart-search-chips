@@ -14,19 +14,19 @@ async function loginAsAdmin(page) {
 }
 
 async function gotoPluginSettings(page) {
-  await page.goto("/wp-admin/options-general.php?page=smart-search-chips", {
+  await page.goto("/wp-admin/admin.php?page=smart-search-chips", {
     waitUntil: "domcontentloaded",
   });
 }
 
 async function gotoPluginAccount(page) {
-  await page.goto("/wp-admin/options-general.php?page=smart-search-chips-account", {
+  await page.goto("/wp-admin/admin.php?page=smart-search-chips-account", {
     waitUntil: "domcontentloaded",
   });
 }
 
 async function gotoAnalyticsPage(page) {
-  await page.goto("/wp-admin/options-general.php?page=smart-search-chips-analytics", {
+  await page.goto("/wp-admin/admin.php?page=smart-search-chips-analytics", {
     waitUntil: "domcontentloaded",
   });
 }

@@ -402,7 +402,7 @@ class SSCHP_Analytics {
             add_query_arg(
                 'sschp_digest_test',
                 $sent ? 'sent' : 'failed',
-                admin_url( 'options-general.php?page=smart-search-chips-analytics' )
+                admin_url( 'admin.php?page=smart-search-chips-analytics' )
             )
         );
         exit;

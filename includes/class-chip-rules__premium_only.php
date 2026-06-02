@@ -179,7 +179,7 @@ class SSCHP_Chip_Rules {
 
         $this->store_import_result( $result );
 
-        wp_safe_redirect( admin_url( 'options-general.php?page=smart-search-chips' ) );
+        wp_safe_redirect( admin_url( 'admin.php?page=smart-search-chips' ) );
         exit;
     }
 

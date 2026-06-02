@@ -2043,9 +2043,15 @@ function sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow() {
 }
 
 function sschp_test_free_admin_menu_does_not_add_analytics_upsell_page() {
-    $contents = file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' );
+    $contents       = file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' );
+    $wporg_contents = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-settings.php' );
+    $plugin_file    = file_get_contents( dirname( __DIR__ ) . '/smart-search-chips.php' );
 
-    sschp_assert_contains( "if ( SSCHP_License::is_pro() ) {\n            add_options_page(\n                __( 'Search Chips Analytics'", $contents, 'Standalone analytics menu page should only be registered for Pro sites' );
+    sschp_assert_contains( '$this->settings_page_hooks[] = add_menu_page(', $contents, 'Plugin settings should register as a top-level admin menu' );
+    sschp_assert_contains( '$this->settings_page_hooks[] = add_menu_page(', $wporg_contents, 'WP.org settings should register as a top-level admin menu' );
+    sschp_assert_contains( "if ( SSCHP_License::is_pro() ) {\n            \$this->analytics_page_hooks[] = add_submenu_page(\n                self::MENU_SLUG,\n                __( 'Search Chips Analytics'", $contents, 'Analytics menu page should only be registered for Pro sites' );
+    sschp_assert_contains( "'first-path'     => 'admin.php?page=smart-search-chips'", $plugin_file, 'Freemius first path should point at the top-level admin page' );
+    sschp_assert_true( false === strpos( $wporg_contents, 'smart-search-chips-analytics' ), 'WP.org settings should not register the Pro analytics page' );
 }
 
 function sschp_test_setup_wizard_card_wraps_medium_width_copy() {

@@ -11,11 +11,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SSCHP_Settings {
 
+    const MENU_SLUG      = 'smart-search-chips';
+    const ANALYTICS_SLUG = 'smart-search-chips-analytics';
+
     /** @var string Options prefix */
     private $prefix = 'sschp_';
 
+    /** @var array Admin hook suffixes for settings pages. */
+    private $settings_page_hooks = array();
+
+    /** @var array Admin hook suffixes for analytics pages. */
+    private $analytics_page_hooks = array();
+
     public function init() {
         add_action( 'admin_menu', array( $this, 'add_menu_page' ) );
+        add_action( 'admin_init', array( $this, 'redirect_legacy_settings_url' ), 1 );
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_post_sschp_delete_plugin_data_now', array( $this, 'handle_delete_data_now' ) );
         add_action( 'admin_post_sschp_dismiss_onboarding', array( $this, 'handle_dismiss_onboarding' ) );
@@ -31,27 +41,77 @@ class SSCHP_Settings {
     }
 
     public function add_menu_page() {
-        add_options_page(
+        $this->settings_page_hooks[] = add_menu_page(
             __( 'Smart Search Chips', 'smart-search-chips' ),
             __( 'Search Chips', 'smart-search-chips' ),
             'manage_options',
-            'smart-search-chips',
+            self::MENU_SLUG,
+            array( $this, 'render_settings_page' ),
+            'dashicons-filter',
+            58
+        );
+
+        $this->settings_page_hooks[] = add_submenu_page(
+            self::MENU_SLUG,
+            __( 'Smart Search Chips Settings', 'smart-search-chips' ),
+            __( 'Settings', 'smart-search-chips' ),
+            'manage_options',
+            self::MENU_SLUG,
             array( $this, 'render_settings_page' )
         );
 
         if ( SSCHP_License::is_pro() ) {
-            add_options_page(
+            $this->analytics_page_hooks[] = add_submenu_page(
+                self::MENU_SLUG,
                 __( 'Search Chips Analytics', 'smart-search-chips' ),
-                __( 'Search Chips Analytics', 'smart-search-chips' ),
+                __( 'Analytics', 'smart-search-chips' ),
                 'manage_options',
-                'smart-search-chips-analytics',
+                self::ANALYTICS_SLUG,
                 array( $this, 'render_analytics_page' )
             );
         }
     }
 
+    public function redirect_legacy_settings_url() {
+        global $pagenow;
+
+        if ( 'options-general.php' !== $pagenow || ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        $get_args = filter_input_array( INPUT_GET, FILTER_UNSAFE_RAW );
+        $get_args = is_array( $get_args ) ? $get_args : array();
+        $page     = isset( $get_args['page'] ) ? sanitize_key( wp_unslash( $get_args['page'] ) ) : '';
+        $legacy_pages = array(
+            self::MENU_SLUG                 => self::MENU_SLUG,
+            self::ANALYTICS_SLUG            => self::ANALYTICS_SLUG,
+            'smart-search-chips-range-debug' => 'smart-search-chips-range-debug',
+        );
+
+        if ( ! isset( $legacy_pages[ $page ] ) ) {
+            return;
+        }
+
+        $query_args = array(
+            'page' => $legacy_pages[ $page ],
+        );
+
+        foreach ( $get_args as $key => $value ) {
+            $key = sanitize_key( $key );
+
+            if ( 'page' === $key || is_array( $value ) ) {
+                continue;
+            }
+
+            $query_args[ $key ] = sanitize_text_field( wp_unslash( $value ) );
+        }
+
+        wp_safe_redirect( add_query_arg( $query_args, admin_url( 'admin.php' ) ) );
+        exit;
+    }
+
     public function add_settings_link( $links ) {
-        $url  = admin_url( 'options-general.php?page=smart-search-chips' );
+        $url  = admin_url( 'admin.php?page=' . self::MENU_SLUG );
         $link = '<a href="' . esc_url( $url ) . '">' . __( 'Settings', 'smart-search-chips' ) . '</a>';
         array_unshift( $links, $link );
 
@@ -235,8 +295,23 @@ class SSCHP_Settings {
      * @param string $hook_suffix Current admin page hook.
      */
     public function enqueue_admin_assets( $hook_suffix ) {
-        $is_settings  = ( $hook_suffix === 'settings_page_smart-search-chips' );
-        $is_analytics = ( $hook_suffix === 'settings_page_smart-search-chips-analytics' );
+        $settings_hooks = array_merge(
+            $this->settings_page_hooks,
+            array(
+                'toplevel_page_' . self::MENU_SLUG,
+                'search-chips_page_' . self::MENU_SLUG,
+                'settings_page_' . self::MENU_SLUG,
+            )
+        );
+        $analytics_hooks = array_merge(
+            $this->analytics_page_hooks,
+            array(
+                'search-chips_page_' . self::ANALYTICS_SLUG,
+                'settings_page_' . self::ANALYTICS_SLUG,
+            )
+        );
+        $is_settings    = in_array( $hook_suffix, $settings_hooks, true );
+        $is_analytics   = in_array( $hook_suffix, $analytics_hooks, true );
 
         if ( ! $is_settings && ! $is_analytics ) {
             return;
@@ -1007,8 +1082,8 @@ class SSCHP_Settings {
                                 <p><?php esc_html_e( 'Numeric range chips automatically group compatible numeric chip variants such as "100 W" and "200 W" into one slider chip.', 'smart-search-chips' ); ?></p>
                                 <p class="description"><?php esc_html_e( 'Use the Diagnostics tab and Test Search first. Range chips are labeled there when a query produces sliders. For deeper investigation, Range Diagnostics accepts a normal search query and explains accepted/rejected groups with confidence details.', 'smart-search-chips' ); ?></p>
                                 <p>
-                                    <a class="button button-primary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips#sschp-settings-diagnostics' ) ); ?>"><?php esc_html_e( 'Open Test Search', 'smart-search-chips' ); ?></a>
-                                    <a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-range-debug' ) ); ?>"><?php esc_html_e( 'Open Range Diagnostics', 'smart-search-chips' ); ?></a>
+                                    <a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::MENU_SLUG . '#sschp-settings-diagnostics' ) ); ?>"><?php esc_html_e( 'Open Test Search', 'smart-search-chips' ); ?></a>
+                                    <a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=smart-search-chips-range-debug' ) ); ?>"><?php esc_html_e( 'Open Range Diagnostics', 'smart-search-chips' ); ?></a>
                                 </p>
                             <?php else : ?>
                                 <p><?php esc_html_e( 'Numeric range slider chips are part of Pro.', 'smart-search-chips' ); ?></p>
@@ -1113,7 +1188,7 @@ class SSCHP_Settings {
                                 <div class="ssc-analytics-dashboard-reference">
                                     <strong><?php esc_html_e( 'Detailed Analytics Dashboard', 'smart-search-chips' ); ?></strong>
                                     <p><?php esc_html_e( 'Use the dedicated analytics page for date filters, full tables, CSV export, and chart export. Digest settings below control what gets emailed to configured recipients.', 'smart-search-chips' ); ?></p>
-                                    <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-analytics' ) ); ?>"><?php esc_html_e( 'Open Analytics Dashboard', 'smart-search-chips' ); ?></a></p>
+                                    <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::ANALYTICS_SLUG ) ); ?>"><?php esc_html_e( 'Open Analytics Dashboard', 'smart-search-chips' ); ?></a></p>
                                 </div>
                                 <table class="form-table">
                                     <tr>
@@ -1362,7 +1437,7 @@ class SSCHP_Settings {
                                             /* translators: %1$s: start date, %2$s: end date */
                                             printf( esc_html__( 'Current overview: %1$s to %2$s. Open the dedicated analytics page for date filters, detailed tables, CSV export, and chart export.', 'smart-search-chips' ), esc_html( $analytics['range']['from'] ), esc_html( $analytics['range']['to'] ) );
                                         ?></p>
-                                        <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips-analytics' ) ); ?>"><?php esc_html_e( 'Open Detailed Analytics', 'smart-search-chips' ); ?></a></p>
+                                        <p><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::ANALYTICS_SLUG ) ); ?>"><?php esc_html_e( 'Open Detailed Analytics', 'smart-search-chips' ); ?></a></p>
                                     </div>
                                 <?php else : ?>
                                     <p class="description"><?php esc_html_e( 'Enable analytics, confirm consent/legal basis, and save the page to start collecting local usage data. The dashboard will appear here after events are recorded.', 'smart-search-chips' ); ?></p>
@@ -1854,7 +1929,7 @@ class SSCHP_Settings {
                 array(
                     'page' => 'smart-search-chips',
                 ),
-                admin_url( 'options-general.php' )
+                admin_url( 'admin.php' )
             )
         );
         exit;
@@ -1878,7 +1953,7 @@ class SSCHP_Settings {
                 array(
                     'page' => 'smart-search-chips',
                 ),
-                admin_url( 'options-general.php' )
+                admin_url( 'admin.php' )
             )
         );
         exit;
@@ -2139,7 +2214,7 @@ class SSCHP_Settings {
         ?>
         <div class="wrap">
             <h1><?php esc_html_e( 'Search Chips Analytics', 'smart-search-chips' ); ?></h1>
-            <p><a href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips' ) ); ?>">&larr; <?php esc_html_e( 'Back to Settings', 'smart-search-chips' ); ?></a></p>
+            <p><a href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::MENU_SLUG ) ); ?>">&larr; <?php esc_html_e( 'Back to Settings', 'smart-search-chips' ); ?></a></p>
 
             <?php if ( ! $is_pro ) : ?>
                 <div class="notice notice-info"><p><?php esc_html_e( 'Analytics is available in Pro.', 'smart-search-chips' ); ?></p></div>
@@ -2152,8 +2227,8 @@ class SSCHP_Settings {
                 </div>
                 <?php return; ?>
             <?php endif; ?>
-            <form method="get" action="<?php echo esc_url( admin_url( 'options-general.php' ) ); ?>" class="ssc-analytics-toolbar">
-                <input type="hidden" name="page" value="smart-search-chips-analytics" />
+            <form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" class="ssc-analytics-toolbar">
+                <input type="hidden" name="page" value="<?php echo esc_attr( self::ANALYTICS_SLUG ); ?>" />
                 <label>
                     <span><?php esc_html_e( 'From', 'smart-search-chips' ); ?></span>
                     <input type="date" name="from" value="<?php echo esc_attr( $range['from'] ); ?>" />

@@ -59,7 +59,7 @@ class SSCHP_Range_Filters {
         }
 
         add_submenu_page(
-            'options-general.php',
+            'smart-search-chips',
             __( 'Search Chips Range Debug', 'smart-search-chips' ),
             __( 'Range Debug', 'smart-search-chips' ),
             'manage_options',
@@ -161,7 +161,7 @@ class SSCHP_Range_Filters {
                 </details>
                 <p>
                     <button type="submit" class="button button-primary"><?php esc_html_e( 'Inspect ranges', 'smart-search-chips' ); ?></button>
-                    <a class="button button-secondary" href="<?php echo esc_url( admin_url( 'options-general.php?page=smart-search-chips#sschp-settings-diagnostics' ) ); ?>"><?php esc_html_e( 'Open Test Search', 'smart-search-chips' ); ?></a>
+                    <a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=smart-search-chips#sschp-settings-diagnostics' ) ); ?>"><?php esc_html_e( 'Open Test Search', 'smart-search-chips' ); ?></a>
                 </p>
             </form>
 
