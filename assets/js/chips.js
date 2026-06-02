@@ -536,6 +536,80 @@
         resultsContainer.setAttribute("aria-busy", isBusy ? "true" : "false");
     }
 
+    function prefersReducedMotion() {
+        return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    }
+
+    function animateCount(element) {
+        var target;
+        var start;
+        var duration;
+        var started;
+
+        if (!element || !element.getAttribute) {
+            return;
+        }
+
+        target = parseInt(element.getAttribute("data-ssc-count-to"), 10);
+        if (isNaN(target)) {
+            return;
+        }
+
+        if (prefersReducedMotion() || typeof window.requestAnimationFrame !== "function") {
+            element.textContent = String(target);
+            return;
+        }
+
+        start = parseInt(element.textContent.replace(/,/g, ""), 10);
+        if (isNaN(start) || start === target) {
+            start = 0;
+        }
+
+        duration = 320;
+        started = window.performance && typeof window.performance.now === "function" ? window.performance.now() : Date.now();
+
+        function tick(now) {
+            var elapsed = now - started;
+            var portion = Math.min(1, elapsed / duration);
+            var eased = 1 - Math.pow(1 - portion, 3);
+
+            element.textContent = String(Math.round(start + (target - start) * eased));
+
+            if (portion < 1) {
+                window.requestAnimationFrame(tick);
+            }
+        }
+
+        window.requestAnimationFrame(tick);
+    }
+
+    function decorateRenderedOutput(root) {
+        var chips;
+        var results;
+        var counts;
+
+        if (!root) {
+            return;
+        }
+
+        chips = safeQuerySelectorAll(root, ".ssc-chip");
+        Array.prototype.forEach.call(chips, function (chip, index) {
+            if (chip && chip.style) {
+                chip.style.setProperty("--ssc-chip-index", index);
+            }
+        });
+
+        results = safeQuerySelectorAll(root, ".ssc-result a");
+        Array.prototype.forEach.call(results, function (result, index) {
+            if (result && result.style) {
+                result.style.setProperty("--ssc-result-index", index);
+            }
+        });
+
+        counts = safeQuerySelectorAll(root, "[data-ssc-count-to]");
+        Array.prototype.forEach.call(counts, animateCount);
+    }
+
     function focusWithoutScroll(el) {
         if (!el || typeof el.focus !== "function") {
             return false;
@@ -875,6 +949,7 @@
                     if (state.lastRenderedHtml !== xhr.responseText) {
                         resultsContainer.innerHTML = xhr.responseText;
                         state.lastRenderedHtml = xhr.responseText;
+                        decorateRenderedOutput(resultsContainer);
                     }
                     markSearchUiActive(input, resultsContainer);
 
@@ -1792,6 +1867,7 @@
 
     function handleReady() {
         hydrateEscapedSearchShortcodes();
+        decorateRenderedOutput(document);
 
         debugLog("Frontend selector scan", {
             inputSelector: getInputSelector(),

@@ -13,6 +13,8 @@
 .ssc-chips {
     display: flex;
     flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
     gap: 6px;
     padding: 8px 0;
 }
@@ -49,24 +51,81 @@
 .ssc-chip {
     display: inline-flex;
     align-items: center;
+    flex: 0 0 auto;
+    gap: 6px;
     border-radius: 16px;
     padding: 4px 12px;
     font-size: 13px;
     line-height: 1.4;
     cursor: pointer;
     white-space: nowrap;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s, transform 0.15s;
     font-family: inherit;
     text-decoration: none;
+    animation: ssc-chip-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--ssc-chip-index, 0) * 36ms);
 }
 
 .ssc-chip:hover {
     opacity: 0.85;
+    transform: translateY(-1px);
 }
 
 .ssc-chip:focus {
     outline: 2px solid currentColor;
     outline-offset: 2px;
+}
+
+.ssc-chip__label {
+    min-width: 0;
+}
+
+.ssc-chip__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.6em;
+    min-height: 1.6em;
+    padding: 0 0.45em;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.08);
+    color: inherit;
+    font-size: 0.78em;
+    font-weight: 700;
+    line-height: 1;
+    transform: translateZ(0);
+}
+
+.ssc-chip--active .ssc-chip__count {
+    background: rgba(255, 255, 255, 0.22);
+    color: inherit;
+}
+
+.ssc-search-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 2px;
+    color: #666;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.ssc-search-summary span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 28px;
+    padding: 5px 8px;
+    border: 1px solid #e1e5e8;
+    border-radius: 8px;
+    background: #f8f9fa;
+}
+
+.ssc-search-summary__count {
+    color: #222;
+    font-weight: 800;
 }
 
 /* ─── Results ───────────────────────────────────────────── */
@@ -95,6 +154,8 @@
     text-decoration: none;
     color: inherit;
     transition: background 0.15s;
+    animation: ssc-result-in 340ms ease both;
+    animation-delay: calc(var(--ssc-result-index, 0) * 42ms);
 }
 
 .ssc-result a:hover {
@@ -125,9 +186,43 @@
 }
 
 .ssc-result__title {
-    flex: 1;
     font-size: 14px;
     line-height: 1.4;
+}
+
+.ssc-result__content {
+    flex: 1;
+    min-width: 0;
+}
+
+.ssc-result__title-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.ssc-result__title-line .ssc-result__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ssc-result__chip-count {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 3px;
+    min-height: 23px;
+    padding: 4px 7px;
+    border: 1px solid #d7eadf;
+    border-radius: 8px;
+    background: #edf8f1;
+    color: #087b3f;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
 }
 
 /* ─── Loading state ──────────────────────────────────────── */
@@ -155,6 +250,28 @@
 
 @keyframes ssc-spin {
     to { transform: rotate(360deg); }
+}
+
+@keyframes ssc-chip-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes ssc-result-in {
+    from {
+        opacity: 0;
+        transform: translateX(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 /* ─── Empty state ───────────────────────────────────────── */
@@ -272,6 +389,12 @@
 }
 
 @media (max-width: 640px) {
+    .ssc-result__title-line {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
+    }
+
     .ssc-debug-panel {
         right: 10px;
         bottom: 10px;
@@ -286,5 +409,15 @@
 
     .ssc-debug-panel dd {
         margin-bottom: 6px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ssc-chip,
+    .ssc-result a,
+    .ssc-loading::after {
+        animation-duration: 1ms !important;
+        animation-delay: 0ms !important;
+        transition-duration: 1ms !important;
     }
 }

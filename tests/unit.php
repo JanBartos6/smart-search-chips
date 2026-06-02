@@ -2054,6 +2054,30 @@ function sschp_test_free_admin_menu_does_not_add_analytics_upsell_page() {
     sschp_assert_true( false === strpos( $wporg_contents, 'smart-search-chips-analytics' ), 'WP.org settings should not register the Pro analytics page' );
 }
 
+function sschp_test_frontend_count_markup_is_supported_in_both_editions() {
+    $search_handler       = file_get_contents( dirname( __DIR__ ) . '/includes/class-search-handler.php' );
+    $wporg_search_handler = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-search-handler.php' );
+    $frontend             = file_get_contents( dirname( __DIR__ ) . '/includes/class-frontend.php' );
+    $wporg_frontend       = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-frontend.php' );
+    $script               = file_get_contents( dirname( __DIR__ ) . '/assets/js/chips.js' );
+    $styles               = file_get_contents( dirname( __DIR__ ) . '/assets/css/chips.css' );
+
+    foreach ( array( $search_handler, $wporg_search_handler ) as $contents ) {
+        sschp_assert_contains( 'render_search_summary', $contents, 'AJAX search should render a result/chip count summary' );
+        sschp_assert_contains( 'ssc-search-summary', $contents, 'Search summary markup should be present' );
+        sschp_assert_contains( 'data-ssc-count-to', $contents, 'Search summaries and chip counts should expose animation targets' );
+        sschp_assert_contains( 'ssc-result__chip-count', $contents, 'Result previews should expose their tag count when available' );
+    }
+
+    foreach ( array( $frontend, $wporg_frontend ) as $contents ) {
+        sschp_assert_contains( 'ssc-chip__count', $contents, 'Archive/front-end chips should render count badges' );
+        sschp_assert_contains( 'data-ssc-count-to', $contents, 'Archive/front-end chip counts should expose animation targets' );
+    }
+
+    sschp_assert_contains( 'function decorateRenderedOutput', $script, 'Rendered output should be decorated after hydration and AJAX updates' );
+    sschp_assert_contains( 'prefers-reduced-motion: reduce', $styles, 'Count/chip animations should respect reduced-motion preferences' );
+}
+
 function sschp_test_setup_wizard_card_wraps_medium_width_copy() {
     $css = file_get_contents( dirname( __DIR__ ) . '/assets/css/settings.css' );
 

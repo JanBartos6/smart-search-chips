@@ -538,7 +538,7 @@ class SSCHP_Frontend {
             }
 
             printf(
-                '<a class="ssc-chip%s" href="%s" data-tag="%s"%s aria-label="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;text-decoration:none;">%s (%d)</a>',
+                '<a class="ssc-chip%s" href="%s" data-tag="%s"%s aria-label="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;text-decoration:none;"><span class="ssc-chip__label">%s</span><span class="ssc-chip__count" data-ssc-count-to="%d">%d</span></a>',
                 $is_active ? ' ssc-chip--active' : '',
                 esc_url( $url ),
                 esc_attr( $value ),
@@ -552,6 +552,7 @@ class SSCHP_Frontend {
                 esc_attr( $styles['pad_y'] ),
                 esc_attr( $styles['pad_x'] ),
                 esc_html( $label ),
+                $count,
                 $count
             );
         }
@@ -596,9 +597,10 @@ class SSCHP_Frontend {
                 'style'        => true,
             ),
             'span'   => array(
-                'class'           => true,
-                'data-range-role' => true,
-                'aria-live'       => true,
+                'class'             => true,
+                'data-range-role'   => true,
+                'data-ssc-count-to' => true,
+                'aria-live'         => true,
             ),
             'input'  => array(
                 'class'           => true,

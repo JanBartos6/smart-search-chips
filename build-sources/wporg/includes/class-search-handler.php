@@ -80,6 +80,9 @@ class SSCHP_Search_Handler {
 
         if ( empty( $posts_data ) ) {
             header( 'X-SSC-Results-Count: 0' );
+            header( 'X-SSC-Tagged-Posts: 0' );
+            header( 'X-SSC-Chips-Count: 0' );
+            $this->render_search_summary( 0, 0 );
             echo '<p class="ssc-empty">' . esc_html( apply_filters( 'sschp_no_results_text', __( 'No results found.', 'smart-search-chips' ) ) ) . '</p>';
             wp_die();
         }
@@ -101,6 +104,7 @@ class SSCHP_Search_Handler {
         header( 'X-SSC-Chips-Count: ' . (int) count( $chips ) );
 
         // Render
+        $this->render_search_summary( $total, count( $chips ) );
         $this->render_chips( $chips, $active_tags );
         $this->render_results( $posts_data, $display_count );
 
@@ -931,7 +935,7 @@ class SSCHP_Search_Handler {
             }
 
             printf(
-                '<button type="button" class="ssc-chip%s" data-tag="%s" aria-pressed="%s" aria-label="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;">%s (%d)</button>',
+                '<button type="button" class="ssc-chip%s" data-tag="%s" aria-pressed="%s" aria-label="%s" style="background:%s;color:%s;border:1px solid %s;border-radius:%spx;font-size:%spx;padding:%spx %spx;"><span class="ssc-chip__label">%s</span><span class="ssc-chip__count" data-ssc-count-to="%d">%d</span></button>',
                 $is_active ? ' ssc-chip--active' : '',
                 esc_attr( $value ),
                 $is_active ? 'true' : 'false',
@@ -940,6 +944,7 @@ class SSCHP_Search_Handler {
                 esc_attr( $radius ), esc_attr( $font_size ),
                 esc_attr( $pad_y ), esc_attr( $pad_x ),
                 esc_html( $chip['label'] ),
+                $count,
                 $count
             );
         }
@@ -970,8 +975,9 @@ class SSCHP_Search_Handler {
                     'aria-live'             => true,
                 ),
                 'span'   => array(
-                    'class'           => true,
-                    'data-range-role' => true,
+                    'class'             => true,
+                    'data-range-role'   => true,
+                    'data-ssc-count-to' => true,
                 ),
                 'input'  => array(
                     'class'           => true,
@@ -1028,6 +1034,30 @@ class SSCHP_Search_Handler {
     }
 
     /**
+     * Render the AJAX result and chip suggestion counts.
+     *
+     * @param int $result_count Filtered result count.
+     * @param int $chip_count   Suggested chip count.
+     * @return void
+     */
+    private function render_search_summary( $result_count, $chip_count ) {
+        $result_count = max( 0, (int) $result_count );
+        $chip_count   = max( 0, (int) $chip_count );
+        ?>
+        <div class="ssc-search-summary" aria-live="polite">
+            <span>
+                <strong class="ssc-search-summary__count" data-ssc-count-to="<?php echo esc_attr( $result_count ); ?>"><?php echo esc_html( $result_count ); ?></strong>
+                <?php echo esc_html( _n( 'result', 'results', $result_count, 'smart-search-chips' ) ); ?>
+            </span>
+            <span>
+                <strong class="ssc-search-summary__count" data-ssc-count-to="<?php echo esc_attr( $chip_count ); ?>"><?php echo esc_html( $chip_count ); ?></strong>
+                <?php echo esc_html( _n( 'suggested chip', 'suggested chips', $chip_count, 'smart-search-chips' ) ); ?>
+            </span>
+        </div>
+        <?php
+    }
+
+    /**
      * Render search results HTML.
      *
      * @param array $posts_data Posts to display.
@@ -1064,7 +1094,16 @@ class SSCHP_Search_Handler {
                 echo '<figure class="ssc-result__image">' . wp_kses_post( $post['thumbnail'] ) . '</figure>';
             }
 
+            $tag_count = isset( $post['tags'] ) ? count( (array) $post['tags'] ) : 0;
+
+            echo '<span class="ssc-result__content">';
+            echo '<span class="ssc-result__title-line">';
             echo '<span class="ssc-result__title">' . esc_html( $post['title'] ) . '</span>';
+            if ( $tag_count > 0 ) {
+                echo '<span class="ssc-result__chip-count"><span class="ssc-result__chip-count-value" data-ssc-count-to="' . esc_attr( $tag_count ) . '">' . esc_html( $tag_count ) . '</span> ' . esc_html( _n( 'chip', 'chips', $tag_count, 'smart-search-chips' ) ) . '</span>';
+            }
+            echo '</span>';
+            echo '</span>';
             echo '</a>';
             echo '</li>';
 
