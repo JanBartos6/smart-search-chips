@@ -1751,7 +1751,7 @@ class SSCHP_Settings {
 
             <p class="ssc-feedback-link">
                 <?php esc_html_e( 'Questions, bugs, or ideas?', 'smart-search-chips' ); ?>
-                <a href="mailto:[redacted]?subject=Smart%20Search%20Chips%20Feedback"><?php esc_html_e( 'Send feedback', 'smart-search-chips' ); ?> &rarr;</a>
+                <a href="mailto:support@smartsearchchips.app?subject=Smart%20Search%20Chips%20Feedback"><?php esc_html_e( 'Send feedback', 'smart-search-chips' ); ?> &rarr;</a>
             </p>
         </div>
         <?php

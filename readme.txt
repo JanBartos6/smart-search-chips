@@ -4,7 +4,7 @@ Tags: search, filter, chips, woocommerce, product search
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.19
+Stable tag: 1.1.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -104,6 +104,11 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 3. Local Search Index controls show readiness, progress, indexed rows, and maintenance actions.
 
 == Changelog ==
+
+= 1.1.20 =
+* Replaced public support and feedback mailto links with support@smartsearchchips.app.
+* Disabled the Freemius Contact menu entry to avoid exposing account-level contact metadata.
+* Updated launch-site legal/support pages to use the public support address.
 
 = 1.1.19 =
 * Moved Smart Search Chips into a top-level WordPress admin sidebar menu with redirects from the old Settings URL.
@@ -245,6 +250,9 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 Smart Search Chips uses [Freemius](https://freemius.com/) for license management and optional usage tracking. When you opt in during activation, basic diagnostic data (WordPress version, PHP version, site URL) is shared with Freemius. You can opt out at any time. The Pro analytics feature stores search data locally in your WordPress database. Optional analytics email digests are sent only by your WordPress site to recipients configured by the administrator; the plugin does not send analytics reports to Smart Search Chips or any third party. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.1.20 =
+Uses the public support email everywhere and removes the Freemius contact submenu leak path.
 
 = 1.1.19 =
 Moves Search Chips into a top-level admin menu and improves frontend search count polish.

@@ -2078,6 +2078,31 @@ function sschp_test_frontend_count_markup_is_supported_in_both_editions() {
     sschp_assert_contains( 'prefers-reduced-motion: reduce', $styles, 'Count/chip animations should respect reduced-motion preferences' );
 }
 
+function sschp_test_public_contact_links_do_not_expose_private_email() {
+    $paths = array(
+        'smart-search-chips.php',
+        'includes/class-settings.php',
+        'build-sources/wporg/includes/class-settings.php',
+        'marketing/launch-site/index.html',
+        'marketing/launch-site/privacy-policy/index.html',
+        'marketing/launch-site/refund-policy/index.html',
+        'marketing/launch-site/support-policy/index.html',
+        'marketing/launch-site/terms-of-service/index.html',
+    );
+
+    foreach ( $paths as $path ) {
+        $contents = file_get_contents( dirname( __DIR__ ) . '/' . $path );
+
+        sschp_assert_true( false === strpos( $contents, '[redacted]' ), $path . ' should not expose a private Gmail address' );
+        sschp_assert_true( false === strpos( $contents, '[redacted]' ), $path . ' should not expose the old Gmail support address' );
+    }
+
+    $plugin_file = file_get_contents( dirname( __DIR__ ) . '/smart-search-chips.php' );
+    sschp_assert_contains( "'contact'        => false", $plugin_file, 'Freemius contact submenu should stay disabled to avoid exposing account contact metadata' );
+    sschp_assert_contains( 'mailto:support@smartsearchchips.app', file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' ), 'Plugin feedback should use the public support email' );
+    sschp_assert_contains( 'mailto:support@smartsearchchips.app', file_get_contents( dirname( __DIR__ ) . '/marketing/launch-site/index.html' ), 'Launch site footer should use the public support email' );
+}
+
 function sschp_test_setup_wizard_card_wraps_medium_width_copy() {
     $css = file_get_contents( dirname( __DIR__ ) . '/assets/css/settings.css' );
 
