@@ -8,29 +8,38 @@ Stable tag: 1.1.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Dynamic filter chips for WordPress search. Auto-generates smart, non-redundant filter tags from your search results.
+Guided search chips for WordPress and WooCommerce. Add a reliable search block or shortcode, generate non-redundant chips, and debug search setup from admin.
 
 == Description ==
 
-Smart Search Chips adds dynamic, clickable filter chips to your WordPress search results. Unlike traditional faceted search plugins that require you to predefine all filter options, Smart Search Chips automatically generates relevant filter tags from the actual search results.
+Smart Search Chips adds a reliable guided search UI to WordPress. Use the included Search block or `[sschp_search]` shortcode for a guaranteed search experience, or safely enhance compatible theme AJAX searches when you want to keep an existing layout.
+
+Unlike traditional faceted search plugins that require you to predefine every filter, Smart Search Chips generates useful chips from the matching results. It hides redundant tags, supports a local search index, and includes admin diagnostics so you can see why chips did or did not appear.
 
 **How it works:**
 
-1. User types a search query
-2. Plugin analyzes the top results and their Search Chips Tags or Pro custom field tags
-3. Displays clickable filter chips ranked by frequency
-4. Automatically eliminates redundant chips (tags shared by all results)
-5. Clicking a chip filters results to only show matching products
+1. A visitor searches through the Smart Search Chips block, shortcode, or a compatible enhanced theme search
+2. The plugin finds results through the local index, Relevanssi, or WordPress fallback search
+3. It analyzes the matching results and their Search Chips Tags or Pro custom field tags
+4. It displays clickable chips ranked by frequency and usefulness
+5. Redundant chips are hidden when they would not narrow the result set
+6. Clicking a chip filters the visible results without asking the visitor to rewrite the query
 
 **Key Features:**
 
-* Dynamic chip generation from search results - no predefined facets needed
-* Smart redundancy elimination - chips that don't help narrow results are hidden
+* Search block and `[sschp_search]` shortcode for a guaranteed search UI
+* Legacy `[ssc_search]` shortcode alias for existing installs
+* Dynamic chip generation from Search Chips Tags and optional Pro custom field mappings
+* Smart redundancy elimination so chips that do not narrow results stay hidden
+* Admin Test Search tool showing search path, result counts, chips, warnings, and sample results
+* "Why no chips?" explanations for empty results, missing tags, redundant tags, index readiness, and common WooCommerce setup issues
+* Local search index with queue, rebuild, process next batch, pause, resume, and clear controls
 * Works with Relevanssi (recommended) for relevance-based scoring
-* Uses the built-in Search Chips Tags field, with ACF/custom field connectors in Pro
-* AJAX-powered live search with instant filtering
+* WP_Query fallback when Relevanssi or the local index is not available
+* Built-in Search Chips Tags field for posts, pages, and products
+* Optional WooCommerce helper tags from product attributes, categories, and product tags
+* Live search endpoint with instant chip filtering
 * Fully customizable colors, limits, and thresholds
-* Guaranteed shortcode search mode that does not depend on theme AJAX
 * Safely enhance existing theme AJAX search handlers when compatible
 * Synonym rules for normalizing equivalent catalog terms into one chip
 * Numeric range slider chips for values like 100 W, 200 W, or mapped numeric fields
@@ -91,9 +100,9 @@ Yes. Smart Search Chips Pro exposes authenticated REST access for chip rules at 
 
 == Screenshots ==
 
-1. Search for "tea" and filter chips appear automatically
-2. Click a chip to narrow results instantly
-3. The Smart Search Chips demo homepage
+1. Guaranteed search UI rendered by the Search block or shortcode, with generated chips and result previews from a local demo WordPress site.
+2. Admin Test Search reports the search path, result counts, generated chips, warnings, and first results.
+3. Local Search Index controls show readiness, progress, indexed rows, and maintenance actions.
 
 == Changelog ==
 
