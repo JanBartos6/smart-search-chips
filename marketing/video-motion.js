@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var DURATION = 35000;
+  var DURATION = 24000;
   var query = "backpack";
   var bounds = { min: 12, max: 45 };
   var products = [
@@ -28,11 +28,12 @@
   ];
 
   var captions = {
-    open: ["WordPress search, guided", "Help visitors narrow real catalog results.", "A reliable shortcode and block search UI, generated chips, range filters, diagnostics, and local analytics."],
-    search: ["Guaranteed search UI", "Type once. Useful chips appear from the result set.", "The search UI uses the plugin endpoint, so it does not depend on fragile theme AJAX."],
-    range: ["Pro range chips", "Turn numeric catalog values into a compact slider chip.", "A single Volume chip filters backpacks by liters without adding a tall control to the page."],
-    diagnostics: ["Integrated debugging", "Know which path ran and why chips appeared.", "Admin Test Search can show local index, result count, tagged results, chips, and warnings."],
-    analytics: ["Local search analytics", "See what visitors search, refine, and click.", "Pro analytics reports zero-result queries, chip CTR, result clicks, exports, and scheduled digests."],
+    open: ["WordPress search, guided", "Make search feel like filtering, not guessing.", "Smart Search Chips adds a reliable search UI, catalog chips, numeric ranges, diagnostics, analytics, and Pro workflows."],
+    search: ["Guaranteed search UI", "Type once. Useful chips appear from the result set.", "Use the shortcode or block anywhere. Compatible theme AJAX can be enhanced safely."],
+    range: ["Pro range chips", "Numeric catalog values become compact slider chips.", "Volume, wattage, dimensions, weight, and mapped fields can become guided range filters."],
+    diagnostics: ["Integrated debugging", "Know which path ran and why chips appeared.", "Test Search explains local index, Relevanssi, WP_Query fallback, chips, tagged results, and warnings."],
+    analytics: ["Local search analytics", "See what visitors search, refine, and click.", "Track chip CTR, result clicks, zero-result reports, exports, and scheduled email digests."],
+    workflows: ["Pro workflows", "Curate chips and scale catalog tagging.", "Rules, field mapping, range diagnostics, analytics reports, AI prompts, and clean WP.org boundaries."],
     final: ["", "", ""]
   };
 
@@ -57,7 +58,9 @@
     everyday: document.getElementById("chip-everyday"),
     travel: document.getElementById("chip-travel"),
     water: document.getElementById("chip-water"),
-    commuter: document.getElementById("chip-commuter")
+    commuter: document.getElementById("chip-commuter"),
+    cursor: document.getElementById("motion-cursor"),
+    cursorLabel: document.getElementById("motion-cursor-label")
   };
 
   var previousResultKey = "";
@@ -89,39 +92,42 @@
   }
 
   function phaseFor(ms) {
-    if (ms >= 30500) {
+    if (ms >= 21200) {
       return "final";
     }
-    if (ms >= 23000) {
+    if (ms >= 17600) {
+      return "workflows";
+    }
+    if (ms >= 13600) {
       return "analytics";
     }
-    if (ms >= 16800) {
+    if (ms >= 10200) {
       return "diagnostics";
     }
-    if (ms >= 9100) {
+    if (ms >= 6200) {
       return "range";
     }
-    if (ms >= 2600) {
+    if (ms >= 1100) {
       return "search";
     }
     return "open";
   }
 
   function typedQueryFor(ms) {
-    if (ms < 2600) {
+    if (ms < 1600) {
       return "";
     }
 
-    var progress = clamp((ms - 3000) / 2300, 0, 1);
+    var progress = clamp((ms - 1250) / 920, 0, 1);
     return query.slice(0, Math.round(progress * query.length));
   }
 
   function rangeMinFor(ms) {
-    if (ms < 9100) {
+    if (ms < 6200) {
       return bounds.min;
     }
 
-    return Math.round(lerp(bounds.min, 20, easeOutCubic((ms - 9500) / 2400)));
+    return Math.round(lerp(bounds.min, 20, easeOutCubic((ms - 6500) / 900)));
   }
 
   function visibleProducts(rangeMin) {
@@ -195,6 +201,9 @@
     if (phase === "analytics") {
       return "Tracking locally";
     }
+    if (phase === "workflows") {
+      return "Pro toolkit";
+    }
     if (phase === "diagnostics") {
       return "Debug path ready";
     }
@@ -202,6 +211,49 @@
       return "1 filter selected";
     }
     return "9 chips generated";
+  }
+
+  function cursorFor(ms, phase) {
+    if (phase === "open" || phase === "final") {
+      return null;
+    }
+
+    if (phase === "search") {
+      return { x: 230, y: 142, scale: 1, label: ms < 2500 ? "type query" : "chips generated" };
+    }
+
+    if (phase === "range") {
+      return { x: 292, y: 238, scale: 1.02, label: "drag range" };
+    }
+
+    if (phase === "diagnostics") {
+      return { x: 640, y: 142, scale: 0.98, label: "test search" };
+    }
+
+    if (phase === "analytics") {
+      return { x: 858, y: 418, scale: 0.98, label: "read reports" };
+    }
+
+    if (phase === "workflows") {
+      return { x: 862, y: 126, scale: 0.98, label: "curate rules" };
+    }
+
+    return null;
+  }
+
+  function renderCursor(ms, phase) {
+    var cursor = cursorFor(ms, phase);
+
+    if (!cursor) {
+      els.cursor.classList.remove("is-visible");
+      return;
+    }
+
+    els.cursor.style.setProperty("--cursor-x", cursor.x + "px");
+    els.cursor.style.setProperty("--cursor-y", cursor.y + "px");
+    els.cursor.style.setProperty("--cursor-scale", String(cursor.scale));
+    els.cursorLabel.textContent = cursor.label;
+    els.cursor.classList.add("is-visible");
   }
 
   function renderAt(ms) {
@@ -224,6 +276,7 @@
     renderRange(rangeMin);
     renderCounts(results, active);
     renderResults(results);
+    renderCursor(ms, phase);
 
     if (ms >= DURATION) {
       window.sschpMotionDone = true;

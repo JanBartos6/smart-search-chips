@@ -8,16 +8,21 @@ const showcasePath = resolve(__dirname, 'video-motion.html');
 const videoDir = resolve(__dirname, 'video');
 const finalVideoPath = resolve(videoDir, 'smart-search-chips-motion-showcase.webm');
 const frameTimes = [
-    { name: 'motion-frame-01-search.png', frame: 6400 },
-    { name: 'motion-frame-02-range.png', frame: 12400 },
-    { name: 'motion-frame-03-diagnostics.png', frame: 18800 },
-    { name: 'motion-frame-04-analytics.png', frame: 25600 },
-    { name: 'motion-frame-05-final.png', frame: 32400 },
+    { name: 'motion-frame-01-search.png', frame: 4300 },
+    { name: 'motion-frame-02-range.png', frame: 7600 },
+    { name: 'motion-frame-03-diagnostics.png', frame: 11600 },
+    { name: 'motion-frame-04-analytics.png', frame: 15000 },
+    { name: 'motion-frame-05-workflows.png', frame: 18800 },
+    { name: 'motion-frame-06-final.png', frame: 22400 },
 ];
 
 await mkdir(videoDir, { recursive: true });
 
-for (const path of [finalVideoPath, ...frameTimes.map((item) => resolve(videoDir, item.name))]) {
+for (const path of [
+    finalVideoPath,
+    resolve(videoDir, 'motion-frame-05-final.png'),
+    ...frameTimes.map((item) => resolve(videoDir, item.name)),
+]) {
     try {
         await unlink(path);
     } catch (error) {
