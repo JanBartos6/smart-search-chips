@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Search Chips - Motion Showcase</title>
+  <link rel="stylesheet" href="./video-motion.css">
+</head>
+<body data-phase="open">
+  <main class="film" aria-label="Smart Search Chips deterministic product video">
+    <div class="grid-bg" aria-hidden="true"></div>
+    <div class="progress"><span id="timeline-progress"></span></div>
+
+    <header class="mast">
+      <div class="brand-lockup">
+        <img src="../icon.png" alt="" width="42" height="42">
+        <span>Smart Search Chips</span>
+      </div>
+      <div class="scene-labels" aria-hidden="true">
+        <span data-step="search">Search UI</span>
+        <span data-step="range">Range chip</span>
+        <span data-step="diagnostics">Diagnostics</span>
+        <span data-step="analytics">Analytics</span>
+      </div>
+    </header>
+
+    <section class="copy-stack" aria-label="Video captions">
+      <p class="overline" id="caption-overline">WordPress search, guided</p>
+      <h1 id="caption-title">Help visitors narrow real catalog results.</h1>
+      <p id="caption-body">A reliable shortcode and block search UI, generated chips, range filters, diagnostics, and local analytics.</p>
+    </section>
+
+    <section class="product-stage" aria-label="Backpack catalog search animation">
+      <div class="browser-shell" id="browser-shell">
+        <div class="browser-bar">
+          <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+          <strong>WooCommerce catalog demo</strong>
+          <span id="status-pill">Waiting for query</span>
+        </div>
+
+        <div class="search-surface">
+          <label class="search-input">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg>
+            <span id="typed-query"></span><i class="caret" aria-hidden="true"></i>
+          </label>
+
+          <div class="chip-row" aria-label="Generated chips">
+            <div id="volume-range-chip" class="range-chip">
+              <span class="range-chip__label">Volume</span>
+              <span class="range-chip__values"><strong id="range-min-label">12</strong><i>-</i><strong id="range-max-label">45</strong><em>L</em></span>
+              <span class="range-chip__slider" aria-hidden="true">
+                <span class="range-chip__rail"></span>
+                <span class="range-chip__fill" id="range-fill"></span>
+                <span class="range-chip__dot range-chip__dot--min" id="range-dot-min"></span>
+                <span class="range-chip__dot range-chip__dot--max" id="range-dot-max"></span>
+              </span>
+            </div>
+            <button class="chip" data-chip="everyday">everyday <small id="chip-everyday">5</small></button>
+            <button class="chip" data-chip="travel">travel <small id="chip-travel">11</small></button>
+            <button class="chip" data-chip="water resistant">water resistant <small id="chip-water">12</small></button>
+            <button class="chip" data-chip="commuter">commuter <small id="chip-commuter">4</small></button>
+          </div>
+
+          <div class="result-meta">
+            <span><strong id="result-count">20</strong> results</span>
+            <span><strong id="filter-count">0</strong> filters selected</span>
+            <span><strong id="chip-count">9</strong> generated chips</span>
+          </div>
+
+          <div class="result-list" id="result-list"></div>
+        </div>
+      </div>
+
+      <aside class="diagnostics-card" aria-label="Diagnostics animation">
+        <div class="panel-title">
+          <span></span>
+          <strong>Test Search</strong>
+          <em>Query: backpack</em>
+        </div>
+        <div class="diagnostic-grid">
+          <div><span>Path</span><strong>Local index</strong></div>
+          <div><span>Results</span><strong>16</strong></div>
+          <div><span>Tagged</span><strong>16</strong></div>
+          <div><span>Warnings</span><strong>0</strong></div>
+        </div>
+        <ul>
+          <li><b></b> Chips generated from catalog tags and WooCommerce helpers.</li>
+          <li><b></b> Range chip accepted: Volume, L, high confidence.</li>
+          <li><b></b> Fallbacks stay available if the index is not ready.</li>
+        </ul>
+      </aside>
+
+      <aside class="analytics-card" aria-label="Analytics animation">
+        <div class="panel-title">
+          <span></span>
+          <strong>Search Analytics</strong>
+          <em>Local, opt-in reporting</em>
+        </div>
+        <div class="metric-row">
+          <div><span>Search to result click</span><strong>42%</strong></div>
+          <div><span>Zero-result searches</span><strong>3</strong></div>
+          <div><span>Chip CTR</span><strong>18%</strong></div>
+        </div>
+        <svg class="chart" viewBox="0 0 520 190" role="img" aria-label="Search analytics line chart">
+          <path class="chart-grid" d="M20 40H500M20 85H500M20 130H500M20 175H500"/>
+          <path class="chart-area" d="M20 160 C90 128 130 142 190 104 C250 66 300 94 360 62 C420 28 466 52 500 36 L500 175 L20 175Z"/>
+          <path class="chart-line chart-line--search" d="M20 160 C90 128 130 142 190 104 C250 66 300 94 360 62 C420 28 466 52 500 36"/>
+          <path class="chart-line chart-line--click" d="M20 168 C100 156 130 161 190 134 C250 110 312 126 360 98 C420 78 460 88 500 68"/>
+        </svg>
+      </aside>
+    </section>
+
+    <section class="final-card" aria-label="Closing frame">
+      <img src="../icon.png" alt="" width="76" height="76">
+      <h2>Guided search for WordPress and WooCommerce.</h2>
+      <p>Free reliable search UI. Pro adds range chips, analytics, chip rules, AI workflows, and advanced diagnostics.</p>
+      <div>
+        <span>Shortcode + block</span>
+        <span>Catalog chips</span>
+        <span>Local analytics</span>
+      </div>
+    </section>
+  </main>
+  <script src="./video-motion.js"></script>
+</body>
+</html>

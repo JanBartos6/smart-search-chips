@@ -17,6 +17,7 @@
     "local:wp:logs": "docker compose -f ./local-wp/compose.yml logs -f wordpress",
     "marketing:slides": "node ./marketing/screenshot-slides.mjs",
     "marketing:video": "node ./marketing/screenshot-slides.mjs && node ./marketing/record-showcase.mjs && ffmpeg -y -i ./marketing/video/smart-search-chips-showcase.webm -c:v libx264 -pix_fmt yuv420p -movflags +faststart -crf 20 ./marketing/video/smart-search-chips-showcase.mp4",
+    "marketing:video:motion": "node ./marketing/record-motion-showcase.mjs",
     "test:browser": "playwright test",
     "test:browser:compat": "playwright test tests/browser/theme-compat-matrix.spec.js",
     "test:browser:headed": "playwright test --headed"
