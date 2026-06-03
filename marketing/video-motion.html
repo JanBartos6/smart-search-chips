@@ -45,6 +45,16 @@
           </label>
 
           <div class="chip-row" aria-label="Generated chips">
+            <div id="volume-range-chip" class="range-chip">
+              <span class="range-chip__label">Volume</span>
+              <span class="range-chip__values"><strong>12</strong><i>-</i><strong>45</strong><em>L</em></span>
+              <span class="range-chip__slider" aria-hidden="true">
+                <span class="range-chip__rail"></span>
+                <span class="range-chip__fill"></span>
+                <span class="range-chip__dot range-chip__dot--min"></span>
+                <span class="range-chip__dot range-chip__dot--max"></span>
+              </span>
+            </div>
             <button id="chip-everyday" class="chip" data-chip="everyday">everyday <small>5</small></button>
             <button id="chip-travel" class="chip" data-chip="travel">travel <small>11</small></button>
             <button id="chip-water" class="chip" data-chip="water resistant">water resistant <small>10</small></button>
@@ -56,7 +66,7 @@
           <div class="result-meta">
             <span><strong id="result-count">20</strong> results</span>
             <span><strong id="filter-count">0</strong> filters selected</span>
-            <span><strong id="chip-count">6</strong> generated chips</span>
+            <span><strong id="chip-count">7</strong> generated chips</span>
           </div>
 
           <div class="result-list" id="result-list"></div>

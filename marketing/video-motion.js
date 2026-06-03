@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var DURATION = 12500;
+  var DURATION = 9500;
   var query = "backpack";
   var products = [
     { title: "City Mini Backpack 12L", meta: "Tags: everyday, commuter, 12L", price: "$46.00", tags: ["everyday", "commuter", "12L"], image: "./launch-site/assets/backpacks/everyday-backpack.jpg" },
@@ -86,38 +86,38 @@
   }
 
   function phaseFor(ms) {
-    if (ms >= 10800) {
+    if (ms >= 8100) {
       return "final";
     }
-    if (ms >= 7800) {
+    if (ms >= 5200) {
       return "refine";
     }
-    if (ms >= 5000) {
+    if (ms >= 3300) {
       return "filter";
     }
-    if (ms >= 2700) {
+    if (ms >= 2000) {
       return "chips";
     }
-    if (ms >= 900) {
+    if (ms >= 620) {
       return "type";
     }
     return "open";
   }
 
   function typedQueryFor(ms) {
-    if (ms < 900) {
+    if (ms < 620) {
       return "";
     }
 
-    var progress = clamp((ms - 1050) / 950, 0, 1);
+    var progress = clamp((ms - 760) / 760, 0, 1);
     return query.slice(0, Math.round(progress * query.length));
   }
 
   function activeTagsFor(ms) {
-    if (ms >= 7800 && ms < 10800) {
+    if (ms >= 5200 && ms < 8100) {
       return ["travel", "water resistant"];
     }
-    if (ms >= 5000 && ms < 10800) {
+    if (ms >= 3300 && ms < 8100) {
       return ["travel"];
     }
     return [];
@@ -159,7 +159,7 @@
   function renderCounts(results, activeTags, typed) {
     els.resultCount.textContent = typed.length < query.length ? "0" : String(results.length);
     els.filterCount.textContent = String(activeTags.length);
-    els.chipCount.textContent = typed.length < query.length ? "0" : String(chipDefs.length);
+    els.chipCount.textContent = typed.length < query.length ? "0" : String(chipDefs.length + 1);
   }
 
   function renderResults(results) {
@@ -197,7 +197,7 @@
       return activeTags.length + (activeTags.length === 1 ? " filter selected" : " filters selected");
     }
 
-    return chipDefs.length + " chips generated";
+    return (chipDefs.length + 1) + " chips generated";
   }
 
   function cursorFor(ms, phase) {
@@ -210,15 +210,15 @@
     }
 
     if (phase === "chips") {
-      return { x: 374, y: 221, scale: 1, label: "chips appear" };
+      return { x: 252, y: 221, scale: 1, label: "range + chips" };
     }
 
     if (phase === "filter") {
-      return { x: 205, y: 221, scale: 1.02, label: "choose travel" };
+      return { x: 382, y: 221, scale: 1.02, label: "choose travel" };
     }
 
     if (phase === "refine") {
-      return { x: 332, y: 221, scale: 1.02, label: "add water resistant" };
+      return { x: 508, y: 221, scale: 1.02, label: "add water resistant" };
     }
 
     return null;

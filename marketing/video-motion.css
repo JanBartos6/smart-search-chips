@@ -200,12 +200,12 @@ p {
 
 body[data-phase="type"] .product-stage,
 body[data-phase="chips"] .product-stage {
-  transform: translateX(-12px) translateY(4px) scale(1.025);
+  transform: translateX(-38px) translateY(8px) scale(1.055);
 }
 
 body[data-phase="filter"] .product-stage,
 body[data-phase="refine"] .product-stage {
-  transform: translateX(-42px) translateY(10px) scale(1.04);
+  transform: translateX(0) translateY(14px) scale(1.07);
 }
 
 .browser-shell {
@@ -233,7 +233,7 @@ body[data-phase="refine"] .product-stage {
 
 body[data-phase="filter"] .browser-shell,
 body[data-phase="refine"] .browser-shell {
-  transform: translateX(-10px) scale(1.015);
+  transform: translateX(-8px) scale(1.02);
 }
 
 body[data-phase="final"] .browser-shell {

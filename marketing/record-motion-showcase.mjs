@@ -8,11 +8,11 @@ const showcasePath = resolve(__dirname, 'video-motion.html');
 const videoDir = resolve(__dirname, 'video');
 const finalVideoPath = resolve(videoDir, 'smart-search-chips-motion-showcase.webm');
 const frameTimes = [
-    { name: 'motion-frame-01-type.png', frame: 1900 },
-    { name: 'motion-frame-02-chips.png', frame: 3600 },
-    { name: 'motion-frame-03-filter.png', frame: 6200 },
-    { name: 'motion-frame-04-refine.png', frame: 9000 },
-    { name: 'motion-frame-05-final.png', frame: 11300 },
+    { name: 'motion-frame-01-type.png', frame: 1400 },
+    { name: 'motion-frame-02-chips.png', frame: 2400 },
+    { name: 'motion-frame-03-filter.png', frame: 3900 },
+    { name: 'motion-frame-04-refine.png', frame: 5900 },
+    { name: 'motion-frame-05-final.png', frame: 8600 },
 ];
 
 await mkdir(videoDir, { recursive: true });
