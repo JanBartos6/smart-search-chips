@@ -1331,13 +1331,15 @@ class SSCHP_Search_Handler {
                 array(
                     'context' => 'ajax',
                     'styles'  => array(
-                        'background' => $is_active ? $color : $inactive_color,
-                        'color'      => $is_active ? $text_color : $inactive_text,
-                        'border'     => $color,
-                        'radius'     => $radius,
-                        'font_size'  => $font_size,
-                        'pad_x'      => $pad_x,
-                        'pad_y'      => $pad_y,
+                        'background'        => $is_active ? $color : $inactive_color,
+                        'color'             => $is_active ? $text_color : $inactive_text,
+                        'border'            => $color,
+                        'active_background' => $color,
+                        'active_color'      => $text_color,
+                        'radius'            => $radius,
+                        'font_size'         => $font_size,
+                        'pad_x'             => $pad_x,
+                        'pad_y'             => $pad_y,
                     ),
                 )
             );

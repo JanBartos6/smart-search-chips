@@ -694,12 +694,17 @@ class SSCHP_Range_Filters {
         $step         = $this->format_number( $range['step'] );
         $value        = $this->encode_active_range( $range['group_key'], $range['unit_key'], $selected_min, $selected_max, $bounds_min, $bounds_max );
 
+        $active_background = isset( $styles['active_background'] ) ? $styles['active_background'] : ( isset( $styles['border'] ) ? $styles['border'] : '#e74c3c' );
+        $active_color      = isset( $styles['active_color'] ) ? $styles['active_color'] : '#ffffff';
+
         $style_attr = sprintf(
-            '--ssc-range-accent:%s;--ssc-range-bg:%s;--ssc-range-color:%s;--ssc-range-border:%s;--ssc-range-radius:%spx;--ssc-range-font:%spx;',
+            '--ssc-range-accent:%s;--ssc-range-bg:%s;--ssc-range-color:%s;--ssc-range-border:%s;--ssc-range-active-bg:%s;--ssc-range-active-color:%s;--ssc-range-radius:%spx;--ssc-range-font:%spx;',
             esc_attr( isset( $styles['border'] ) ? $styles['border'] : '#e74c3c' ),
             esc_attr( isset( $styles['background'] ) ? $styles['background'] : '#ffffff' ),
             esc_attr( isset( $styles['color'] ) ? $styles['color'] : '#333333' ),
             esc_attr( isset( $styles['border'] ) ? $styles['border'] : '#e74c3c' ),
+            esc_attr( $active_background ),
+            esc_attr( $active_color ),
             esc_attr( isset( $styles['radius'] ) ? $styles['radius'] : 16 ),
             esc_attr( isset( $styles['font_size'] ) ? $styles['font_size'] : 13 )
         );

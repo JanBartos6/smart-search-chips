@@ -500,6 +500,13 @@ function sschp_test_range_chip_css_uses_aligned_desktop_thumbs() {
     sschp_assert_contains( '--ssc-range-track-height: 3px;', $css, 'range chip rail should use a compact desktop track height' );
     sschp_assert_contains( '--ssc-range-thumb-size: 8px;', $css, 'range chip desktop thumb should stay visually compact for pointer precision' );
     sschp_assert_contains( '--ssc-range-hit-size: 22px;', $css, 'range chip desktop drag area should remain easy to target' );
+    sschp_assert_contains( '--ssc-range-active-bg: var(--ssc-range-border);', $css, 'range chip active background should default to the normal selected chip color' );
+    sschp_assert_contains( '.ssc-range-chip--active {', $css, 'range chip stylesheet should style selected range chips as active chips' );
+    sschp_assert_contains( 'background: var(--ssc-range-active-bg);', $css, 'selected range chips should use a filled active background like normal chips' );
+    sschp_assert_contains( '.ssc-range-chip--active .ssc-range-chip__sliders::before', $css, 'selected range chip rail should change color on active chips' );
+    sschp_assert_contains( 'background: rgba(255, 255, 255, 0.34);', $css, 'selected range chip rail should be softly visible on a filled chip' );
+    sschp_assert_contains( '.ssc-range-chip--active .ssc-range-chip__input::-webkit-slider-thumb', $css, 'selected range chip WebKit thumb should invert on active chips' );
+    sschp_assert_contains( '.ssc-range-chip--active .ssc-range-chip__input::-moz-range-thumb', $css, 'selected range chip Firefox thumb should invert on active chips' );
     sschp_assert_contains( 'top: 50%;', $css, 'range chip rail should be vertically centered in the drag area' );
     sschp_assert_contains( 'transform: translateY(-50%);', $css, 'range chip rail centering should not depend on hard-coded offsets' );
     sschp_assert_contains( 'margin-top: calc((var(--ssc-range-track-height) - var(--ssc-range-thumb-size)) / 2);', $css, 'range chip WebKit thumb should align from the track/thumb variables' );
@@ -513,6 +520,48 @@ function sschp_test_range_chip_css_uses_aligned_desktop_thumbs() {
     sschp_assert_contains( 'flex: 0 1 96px;', $css, 'range chip slider should have a compact inline width' );
     sschp_assert_contains( '.ssc-range-chip__label', $css, 'range chip stylesheet should style a visible inline range label' );
     sschp_assert_contains( 'ssc-range-chip__label', file_get_contents( dirname( __DIR__ ) . '/includes/class-range-filters__premium_only.php' ), 'range chip markup should show the range label instead of exposing only numeric values' );
+}
+
+function sschp_test_range_chip_renderer_exports_active_chip_colors() {
+    $range = new SSCHP_Range_Filters();
+    $chip  = array(
+        'type'  => 'range',
+        'label' => 'Volume',
+        'count' => 4,
+        'value' => 'sschp_range|volume|l|12|45|12|45',
+        'range' => array(
+            'group_key'    => 'volume',
+            'unit_key'     => 'l',
+            'unit'         => 'L',
+            'min'          => 12,
+            'max'          => 45,
+            'selected_min' => 12,
+            'selected_max' => 45,
+            'step'         => 1,
+        ),
+    );
+    $html  = $range->render_range_chip(
+        '',
+        $chip,
+        array( 'sschp_range|volume|l|20|45|12|45' ),
+        array(
+            'context' => 'ajax',
+            'styles'  => array(
+                'background'        => '#ffffff',
+                'color'             => '#111820',
+                'border'            => '#087b3f',
+                'active_background' => '#087b3f',
+                'active_color'      => '#ffffff',
+                'radius'            => 8,
+                'font_size'         => 13,
+            ),
+        )
+    );
+
+    sschp_assert_contains( 'ssc-range-chip--active', $html, 'active range chip markup should expose the selected chip class' );
+    sschp_assert_contains( '--ssc-range-active-bg:#087b3f;', $html, 'active range chip markup should expose the selected chip background variable' );
+    sschp_assert_contains( '--ssc-range-active-color:#ffffff;', $html, 'active range chip markup should expose the selected chip text variable' );
+    sschp_assert_contains( 'data-range-label="Volume"', $html, 'range chip markup should keep the human range label for UI and analytics events' );
 }
 
 function sschp_test_chip_engine_extract_tags() {
@@ -4108,6 +4157,7 @@ sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_import_exp
 sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_preserve_range_chip_keys_for_prioritizer' );
 sschp_test_wporg_build_excludes_pro_chip_rules_class();
 sschp_test_range_chip_css_uses_aligned_desktop_thumbs();
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_chip_renderer_exports_active_chip_colors' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_watt_slider_from_consistent_facts' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_keep_ac_dc_voltage_separate' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_valve_sliders_from_dn_pn_and_bar_values' );
