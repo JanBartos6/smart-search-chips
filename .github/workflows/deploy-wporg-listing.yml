@@ -93,8 +93,9 @@ jobs:
         env:
           VERSION: ${{ steps.listing_version.outputs.version }}
         run: |
-          svn checkout --depth immediates https://plugins.svn.wordpress.org/smart-search-chips wporg-svn
-          svn update wporg-svn/trunk wporg-svn/assets "wporg-svn/tags/$VERSION"
+          svn checkout --depth empty https://plugins.svn.wordpress.org/smart-search-chips wporg-svn
+          svn update --set-depth immediates wporg-svn
+          svn update --set-depth infinity wporg-svn/trunk wporg-svn/assets "wporg-svn/tags/$VERSION"
 
       - name: Copy listing files
         shell: bash
