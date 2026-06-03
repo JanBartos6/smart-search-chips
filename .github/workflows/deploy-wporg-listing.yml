@@ -1,0 +1,151 @@
+name: Deploy WordPress.org Listing
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/deploy-wporg-listing.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wporg-listing
+  cancel-in-progress: false
+
+jobs:
+  deploy-listing:
+    name: Deploy WordPress.org listing assets
+    runs-on: ubuntu-latest
+    environment: release
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: Make PowerShell available to npm scripts
+        shell: bash
+        run: |
+          if ! command -v powershell >/dev/null 2>&1; then
+            sudo ln -s "$(command -v pwsh)" /usr/local/bin/powershell
+          fi
+          powershell -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build WordPress.org package
+        run: npm run build:wporg
+
+      - name: Validate WordPress.org package
+        run: npm run validate:wporg
+
+      - name: Lint WordPress.org package
+        run: npm run lint:wporg
+
+      - name: Resolve listing version
+        id: listing_version
+        shell: bash
+        run: |
+          version="$(awk -F': ' '/^Stable tag:/ { print $2; exit }' build-sources/wporg/readme.txt)"
+          if [ -z "$version" ]; then
+            echo "::error::Could not resolve Stable tag from build-sources/wporg/readme.txt"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Verify deployment secrets
+        shell: bash
+        env:
+          SVN_USERNAME: ${{ secrets.WPORG_USERNAME || secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.WPORG_PASSWORD || secrets.SVN_PASSWORD }}
+        run: |
+          missing=0
+          for name in SVN_USERNAME SVN_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required WordPress.org deploy secret: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install Subversion
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y subversion
+
+      - name: Check out WordPress.org SVN
+        shell: bash
+        env:
+          VERSION: ${{ steps.listing_version.outputs.version }}
+        run: |
+          svn checkout --depth immediates https://plugins.svn.wordpress.org/smart-search-chips wporg-svn
+          svn update wporg-svn/trunk wporg-svn/assets "wporg-svn/tags/$VERSION"
+
+      - name: Copy listing files
+        shell: bash
+        env:
+          VERSION: ${{ steps.listing_version.outputs.version }}
+        run: |
+          package_dir="build/smart-search-chips-wporg/smart-search-chips"
+          stable_tag_dir="wporg-svn/tags/$VERSION"
+
+          if [ ! -d "$stable_tag_dir" ]; then
+            echo "::error::Stable tag directory does not exist in SVN: tags/$VERSION"
+            exit 1
+          fi
+
+          cp "$package_dir/readme.txt" wporg-svn/trunk/readme.txt
+          cp "$package_dir/readme.txt" "$stable_tag_dir/readme.txt"
+
+          mkdir -p wporg-svn/assets
+          for screenshot in screenshot-1.png screenshot-2.png screenshot-3.png; do
+            cp "$screenshot" "wporg-svn/assets/$screenshot"
+            cp "$screenshot" "wporg-svn/trunk/$screenshot"
+            cp "$screenshot" "$stable_tag_dir/$screenshot"
+          done
+
+          svn add --force \
+            wporg-svn/assets/screenshot-1.png \
+            wporg-svn/assets/screenshot-2.png \
+            wporg-svn/assets/screenshot-3.png \
+            wporg-svn/trunk/screenshot-1.png \
+            wporg-svn/trunk/screenshot-2.png \
+            wporg-svn/trunk/screenshot-3.png \
+            "$stable_tag_dir/screenshot-1.png" \
+            "$stable_tag_dir/screenshot-2.png" \
+            "$stable_tag_dir/screenshot-3.png"
+
+      - name: Commit WordPress.org listing update
+        shell: bash
+        env:
+          SVN_USERNAME: ${{ secrets.WPORG_USERNAME || secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.WPORG_PASSWORD || secrets.SVN_PASSWORD }}
+          VERSION: ${{ steps.listing_version.outputs.version }}
+        run: |
+          cd wporg-svn
+          svn status
+          if [ -z "$(svn status)" ]; then
+            echo "No WordPress.org listing changes to deploy."
+            exit 0
+          fi
+          svn commit \
+            --non-interactive \
+            --no-auth-cache \
+            --username "$SVN_USERNAME" \
+            --password "$SVN_PASSWORD" \
+            -m "Update Smart Search Chips WordPress.org listing for $VERSION"
