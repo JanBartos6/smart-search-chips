@@ -8,19 +8,19 @@ Stable tag: 1.1.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Guided search chips for WordPress and WooCommerce. Add a reliable search block or shortcode, generate non-redundant chips, and debug search setup from admin.
+Reliable guided search chips for WordPress and WooCommerce. Add a search block or shortcode, generate useful chips, and debug search setup from admin.
 
 == Description ==
 
 Smart Search Chips adds a reliable guided search UI to WordPress. Use the included Search block or `[sschp_search]` shortcode for a guaranteed search experience, or safely enhance compatible theme AJAX searches when you want to keep an existing layout.
 
-Unlike traditional faceted search plugins that require you to predefine every filter, Smart Search Chips generates useful chips from the matching results. It hides redundant tags, supports a local search index, and includes admin diagnostics so you can see why chips did or did not appear.
+Unlike traditional faceted search plugins that require every filter to be designed up front, Smart Search Chips generates useful chips from the matching results. It hides redundant tags, supports a local search index, and includes admin diagnostics so you can see which search path was used and why chips did or did not appear.
 
 **How it works:**
 
 1. A visitor searches through the Smart Search Chips block, shortcode, or a compatible enhanced theme search
 2. The plugin finds results through the local index, Relevanssi, or WordPress fallback search
-3. It analyzes the matching results and their Search Chips Tags
+3. It analyzes the matching results, Search Chips Tags, and optional WooCommerce helper tags
 4. It displays clickable chips ranked by frequency and usefulness
 5. Redundant chips are hidden when they would not narrow the result set
 6. Clicking a chip filters the visible results without asking the visitor to rewrite the query
@@ -73,7 +73,7 @@ No, but it's recommended. Without Relevanssi, the plugin uses default WordPress 
 
 = How do I populate the tag fields? =
 
-Use the built-in Search Chips Tags meta box on each post/product. Tags should be semicolon-separated. ACF/custom field connectors are available separately in Smart Search Chips Pro as a Pro add-on feature for teams that already maintain structured product fields.
+Use the built-in Search Chips Tags meta box on each post/product. Tags should be semicolon-separated. ACF/custom field connectors are available separately in Smart Search Chips Pro for teams that already maintain structured product fields.
 
 = Can I override the search result HTML? =
 
@@ -89,13 +89,13 @@ Yes. Set "Post Types" to include "product". This WordPress.org edition can use t
 
 = What is available separately in Smart Search Chips Pro? =
 
-Smart Search Chips Pro is a separate add-on for advanced workflows such as ACF/custom field mapping, numeric range slider chips, local search analytics/reporting, synonym rules, manual chip curation, AI-assisted tag workflows, commercial support, and authenticated REST access for managing Pro chip rules.
+Smart Search Chips Pro is a separate add-on for advanced workflows such as ACF/custom field mapping, numeric range slider chips, synonym rules, pinned/hidden/renamed chips, local search analytics, zero-result reports, result-click tracking, scheduled email digests, AI-assisted tag workflows, JSON rule import/export, and commercial support.
 
 == Screenshots ==
 
-1. Guaranteed search UI rendered by the Search block or shortcode, with generated chips and result previews from a local demo WordPress site.
-2. Admin Test Search reports the search path, result counts, generated chips, warnings, and first results.
-3. Local Search Index controls show readiness, progress, indexed rows, and maintenance actions.
+1. Frontend search UI with generated chips, active chip filtering, and WooCommerce-style result cards.
+2. Admin Test Search shows the search path, result counts, generated chips, warnings, and sample output.
+3. Local Search Index controls show readiness, progress, indexed rows, and safe maintenance actions.
 
 == Changelog ==
 
@@ -221,7 +221,7 @@ Smart Search Chips Pro is a separate add-on for advanced workflows such as ACF/c
 
 == Smart Search Chips Pro ==
 
-Smart Search Chips Pro is available separately from https://smartsearchchips.app/ for teams that want advanced workflows: ACF/custom field connectors, numeric range slider chips, local search analytics/reporting, synonym rules, manual chip curation, AI-assisted tag workflows, commercial support, and authenticated REST access for Pro chip rules. The WordPress.org plugin is fully functional with its built-in Search Chips Tags field and does not require accounts or payment.
+Smart Search Chips Pro is available separately from https://smartsearchchips.app/ for teams that want advanced workflows: ACF/custom field connectors, numeric range slider chips, chip rules, JSON import/export, local analytics/reporting, scheduled email digests, AI-assisted tag workflows, and commercial support. The WordPress.org plugin is fully functional with its built-in Search Chips Tags field and does not require accounts or payment.
 
 == Privacy Policy ==
 
