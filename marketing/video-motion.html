@@ -17,18 +17,17 @@
         <span>Smart Search Chips</span>
       </div>
       <div class="scene-labels" aria-hidden="true">
-        <span data-step="search">Search UI</span>
-        <span data-step="range">Range chip</span>
-        <span data-step="diagnostics">Diagnostics</span>
-        <span data-step="analytics">Analytics</span>
-        <span data-step="workflows">Pro workflows</span>
+        <span data-step="type">Type</span>
+        <span data-step="chips">Chips</span>
+        <span data-step="filter">Filter</span>
+        <span data-step="refine">Refine</span>
       </div>
     </header>
 
     <section class="copy-stack" aria-label="Video captions">
       <p class="overline" id="caption-overline">WordPress search, guided</p>
-      <h1 id="caption-title">Help visitors narrow real catalog results.</h1>
-      <p id="caption-body">A reliable shortcode and block search UI, generated chips, range filters, diagnostics, and local analytics.</p>
+      <h1 id="caption-title">Type once. Keep narrowing.</h1>
+      <p id="caption-body">Smart Search Chips turns a normal search result set into quick catalog filters.</p>
     </section>
 
     <section class="product-stage" aria-label="Backpack catalog search animation">
@@ -46,108 +45,23 @@
           </label>
 
           <div class="chip-row" aria-label="Generated chips">
-            <div id="volume-range-chip" class="range-chip">
-              <span class="range-chip__label">Volume</span>
-              <span class="range-chip__values"><strong id="range-min-label">12</strong><i>-</i><strong id="range-max-label">45</strong><em>L</em></span>
-              <span class="range-chip__slider" aria-hidden="true">
-                <span class="range-chip__rail"></span>
-                <span class="range-chip__fill" id="range-fill"></span>
-                <span class="range-chip__dot range-chip__dot--min" id="range-dot-min"></span>
-                <span class="range-chip__dot range-chip__dot--max" id="range-dot-max"></span>
-              </span>
-            </div>
-            <button class="chip" data-chip="everyday">everyday <small id="chip-everyday">5</small></button>
-            <button class="chip" data-chip="travel">travel <small id="chip-travel">11</small></button>
-            <button class="chip" data-chip="water resistant">water resistant <small id="chip-water">12</small></button>
-            <button class="chip" data-chip="commuter">commuter <small id="chip-commuter">4</small></button>
+            <button id="chip-everyday" class="chip" data-chip="everyday">everyday <small>5</small></button>
+            <button id="chip-travel" class="chip" data-chip="travel">travel <small>11</small></button>
+            <button id="chip-water" class="chip" data-chip="water resistant">water resistant <small>10</small></button>
+            <button id="chip-commuter" class="chip" data-chip="commuter">commuter <small>4</small></button>
+            <button id="chip-laptop" class="chip" data-chip="laptop">laptop <small>5</small></button>
+            <button id="chip-camera" class="chip" data-chip="camera">camera <small>4</small></button>
           </div>
 
           <div class="result-meta">
             <span><strong id="result-count">20</strong> results</span>
             <span><strong id="filter-count">0</strong> filters selected</span>
-            <span><strong id="chip-count">9</strong> generated chips</span>
+            <span><strong id="chip-count">6</strong> generated chips</span>
           </div>
 
           <div class="result-list" id="result-list"></div>
         </div>
       </div>
-
-      <aside class="diagnostics-card" aria-label="Diagnostics animation">
-        <div class="panel-title">
-          <span></span>
-          <strong>Test Search</strong>
-          <em>Query: backpack</em>
-        </div>
-        <div class="diagnostic-grid">
-          <div><span>Path</span><strong>Local index</strong></div>
-          <div><span>Results</span><strong>16</strong></div>
-          <div><span>Tagged</span><strong>16</strong></div>
-          <div><span>Warnings</span><strong>0</strong></div>
-        </div>
-        <ul>
-          <li><b></b> Chips generated from catalog tags and WooCommerce helpers.</li>
-          <li><b></b> Range chip accepted: Volume, L, high confidence.</li>
-          <li><b></b> Fallbacks stay available if the index is not ready.</li>
-        </ul>
-      </aside>
-
-      <aside class="analytics-card" aria-label="Analytics animation">
-        <div class="panel-title">
-          <span></span>
-          <strong>Search Analytics</strong>
-          <em>Local, opt-in reporting</em>
-        </div>
-        <div class="metric-row">
-          <div><span>Search to result click</span><strong>42%</strong></div>
-          <div><span>Zero-result searches</span><strong>3</strong></div>
-          <div><span>Chip CTR</span><strong>18%</strong></div>
-        </div>
-        <svg class="chart" viewBox="0 0 520 190" role="img" aria-label="Search analytics line chart">
-          <path class="chart-grid" d="M20 40H500M20 85H500M20 130H500M20 175H500"/>
-          <path class="chart-area" d="M20 160 C90 128 130 142 190 104 C250 66 300 94 360 62 C420 28 466 52 500 36 L500 175 L20 175Z"/>
-          <path class="chart-line chart-line--search" d="M20 160 C90 128 130 142 190 104 C250 66 300 94 360 62 C420 28 466 52 500 36"/>
-          <path class="chart-line chart-line--click" d="M20 168 C100 156 130 161 190 134 C250 110 312 126 360 98 C420 78 460 88 500 68"/>
-        </svg>
-        <div class="analytics-actions">
-          <span>Zero-result report</span>
-          <span>Chart export</span>
-          <span>Email digest</span>
-        </div>
-      </aside>
-
-      <aside class="workflow-card" aria-label="Pro workflows animation">
-        <div class="panel-title">
-          <span></span>
-          <strong>Pro Toolkit</strong>
-          <em>For serious search sites</em>
-        </div>
-        <div class="workflow-grid">
-          <div>
-            <strong>Chip rules</strong>
-            <span>Synonyms, pinned chips, hidden chips, renamed labels.</span>
-          </div>
-          <div>
-            <strong>Field mapping</strong>
-            <span>ACF and custom fields can become catalog-aware chips.</span>
-          </div>
-          <div>
-            <strong>Email digests</strong>
-            <span>Local analytics reports sent only to configured recipients.</span>
-          </div>
-          <div>
-            <strong>AI workflows</strong>
-            <span>Generate prompts for assisted tagging and REST write-back.</span>
-          </div>
-          <div>
-            <strong>Range diagnostics</strong>
-            <span>Accepted and rejected numeric groups with confidence reasons.</span>
-          </div>
-          <div>
-            <strong>WP.org boundary</strong>
-            <span>Free ships useful search. Pro code stays out of the free build.</span>
-          </div>
-        </div>
-      </aside>
 
       <div class="motion-cursor" id="motion-cursor" aria-hidden="true">
         <span class="motion-cursor__pointer"></span>
@@ -157,17 +71,13 @@
 
     <section class="final-card" aria-label="Closing frame">
       <img src="../icon.png" alt="" width="76" height="76">
-      <h2>Guided search for WordPress and WooCommerce.</h2>
-      <p>Free gives every site a reliable search UI and diagnostics. Pro adds the catalog workflows teams ask for after launch.</p>
+      <h2>Search results that help visitors choose.</h2>
+      <p>Add the block or shortcode. Let visitors filter from the language already inside your catalog.</p>
       <div class="final-feature-grid">
-        <span>Shortcode + Gutenberg block</span>
-        <span>Theme AJAX enhancement</span>
-        <span>Local index + fallbacks</span>
-        <span>WooCommerce helper tags</span>
-        <span>Numeric range chips</span>
-        <span>Chip rules + field mapping</span>
-        <span>Local analytics + exports</span>
-        <span>AI-assisted tagging</span>
+        <span>Search</span>
+        <span>Chips</span>
+        <span>Filter</span>
+        <span>Choose</span>
       </div>
     </section>
   </main>

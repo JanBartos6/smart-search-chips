@@ -130,11 +130,10 @@ input {
   transition: color 220ms ease, border-color 220ms ease, background 220ms ease;
 }
 
-body[data-phase="search"] .scene-labels [data-step="search"],
-body[data-phase="range"] .scene-labels [data-step="range"],
-body[data-phase="diagnostics"] .scene-labels [data-step="diagnostics"],
-body[data-phase="analytics"] .scene-labels [data-step="analytics"],
-body[data-phase="workflows"] .scene-labels [data-step="workflows"] {
+body[data-phase="type"] .scene-labels [data-step="type"],
+body[data-phase="chips"] .scene-labels [data-step="chips"],
+body[data-phase="filter"] .scene-labels [data-step="filter"],
+body[data-phase="refine"] .scene-labels [data-step="refine"] {
   border-color: var(--green);
   color: #fff;
   background: var(--green);
@@ -149,13 +148,12 @@ body[data-phase="workflows"] .scene-labels [data-step="workflows"] {
   transition: transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 420ms ease;
 }
 
-body[data-phase="range"] .copy-stack {
+body[data-phase="chips"] .copy-stack {
   transform: translateY(-8px) scale(0.98);
 }
 
-body[data-phase="diagnostics"] .copy-stack,
-body[data-phase="analytics"] .copy-stack,
-body[data-phase="workflows"] .copy-stack {
+body[data-phase="filter"] .copy-stack,
+body[data-phase="refine"] .copy-stack {
   transform: translateY(-18px) scale(0.94);
 }
 
@@ -200,24 +198,14 @@ p {
   transition: transform 860ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-body[data-phase="search"] .product-stage {
+body[data-phase="type"] .product-stage,
+body[data-phase="chips"] .product-stage {
   transform: translateX(-12px) translateY(4px) scale(1.025);
 }
 
-body[data-phase="range"] .product-stage {
-  transform: translateX(-54px) translateY(14px) scale(1.045);
-}
-
-body[data-phase="diagnostics"] .product-stage {
-  transform: translateX(-24px) scale(0.96);
-}
-
-body[data-phase="analytics"] .product-stage {
-  transform: translateX(-84px) translateY(12px) scale(0.935);
-}
-
-body[data-phase="workflows"] .product-stage {
-  transform: translateX(-124px) translateY(2px) scale(0.9);
+body[data-phase="filter"] .product-stage,
+body[data-phase="refine"] .product-stage {
+  transform: translateX(-42px) translateY(10px) scale(1.04);
 }
 
 .browser-shell {
@@ -243,20 +231,9 @@ body[data-phase="workflows"] .product-stage {
   pointer-events: none;
 }
 
-body[data-phase="diagnostics"] .browser-shell,
-body[data-phase="analytics"] .browser-shell {
-  transform: translateX(-90px) scale(0.86);
-  filter: saturate(0.82);
-}
-
-body[data-phase="range"] .browser-shell {
+body[data-phase="filter"] .browser-shell,
+body[data-phase="refine"] .browser-shell {
   transform: translateX(-10px) scale(1.015);
-}
-
-body[data-phase="workflows"] .browser-shell {
-  opacity: 0.38;
-  transform: translateX(-170px) scale(0.78);
-  filter: saturate(0.72) blur(0.5px);
 }
 
 body[data-phase="final"] .browser-shell {
@@ -264,10 +241,10 @@ body[data-phase="final"] .browser-shell {
   transform: translateY(24px) scale(0.9);
 }
 
-body[data-phase="search"] .browser-shell::after,
-body[data-phase="range"] .browser-shell::after,
-body[data-phase="diagnostics"] .browser-shell::after,
-body[data-phase="analytics"] .browser-shell::after {
+body[data-phase="type"] .browser-shell::after,
+body[data-phase="chips"] .browser-shell::after,
+body[data-phase="filter"] .browser-shell::after,
+body[data-phase="refine"] .browser-shell::after {
   animation: scanShine 860ms ease 140ms both;
 }
 
@@ -377,6 +354,15 @@ body[data-phase="analytics"] .browser-shell::after {
   gap: 9px;
   min-height: 92px;
   padding: 20px 0 10px;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 320ms ease, transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+body[data-phase="open"] .chip-row,
+body[data-phase="type"] .chip-row {
+  opacity: 0;
+  transform: translateY(12px);
 }
 
 .chip,
@@ -402,6 +388,22 @@ body[data-phase="analytics"] .browser-shell::after {
   color: #7a858b;
   font-size: 12px;
   font-weight: 850;
+}
+
+.chip.is-active {
+  border-color: var(--green);
+  color: #fff;
+  background: var(--green);
+  box-shadow: 0 12px 30px rgba(8, 123, 63, 0.18);
+}
+
+.chip.is-active small {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+body[data-phase="filter"] .chip.is-active,
+body[data-phase="refine"] .chip.is-active {
+  animation: selectedPulse 760ms cubic-bezier(0.2, 0.8, 0.2, 1) 1 both;
 }
 
 .range-chip {
@@ -557,6 +559,18 @@ body[data-phase="range"] .range-chip.is-active {
   max-height: 590px;
   overflow: hidden;
   padding-bottom: 30px;
+}
+
+.result-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  border: 1px dashed #cfd8d2;
+  border-radius: 12px;
+  color: #6a747b;
+  background: #fbfcfb;
+  font-size: 15px;
+  font-weight: 760;
 }
 
 .result-card {
