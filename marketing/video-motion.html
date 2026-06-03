@@ -19,6 +19,7 @@
       <div class="scene-labels" aria-hidden="true">
         <span data-step="type">Type</span>
         <span data-step="chips">Chips</span>
+        <span data-step="range">Range</span>
         <span data-step="filter">Filter</span>
         <span data-step="refine">Refine</span>
       </div>
@@ -47,10 +48,10 @@
           <div class="chip-row" aria-label="Generated chips">
             <div id="volume-range-chip" class="range-chip">
               <span class="range-chip__label">Volume</span>
-              <span class="range-chip__values"><strong>12</strong><i>-</i><strong>45</strong><em>L</em></span>
+              <span class="range-chip__values"><strong id="range-min-label">12</strong><i>-</i><strong>45</strong><em>L</em></span>
               <span class="range-chip__slider" aria-hidden="true">
                 <span class="range-chip__rail"></span>
-                <span class="range-chip__fill"></span>
+                <span class="range-chip__fill" id="range-fill"></span>
                 <span class="range-chip__dot range-chip__dot--min"></span>
                 <span class="range-chip__dot range-chip__dot--max"></span>
               </span>

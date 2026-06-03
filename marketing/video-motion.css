@@ -132,6 +132,7 @@ input {
 
 body[data-phase="type"] .scene-labels [data-step="type"],
 body[data-phase="chips"] .scene-labels [data-step="chips"],
+body[data-phase="range"] .scene-labels [data-step="range"],
 body[data-phase="filter"] .scene-labels [data-step="filter"],
 body[data-phase="refine"] .scene-labels [data-step="refine"] {
   border-color: var(--green);
@@ -148,7 +149,8 @@ body[data-phase="refine"] .scene-labels [data-step="refine"] {
   transition: transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 420ms ease;
 }
 
-body[data-phase="chips"] .copy-stack {
+body[data-phase="chips"] .copy-stack,
+body[data-phase="range"] .copy-stack {
   transform: translateY(-8px) scale(0.98);
 }
 
@@ -199,7 +201,8 @@ p {
 }
 
 body[data-phase="type"] .product-stage,
-body[data-phase="chips"] .product-stage {
+body[data-phase="chips"] .product-stage,
+body[data-phase="range"] .product-stage {
   transform: translateX(-38px) translateY(8px) scale(1.055);
 }
 
@@ -243,6 +246,7 @@ body[data-phase="final"] .browser-shell {
 
 body[data-phase="type"] .browser-shell::after,
 body[data-phase="chips"] .browser-shell::after,
+body[data-phase="range"] .browser-shell::after,
 body[data-phase="filter"] .browser-shell::after,
 body[data-phase="refine"] .browser-shell::after {
   animation: scanShine 860ms ease 140ms both;
@@ -430,8 +434,10 @@ body[data-phase="refine"] .chip.is-active {
   box-shadow: 0 12px 30px rgba(8, 123, 63, 0.18);
 }
 
-body[data-phase="range"] .range-chip.is-active {
-  animation: selectedPulse 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) 1 both;
+body[data-phase="range"] .range-chip.is-active,
+body[data-phase="filter"] .range-chip.is-active,
+body[data-phase="refine"] .range-chip.is-active {
+  animation: selectedPulse 760ms cubic-bezier(0.2, 0.8, 0.2, 1) 1 both;
 }
 
 @keyframes selectedPulse {
