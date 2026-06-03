@@ -131,7 +131,7 @@
   }
 
   function isRangeActive(ms) {
-    return ms >= 4100 && ms < 9800;
+    return ms >= 4300 && ms < 9800;
   }
 
   function filterProducts(activeTags, typed, rangeActive) {
@@ -233,23 +233,23 @@
     }
 
     if (phase === "type") {
-      return { x: 238, y: 132, scale: 1, label: "type backpack" };
+      return { x: 175, y: 128, scale: 1, label: "type backpack" };
     }
 
     if (phase === "chips") {
-      return { x: 252, y: 221, scale: 1, label: "range + chips" };
+      return { x: 197, y: 212, scale: 1, label: "range + chips" };
     }
 
     if (phase === "range") {
-      return { x: 158, y: 221, scale: 1.02, label: "set 20 L+" };
+      return { x: 197, y: 212, scale: 1.02, label: "set 20 L+" };
     }
 
     if (phase === "filter") {
-      return { x: 382, y: 221, scale: 1.02, label: "choose travel" };
+      return { x: 443, y: 208, scale: 1.02, label: "choose travel" };
     }
 
     if (phase === "refine") {
-      return { x: 508, y: 221, scale: 1.02, label: "add water resistant" };
+      return { x: 575, y: 208, scale: 1.02, label: "add water resistant" };
     }
 
     return null;

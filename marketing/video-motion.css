@@ -917,7 +917,7 @@ body[data-phase="analytics"] .analytics-actions span:nth-child(3) { animation-de
   opacity: 0;
   transform: translate3d(var(--cursor-x), var(--cursor-y), 0) scale(var(--cursor-scale));
   transform-origin: 0 0;
-  transition: opacity 180ms ease, transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: opacity 180ms ease, transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1);
   pointer-events: none;
 }
 
