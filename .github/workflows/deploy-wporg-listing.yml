@@ -7,6 +7,11 @@ on:
       - main
     paths:
       - '.github/workflows/deploy-wporg-listing.yml'
+      - 'build-sources/wporg/readme.txt'
+      - 'readme.txt'
+      - 'screenshot-1.png'
+      - 'screenshot-2.png'
+      - 'screenshot-3.png'
 
 permissions:
   contents: read

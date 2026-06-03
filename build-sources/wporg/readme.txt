@@ -94,8 +94,8 @@ Smart Search Chips Pro is a separate add-on for advanced workflows such as ACF/c
 == Screenshots ==
 
 1. Frontend search UI with generated chips, active chip filtering, and WooCommerce-style result cards.
-2. Admin Test Search shows the search path, result counts, generated chips, warnings, and sample output.
-3. Local Search Index controls show readiness, progress, indexed rows, and safe maintenance actions.
+2. Smart Search Chips Pro analytics overview with local reporting, export actions, filters, KPI cards, and search funnel metrics.
+3. Smart Search Chips Pro analytics details with recommendation cards, search activity charts, zero-result trends, and query/chip tables.
 
 == Changelog ==
 

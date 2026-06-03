@@ -160,10 +160,6 @@
     requestAnimationFrame(tick);
   }
 
-  function chipLabel(count) {
-    return count === 1 ? "1 chip" : `${count} chips`;
-  }
-
   function volumeOf(result) {
     return Number(result[5]) || 0;
   }
@@ -299,7 +295,6 @@
         <div>
           <div class="result-title-line">
             <strong>No preview results</strong>
-            <span class="result-chip-count">0 chips</span>
           </div>
           <p>Try backpack, travel, laptop, commuter, camera, hiking, or widen the volume range.</p>
         </div>
@@ -319,7 +314,6 @@
         <div>
           <div class="result-title-line">
             <strong>${title}</strong>
-            <span class="result-chip-count">${chipLabel((tags || []).length)}</span>
           </div>
           <p>${detail}</p>
         </div>
