@@ -19,7 +19,7 @@
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" href="/icon.png">
   <link rel="apple-touch-icon" href="/icon.png">
-  <link rel="stylesheet" href="./styles.css?v=analytics-tight-v1">
+  <link rel="stylesheet" href="./styles.css?v=cookie-consent-v1">
 </head>
 <body>
   <div class="scroll-progress" aria-hidden="true"></div>
@@ -662,11 +662,26 @@
         <a href="/terms-of-service/">Terms</a>
         <a href="/refund-policy/">Refund</a>
         <a href="/support-policy/">Support</a>
+        <button type="button" data-cookie-settings>Cookie settings</button>
       </nav>
     </div>
   </footer>
 
+  <div class="cookie-consent" data-cookie-consent hidden role="dialog" aria-live="polite" aria-labelledby="cookie-consent-title" aria-describedby="cookie-consent-description">
+    <div class="cookie-consent__panel">
+      <div>
+        <strong id="cookie-consent-title">Cookie preferences</strong>
+        <p id="cookie-consent-description">We use Google Ads measurement only if you accept. Rejecting keeps the site fully usable.</p>
+      </div>
+      <div class="cookie-consent__actions">
+        <a href="/privacy-policy/">Privacy</a>
+        <button type="button" class="button secondary" data-cookie-reject>Reject</button>
+        <button type="button" class="button primary" data-cookie-accept>Accept</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://checkout.freemius.com/js/v1/" defer></script>
-  <script src="./app.js?v=pricing-checkout-v1" defer></script>
+  <script src="./app.js?v=cookie-consent-v1" defer></script>
 </body>
 </html>
