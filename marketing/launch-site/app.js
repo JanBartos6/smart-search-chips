@@ -391,25 +391,14 @@
   }
 
   function loadGoogleAdsTag() {
-    if (window.__sschpGoogleAdsLoaded) {
-      updateGoogleConsent(true);
-      return;
-    }
-
+    window[`ga-disable-${googleAdsTagId}`] = false;
     window.__sschpGoogleAdsLoaded = true;
     window.dataLayer = window.dataLayer || [];
     window.gtag = window.gtag || function gtag() {
       window.dataLayer.push(arguments);
     };
 
-    const tagScript = document.createElement("script");
-    tagScript.async = true;
-    tagScript.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(googleAdsTagId)}`;
-    document.head.appendChild(tagScript);
-
     updateGoogleConsent(true);
-    window.gtag("js", new Date());
-    window.gtag("config", googleAdsTagId);
   }
 
   function updateGoogleConsent(granted) {
