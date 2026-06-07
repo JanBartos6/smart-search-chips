@@ -586,6 +586,17 @@ function sschp_test_chip_engine_extract_tags_supports_comma_delimited_primary_fi
     );
 }
 
+function sschp_test_chip_engine_extract_tags_preserves_decimal_commas() {
+    $engine = new SSCHP_Chip_Engine();
+    $tags   = $engine->extract_tags( 'Zatížitelnost 0,1 A, Zatížitelnost 8,0 A; Max. ovládací síla 1,6 N', '' );
+
+    sschp_assert_same(
+        array( 'Zatížitelnost 0,1 A', 'Zatížitelnost 8,0 A', 'Max. ovládací síla 1,6 N' ),
+        $tags['tags'],
+        'extract_tags should split comma-delimited tags without splitting decimal comma values'
+    );
+}
+
 function sschp_test_chip_engine_generate_chips() {
     $engine = new SSCHP_Chip_Engine();
     $posts  = array(
@@ -1112,6 +1123,26 @@ function sschp_test_range_filters_keep_ac_dc_voltage_separate() {
     sschp_assert_true( isset( $chips['sschp_range|v-ac|v_ac'] ), 'AC voltage facts should create a separate AC slider' );
     sschp_assert_same( 24.0, $chips['sschp_range|v-dc|v_dc']['range']['min'], 'DC slider should not include AC values' );
     sschp_assert_same( 230.0, $chips['sschp_range|v-ac|v_ac']['range']['min'], 'AC slider should not include DC values' );
+}
+
+function sschp_test_range_filters_create_asa_ampere_and_newton_sliders() {
+    $range = new SSCHP_Range_Filters();
+    $chips = $range->add_range_chips(
+        array(),
+        array(
+            sschp_make_range_post( 1, array( 'Zatížitelnost 0,1 A', 'Max. ovládací síla 1,6 N' ) ),
+            sschp_make_range_post( 2, array( 'Zatížitelnost 8,0 A', 'Max. ovládací síla 2,2 N' ) ),
+            sschp_make_range_post( 3, array( 'Zatížitelnost 9,0 A', 'Max. ovládací síla 3,3 N' ) ),
+        ),
+        array()
+    );
+
+    sschp_assert_true( isset( $chips['sschp_range|zatizitelnost|a'] ), 'ampere facts should create a range chip for ASA load capacity values' );
+    sschp_assert_true( isset( $chips['sschp_range|max-ovladaci-sila|n'] ), 'newton facts should create a range chip for ASA actuation force values' );
+    sschp_assert_same( 0.1, $chips['sschp_range|zatizitelnost|a']['range']['min'], 'ampere slider should parse Czech decimal commas' );
+    sschp_assert_same( 9.0, $chips['sschp_range|zatizitelnost|a']['range']['max'], 'ampere slider should preserve the maximum load value' );
+    sschp_assert_same( 1.6, $chips['sschp_range|max-ovladaci-sila|n']['range']['min'], 'newton slider should parse Czech decimal commas' );
+    sschp_assert_same( 3.3, $chips['sschp_range|max-ovladaci-sila|n']['range']['max'], 'newton slider should preserve the maximum force value' );
 }
 
 function sschp_test_range_filters_create_valve_sliders_from_dn_pn_and_bar_values() {
@@ -4129,6 +4160,7 @@ function sschp_test_frontend_registers_loop_fallback_for_block_themes() {
 
 sschp_test_chip_engine_extract_tags();
 sschp_test_chip_engine_extract_tags_supports_comma_delimited_primary_field();
+sschp_test_chip_engine_extract_tags_preserves_decimal_commas();
 sschp_test_chip_engine_generate_chips();
 sschp_test_chip_engine_is_tag_active_case_insensitive();
 sschp_test_chip_engine_active_fallback_preserves_stored_label_case();
@@ -4160,6 +4192,7 @@ sschp_test_range_chip_css_uses_aligned_desktop_thumbs();
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_chip_renderer_exports_active_chip_colors' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_watt_slider_from_consistent_facts' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_keep_ac_dc_voltage_separate' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_asa_ampere_and_newton_sliders' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_valve_sliders_from_dn_pn_and_bar_values' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_prioritize_ranges_when_normal_chips_fill_limit' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_ip_ratings_as_categorical' );

@@ -276,7 +276,8 @@ class SSCHP_Chip_Engine {
      *
      * The built-in `sschp_tags` field is stored as a comma-delimited string, while
      * some external sources are semicolon-delimited. Accept both separators from
-     * either field so the parser stays resilient across Free/Pro sources.
+     * either field so the parser stays resilient across Free/Pro sources, but do
+     * not split decimal comma values such as 0,1 A into broken chip fragments.
      *
      * @param string $semicolon_field Primary field value.
      * @param string $comma_field     Extra field value.
@@ -289,7 +290,7 @@ class SSCHP_Chip_Engine {
 
         $tags = array();
         foreach ( $raw_values as $raw_value ) {
-            $parts = preg_split( '/[;,]/', (string) $raw_value );
+            $parts = $this->split_tag_values( $raw_value );
             foreach ( $parts as $t ) {
                 $t = trim( $t );
                 if ( $t && ! in_array( mb_strtolower( $t ), array_map( 'mb_strtolower', $tags ), true ) ) {
@@ -304,6 +305,16 @@ class SSCHP_Chip_Engine {
         );
 
         return apply_filters( 'sschp_extracted_tags', $tag_data, $semicolon_field, $comma_field );
+    }
+
+    /**
+     * Split tag field values without treating decimal commas as separators.
+     *
+     * @param mixed $value Raw field value.
+     * @return array
+     */
+    private function split_tag_values( $value ) {
+        return preg_split( '/[;\r\n]+|(?<!\d),(?!\d)/u', (string) $value );
     }
 
     /**

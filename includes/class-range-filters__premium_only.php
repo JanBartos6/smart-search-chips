@@ -1912,6 +1912,12 @@ class SSCHP_Range_Filters {
             'v'     => array( 'V', 'v', 1 ),
             'vac'   => array( 'V AC', 'v_ac', 1 ),
             'vdc'   => array( 'V DC', 'v_dc', 1 ),
+            'a'     => array( 'A', 'a', 1 ),
+            'aac'   => array( 'A AC', 'a_ac', 1 ),
+            'adc'   => array( 'A DC', 'a_dc', 1 ),
+            'amp'   => array( 'A', 'a', 1 ),
+            'amps'  => array( 'A', 'a', 1 ),
+            'n'     => array( 'N', 'n', 1 ),
             'mm'    => array( 'mm', 'mm', 1 ),
             'cm'    => array( 'mm', 'mm', 10 ),
             'm'     => array( 'mm', 'mm', 1000 ),
@@ -1935,6 +1941,14 @@ class SSCHP_Range_Filters {
             $compact = 'vac';
         } elseif ( preg_match( '/^v(?:dc)$/u', $compact ) ) {
             $compact = 'vdc';
+        } elseif ( preg_match( '/^a(?:ac)$/u', $compact ) ) {
+            $compact = 'aac';
+        } elseif ( preg_match( '/^a(?:dc)$/u', $compact ) ) {
+            $compact = 'adc';
+        } elseif ( preg_match( '/^(?:amp|amps|amp[eé]r(?:u|ů|y|ech|ům|em)?|amp[eé]ry)$/u', $compact ) ) {
+            $compact = 'amp';
+        } elseif ( preg_match( '/^newton(?:u|ů|y|ech|ům|em)?$/u', $compact ) ) {
+            $compact = 'n';
         } elseif ( preg_match( '/^(?:°c|degc|celsius)$/u', $compact ) ) {
             $compact = 'degc';
         }
@@ -2068,6 +2082,8 @@ class SSCHP_Range_Filters {
             array(
                 'w',
                 'v', 'v_ac', 'v_dc',
+                'a', 'a_ac', 'a_dc',
+                'n',
                 'mm',
                 'g',
                 'degc',
@@ -2191,11 +2207,6 @@ class SSCHP_Range_Filters {
      * @return string
      */
     private function derive_fact_label( $candidate, $context, $unit_data ) {
-        $source_field = isset( $context['source_field'] ) ? sanitize_key( $context['source_field'] ) : '';
-        if ( '' !== $source_field && ! in_array( $source_field, array( 'post_title', 'post_content' ), true ) ) {
-            return $this->field_name_to_label( $source_field, $unit_data );
-        }
-
         $before = isset( $candidate['before'] ) ? trim( (string) $candidate['before'] ) : '';
         if ( '' !== $before && preg_match( '/[:=]\s*([^:=]+)$/u', $before, $match ) ) {
             return $this->clean_label( $match[1], $unit_data );
@@ -2203,6 +2214,19 @@ class SSCHP_Range_Filters {
 
         if ( '' !== $before && preg_match( '/^([^:=]+)\s*[:=]\s*$/u', $before, $match ) ) {
             return $this->clean_label( $match[1], $unit_data );
+        }
+
+        $source = isset( $context['source'] ) ? sanitize_key( $context['source'] ) : '';
+        if ( '' !== $before && in_array( $source, array( 'chip_tag', 'mapped_field' ), true ) && preg_match( '/\pL/u', $before ) && ! preg_match( '/\d/u', $before ) ) {
+            $label = $this->clean_label( $before, $unit_data );
+            if ( '' !== $label && $label !== $unit_data['display'] ) {
+                return $label;
+            }
+        }
+
+        $source_field = isset( $context['source_field'] ) ? sanitize_key( $context['source_field'] ) : '';
+        if ( '' !== $source_field && ! in_array( $source_field, array( 'post_title', 'post_content' ), true ) ) {
+            return $this->field_name_to_label( $source_field, $unit_data );
         }
 
         return $unit_data['display'];
@@ -2222,6 +2246,8 @@ class SSCHP_Range_Filters {
         $unit_suffixes = array(
             'watt', 'watts', 'w',
             'vac', 'v_ac', 'vdc', 'v_dc', 'v',
+            'aac', 'a_ac', 'adc', 'a_dc', 'amp', 'amps', 'a',
+            'newton', 'newtons', 'n',
             'mm', 'cm', 'm',
             'kg', 'g',
             'degc', 'c',
@@ -2796,7 +2822,7 @@ class SSCHP_Range_Filters {
         }
 
         if ( preg_match( '/^a(?:ac|dc)?$/u', $compact_unit ) ) {
-            return 'a';
+            return 'aac' === $compact_unit ? 'a_ac' : ( 'adc' === $compact_unit ? 'a_dc' : 'a' );
         }
 
         if ( 'w' === $compact_unit || preg_match( '/^watt(?:s|u|ů|y|ech|ům|em)?$/u', $compact_unit ) ) {
@@ -2804,7 +2830,11 @@ class SSCHP_Range_Filters {
         }
 
         if ( preg_match( '/^(?:amp|amps|amp[eé]r(?:u|ů|y|ech|ům|em)?|amp[eé]ry)$/u', $compact_unit ) ) {
-            return 'amp';
+            return 'a';
+        }
+
+        if ( 'n' === $compact_unit || preg_match( '/^newton(?:s|u|ů|y|ech|ům|em)?$/u', $compact_unit ) ) {
+            return 'n';
         }
 
         if ( in_array( $compact_unit, array( 'mm', 'cm', 'm' ), true ) ) {
