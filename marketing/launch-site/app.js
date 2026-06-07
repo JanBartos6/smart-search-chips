@@ -57,6 +57,12 @@
   const diagnosticsWorkspace = document.querySelector(".diagnostics-workspace");
   const dashboardMockup = document.querySelector(".plugin-window--concept");
   const checkoutButtons = document.querySelectorAll("[data-sschp-checkout]");
+  const cookieConsent = document.querySelector("[data-cookie-consent]");
+  const cookieAcceptButton = document.querySelector("[data-cookie-accept]");
+  const cookieRejectButton = document.querySelector("[data-cookie-reject]");
+  const cookieSettingsButton = document.querySelector("[data-cookie-settings]");
+  const googleAdsTagId = "AW-18214815432";
+  const cookieConsentKey = "sschp_cookie_consent_v1";
   const checkoutConfig = {
     productId: "27046",
     planId: "45154",
@@ -368,6 +374,97 @@
     });
   }
 
+  function readCookieConsent() {
+    try {
+      return window.localStorage.getItem(cookieConsentKey);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function storeCookieConsent(value) {
+    try {
+      window.localStorage.setItem(cookieConsentKey, value);
+    } catch (error) {
+      // If storage is unavailable, honor the current click for this page view.
+    }
+  }
+
+  function loadGoogleAdsTag() {
+    window[`ga-disable-${googleAdsTagId}`] = false;
+    window.__sschpGoogleAdsLoaded = true;
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function gtag() {
+      window.dataLayer.push(arguments);
+    };
+
+    updateGoogleConsent(true);
+  }
+
+  function updateGoogleConsent(granted) {
+    if (typeof window.gtag !== "function") {
+      return;
+    }
+
+    const value = granted ? "granted" : "denied";
+    window.gtag("consent", "update", {
+      ad_storage: value,
+      ad_user_data: value,
+      ad_personalization: value,
+      analytics_storage: value
+    });
+  }
+
+  function hideCookieConsent() {
+    if (cookieConsent) {
+      cookieConsent.hidden = true;
+    }
+  }
+
+  function showCookieConsent() {
+    if (cookieConsent) {
+      cookieConsent.hidden = false;
+    }
+  }
+
+  function setupCookieConsent() {
+    if (!cookieConsent || !cookieAcceptButton || !cookieRejectButton) {
+      return;
+    }
+
+    cookieAcceptButton.addEventListener("click", () => {
+      storeCookieConsent("accepted");
+      hideCookieConsent();
+      loadGoogleAdsTag();
+    });
+
+    cookieRejectButton.addEventListener("click", () => {
+      storeCookieConsent("rejected");
+      window[`ga-disable-${googleAdsTagId}`] = true;
+      updateGoogleConsent(false);
+      hideCookieConsent();
+    });
+
+    if (cookieSettingsButton) {
+      cookieSettingsButton.addEventListener("click", showCookieConsent);
+    }
+
+    const existingConsent = readCookieConsent();
+
+    if (existingConsent === "accepted") {
+      hideCookieConsent();
+      loadGoogleAdsTag();
+      return;
+    }
+
+    if (existingConsent === "rejected") {
+      hideCookieConsent();
+      return;
+    }
+
+    showCookieConsent();
+  }
+
   function updateChrome() {
     const max = document.documentElement.scrollHeight - window.innerHeight;
     const progressWidth = max > 0 ? (window.scrollY / max) * 100 : 0;
@@ -448,6 +545,7 @@
   renderDemo(queryInput.value);
   setupReveal();
   setupCheckout();
+  setupCookieConsent();
   updateChrome();
   syncDashboardMockupScale();
 })();

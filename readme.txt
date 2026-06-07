@@ -81,7 +81,7 @@ Unlike traditional faceted search plugins that require every filter to be design
 
 = Do I need Relevanssi? =
 
-No, but it's recommended. Without Relevanssi, the plugin uses default WordPress search. With Relevanssi, you get relevance-based scoring which makes the chip generation smarter (irrelevant results are filtered out before chips are calculated).
+No. Smart Search Chips works on its own using its search block/shortcode, local search index, and fallback relevance scoring. Relevanssi is optional and recommended for sites that want stronger WordPress search relevance, especially content-heavy sites.
 
 = How do I populate the tag fields? =
 
