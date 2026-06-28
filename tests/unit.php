@@ -30,6 +30,10 @@ function sschp_assert_contains( $needle, $haystack, $message ) {
     }
 }
 
+function sschp_normalize_newlines( $value ) {
+    return str_replace( array( "\r\n", "\r" ), "\n", (string) $value );
+}
+
 function sschp_explanation_codes( $explanations ) {
     return array_values(
         array_map(
@@ -323,6 +327,22 @@ function sschp_test_wporg_main_loads_search_explainer() {
     sschp_assert_contains( 'SSCHP_Search_Index::maybe_install_or_upgrade()', $contents, 'WP.org build should self-heal missing local search index tables after updates' );
 }
 
+function sschp_test_plugin_lifecycle_hooks_unschedule_background_work() {
+    $root_contents  = file_get_contents( dirname( __DIR__ ) . '/smart-search-chips.php' );
+    $wporg_contents = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/smart-search-chips.php' );
+
+    foreach ( array( 'root' => $root_contents, 'wporg' => $wporg_contents ) as $label => $contents ) {
+        sschp_assert_contains( 'register_deactivation_hook', $contents, $label . ' plugin source should register a deactivation hook' );
+        sschp_assert_contains( 'register_uninstall_hook', $contents, $label . ' plugin source should register a standard uninstall hook' );
+        sschp_assert_contains( 'sschp_unschedule_plugin_tasks', $contents, $label . ' plugin source should centralize scheduled task cleanup' );
+        sschp_assert_contains( 'wp_clear_scheduled_hook', $contents, $label . ' plugin source should clear WP-Cron events on deactivate/uninstall' );
+        sschp_assert_contains( 'as_unschedule_all_actions', $contents, $label . ' plugin source should clear Action Scheduler batches when available' );
+    }
+
+    sschp_assert_contains( 'sschp_delete_plugin_data( true )', $root_contents, 'root uninstall should use full table cleanup when data deletion is enabled' );
+    sschp_assert_contains( 'DROP TABLE IF EXISTS {$analytics_table_name}', $wporg_contents, 'WP.org cleanup should remove leftover plugin analytics tables from prior Pro installs' );
+}
+
 function sschp_test_wporg_frontend_source_registers_search_block() {
     $path = dirname( __DIR__ ) . '/build-sources/wporg/includes/class-frontend.php';
 
@@ -365,7 +385,7 @@ function sschp_test_search_block_files_are_release_validated() {
 
 function sschp_test_release_workflow_requires_version_tag_and_freemius_sdk() {
     $root     = dirname( __DIR__ );
-    $workflow = file_get_contents( $root . '/.github/workflows/release.yml' );
+    $workflow = sschp_normalize_newlines( file_get_contents( $root . '/.github/workflows/release.yml' ) );
     $build    = file_get_contents( $root . '/scripts/build-release.ps1' );
 
     sschp_assert_contains( "tags:\n      - 'v*'", $workflow, 'release workflow should only deploy from version tags' );
@@ -2152,8 +2172,8 @@ function sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow() {
 }
 
 function sschp_test_free_admin_menu_does_not_add_analytics_upsell_page() {
-    $contents       = file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' );
-    $wporg_contents = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-settings.php' );
+    $contents       = sschp_normalize_newlines( file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' ) );
+    $wporg_contents = sschp_normalize_newlines( file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-settings.php' ) );
     $plugin_file    = file_get_contents( dirname( __DIR__ ) . '/smart-search-chips.php' );
 
     sschp_assert_contains( '$this->settings_page_hooks[] = add_menu_page(', $contents, 'Plugin settings should register as a top-level admin menu' );
@@ -4335,6 +4355,7 @@ sschp_test_no_legacy_public_interface_references_in_fixtures();
 sschp_test_wporg_settings_source_keeps_selector_safety();
 sschp_test_wporg_search_handler_keeps_admin_test_search_api();
 sschp_test_wporg_main_loads_search_explainer();
+sschp_test_plugin_lifecycle_hooks_unschedule_background_work();
 sschp_test_wporg_frontend_source_registers_search_block();
 sschp_test_search_block_files_are_release_validated();
 sschp_test_release_workflow_requires_version_tag_and_freemius_sdk();

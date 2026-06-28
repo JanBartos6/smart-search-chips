@@ -1,20 +1,24 @@
 === Smart Search Chips ===
 Contributors: honzdev
-Tags: search, filter, chips, woocommerce, product search
+Tags: woocommerce, product search, search filter, ajax search, filter
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.22
+Stable tag: 1.1.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Reliable guided search chips for WordPress and WooCommerce. Add a search block or shortcode, generate useful chips, and debug search setup from admin.
+Dynamic WooCommerce and WordPress search filter chips for products, categories, tags, attributes, and content-heavy sites.
 
 == Description ==
 
-Smart Search Chips adds a reliable guided search UI to WordPress. Use the included Search block or `[sschp_search]` shortcode for a guaranteed search experience, or safely enhance compatible theme AJAX searches when you want to keep an existing layout.
+Smart Search Chips adds dynamic filter chips to WordPress and WooCommerce search, so visitors can narrow search results by categories, tags, product attributes, and search context instead of getting a flat list of results.
 
-Unlike traditional faceted search plugins that require every filter to be designed up front, Smart Search Chips generates useful chips from the matching results. It hides redundant tags, supports a local search index, and includes admin diagnostics so you can see which search path was used and why chips did or did not appear.
+It is built for WooCommerce stores, product catalogs, documentation sites, directories, listing sites, and content-heavy WordPress sites where normal search is not enough. Use the included Search block or `[sschp_search]` shortcode for a reliable search UI, or enhance compatible theme AJAX searches when you want to keep an existing layout.
+
+Example: a visitor searches "lamp" and then narrows results with chips such as LED, outdoor, 12V, brand, category, or wattage.
+
+Unlike traditional faceted search plugins that require every filter to be designed up front, Smart Search Chips generates useful chips from the current matching results. It hides redundant chips, supports a local search index, and includes diagnostics that show which search path was used and why chips did or did not appear.
 
 **How it works:**
 
@@ -25,7 +29,7 @@ Unlike traditional faceted search plugins that require every filter to be design
 5. Redundant chips are hidden when they would not narrow the result set
 6. Clicking a chip filters the visible results without asking the visitor to rewrite the query
 
-**Key Features:**
+**Included in the WordPress.org/free edition:**
 
 * Search block and `[sschp_search]` shortcode for a guaranteed search UI
 * Dynamic chip generation from Search Chips Tags on matching results
@@ -42,11 +46,24 @@ Unlike traditional faceted search plugins that require every filter to be design
 * Safely enhance existing theme AJAX search handlers when compatible
 * Theme template overrides for custom result rendering
 
+**Available separately in Smart Search Chips Pro:**
+
+* Use existing ACF/custom fields as chip sources instead of manually tagging every item
+* Add numeric range chips for values like 100 W, 200 W, dimensions, or mapped numeric fields
+* Normalize equivalent catalog terms with synonym rules
+* Control chip labels, pinned chips, hidden chips, and display rules
+* Track zero-result searches, chip clicks, result clicks, impressions, and search-to-result-click rates
+* Send scheduled local analytics email digests to configured site recipients
+* Build external AI tagging prompts and import/export chip rules as JSON
+
 **Works best with:**
 
-* Product catalogs with many similar items
-* Technical documentation sites
-* Any site where search results need smart filtering
+* WooCommerce stores with many similar products
+* Product catalogs using attributes such as size, color, wattage, voltage, brand, model, material, or use case
+* Technical catalogs and parts/model-number sites
+* Documentation sites and knowledge bases
+* Directories, listing sites, resource libraries, and internal portals
+* Agencies building search-heavy WordPress sites for clients
 
 == Installation ==
 
@@ -66,6 +83,10 @@ Unlike traditional faceted search plugins that require every filter to be design
 5. Use Search Chips > Start Here to run a Test Search and confirm the path, chips, and warnings
 
 == Frequently Asked Questions ==
+
+= Is this a hosted SaaS search service? =
+
+No. Smart Search Chips runs as a WordPress plugin on your own site. The WordPress.org edition does not require an external search service, hosted account, or subscription, and visitor search queries are not sent to a third-party search service.
 
 = Do I need Relevanssi? =
 
@@ -89,15 +110,19 @@ Yes. Set "Post Types" to include "product". This WordPress.org edition can use t
 
 = What is available separately in Smart Search Chips Pro? =
 
-Smart Search Chips Pro is a separate add-on for advanced workflows such as ACF/custom field mapping, numeric range slider chips, synonym rules, pinned/hidden/renamed chips, local search analytics, zero-result reports, result-click tracking, scheduled email digests, AI-assisted tag workflows, JSON rule import/export, and commercial support.
+Smart Search Chips Pro is a separate add-on for sites that need to reuse existing ACF/custom fields, add numeric range chips, normalize catalog language with synonyms, control chip labels and rules, track zero-result and low-engagement searches, send scheduled local reports, and export/import chip rules.
 
 == Screenshots ==
 
-1. Frontend search UI with generated chips, active chip filtering, and WooCommerce-style result cards.
+1. WooCommerce-style product search for "backpack" with dynamic filter chips, selected refinements, result counts, prices, and product cards.
 2. Smart Search Chips Pro analytics overview with local reporting, export actions, filters, KPI cards, and search funnel metrics.
-3. Smart Search Chips Pro analytics details with recommendation cards, search activity charts, zero-result trends, and query/chip tables.
+3. Smart Search Chips Pro analytics details with recommendation cards, zero-result searches, chip CTR, result-click tracking, and query/chip tables.
 
 == Changelog ==
+
+= 1.1.23 =
+* Reworked the WordPress.org listing copy around WooCommerce/product-search buyer intent, local-plugin positioning, and clearer Pro use cases.
+* Added standard deactivation and uninstall cleanup hooks so scheduled index work is stopped and opt-in data deletion works through the normal WordPress uninstall flow.
 
 = 1.1.22 =
 * Removed visitor-facing per-result chip count badges from public search result cards while keeping summary and filter-chip counts.
@@ -221,13 +246,26 @@ Smart Search Chips Pro is a separate add-on for advanced workflows such as ACF/c
 
 == Smart Search Chips Pro ==
 
-Smart Search Chips Pro is available separately from https://smartsearchchips.app/ for teams that want advanced workflows: ACF/custom field connectors, numeric range slider chips, chip rules, JSON import/export, local analytics/reporting, scheduled email digests, AI-assisted tag workflows, and commercial support. The WordPress.org plugin is fully functional with its built-in Search Chips Tags field and does not require accounts or payment.
+Smart Search Chips Pro is available separately from https://smartsearchchips.app/ for teams that need advanced catalog and reporting workflows:
+
+* Reuse existing ACF/custom fields as chip sources
+* Add numeric range chips for measurements and mapped numeric fields
+* Normalize catalog language with synonym rules
+* Pin, hide, rename, and control chip display rules
+* Track zero-result searches, chip engagement, and result-click behavior
+* Send scheduled local analytics digests to configured site recipients
+* Import/export chip rules as JSON and use AI-assisted tagging workflows
+
+The WordPress.org plugin is fully functional with its built-in Search Chips Tags field and does not require accounts or payment.
 
 == Privacy Policy ==
 
 Smart Search Chips processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this server and are not stored or sent to any third-party service by this WordPress.org edition. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.1.23 =
+Improves marketplace positioning and hardens deactivation/uninstall cleanup for scheduled index work and optional data deletion.
 
 = 1.1.22 =
 Removes public per-result chip count badges from search result cards while keeping useful search summary and chip counts.

@@ -3,7 +3,7 @@
  * Plugin Name: Smart Search Chips
  * Plugin URI:  https://smartsearchchips.app
  * Description: Dynamic filter chips for WordPress search. Generates smart, non-redundant filter tags from search results using custom fields. Works with Relevanssi for best results.
- * Version:     1.1.22
+ * Version:     1.1.23
  * Author:      Jan Bartos
  * Author URI:  https://teprostroj.com
  * License:     GPL-2.0-or-later
@@ -117,34 +117,16 @@ if ( function_exists( 'sschp_fs' ) ) {
      * Clean up all plugin data on Freemius uninstall.
      */
     function sschp_fs_uninstall_cleanup() {
+        sschp_unschedule_plugin_tasks();
+
         if ( get_option( 'sschp_delete_data_on_uninstall', '0' ) !== '1' ) {
             return;
         }
 
-        global $wpdb;
-
-        $options = sschp_get_option_keys();
-        foreach ( $options as $option ) {
-            delete_option( $option );
-        }
-
-        delete_metadata( 'post', 0, 'sschp_tags', '', true );
-        delete_metadata( 'post', 0, '_sschp_generated_tags', '', true );
-
-        $table_name = $wpdb->prefix . 'sschp_events';
-        $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
-        if ( class_exists( 'SSCHP_Analytics' ) ) {
-            SSCHP_Analytics::unschedule_digest();
-        } elseif ( function_exists( 'wp_clear_scheduled_hook' ) ) {
-            wp_clear_scheduled_hook( 'sschp_send_analytics_digest' );
-        }
-
-        $index_table_name = $wpdb->prefix . 'sschp_search_index';
-        $wpdb->query( "DROP TABLE IF EXISTS {$index_table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        sschp_delete_plugin_data( true );
     }
 
-    define( 'SSCHP_VERSION', '1.1.22' );
+    define( 'SSCHP_VERSION', '1.1.23' );
     define( 'SSCHP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
     define( 'SSCHP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
     define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -315,6 +297,7 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_analytics_digest_time'    => '09:00',
             'sschp_analytics_digest_date_range' => 30,
             'sschp_analytics_digest_include_csv' => '0',
+            'sschp_analytics_digest_include_charts' => '0',
             'sschp_analytics_digest_include_zero_results' => '1',
             'sschp_analytics_digest_include_top_chips' => '1',
             'sschp_analytics_digest_include_low_ctr' => '1',
@@ -342,6 +325,54 @@ if ( function_exists( 'sschp_fs' ) ) {
         SSCHP_Search_Index::queue_initial_index( 'activation' );
     }
     register_activation_hook( __FILE__, 'sschp_activate' );
+
+    /**
+     * Stop plugin-owned background work when the plugin is deactivated.
+     *
+     * @return void
+     */
+    function sschp_deactivate() {
+        sschp_unschedule_plugin_tasks();
+    }
+    register_deactivation_hook( __FILE__, 'sschp_deactivate' );
+
+    /**
+     * Remove scheduled plugin work from WP-Cron and Action Scheduler.
+     *
+     * @return void
+     */
+    function sschp_unschedule_plugin_tasks() {
+        $hooks = array(
+            class_exists( 'SSCHP_Search_Index' ) ? SSCHP_Search_Index::CRON_HOOK : 'sschp_process_search_index_batch',
+            class_exists( 'SSCHP_Analytics' ) ? SSCHP_Analytics::DIGEST_HOOK : 'sschp_send_analytics_digest',
+        );
+
+        foreach ( array_unique( $hooks ) as $hook ) {
+            if ( function_exists( 'wp_clear_scheduled_hook' ) ) {
+                wp_clear_scheduled_hook( $hook );
+            }
+
+            if ( function_exists( 'as_unschedule_all_actions' ) ) {
+                as_unschedule_all_actions( $hook, array(), 'smart-search-chips' );
+            }
+        }
+    }
+
+    /**
+     * Standard WordPress uninstall cleanup.
+     *
+     * @return void
+     */
+    function sschp_uninstall() {
+        sschp_unschedule_plugin_tasks();
+
+        if ( get_option( 'sschp_delete_data_on_uninstall', '0' ) !== '1' ) {
+            return;
+        }
+
+        sschp_delete_plugin_data( true );
+    }
+    register_uninstall_hook( __FILE__, 'sschp_uninstall' );
 
     /**
      * Return the list of plugin option keys owned by Smart Search Chips.
@@ -393,6 +424,7 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_analytics_digest_time',
             'sschp_analytics_digest_date_range',
             'sschp_analytics_digest_include_csv',
+            'sschp_analytics_digest_include_charts',
             'sschp_analytics_digest_include_zero_results',
             'sschp_analytics_digest_include_top_chips',
             'sschp_analytics_digest_include_low_ctr',
@@ -403,6 +435,7 @@ if ( function_exists( 'sschp_fs' ) ) {
             'sschp_ai_language',
             'sschp_ai_custom_instruction',
             'sschp_delete_data_on_uninstall',
+            'sschp_pending_pro_activation_defaults',
             SSCHP_Search_Index::DB_VERSION_OPTION,
             SSCHP_Search_Index::STATUS_OPTION,
             SSCHP_Search_Index::TOTAL_OPTION,
@@ -419,6 +452,8 @@ if ( function_exists( 'sschp_fs' ) ) {
      * @return void
      */
     function sschp_delete_plugin_data( $drop_analytics_table = false ) {
+        sschp_unschedule_plugin_tasks();
+
         foreach ( sschp_get_option_keys() as $option ) {
             delete_option( $option );
         }
@@ -426,15 +461,19 @@ if ( function_exists( 'sschp_fs' ) ) {
         delete_metadata( 'post', 0, 'sschp_tags', '', true );
         delete_metadata( 'post', 0, '_sschp_generated_tags', '', true );
 
-        if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) {
-            SSCHP_Analytics::unschedule_digest();
-
+        if ( class_exists( 'SSCHP_Analytics' ) ) {
             if ( $drop_analytics_table ) {
                 SSCHP_Analytics::drop_table();
                 delete_option( SSCHP_Analytics::DB_VERSION_OPTION );
             } else {
                 SSCHP_Analytics::clear_events();
             }
+        } elseif ( $drop_analytics_table ) {
+            global $wpdb;
+
+            $table_name = $wpdb->prefix . 'sschp_events';
+            $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+            delete_option( 'sschp_analytics_db_version' );
         }
 
         if ( $drop_analytics_table ) {
