@@ -121,8 +121,9 @@
     return key === queryKey || tokens.includes(key);
   }
 
-  function buildChipSuggestions(results, tokens) {
+  function buildChipSuggestions(results, tokens, activeKeys = []) {
     const counts = new Map();
+    const activeKeySet = new Set(activeKeys.map(normalizeTag));
     results.forEach((result) => {
       (result[3] || []).forEach((tag) => {
         const key = normalizeTag(tag);
@@ -139,6 +140,12 @@
 
     return Array.from(counts.values())
       .sort((a, b) => {
+        const aActive = activeKeySet.has(normalizeTag(a.label));
+        const bActive = activeKeySet.has(normalizeTag(b.label));
+        if (aActive !== bActive) {
+          return aActive ? -1 : 1;
+        }
+
         const aIndex = chipOrder.indexOf(a.label);
         const bIndex = chipOrder.indexOf(b.label);
         const safeA = aIndex === -1 ? chipOrder.length : aIndex;
@@ -262,7 +269,7 @@
     syncVolumeBounds(chipFilteredResults, rangeWasActive);
 
     const filteredResults = filterByVolume(chipFilteredResults);
-    const suggestions = buildChipSuggestions(filteredResults, tokens);
+    const suggestions = buildChipSuggestions(filteredResults, tokens, activeKeys);
     const activeFilterTotal = activeChips.length + (volumeRangeIsActive() ? 1 : 0);
 
     updateVolumeRangeUi();
