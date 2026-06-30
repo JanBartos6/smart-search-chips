@@ -53,7 +53,8 @@ class SSCHP_Chip_Engine {
 
         if ( $total < 1 ) {
             $chips = $this->add_active_tag_chips( array(), $active_tags, $tag_counts, $posts_data, $total );
-            return apply_filters( 'sschp_generated_chips', $chips, $tag_counts, $posts_data, $active_tags, $max_chips, $max_length );
+            $chips = apply_filters( 'sschp_generated_chips', $chips, $tag_counts, $posts_data, $active_tags, $max_chips, $max_length );
+            return $this->order_chips_for_active_filters( $chips, $active_tags );
         }
 
         // Count tag frequency across all posts
@@ -108,31 +109,73 @@ class SSCHP_Chip_Engine {
 
         $chips = apply_filters( 'sschp_generated_chips', $chips, $tag_counts, $posts_data, $active_tags, $max_chips, $max_length );
 
+        return $this->order_chips_for_active_filters( $chips, $active_tags );
+    }
+
+    /**
+     * Keep structural chips first, then selected tags, then suggestions.
+     *
+     * Range chips are compact controls rather than ordinary suggestions, so
+     * they stay at the far left even when normal chips are active.
+     *
+     * @param array $chips       Generated chips.
+     * @param array $active_tags Active tags.
+     * @return array Ordered chips.
+     */
+    private function order_chips_for_active_filters( $chips, $active_tags ) {
         if ( empty( $active_tags ) ) {
             return $chips;
         }
 
-        // Keep active chips visible first while preserving the existing
-        // ranking order inside the active and inactive groups.
-        $ordered = array();
-
-        $active_tags_lower = array_map( 'mb_strtolower', $active_tags );
-
-        foreach ( $chips as $key => $chip ) {
-            $value = isset( $chip['value'] ) ? $chip['value'] : $key;
-
-            if ( in_array( $key, $active_tags_lower, true ) || $this->is_tag_active( $value, $active_tags ) ) {
-                $ordered[ $key ] = $chip;
-            }
-        }
+        $range_chips       = array();
+        $active_chips      = array();
+        $suggestion_chips  = array();
+        $active_tags_lower = array_map( 'mb_strtolower', array_map( 'strval', $active_tags ) );
 
         foreach ( $chips as $key => $chip ) {
-            if ( ! isset( $ordered[ $key ] ) ) {
-                $ordered[ $key ] = $chip;
+            if ( $this->is_range_chip( $chip ) ) {
+                $range_chips[ $key ] = $chip;
+                continue;
             }
+
+            if ( $this->chip_matches_active_tag( $key, $chip, $active_tags, $active_tags_lower ) ) {
+                $active_chips[ $key ] = $chip;
+                continue;
+            }
+
+            $suggestion_chips[ $key ] = $chip;
         }
 
-        return $ordered;
+        return $range_chips + $active_chips + $suggestion_chips;
+    }
+
+    /**
+     * Check whether a chip is a numeric range control.
+     *
+     * @param array $chip Chip data.
+     * @return bool
+     */
+    private function is_range_chip( $chip ) {
+        return is_array( $chip ) && isset( $chip['type'] ) && 'range' === $chip['type'];
+    }
+
+    /**
+     * Check whether a chip represents an active tag.
+     *
+     * @param string $key               Chip key.
+     * @param array  $chip              Chip data.
+     * @param array  $active_tags       Active tags.
+     * @param array  $active_tags_lower Lowercase active tags.
+     * @return bool
+     */
+    private function chip_matches_active_tag( $key, $chip, $active_tags, $active_tags_lower ) {
+        if ( in_array( mb_strtolower( (string) $key ), $active_tags_lower, true ) ) {
+            return true;
+        }
+
+        $value = isset( $chip['value'] ) ? $chip['value'] : $key;
+
+        return $this->is_tag_active( $value, $active_tags );
     }
 
     /**

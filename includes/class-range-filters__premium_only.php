@@ -443,7 +443,7 @@ class SSCHP_Range_Filters {
         }
 
         if ( empty( $range_candidates ) ) {
-            return $chips;
+            return $this->order_range_chips_first( $chips, $active_tags );
         }
 
         $visible = 0;
@@ -459,7 +459,7 @@ class SSCHP_Range_Filters {
         }
 
         if ( $visible >= $target ) {
-            return $chips;
+            return $this->order_range_chips_first( $chips, $active_tags );
         }
 
         foreach ( $range_candidates as $key => $range_chip ) {
@@ -488,7 +488,40 @@ class SSCHP_Range_Filters {
             $visible++;
         }
 
-        return $chips;
+        return $this->order_range_chips_first( $chips, $active_tags );
+    }
+
+    /**
+     * Keep range controls first, selected chips second, and suggestions after.
+     *
+     * @param array $chips       Current chips.
+     * @param array $active_tags Active tags.
+     * @return array Ordered chips.
+     */
+    private function order_range_chips_first( $chips, $active_tags = array() ) {
+        if ( empty( $chips ) ) {
+            return $chips;
+        }
+
+        $range_chips      = array();
+        $active_chips     = array();
+        $suggestion_chips = array();
+
+        foreach ( (array) $chips as $key => $chip ) {
+            if ( $this->is_range_chip( $chip ) ) {
+                $range_chips[ $key ] = $chip;
+                continue;
+            }
+
+            if ( $this->chip_matches_active_tag( $key, $chip, $active_tags ) ) {
+                $active_chips[ $key ] = $chip;
+                continue;
+            }
+
+            $suggestion_chips[ $key ] = $chip;
+        }
+
+        return $range_chips + $active_chips + $suggestion_chips;
     }
 
     /**

@@ -4,7 +4,7 @@ Tags: woocommerce, product search, search filter, ajax search, filter
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.23
+Stable tag: 1.1.24
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -119,6 +119,9 @@ Smart Search Chips Pro is a separate add-on for sites that need to reuse existin
 3. Smart Search Chips Pro analytics details with recommendation cards, zero-result searches, chip CTR, result-click tracking, and query/chip tables.
 
 == Changelog ==
+
+= 1.1.24 =
+* Fixed chip ordering so selected chips stay immediately after numeric range chips instead of drifting behind ordinary suggestions.
 
 = 1.1.23 =
 * Reworked the WordPress.org listing copy around WooCommerce/product-search buyer intent, local-plugin positioning, and clearer Pro use cases.
@@ -263,6 +266,9 @@ The WordPress.org plugin is fully functional with its built-in Search Chips Tags
 Smart Search Chips processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this server and are not stored or sent to any third-party service by this WordPress.org edition. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.1.24 =
+Keeps selected chips pinned immediately after numeric range chips in frontend search results.
 
 = 1.1.23 =
 Improves marketplace positioning and hardens deactivation/uninstall cleanup for scheduled index work and optional data deletion.
