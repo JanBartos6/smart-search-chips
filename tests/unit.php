@@ -1186,6 +1186,50 @@ function sschp_test_range_filters_keep_ac_dc_voltage_separate() {
     sschp_assert_same( 230.0, $chips['sschp_range|v-ac|v_ac']['range']['min'], 'AC slider should not include DC values' );
 }
 
+function sschp_test_range_filters_can_link_current_ranges_to_voltage_values() {
+    $range = new SSCHP_Range_Filters();
+    $posts = array(
+        sschp_make_range_post( 1, array( '690 V => 63 A' ) ),
+        sschp_make_range_post( 2, array( '690 V => 80 A' ) ),
+        sschp_make_range_post( 3, array( '400 V => 16 A' ) ),
+        sschp_make_range_post( 4, array( '400 V => 25 A' ) ),
+    );
+    $chips = $range->add_range_chips(
+        array(),
+        $posts,
+        array()
+    );
+
+    sschp_assert_true( isset( $chips['sschp_range|v|v'] ), 'voltage range should remain available when current is linked to voltage' );
+    sschp_assert_true( ! isset( $chips['sschp_range|a|a'] ), 'linked current values should not be mixed into one unqualified current slider' );
+    sschp_assert_true( isset( $chips['sschp_range|a-at-v-690-v|a'] ), 'current values at 690 V should create their own range chip' );
+    sschp_assert_true( isset( $chips['sschp_range|a-at-v-400-v|a'] ), 'current values at 400 V should create their own range chip' );
+    sschp_assert_same( 'A at 690 V', $chips['sschp_range|a-at-v-690-v|a']['label'], 'linked current chip should expose the voltage context in its label' );
+    sschp_assert_same( 63.0, $chips['sschp_range|a-at-v-690-v|a']['range']['min'], 'linked 690 V current range should keep its own minimum' );
+    sschp_assert_same( 80.0, $chips['sschp_range|a-at-v-690-v|a']['range']['max'], 'linked 690 V current range should keep its own maximum' );
+
+    $filtered = $range->filter_posts_by_range_tags( null, $posts, array( $chips['sschp_range|a-at-v-690-v|a']['value'] ) );
+    sschp_assert_same( array( 1, 2 ), array_map( 'intval', array_column( $filtered, 'id' ) ), 'active linked 690 V current range should not match current values from another voltage group' );
+}
+
+function sschp_test_range_filters_do_not_link_plain_language_between_voltage_and_current() {
+    $range = new SSCHP_Range_Filters();
+    $chips = $range->add_range_chips(
+        array(),
+        array(
+            sschp_make_range_post( 1, array( '690 V pri 63 A' ) ),
+            sschp_make_range_post( 2, array( '690 V při 80 A' ) ),
+            sschp_make_range_post( 3, array( '400 V pri 16 A' ) ),
+            sschp_make_range_post( 4, array( '400 V při 25 A' ) ),
+        ),
+        array()
+    );
+
+    sschp_assert_true( isset( $chips['sschp_range|a|a'] ), 'plain language current values should stay in the normal current range' );
+    sschp_assert_true( ! isset( $chips['sschp_range|a-at-v-690-v|a'] ), 'plain language pri/při should not create linked 690 V current range' );
+    sschp_assert_true( ! isset( $chips['sschp_range|a-at-v-400-v|a'] ), 'plain language pri/při should not create linked 400 V current range' );
+}
+
 function sschp_test_range_filters_create_asa_ampere_and_newton_sliders() {
     $range = new SSCHP_Range_Filters();
     $chips = $range->add_range_chips(
@@ -4285,6 +4329,8 @@ sschp_test_range_chip_css_uses_aligned_desktop_thumbs();
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_chip_renderer_exports_active_chip_colors' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_watt_slider_from_consistent_facts' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_keep_ac_dc_voltage_separate' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_can_link_current_ranges_to_voltage_values' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_do_not_link_plain_language_between_voltage_and_current' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_asa_ampere_and_newton_sliders' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_valve_sliders_from_dn_pn_and_bar_values' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_prioritize_ranges_when_normal_chips_fill_limit' );

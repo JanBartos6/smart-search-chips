@@ -4,7 +4,7 @@ Tags: woocommerce, product search, search filter, ajax search, filter
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.24
+Stable tag: 1.1.25
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,7 @@ Unlike traditional faceted search plugins that require every filter to be design
 
 * Use existing ACF/custom fields as chip sources instead of manually tagging every item
 * Add numeric range chips for values like 100 W, 200 W, dimensions, or mapped numeric fields
+* Link paired numeric values with the inline ACF/text marker `=>`, for example 690 V => 63 A
 * Normalize equivalent catalog terms with synonym rules
 * Control chip labels, pinned chips, hidden chips, and display rules
 * Track zero-result searches, chip clicks, result clicks, impressions, and search-to-result-click rates
@@ -120,6 +121,10 @@ Smart Search Chips Pro is a separate add-on for sites that need to reuse existin
 3. Smart Search Chips Pro analytics details with recommendation cards, zero-result searches, chip CTR, result-click tracking, and query/chip tables.
 
 == Changelog ==
+
+= 1.1.25 =
+* Added Pro numeric range linking with the explicit inline `=>` marker so paired values like `690 V => 63 A` create current ranges scoped to the voltage value.
+* Kept plain language values like `690 V pri 63 A` unlinked so existing catalog text does not change behavior unexpectedly.
 
 = 1.1.24 =
 * Fixed chip ordering so numeric range chips stay first and selected chips appear immediately after them before ordinary suggestions.
@@ -282,6 +287,8 @@ Smart Search Chips uses [Freemius](https://freemius.com/) for license management
 
 == Upgrade Notice ==
 
+= 1.1.25 =
+Adds explicit Pro numeric range linking for paired catalog values using the `=>` marker.
 = 1.1.24 =
 Keeps selected chips pinned immediately after numeric range chips in frontend search results.
 

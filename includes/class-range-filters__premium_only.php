@@ -1337,20 +1337,19 @@ class SSCHP_Range_Filters {
 
         foreach ( $sources as $source ) {
             foreach ( $this->split_source_text( $source['text'] ) as $text ) {
-                $facts = array_merge(
-                    $facts,
-                    $this->extract_numeric_facts_from_text(
-                        $text,
-                        array(
-                            'post_id'      => $post_id,
-                            'source'       => $source['source'],
-                            'source_field' => $source['source_field'],
-                            'confidence'   => $source['confidence'],
-                            'raw_source'   => $source['text'],
-                        ),
-                        $rejected
-                    )
+                $text_facts = $this->extract_numeric_facts_from_text(
+                    $text,
+                    array(
+                        'post_id'      => $post_id,
+                        'source'       => $source['source'],
+                        'source_field' => $source['source_field'],
+                        'confidence'   => $source['confidence'],
+                        'raw_source'   => $source['text'],
+                    ),
+                    $rejected
                 );
+
+                $facts = array_merge( $facts, $this->apply_inline_linked_value_markers( $text_facts, $text ) );
             }
         }
 
@@ -1668,6 +1667,136 @@ class SSCHP_Range_Filters {
         }
 
         return $facts;
+    }
+
+    /**
+     * Scope child numeric facts by inline ACF/text markers.
+     *
+     * Supported form:
+     * - Parent points to child: 690 V => 63 A.
+     *
+     * @param array  $facts Numeric facts from one source text.
+     * @param string $text  Source text.
+     * @return array
+     */
+    private function apply_inline_linked_value_markers( $facts, $text ) {
+        if ( count( $facts ) < 2 ) {
+            return $facts;
+        }
+
+        $spans = $this->locate_fact_spans( $facts, $text );
+        if ( count( $spans ) < 2 ) {
+            return $facts;
+        }
+
+        $linked_indexes = array();
+        foreach ( $spans as $parent_index => $parent_span ) {
+            foreach ( $spans as $child_index => $child_span ) {
+                if ( $child_index === $parent_index || isset( $linked_indexes[ $child_index ] ) || $parent_span['end'] > $child_span['start'] ) {
+                    continue;
+                }
+
+                $separator = substr( $text, $parent_span['end'], $child_span['start'] - $parent_span['end'] );
+                if ( $this->separator_links_parent_to_child( $separator ) ) {
+                    $facts[ $child_index ]          = $this->scope_fact_to_linked_parent( $facts[ $child_index ], $facts[ $parent_index ], $text );
+                    $linked_indexes[ $child_index ] = true;
+                }
+            }
+        }
+
+        return $facts;
+    }
+
+    /**
+     * Locate each numeric fact in the source text.
+     *
+     * @param array  $facts Numeric facts.
+     * @param string $text  Source text.
+     * @return array
+     */
+    private function locate_fact_spans( $facts, $text ) {
+        $spans  = array();
+        $cursor = 0;
+
+        foreach ( (array) $facts as $index => $fact ) {
+            $raw = isset( $fact['raw'] ) ? (string) $fact['raw'] : '';
+            if ( '' === $raw ) {
+                continue;
+            }
+
+            $position = strpos( (string) $text, $raw, $cursor );
+            if ( false === $position ) {
+                $position = strpos( (string) $text, $raw );
+            }
+
+            if ( false === $position ) {
+                continue;
+            }
+
+            $length          = strlen( $raw );
+            $spans[ $index ] = array(
+                'start' => $position,
+                'end'   => $position + $length,
+            );
+            $cursor          = $position + $length;
+        }
+
+        return $spans;
+    }
+
+    /**
+     * Check parent-points-to-child marker, for example 690 V => 63 A.
+     *
+     * @param string $separator Text between two facts.
+     * @return bool
+     */
+    private function separator_links_parent_to_child( $separator ) {
+        $separator = $this->normalize_link_separator( $separator );
+
+        return '=>' === $separator;
+    }
+
+    /**
+     * Normalize text between two numeric facts before marker checks.
+     *
+     * @param string $separator Text between two facts.
+     * @return string
+     */
+    private function normalize_link_separator( $separator ) {
+        $separator = trim( wp_strip_all_tags( html_entity_decode( (string) $separator, ENT_QUOTES, 'UTF-8' ) ) );
+        $separator = preg_replace( '/\s+/u', ' ', $separator );
+
+        return trim( $separator, " \t\n\r\0\x0B:;,.()[]{}" );
+    }
+
+    /**
+     * Add parent value context to a child fact.
+     *
+     * @param array  $fact   Child fact.
+     * @param array  $parent Parent fact.
+     * @param string $text   Source text.
+     * @return array
+     */
+    private function scope_fact_to_linked_parent( $fact, $parent, $text ) {
+        $parent_value = $this->format_number( isset( $parent['value'] ) ? $parent['value'] : 0 );
+        $parent_unit  = isset( $parent['unit'] ) ? (string) $parent['unit'] : '';
+        $parent_label = trim( $parent_value . ' ' . $parent_unit );
+        $context_key  = $this->label_to_key( trim( ( isset( $parent['group_key'] ) ? $parent['group_key'] : '' ) . ' ' . $parent_label ) );
+
+        $fact['label']         = trim( (string) ( isset( $fact['label'] ) ? $fact['label'] : '' ) . ' at ' . $parent_label );
+        $fact['group_key']     = sanitize_key( ( isset( $fact['group_key'] ) ? $fact['group_key'] : '' ) . '-at-' . $context_key );
+        $fact['confidence']    = min( 100, (int) ( isset( $fact['confidence'] ) ? $fact['confidence'] : 0 ) + 3 );
+        $fact['linked_parent'] = array(
+            'label'     => isset( $parent['label'] ) ? sanitize_text_field( $parent['label'] ) : '',
+            'group_key' => isset( $parent['group_key'] ) ? sanitize_key( $parent['group_key'] ) : '',
+            'unit'      => sanitize_text_field( $parent_unit ),
+            'unit_key'  => isset( $parent['unit_key'] ) ? sanitize_key( $parent['unit_key'] ) : '',
+            'value'     => $parent_value,
+            'raw'       => isset( $parent['raw'] ) ? sanitize_text_field( $parent['raw'] ) : '',
+            'source'    => sanitize_text_field( $text ),
+        );
+
+        return $fact;
     }
 
     /**
@@ -2315,7 +2444,7 @@ class SSCHP_Range_Filters {
         $label = trim( wp_strip_all_tags( (string) $label ) );
         $label = trim( $label, " \t\n\r\0\x0B:-=,;()[]{}" );
 
-        if ( '' === $label || preg_match( '/\d/', $label ) ) {
+        if ( '' === $label || preg_match( '/\d/', $label ) || ! preg_match( '/\pL/u', $label ) ) {
             return $unit_data['display'];
         }
 
