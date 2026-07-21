@@ -4,7 +4,7 @@ Tags: woocommerce, product search, search filter, ajax search, filter
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.25
+Stable tag: 1.1.26
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -41,6 +41,7 @@ Unlike traditional faceted search plugins that require every filter to be design
 * WP_Query fallback when Relevanssi or the local index is not available
 * Built-in Search Chips Tags field for posts, pages, and products
 * Optional WooCommerce helper tags from product attributes, categories, and product tags
+* Product category archive chips that compare the full category and appear above compatible product lists
 * Live search endpoint with instant chip filtering
 * Fully customizable colors, limits, and thresholds
 * Safely enhance existing theme AJAX search handlers when compatible
@@ -120,6 +121,10 @@ Smart Search Chips Pro is a separate add-on for sites that need to reuse existin
 3. Smart Search Chips Pro analytics details with recommendation cards, zero-result searches, chip CTR, result-click tracking, and query/chip tables.
 
 == Changelog ==
+
+= 1.1.26 =
+* Added full-category chip generation and filtering on WooCommerce and custom product category archives, including products beyond the current pagination page.
+* Added a custom-theme placement fallback so archive chips appear once, directly above the product list, when standard WordPress or WooCommerce loop hooks are unavailable.
 
 = 1.1.25 =
 * Updated release metadata for the latest Pro numeric range linking support.
@@ -270,6 +275,9 @@ The WordPress.org plugin is fully functional with its built-in Search Chips Tags
 Smart Search Chips processes search queries entered by visitors to generate dynamic filter chips. Search queries are processed on this server and are not stored or sent to any third-party service by this WordPress.org edition. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.1.26 =
+Adds full-category product archive filtering and reliable top-of-list chip placement for custom themes.
 
 = 1.1.25 =
 Updates release metadata for the latest Pro numeric range linking support.

@@ -23,6 +23,9 @@ class SSCHP_Frontend {
     /** @var array */
     private $current_page_unfiltered_posts = array();
 
+    /** @var array */
+    private $archive_filtered_posts = array();
+
     public function __construct( SSCHP_Settings $settings, SSCHP_Chip_Engine $engine ) {
         $this->settings = $settings;
         $this->engine   = $engine;
@@ -39,6 +42,7 @@ class SSCHP_Frontend {
         add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
         add_filter( 'the_posts', array( $this, 'filter_archive_posts' ), 10, 2 );
         add_action( 'loop_start', array( $this, 'render_archive_chips_before_loop' ) );
+        add_action( 'wp_footer', array( $this, 'render_archive_chips_footer_fallback' ), 5 );
 
         if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
             add_filter( 'render_block', array( $this, 'inject_archive_chips_into_query_block' ), 10, 2 );
@@ -259,7 +263,7 @@ class SSCHP_Frontend {
     }
 
     /**
-     * Return the current WooCommerce product category slug when available.
+     * Return the current product category slug when available.
      *
      * @return string
      */
@@ -269,7 +273,11 @@ class SSCHP_Frontend {
         }
 
         $queried = get_queried_object();
-        if ( ! $queried || ! isset( $queried->taxonomy, $queried->slug ) || 'product_cat' !== $queried->taxonomy ) {
+        if (
+            ! $queried
+            || ! isset( $queried->taxonomy, $queried->slug )
+            || ! $this->is_product_category_taxonomy( $queried->taxonomy )
+        ) {
             return '';
         }
 
@@ -313,9 +321,9 @@ class SSCHP_Frontend {
     /**
      * Filter supported archive/search loops by active chip tags.
      *
-     * Archive chips intentionally filter only the posts already loaded into the
-     * current WP_Query page. They do not run a second full-site query, because
-     * doing so would be unpredictable on large catalogs and custom theme loops.
+     * Product category chips compare the complete category. Other archive types
+     * retain current-page filtering to avoid unexpectedly expensive site-wide
+     * queries.
      *
      * @param array    $posts Posts for the current query.
      * @param WP_Query $query Query object.
@@ -326,15 +334,20 @@ class SSCHP_Frontend {
             return $posts;
         }
 
-        $query_hash = spl_object_hash( $query );
-        $this->current_page_unfiltered_posts[ $query_hash ] = $posts;
+        $query_hash  = spl_object_hash( $query );
+        $scope_posts = $this->is_product_category_query( $query )
+            ? $this->get_full_product_category_posts( $query, $posts )
+            : $posts;
+
+        $this->current_page_unfiltered_posts[ $query_hash ] = $scope_posts;
 
         $active_tags = $this->get_active_archive_tags();
         if ( empty( $active_tags ) ) {
+            $this->archive_filtered_posts[ $query_hash ] = $scope_posts;
             return $posts;
         }
 
-        $posts_data   = $this->collect_posts_data( $posts );
+        $posts_data   = $this->collect_posts_data( $scope_posts );
         $filtered     = $this->engine->filter_by_tags( $posts_data, $active_tags );
         $filtered_ids = wp_list_pluck( $filtered, 'id' );
 
@@ -345,10 +358,11 @@ class SSCHP_Frontend {
             $query->found_posts   = 0;
             $query->max_num_pages = 0;
             $query->posts         = array();
+            $this->archive_filtered_posts[ $query_hash ] = array();
             return array();
         }
 
-        $filtered_posts = array_values( array_filter( $posts, function( $post ) use ( $filtered_ids ) {
+        $filtered_posts = array_values( array_filter( $scope_posts, function( $post ) use ( $filtered_ids ) {
             return in_array( (int) $post->ID, $filtered_ids, true );
         } ) );
 
@@ -358,8 +372,48 @@ class SSCHP_Frontend {
         $query->found_posts   = count( $filtered_posts );
         $query->max_num_pages = 1;
         $query->posts         = $filtered_posts;
+        $this->archive_filtered_posts[ $query_hash ] = $filtered_posts;
 
         return $filtered_posts;
+    }
+
+    /**
+     * Load every product in the current category while preserving its taxonomy
+     * and language constraints.
+     *
+     * @param WP_Query $query          Main archive query.
+     * @param array    $fallback_posts Current page posts.
+     * @return array
+     */
+    private function get_full_product_category_posts( $query, $fallback_posts ) {
+        if ( ! isset( $query->query_vars ) || ! is_array( $query->query_vars ) ) {
+            return $fallback_posts;
+        }
+
+        $query_args = $query->query_vars;
+        unset(
+            $query_args['paged'],
+            $query_args['page'],
+            $query_args['offset'],
+            $query_args['posts_per_archive_page'],
+            $query_args['sschp_tags'],
+            $query_args['fields']
+        );
+
+        $query_args['posts_per_page']  = -1;
+        $query_args['numberposts']      = -1;
+        $query_args['nopaging']         = true;
+        $query_args['no_found_rows']    = true;
+        $query_args['suppress_filters'] = false;
+
+        $query_args = apply_filters( 'sschp_product_category_scope_query_args', $query_args, $query );
+        $all_posts  = get_posts( $query_args );
+
+        if ( ! is_array( $all_posts ) || ( empty( $all_posts ) && ! empty( $fallback_posts ) ) ) {
+            return $fallback_posts;
+        }
+
+        return array_values( $all_posts );
     }
 
     /**
@@ -392,6 +446,28 @@ class SSCHP_Frontend {
         }
 
         echo wp_kses( $markup, $this->get_archive_chips_allowed_html() );
+    }
+
+    /**
+     * Provide archive chips for custom themes that render products without the
+     * standard WordPress or WooCommerce loop hooks. The frontend script moves
+     * this hidden fallback directly above the product list.
+     */
+    public function render_archive_chips_footer_fallback() {
+        global $wp_query;
+
+        if ( $this->archive_chips_rendered || ! $wp_query instanceof WP_Query ) {
+            return;
+        }
+
+        $markup = $this->get_archive_chips_markup( $wp_query );
+        if ( '' === $markup ) {
+            return;
+        }
+
+        echo '<div class="ssc-loop-filters-fallback" data-sschp-archive-fallback hidden>';
+        echo wp_kses( $markup, $this->get_archive_chips_allowed_html() );
+        echo '</div>';
     }
 
     /**
@@ -442,6 +518,48 @@ class SSCHP_Frontend {
     }
 
     /**
+     * Check whether a query is for a hierarchical product taxonomy.
+     *
+     * @param WP_Query $query Query object.
+     * @return bool
+     */
+    private function is_product_category_query( $query ) {
+        if ( ! $query instanceof WP_Query || ! $query->is_tax() ) {
+            return false;
+        }
+
+        $taxonomy = method_exists( $query, 'get' ) ? sanitize_key( (string) $query->get( 'taxonomy' ) ) : '';
+        if ( '' === $taxonomy && function_exists( 'get_queried_object' ) ) {
+            $queried = get_queried_object();
+            $taxonomy = $queried && isset( $queried->taxonomy ) ? sanitize_key( (string) $queried->taxonomy ) : '';
+        }
+
+        return $this->is_product_category_taxonomy( $taxonomy );
+    }
+
+    /**
+     * Recognize WooCommerce and custom hierarchical product taxonomies.
+     *
+     * @param string $taxonomy Taxonomy name.
+     * @return bool
+     */
+    private function is_product_category_taxonomy( $taxonomy ) {
+        $taxonomy = sanitize_key( (string) $taxonomy );
+        if ( 'product_cat' === $taxonomy ) {
+            return true;
+        }
+
+        if ( '' === $taxonomy || ! function_exists( 'get_taxonomy' ) ) {
+            return false;
+        }
+
+        $taxonomy_object = get_taxonomy( $taxonomy );
+        return $taxonomy_object
+            && ! empty( $taxonomy_object->hierarchical )
+            && in_array( 'product', (array) $taxonomy_object->object_type, true );
+    }
+
+    /**
      * Build the archive chips markup for a supported query.
      *
      * @param WP_Query $query Query object.
@@ -453,19 +571,19 @@ class SSCHP_Frontend {
         }
 
         $query_hash = spl_object_hash( $query );
-        $unfiltered_current_page_posts = isset( $this->current_page_unfiltered_posts[ $query_hash ] )
+        $unfiltered_scope_posts = isset( $this->current_page_unfiltered_posts[ $query_hash ] )
             ? $this->current_page_unfiltered_posts[ $query_hash ]
             : $query->posts;
-        // Generate suggestions from the currently visible page state. The
-        // unfiltered current page is only kept so active zero-match chips can
-        // still be displayed and removed.
-        $posts_data  = $this->collect_posts_data( $query->posts );
+        $filtered_scope_posts = isset( $this->archive_filtered_posts[ $query_hash ] )
+            ? $this->archive_filtered_posts[ $query_hash ]
+            : $query->posts;
+        $posts_data  = $this->collect_posts_data( $filtered_scope_posts );
         $active_tags = $this->get_active_archive_tags();
         $max_chips   = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_License::max_chips() );
         $max_length  = (int) $this->settings->get( 'max_tag_length', 40 );
         $chips       = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_length );
 
-        if ( empty( $chips ) && ! empty( $active_tags ) && ! empty( $unfiltered_current_page_posts ) ) {
+        if ( empty( $chips ) && ! empty( $active_tags ) && ! empty( $unfiltered_scope_posts ) ) {
             foreach ( $active_tags as $tag ) {
                 $chips[ mb_strtolower( $tag ) ] = array(
                     'label' => $tag,
@@ -494,7 +612,11 @@ class SSCHP_Frontend {
             echo '<a class="ssc-loop-filters__clear" href="' . esc_url( $this->build_archive_filter_url( null, array() ) ) . '">' . esc_html__( 'Clear filters', 'smart-search-chips' ) . '</a>';
         }
         echo '</div>';
-        echo '<p class="ssc-loop-filters__description">' . esc_html__( 'These chips refine the results currently loaded on this page. Changing filters resets pagination.', 'smart-search-chips' ) . '</p>';
+        if ( $this->is_product_category_query( $query ) ) {
+            echo '<p class="ssc-loop-filters__description">' . esc_html__( 'These chips compare and filter all products in this category.', 'smart-search-chips' ) . '</p>';
+        } else {
+            echo '<p class="ssc-loop-filters__description">' . esc_html__( 'These chips refine the results currently loaded on this page. Changing filters resets pagination.', 'smart-search-chips' ) . '</p>';
+        }
         echo '<div class="ssc-chips">';
         foreach ( $chips as $chip ) {
             $label     = $chip['label'];

@@ -1679,6 +1679,7 @@ if ( ! class_exists( 'WP_Query' ) ) {
         public $post_count = 0;
         public $found_posts = 0;
         public $max_num_pages = 0;
+        public $query_vars = array();
 
         private $flags = array();
         private $position = -1;
@@ -1720,7 +1721,12 @@ if ( ! class_exists( 'WP_Query' ) ) {
             $this->post_count    = count( $this->posts );
             $this->found_posts   = isset( $args['found_posts'] ) ? (int) $args['found_posts'] : $this->post_count;
             $this->max_num_pages = isset( $args['max_num_pages'] ) ? (int) $args['max_num_pages'] : 1;
+            $this->query_vars    = (array) $args;
             $this->flags         = (array) $args;
+        }
+
+        public function get( $key, $default = '' ) {
+            return array_key_exists( $key, $this->query_vars ) ? $this->query_vars[ $key ] : $default;
         }
 
         public function have_posts() {

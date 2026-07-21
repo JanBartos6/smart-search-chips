@@ -425,6 +425,40 @@ function last(items) {
 }
 
 test.describe("Theme compatibility matrix", () => {
+  test("moves custom-theme archive chips directly above the product list", async ({ page }) => {
+    await page.setContent(`
+      <main id="content" class="f-main f-main--products f-main--has-products">
+        <div class="a-container">
+          <div class="a-stack">
+            <div class="f-listings--products"><article class="f-listing--product">Product</article></div>
+          </div>
+        </div>
+      </main>
+      <footer>
+        <div class="ssc-loop-filters-fallback" data-sschp-archive-fallback hidden>
+          <div class="ssc-loop-filters"><div class="ssc-chips"><a class="ssc-chip" data-tag="IP67">IP67</a></div></div>
+        </div>
+      </footer>
+    `);
+
+    await page.evaluate(() => {
+      window.sschpConfig = {
+        action: "sschp_search",
+        themeAction: "",
+        inputSelector: "input[type='search']",
+        resultSelector: ".js-ssc-results",
+        analytics: { enabled: false, nonce: "" },
+      };
+    });
+    await page.addScriptTag({ path: chipsScriptPath });
+
+    const stackChildren = page.locator("main .a-stack > *");
+    await expect(stackChildren).toHaveCount(2);
+    await expect(stackChildren.nth(0)).toHaveClass(/ssc-loop-filters/);
+    await expect(stackChildren.nth(1)).toHaveClass(/f-listings--products/);
+    await expect(page.locator("[data-sschp-archive-fallback]")).toHaveCount(0);
+  });
+
   test("fresh site with no theme integration still has working shortcode search", async ({ page }) => {
     await installCompatFixture(page, {
       themeAction: "",

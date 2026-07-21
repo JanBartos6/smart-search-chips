@@ -1866,6 +1866,7 @@
     });
 
     function handleReady() {
+        placeArchiveFiltersFallback();
         hydrateEscapedSearchShortcodes();
         decorateRenderedOutput(document);
 
@@ -1890,6 +1891,36 @@
             searchQuery: getCurrentSearchQuery(),
             resultCount: getArchiveResultCount()
         });
+    }
+
+    function placeArchiveFiltersFallback() {
+        var fallback = safeQuerySelector(document, "[data-sschp-archive-fallback]");
+        if (!fallback) {
+            return;
+        }
+
+        var filters = safeQuerySelector(fallback, ".ssc-loop-filters");
+        var target = safeQuerySelector(
+            document,
+            ".f-listings--products, main ul.products, main .wp-block-post-template, main .products"
+        );
+
+        if (!target) {
+            var firstProduct = safeQuerySelector(
+                document,
+                "main article.product, main .f-listing--product, main [class*='listing--product']"
+            );
+            target = firstProduct ? firstProduct.parentNode : null;
+        }
+
+        if (!filters || !target || !target.parentNode) {
+            return;
+        }
+
+        target.parentNode.insertBefore(filters, target);
+        if (fallback.parentNode) {
+            fallback.parentNode.removeChild(fallback);
+        }
     }
 
     if (document.readyState === "loading") {
