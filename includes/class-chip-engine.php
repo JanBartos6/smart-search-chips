@@ -113,10 +113,10 @@ class SSCHP_Chip_Engine {
     }
 
     /**
-     * Keep structural chips first, then selected tags, then suggestions.
+     * Keep every selected chip before every unselected chip.
      *
-     * Range chips are compact controls rather than ordinary suggestions, so
-     * they stay at the far left even when normal chips are active.
+     * Within those groups, range controls retain priority so active ranges
+     * stay first and inactive ranges remain ahead of ordinary suggestions.
      *
      * @param array $chips       Generated chips.
      * @param array $active_tags Active tags.
@@ -127,26 +127,26 @@ class SSCHP_Chip_Engine {
             return $chips;
         }
 
-        $range_chips       = array();
-        $active_chips      = array();
-        $suggestion_chips  = array();
-        $active_tags_lower = array_map( 'mb_strtolower', array_map( 'strval', $active_tags ) );
+        $active_chips         = array();
+        $inactive_range_chips = array();
+        $suggestion_chips     = array();
+        $active_tags_lower    = array_map( 'mb_strtolower', array_map( 'strval', $active_tags ) );
 
         foreach ( $chips as $key => $chip ) {
-            if ( $this->is_range_chip( $chip ) ) {
-                $range_chips[ $key ] = $chip;
+            if ( $this->chip_matches_active_tag( $key, $chip, $active_tags, $active_tags_lower ) ) {
+                $active_chips[ $key ] = $chip;
                 continue;
             }
 
-            if ( $this->chip_matches_active_tag( $key, $chip, $active_tags, $active_tags_lower ) ) {
-                $active_chips[ $key ] = $chip;
+            if ( $this->is_range_chip( $chip ) ) {
+                $inactive_range_chips[ $key ] = $chip;
                 continue;
             }
 
             $suggestion_chips[ $key ] = $chip;
         }
 
-        return $range_chips + $active_chips + $suggestion_chips;
+        return $active_chips + $inactive_range_chips + $suggestion_chips;
     }
 
     /**
@@ -169,6 +169,10 @@ class SSCHP_Chip_Engine {
      * @return bool
      */
     private function chip_matches_active_tag( $key, $chip, $active_tags, $active_tags_lower ) {
+        if ( ! empty( $chip['is_active'] ) ) {
+            return true;
+        }
+
         if ( in_array( mb_strtolower( (string) $key ), $active_tags_lower, true ) ) {
             return true;
         }

@@ -443,7 +443,7 @@ class SSCHP_Range_Filters {
         }
 
         if ( empty( $range_candidates ) ) {
-            return $this->order_range_chips_first( $chips, $active_tags );
+            return $this->order_chips_for_active_filters( $chips, $active_tags );
         }
 
         $visible = 0;
@@ -459,7 +459,7 @@ class SSCHP_Range_Filters {
         }
 
         if ( $visible >= $target ) {
-            return $this->order_range_chips_first( $chips, $active_tags );
+            return $this->order_chips_for_active_filters( $chips, $active_tags );
         }
 
         foreach ( $range_candidates as $key => $range_chip ) {
@@ -488,40 +488,40 @@ class SSCHP_Range_Filters {
             $visible++;
         }
 
-        return $this->order_range_chips_first( $chips, $active_tags );
+        return $this->order_chips_for_active_filters( $chips, $active_tags );
     }
 
     /**
-     * Keep range controls first, selected chips second, and suggestions after.
+     * Keep selected chips first, then inactive ranges and suggestions.
      *
      * @param array $chips       Current chips.
      * @param array $active_tags Active tags.
      * @return array Ordered chips.
      */
-    private function order_range_chips_first( $chips, $active_tags = array() ) {
+    private function order_chips_for_active_filters( $chips, $active_tags = array() ) {
         if ( empty( $chips ) ) {
             return $chips;
         }
 
-        $range_chips      = array();
-        $active_chips     = array();
-        $suggestion_chips = array();
+        $active_chips         = array();
+        $inactive_range_chips = array();
+        $suggestion_chips     = array();
 
         foreach ( (array) $chips as $key => $chip ) {
-            if ( $this->is_range_chip( $chip ) ) {
-                $range_chips[ $key ] = $chip;
+            if ( $this->chip_matches_active_tag( $key, $chip, $active_tags ) ) {
+                $active_chips[ $key ] = $chip;
                 continue;
             }
 
-            if ( $this->chip_matches_active_tag( $key, $chip, $active_tags ) ) {
-                $active_chips[ $key ] = $chip;
+            if ( $this->is_range_chip( $chip ) ) {
+                $inactive_range_chips[ $key ] = $chip;
                 continue;
             }
 
             $suggestion_chips[ $key ] = $chip;
         }
 
-        return $range_chips + $active_chips + $suggestion_chips;
+        return $active_chips + $inactive_range_chips + $suggestion_chips;
     }
 
     /**
@@ -591,6 +591,10 @@ class SSCHP_Range_Filters {
      * @return bool
      */
     private function chip_matches_active_tag( $key, $chip, $active_tags ) {
+        if ( ! empty( $chip['is_active'] ) ) {
+            return true;
+        }
+
         $active_tags_lower = array_map( 'mb_strtolower', array_map( 'strval', (array) $active_tags ) );
         if ( in_array( mb_strtolower( (string) $key ), $active_tags_lower, true ) ) {
             return true;
@@ -1248,11 +1252,12 @@ class SSCHP_Range_Filters {
         );
 
         return array(
-            'label' => $group['label'],
-            'value' => $value,
-            'count' => isset( $group['count'] ) ? (int) $group['count'] : 0,
-            'type'  => self::CHIP_TYPE,
-            'range' => array(
+            'label'     => $group['label'],
+            'value'     => $value,
+            'count'     => isset( $group['count'] ) ? (int) $group['count'] : 0,
+            'type'      => self::CHIP_TYPE,
+            'is_active' => (bool) $active_range,
+            'range'     => array(
                 'group_key'    => $group['group_key'],
                 'unit_key'     => $group['unit_key'],
                 'unit'         => isset( $group['unit'] ) ? $group['unit'] : '',

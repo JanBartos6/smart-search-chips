@@ -808,26 +808,38 @@ function sschp_test_chip_engine_active_tags_are_ordered_first() {
     sschp_assert_same( 'outdoor', $keys[0], 'active chips should be ordered before inactive chips' );
 }
 
-function sschp_test_chip_engine_active_tags_follow_range_chips() {
+function sschp_test_chip_engine_active_chips_precede_inactive_ranges() {
     global $sschp_test_filters;
 
     sschp_reset_test_state();
 
+    $active_volume = 'sschp_range|volume|l|20.0|20|20|30';
     $sschp_test_filters['sschp_generated_chips'] = array(
-        'travel' => array( 'label' => 'travel', 'value' => 'travel', 'count' => 1 ),
-        'water resistant' => array( 'label' => 'water resistant', 'value' => 'water resistant', 'count' => 1 ),
-        'packable' => array( 'label' => 'packable', 'value' => 'packable', 'count' => 2 ),
-        'sschp_range|volume|l' => array(
-            'label' => 'Volume',
-            'value' => 'sschp_range|volume|l|20|20|20|30',
+        'sschp_range|weight|kg' => array(
+            'label' => 'Weight',
+            'value' => 'sschp_range|weight|kg|1|10|1|10',
             'count' => 2,
             'type'  => 'range',
             'range' => array(
+                'group_key' => 'weight',
+                'unit_key'  => 'kg',
+                'unit'      => 'kg',
+            ),
+        ),
+        'travel' => array( 'label' => 'travel', 'value' => 'travel', 'count' => 1 ),
+        'sschp_range|volume|l' => array(
+            'label'     => 'Volume',
+            'value'     => 'sschp_range|volume|l|20|20|20|30',
+            'count'     => 2,
+            'type'      => 'range',
+            'is_active' => true,
+            'range'     => array(
                 'group_key' => 'volume',
                 'unit_key'  => 'l',
                 'unit'      => 'L',
             ),
         ),
+        'packable' => array( 'label' => 'packable', 'value' => 'packable', 'count' => 2 ),
     );
 
     $engine = new SSCHP_Chip_Engine();
@@ -836,15 +848,16 @@ function sschp_test_chip_engine_active_tags_follow_range_chips() {
             array( 'tags' => array( 'travel', 'packable' ), 'tags_lower' => array( 'travel', 'packable' ) ),
             array( 'tags' => array( 'water resistant', 'packable' ), 'tags_lower' => array( 'water resistant', 'packable' ) ),
         ),
-        array( 'packable' ),
+        array( $active_volume, 'packable' ),
         8,
         40
     );
     $keys = array_keys( $chips );
 
-    sschp_assert_same( 'sschp_range|volume|l', $keys[0], 'range chips should stay before selected regular chips' );
-    sschp_assert_same( 'packable', $keys[1], 'selected regular chips should follow range chips before suggestions' );
-    sschp_assert_same( 'travel', $keys[2], 'inactive suggestions should follow selected chips' );
+    sschp_assert_same( 'sschp_range|volume|l', $keys[0], 'active range chips should move ahead of inactive range chips' );
+    sschp_assert_same( 'packable', $keys[1], 'active regular chips should remain in the selected group' );
+    sschp_assert_same( 'sschp_range|weight|kg', $keys[2], 'inactive range chips should follow every active chip' );
+    sschp_assert_same( 'travel', $keys[3], 'inactive suggestions should remain after inactive ranges' );
 
     sschp_reset_test_state();
 }
@@ -1305,7 +1318,7 @@ function sschp_test_range_filters_prioritize_ranges_when_normal_chips_fill_limit
     sschp_assert_same( 4, count( $prioritized ), 'range prioritization should respect the max chip limit' );
 }
 
-function sschp_test_range_filters_selected_chips_follow_range_chips() {
+function sschp_test_range_filters_active_chips_precede_inactive_ranges() {
     $range      = new SSCHP_Range_Filters();
     $tag_counts = $range->add_range_chips(
         array(
@@ -1331,8 +1344,8 @@ function sschp_test_range_filters_selected_chips_follow_range_chips() {
     $prioritized = $range->prioritize_range_chips( $chips, $tag_counts, array(), array( 'packable' ), 5, 40 );
     $keys        = array_keys( $prioritized );
 
-    sschp_assert_same( 'sschp_range|dn|dn', $keys[0], 'range chips should be the first visible controls' );
-    sschp_assert_same( 'packable', $keys[1], 'selected regular chips should be pinned immediately after range chips' );
+    sschp_assert_same( 'packable', $keys[0], 'selected regular chips should move ahead of inactive range chips' );
+    sschp_assert_same( 'sschp_range|dn|dn', $keys[1], 'inactive range chips should follow every selected chip' );
     sschp_assert_same( 'travel', $keys[2], 'inactive suggestions should remain after selected chips' );
 }
 
@@ -4601,7 +4614,7 @@ sschp_test_chip_engine_all_results_tag_hidden_unless_active();
 sschp_test_chip_engine_active_tag_survives();
 sschp_test_chip_engine_active_tag_survives_zero_results();
 sschp_test_chip_engine_active_tags_are_ordered_first();
-sschp_test_chip_engine_active_tags_follow_range_chips();
+sschp_test_chip_engine_active_chips_precede_inactive_ranges();
 sschp_test_chip_engine_filter_by_tags();
 sschp_test_field_normalizer_handles_acf_checkbox_array();
 sschp_test_field_normalizer_handles_acf_relationship_posts();
@@ -4627,7 +4640,7 @@ sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_do_n
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_asa_ampere_and_newton_sliders' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_valve_sliders_from_dn_pn_and_bar_values' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_prioritize_ranges_when_normal_chips_fill_limit' );
-sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_selected_chips_follow_range_chips' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_active_chips_precede_inactive_ranges' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_ip_ratings_as_categorical' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_model_numbers' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_normalize_dimensions_to_common_unit' );
