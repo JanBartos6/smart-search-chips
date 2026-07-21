@@ -19,6 +19,7 @@ $sschp_test_actions         = array();
 $sschp_test_added_actions   = array();
 $sschp_test_added_filters   = array();
 $sschp_test_polylang_language = '';
+$sschp_test_locale          = 'en_US';
 $sschp_test_freemius        = null;
 $sschp_test_is_block_theme  = false;
 $sschp_test_current_user_can = array();
@@ -519,6 +520,14 @@ if ( ! function_exists( 'pll_current_language' ) ) {
         global $sschp_test_polylang_language;
 
         return $sschp_test_polylang_language;
+    }
+}
+
+if ( ! function_exists( 'determine_locale' ) ) {
+    function determine_locale() {
+        global $sschp_test_locale;
+
+        return $sschp_test_locale;
     }
 }
 

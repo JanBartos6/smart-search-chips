@@ -12,6 +12,144 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SSCHP_Language {
 
     /**
+     * Resolve the language used by archive filter controls.
+     *
+     * @param string $setting Saved language setting.
+     * @return string One of auto, en, or cs.
+     */
+    public static function archive_filter_language( $setting = 'auto' ) {
+        $setting = sanitize_key( (string) $setting );
+
+        if ( in_array( $setting, array( 'en', 'cs' ), true ) ) {
+            return $setting;
+        }
+
+        $language = self::current_language();
+        if ( '' === $language ) {
+            if ( function_exists( 'determine_locale' ) ) {
+                $language = determine_locale();
+            } elseif ( function_exists( 'get_locale' ) ) {
+                $language = get_locale();
+            }
+        }
+
+        $language = strtolower( str_replace( '-', '_', (string) $language ) );
+        if ( 'cs' === $language || 0 === strpos( $language, 'cs_' ) ) {
+            return 'cs';
+        }
+
+        if ( 'en' === $language || 0 === strpos( $language, 'en_' ) ) {
+            return 'en';
+        }
+
+        return 'auto';
+    }
+
+    /**
+     * Return a localized archive filter interface string.
+     *
+     * @param string $key     String identifier.
+     * @param string $setting Saved language setting.
+     * @return string
+     */
+    public static function archive_filter_text( $key, $setting = 'auto' ) {
+        $language = self::archive_filter_language( $setting );
+        $english  = self::translated_archive_filter_text( $key, false );
+
+        if ( 'cs' === $language ) {
+            $czech = array(
+                'filter_results'           => 'Filtrovat tyto výsledky',
+                'refine_search'            => 'Upřesnit toto hledání',
+                'clear_filters'            => 'Vymazat filtry',
+                'category_description'     => 'Pomocí těchto filtrů můžete porovnávat a filtrovat všechny produkty v této kategorii.',
+                'current_page_description' => 'Tyto filtry upřesňují výsledky aktuálně načtené na této stránce. Změna filtrů resetuje stránkování.',
+            );
+
+            $text = isset( $czech[ $key ] ) ? $czech[ $key ] : $english;
+        } elseif ( 'en' === $language ) {
+            $text = $english;
+        } else {
+            $text = self::translated_archive_filter_text( $key, true );
+        }
+
+        return apply_filters( 'sschp_archive_filter_text', $text, $key, $language );
+    }
+
+    /**
+     * Return a localized archive chip action label for assistive technology.
+     *
+     * @param string $action   Either remove or filter.
+     * @param string $label    Chip label.
+     * @param int    $count    Matching result count.
+     * @param string $setting  Saved language setting.
+     * @return string
+     */
+    public static function archive_filter_count_label( $action, $label, $count, $setting = 'auto' ) {
+        $action   = 'remove' === $action ? 'remove' : 'filter';
+        $count    = max( 0, (int) $count );
+        $language = self::archive_filter_language( $setting );
+
+        if ( 'cs' === $language ) {
+            if ( 1 === $count ) {
+                $result_word = 'výsledek';
+            } elseif ( $count >= 2 && $count <= 4 ) {
+                $result_word = 'výsledky';
+            } else {
+                $result_word = 'výsledků';
+            }
+
+            $format = 'remove' === $action
+                ? 'Odebrat filtr %1$s, %2$d %3$s'
+                : 'Použít filtr %1$s, %2$d %3$s';
+            $text = sprintf( $format, $label, $count, $result_word );
+        } elseif ( 'en' === $language ) {
+            if ( 'remove' === $action ) {
+                $format = 1 === $count ? 'Remove filter %1$s, %2$d result' : 'Remove filter %1$s, %2$d results';
+            } else {
+                $format = 1 === $count ? 'Filter by %1$s, %2$d result' : 'Filter by %1$s, %2$d results';
+            }
+
+            $text = sprintf( $format, $label, $count );
+        } else {
+            if ( 'remove' === $action ) {
+                /* translators: 1: chip label, 2: matching result count. */
+                $format = _n( 'Remove filter %1$s, %2$d result', 'Remove filter %1$s, %2$d results', $count, 'smart-search-chips' );
+            } else {
+                /* translators: 1: chip label, 2: matching result count. */
+                $format = _n( 'Filter by %1$s, %2$d result', 'Filter by %1$s, %2$d results', $count, 'smart-search-chips' );
+            }
+
+            $text = sprintf( $format, $label, $count );
+        }
+
+        return apply_filters( 'sschp_archive_filter_count_label', $text, $action, $label, $count, $language );
+    }
+
+    /**
+     * Return source or normally translated archive interface text.
+     *
+     * @param string $key       String identifier.
+     * @param bool   $translate Whether to use the active WordPress locale.
+     * @return string
+     */
+    private static function translated_archive_filter_text( $key, $translate ) {
+        switch ( $key ) {
+            case 'filter_results':
+                return $translate ? __( 'Filter These Results', 'smart-search-chips' ) : 'Filter These Results';
+            case 'refine_search':
+                return $translate ? __( 'Refine This Search', 'smart-search-chips' ) : 'Refine This Search';
+            case 'clear_filters':
+                return $translate ? __( 'Clear filters', 'smart-search-chips' ) : 'Clear filters';
+            case 'category_description':
+                return $translate ? __( 'These chips compare and filter all products in this category.', 'smart-search-chips' ) : 'These chips compare and filter all products in this category.';
+            case 'current_page_description':
+                return $translate ? __( 'These chips refine the results currently loaded on this page. Changing filters resets pagination.', 'smart-search-chips' ) : 'These chips refine the results currently loaded on this page. Changing filters resets pagination.';
+            default:
+                return '';
+        }
+    }
+
+    /**
      * Get the active frontend language slug when available.
      *
      * Supports Polylang and WPML. Returns an empty string when the site is

@@ -153,6 +153,9 @@ class SSCHP_Settings {
         register_setting( 'smart-search-chips', 'sschp_max_tag_length', array(
             'sanitize_callback' => array( $this, 'sanitize_max_tag_length' ),
         ) );
+        register_setting( 'smart-search-chips', 'sschp_archive_filter_language', array(
+            'sanitize_callback' => array( $this, 'sanitize_archive_filter_language' ),
+        ) );
         register_setting( 'smart-search-chips', 'sschp_woo_enabled', array(
             'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
         ) );
@@ -924,6 +927,18 @@ class SSCHP_Settings {
                                 <tr>
                                     <th><?php esc_html_e( 'Post Types', 'smart-search-chips' ); ?></th>
                                     <td><?php $this->render_post_types(); ?></td>
+                                </tr>
+                                <tr>
+                                    <th><?php esc_html_e( 'Archive Filter Language', 'smart-search-chips' ); ?></th>
+                                    <td>
+                                        <?php $archive_filter_language = $this->sanitize_archive_filter_language( get_option( 'sschp_archive_filter_language', 'auto' ) ); ?>
+                                        <select name="sschp_archive_filter_language">
+                                            <option value="auto" <?php selected( $archive_filter_language, 'auto' ); ?>><?php esc_html_e( 'Auto (follow the site language)', 'smart-search-chips' ); ?></option>
+                                            <option value="en" <?php selected( $archive_filter_language, 'en' ); ?>><?php esc_html_e( 'English', 'smart-search-chips' ); ?></option>
+                                            <option value="cs" <?php selected( $archive_filter_language, 'cs' ); ?>><?php esc_html_e( 'Czech', 'smart-search-chips' ); ?></option>
+                                        </select>
+                                        <p class="description"><?php esc_html_e( 'Controls the archive filter heading, description, clear link, and chip action labels. Use Czech when the storefront is Czech but WordPress is configured in English.', 'smart-search-chips' ); ?></p>
+                                    </td>
                                 </tr>
                             </table>
                         </div>
@@ -2746,6 +2761,17 @@ class SSCHP_Settings {
         }
 
         return 'built_in';
+    }
+
+    /**
+     * Sanitize the archive filter interface language.
+     *
+     * @param mixed $value Raw language setting.
+     * @return string
+     */
+    public function sanitize_archive_filter_language( $value ) {
+        $value = sanitize_key( (string) $value );
+        return in_array( $value, array( 'auto', 'en', 'cs' ), true ) ? $value : 'auto';
     }
 
     /**

@@ -3,7 +3,7 @@
  * Plugin Name: Smart Search Chips
  * Plugin URI:  https://smartsearchchips.app
  * Description: Dynamic filter chips for WordPress search. Generates smart, non-redundant filter tags from the built-in Search Chips Tags field. Works with Relevanssi for best results.
- * Version:     1.1.29
+ * Version:     1.1.30
  * Author:      Jan Bartos
  * Author URI:  https://teprostroj.com
  * License:     GPL-2.0-or-later
@@ -18,10 +18,22 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'SSCHP_VERSION', '1.1.29' );
+define( 'SSCHP_VERSION', '1.1.30' );
 define( 'SSCHP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SSCHP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SSCHP_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+
+/**
+ * Load bundled translations.
+ */
+function sschp_load_textdomain() {
+    load_plugin_textdomain(
+        'smart-search-chips',
+        false,
+        dirname( SSCHP_PLUGIN_BASENAME ) . '/languages'
+    );
+}
+add_action( 'init', 'sschp_load_textdomain', 0 );
 
 require_once SSCHP_PLUGIN_DIR . 'includes/class-edition.php';
 require_once SSCHP_PLUGIN_DIR . 'includes/class-language.php';
@@ -98,6 +110,7 @@ function sschp_activate() {
         'sschp_max_results'              => 10,
         'sschp_relevance_threshold'      => 0.3,
         'sschp_max_tag_length'           => 40,
+        'sschp_archive_filter_language'  => 'auto',
         'sschp_chip_color'               => '#e74c3c',
         'sschp_chip_text_color'          => '#ffffff',
         'sschp_chip_inactive_color'      => '#ffffff',
@@ -171,6 +184,7 @@ function sschp_get_option_keys() {
         'sschp_max_results',
         'sschp_relevance_threshold',
         'sschp_max_tag_length',
+        'sschp_archive_filter_language',
         'sschp_chip_color',
         'sschp_chip_text_color',
         'sschp_chip_inactive_color',

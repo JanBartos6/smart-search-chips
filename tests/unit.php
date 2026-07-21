@@ -128,7 +128,7 @@ function sschp_test_scheduled_hooks() {
 }
 
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_taxonomies, $sschp_test_terms, $sschp_test_last_get_posts_args, $sschp_test_registered_meta_keys, $sschp_test_index_rows, $sschp_test_index_table_exists, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls, $sschp_test_registered_blocks, $sschp_test_shortcodes;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_locale, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_taxonomies, $sschp_test_terms, $sschp_test_last_get_posts_args, $sschp_test_registered_meta_keys, $sschp_test_index_rows, $sschp_test_index_table_exists, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls, $sschp_test_registered_blocks, $sschp_test_shortcodes;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -137,6 +137,7 @@ function sschp_reset_test_state() {
     $sschp_test_added_actions   = array();
     $sschp_test_added_filters   = array();
     $sschp_test_polylang_language = '';
+    $sschp_test_locale          = 'en_US';
     $sschp_test_freemius        = null;
     $sschp_test_is_block_theme  = false;
     $sschp_test_current_user_can   = array();
@@ -2733,6 +2734,47 @@ function sschp_test_language_applies_wpml_query_args() {
     sschp_assert_same( 'fr', $sschp_test_actions[0]['value'], 'switch_ajax_language should switch to the requested language' );
 }
 
+function sschp_test_archive_filter_language_can_force_czech_on_english_sites() {
+    sschp_reset_test_state();
+
+    sschp_assert_same( 'cs', SSCHP_Language::archive_filter_language( 'cs' ), 'archive filter language should accept the explicit Czech setting' );
+    sschp_assert_same( 'Filtrovat tyto výsledky', SSCHP_Language::archive_filter_text( 'filter_results', 'cs' ), 'Czech archive filters should localize the heading' );
+    sschp_assert_same( 'Vymazat filtry', SSCHP_Language::archive_filter_text( 'clear_filters', 'cs' ), 'Czech archive filters should localize the clear action' );
+    sschp_assert_same( 'Použít filtr šířka, 3 výsledky', SSCHP_Language::archive_filter_count_label( 'filter', 'šířka', 3, 'cs' ), 'Czech chip action labels should use the correct two-to-four plural form' );
+    sschp_assert_same( 'Odebrat filtr šířka, 5 výsledků', SSCHP_Language::archive_filter_count_label( 'remove', 'šířka', 5, 'cs' ), 'Czech chip action labels should use the correct many-result plural form' );
+}
+
+function sschp_test_archive_filter_language_auto_detects_czech_locale() {
+    global $sschp_test_locale;
+
+    sschp_reset_test_state();
+    $sschp_test_locale = 'cs_CZ';
+
+    sschp_assert_same( 'cs', SSCHP_Language::archive_filter_language( 'auto' ), 'automatic archive filter language should detect a Czech WordPress locale' );
+    sschp_assert_same( 'Pomocí těchto filtrů můžete porovnávat a filtrovat všechny produkty v této kategorii.', SSCHP_Language::archive_filter_text( 'category_description', 'auto' ), 'automatic Czech detection should localize the category description' );
+}
+
+function sschp_test_archive_filter_language_setting_is_sanitized() {
+    $settings = new SSCHP_Settings();
+
+    sschp_assert_same( 'cs', $settings->sanitize_archive_filter_language( 'cs' ), 'archive filter language sanitizer should keep Czech' );
+    sschp_assert_same( 'auto', $settings->sanitize_archive_filter_language( 'unsupported' ), 'archive filter language sanitizer should reject unsupported values' );
+}
+
+function sschp_test_czech_archive_filter_translation_bundle_is_packaged() {
+    $root       = dirname( __DIR__ );
+    $po_path    = $root . '/languages/smart-search-chips-cs_CZ.po';
+    $mo_path    = $root . '/languages/smart-search-chips-cs_CZ.mo';
+    $pro_main   = file_get_contents( $root . '/smart-search-chips.php' );
+    $wporg_main = file_get_contents( $root . '/build-sources/wporg/smart-search-chips.php' );
+
+    sschp_assert_true( file_exists( $po_path ), 'Czech PO catalog should be present' );
+    sschp_assert_true( file_exists( $mo_path ) && filesize( $mo_path ) > 0, 'compiled Czech MO catalog should be present' );
+    sschp_assert_contains( 'msgid "Filter These Results"', file_get_contents( $po_path ), 'Czech catalog should include the archive filter heading' );
+    sschp_assert_contains( "load_plugin_textdomain(\n", $pro_main, 'Pro entrypoint should load bundled translations' );
+    sschp_assert_contains( "load_plugin_textdomain(\n", $wporg_main, 'WordPress.org entrypoint should load bundled translations' );
+}
+
 function sschp_test_analytics_sanitizes_chip_impression_labels() {
     $labels = sschp_invoke_private( 'SSCHP_Analytics', 'sanitize_chip_labels', array( array( ' spring handle ', 'spring handle', '', 'IP67' ) ) );
 
@@ -4699,6 +4741,10 @@ sschp_test_admin_test_search_range_chips_render_as_ranges();
 sschp_test_language_request_prefers_explicit_request_value();
 sschp_test_language_detects_polylang_slug();
 sschp_test_language_applies_wpml_query_args();
+sschp_test_archive_filter_language_can_force_czech_on_english_sites();
+sschp_test_archive_filter_language_auto_detects_czech_locale();
+sschp_test_archive_filter_language_setting_is_sanitized();
+sschp_test_czech_archive_filter_translation_bundle_is_packaged();
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_sanitizes_chip_impression_labels' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_sanitizes_nested_chip_impression_labels' );
 sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_appends_ctr_percentages' );

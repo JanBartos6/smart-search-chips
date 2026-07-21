@@ -1,0 +1,72 @@
+# Czech translations for Smart Search Chips.
+# Copyright (C) 2026 Jan Bartos
+# This file is distributed under the GPL-2.0-or-later license.
+msgid ""
+msgstr ""
+"Project-Id-Version: Smart Search Chips 1.1.30\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-21 00:00+0000\n"
+"PO-Revision-Date: 2026-07-21 00:00+0000\n"
+"Last-Translator: Jan Bartos\n"
+"Language-Team: Czech\n"
+"Language: cs_CZ\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+#: includes/class-frontend.php
+msgid "Filter These Results"
+msgstr "Filtrovat tyto výsledky"
+
+#: includes/class-frontend.php
+msgid "Refine This Search"
+msgstr "Upřesnit toto hledání"
+
+#: includes/class-frontend.php
+msgid "Clear filters"
+msgstr "Vymazat filtry"
+
+#: includes/class-frontend.php
+msgid "These chips compare and filter all products in this category."
+msgstr "Pomocí těchto filtrů můžete porovnávat a filtrovat všechny produkty v této kategorii."
+
+#: includes/class-frontend.php
+msgid "These chips refine the results currently loaded on this page. Changing filters resets pagination."
+msgstr "Tyto filtry upřesňují výsledky aktuálně načtené na této stránce. Změna filtrů resetuje stránkování."
+
+#. translators: 1: chip label, 2: matching result count.
+#: includes/class-language.php
+msgid "Remove filter %1$s, %2$d result"
+msgid_plural "Remove filter %1$s, %2$d results"
+msgstr[0] "Odebrat filtr %1$s, %2$d výsledek"
+msgstr[1] "Odebrat filtr %1$s, %2$d výsledky"
+msgstr[2] "Odebrat filtr %1$s, %2$d výsledků"
+
+#. translators: 1: chip label, 2: matching result count.
+#: includes/class-language.php
+msgid "Filter by %1$s, %2$d result"
+msgid_plural "Filter by %1$s, %2$d results"
+msgstr[0] "Použít filtr %1$s, %2$d výsledek"
+msgstr[1] "Použít filtr %1$s, %2$d výsledky"
+msgstr[2] "Použít filtr %1$s, %2$d výsledků"
+
+#: includes/class-settings.php
+msgid "Archive Filter Language"
+msgstr "Jazyk filtrů na výpisu"
+
+#: includes/class-settings.php
+msgid "Auto (follow the site language)"
+msgstr "Automaticky (podle jazyka webu)"
+
+#: includes/class-settings.php
+msgid "English"
+msgstr "Angličtina"
+
+#: includes/class-settings.php
+msgid "Czech"
+msgstr "Čeština"
+
+#: includes/class-settings.php
+msgid "Controls the archive filter heading, description, clear link, and chip action labels. Use Czech when the storefront is Czech but WordPress is configured in English."
+msgstr "Určuje jazyk nadpisu a popisu filtrů na výpisu, odkazu pro vymazání filtrů a popisků akcí. Zvolte češtinu, pokud je obchod v češtině, ale WordPress je nastavený na angličtinu."

@@ -867,9 +867,10 @@ class SSCHP_Frontend {
 
         $this->archive_chips_rendered = true;
 
-        $title = __( 'Filter These Results', 'smart-search-chips' );
+        $archive_filter_language = $this->settings->get( 'archive_filter_language', 'auto' );
+        $title = SSCHP_Language::archive_filter_text( 'filter_results', $archive_filter_language );
         if ( function_exists( 'is_search' ) && is_search() ) {
-            $title = __( 'Refine This Search', 'smart-search-chips' );
+            $title = SSCHP_Language::archive_filter_text( 'refine_search', $archive_filter_language );
         }
 
         ob_start();
@@ -877,13 +878,13 @@ class SSCHP_Frontend {
         echo '<div class="ssc-loop-filters__header">';
         echo '<strong class="ssc-loop-filters__title">' . esc_html( $title ) . '</strong>';
         if ( ! empty( $active_tags ) ) {
-            echo '<a class="ssc-loop-filters__clear" href="' . esc_url( $this->build_archive_filter_url( null, array() ) ) . '">' . esc_html__( 'Clear filters', 'smart-search-chips' ) . '</a>';
+            echo '<a class="ssc-loop-filters__clear" href="' . esc_url( $this->build_archive_filter_url( null, array() ) ) . '">' . esc_html( SSCHP_Language::archive_filter_text( 'clear_filters', $archive_filter_language ) ) . '</a>';
         }
         echo '</div>';
         if ( $this->is_product_category_query( $query ) ) {
-            echo '<p class="ssc-loop-filters__description">' . esc_html__( 'These chips compare and filter all products in this category.', 'smart-search-chips' ) . '</p>';
+            echo '<p class="ssc-loop-filters__description">' . esc_html( SSCHP_Language::archive_filter_text( 'category_description', $archive_filter_language ) ) . '</p>';
         } else {
-            echo '<p class="ssc-loop-filters__description">' . esc_html__( 'These chips refine the results currently loaded on this page. Changing filters resets pagination.', 'smart-search-chips' ) . '</p>';
+            echo '<p class="ssc-loop-filters__description">' . esc_html( SSCHP_Language::archive_filter_text( 'current_page_description', $archive_filter_language ) ) . '</p>';
         }
         echo '<div class="ssc-chips">';
         foreach ( $chips as $chip ) {
@@ -895,19 +896,9 @@ class SSCHP_Frontend {
             $count     = (int) $chip['count'];
 
             if ( $is_active ) {
-                /* translators: 1: chip label, 2: matching result count. */
-                $aria_label = sprintf(
-                    _n( 'Remove filter %1$s, %2$d result', 'Remove filter %1$s, %2$d results', $count, 'smart-search-chips' ),
-                    $label,
-                    $count
-                );
+                $aria_label = SSCHP_Language::archive_filter_count_label( 'remove', $label, $count, $archive_filter_language );
             } else {
-                /* translators: 1: chip label, 2: matching result count. */
-                $aria_label = sprintf(
-                    _n( 'Filter by %1$s, %2$d result', 'Filter by %1$s, %2$d results', $count, 'smart-search-chips' ),
-                    $label,
-                    $count
-                );
+                $aria_label = SSCHP_Language::archive_filter_count_label( 'filter', $label, $count, $archive_filter_language );
             }
 
             $custom_html = apply_filters(
