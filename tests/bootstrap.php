@@ -1729,6 +1729,10 @@ if ( ! class_exists( 'WP_Query' ) ) {
             return array_key_exists( $key, $this->query_vars ) ? $this->query_vars[ $key ] : $default;
         }
 
+        public function set( $key, $value ) {
+            $this->query_vars[ $key ] = $value;
+        }
+
         public function have_posts() {
             return ( $this->position + 1 ) < $this->post_count;
         }

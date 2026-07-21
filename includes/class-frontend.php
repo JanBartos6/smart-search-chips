@@ -26,6 +26,12 @@ class SSCHP_Frontend {
     /** @var array */
     private $archive_filtered_posts = array();
 
+    /** @var array|null */
+    private $product_category_filter_context = null;
+
+    /** @var bool */
+    private $loading_product_category_scope = false;
+
     public function __construct( SSCHP_Settings $settings, SSCHP_Chip_Engine $engine ) {
         $this->settings = $settings;
         $this->engine   = $engine;
@@ -40,6 +46,7 @@ class SSCHP_Frontend {
         add_shortcode( 'sschp_search', array( $this, 'render_search_form' ) );
         add_shortcode( 'ssc_search', array( $this, 'render_search_form' ) );
         add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
+        add_action( 'pre_get_posts', array( $this, 'filter_custom_product_category_query' ), 20 );
         add_filter( 'the_posts', array( $this, 'filter_archive_posts' ), 10, 2 );
         add_action( 'loop_start', array( $this, 'render_archive_chips_before_loop' ) );
         add_action( 'wp_footer', array( $this, 'render_archive_chips_footer_fallback' ), 5 );
@@ -334,8 +341,9 @@ class SSCHP_Frontend {
             return $posts;
         }
 
-        $query_hash  = spl_object_hash( $query );
-        $scope_posts = $this->is_product_category_query( $query )
+        $query_hash          = spl_object_hash( $query );
+        $is_product_category = $this->is_product_category_query( $query );
+        $scope_posts         = $is_product_category
             ? $this->get_full_product_category_posts( $query, $posts )
             : $posts;
 
@@ -352,6 +360,10 @@ class SSCHP_Frontend {
         $filtered_ids = wp_list_pluck( $filtered, 'id' );
 
         if ( empty( $filtered_ids ) ) {
+            if ( $is_product_category ) {
+                $this->remember_product_category_filter( $query, array() );
+            }
+
             // Current-page filtering means pagination from the original query
             // no longer applies once a chip filter is active.
             $query->post_count    = 0;
@@ -366,6 +378,10 @@ class SSCHP_Frontend {
             return in_array( (int) $post->ID, $filtered_ids, true );
         } ) );
 
+        if ( $is_product_category ) {
+            $this->remember_product_category_filter( $query, $filtered_ids );
+        }
+
         // Expose the filtered current-page count and prevent stale pagination
         // links from implying that the full result set was filtered.
         $query->post_count    = count( $filtered_posts );
@@ -375,6 +391,39 @@ class SSCHP_Frontend {
         $this->archive_filtered_posts[ $query_hash ] = $filtered_posts;
 
         return $filtered_posts;
+    }
+
+    /**
+     * Constrain a custom theme's secondary product loop to the IDs selected by
+     * the main product-category query.
+     *
+     * @param WP_Query $query Query object.
+     */
+    public function filter_custom_product_category_query( $query ) {
+        if (
+            is_admin()
+            || $this->loading_product_category_scope
+            || ! $query instanceof WP_Query
+            || $query->is_main_query()
+            || null === $this->product_category_filter_context
+        ) {
+            return;
+        }
+
+        if ( ! $this->query_targets_product_category_context( $query, $this->product_category_filter_context ) ) {
+            return;
+        }
+
+        $allowed_ids  = $this->product_category_filter_context['post_ids'];
+        $existing_ids = array_values( array_filter( array_map( 'absint', (array) $query->get( 'post__in', array() ) ) ) );
+
+        if ( ! empty( $existing_ids ) ) {
+            $allowed_ids = array_values( array_intersect( $allowed_ids, $existing_ids ) );
+        }
+
+        // WP_Query treats an empty post__in as no restriction, so use an
+        // impossible ID when the active filters have no matches.
+        $query->set( 'post__in', empty( $allowed_ids ) ? array( 0 ) : $allowed_ids );
     }
 
     /**
@@ -407,13 +456,232 @@ class SSCHP_Frontend {
         $query_args['suppress_filters'] = false;
 
         $query_args = apply_filters( 'sschp_product_category_scope_query_args', $query_args, $query );
-        $all_posts  = get_posts( $query_args );
+
+        $this->loading_product_category_scope = true;
+        try {
+            $all_posts = get_posts( $query_args );
+        } finally {
+            $this->loading_product_category_scope = false;
+        }
 
         if ( ! is_array( $all_posts ) || ( empty( $all_posts ) && ! empty( $fallback_posts ) ) ) {
             return $fallback_posts;
         }
 
         return array_values( $all_posts );
+    }
+
+    /**
+     * Cache the active product-category result IDs for compatible secondary
+     * loops rendered later in the request.
+     *
+     * @param WP_Query $query    Main product-category query.
+     * @param int[]    $post_ids Matching product IDs.
+     */
+    private function remember_product_category_filter( $query, $post_ids ) {
+        $context = $this->get_product_category_context( $query );
+        if ( empty( $context['taxonomy'] ) ) {
+            return;
+        }
+
+        $context['post_ids'] = array_values( array_unique( array_filter( array_map( 'absint', (array) $post_ids ) ) ) );
+        $this->product_category_filter_context = $context;
+    }
+
+    /**
+     * Describe the category selected by a query using each common term field.
+     *
+     * @param WP_Query $query Query object.
+     * @return array
+     */
+    private function get_product_category_context( $query ) {
+        $taxonomy = sanitize_key( (string) $query->get( 'taxonomy' ) );
+        $queried  = function_exists( 'get_queried_object' ) ? get_queried_object() : null;
+
+        if ( '' === $taxonomy && $queried && isset( $queried->taxonomy ) ) {
+            $taxonomy = sanitize_key( (string) $queried->taxonomy );
+        }
+
+        $context  = array(
+            'taxonomy'         => $taxonomy,
+            'term_id'          => array(),
+            'term_taxonomy_id' => array(),
+            'slug'             => array(),
+            'name'             => array(),
+        );
+
+        if ( '' !== $taxonomy ) {
+            $term = sanitize_title( (string) $query->get( 'term' ) );
+            if ( '' !== $term ) {
+                $context['slug'][] = $term;
+            }
+        }
+
+        if ( $queried && isset( $queried->taxonomy ) && $taxonomy === sanitize_key( (string) $queried->taxonomy ) ) {
+            $this->add_term_to_product_category_context( $context, 'term_id', isset( $queried->term_id ) ? $queried->term_id : 0 );
+            $this->add_term_to_product_category_context( $context, 'term_taxonomy_id', isset( $queried->term_taxonomy_id ) ? $queried->term_taxonomy_id : 0 );
+            $this->add_term_to_product_category_context( $context, 'slug', isset( $queried->slug ) ? $queried->slug : '' );
+            $this->add_term_to_product_category_context( $context, 'name', isset( $queried->name ) ? $queried->name : '' );
+        }
+
+        $this->add_tax_query_terms_to_product_category_context( $context, $query->get( 'tax_query', array() ) );
+
+        foreach ( array( 'term_id', 'term_taxonomy_id', 'slug', 'name' ) as $field ) {
+            $context[ $field ] = array_values( array_unique( $context[ $field ] ) );
+        }
+
+        return $context;
+    }
+
+    /**
+     * Add positive taxonomy clauses to a category context.
+     *
+     * @param array $context   Category context.
+     * @param array $tax_query Tax query clauses.
+     */
+    private function add_tax_query_terms_to_product_category_context( &$context, $tax_query ) {
+        foreach ( (array) $tax_query as $clause ) {
+            if ( ! is_array( $clause ) ) {
+                continue;
+            }
+
+            if ( isset( $clause['taxonomy'] ) ) {
+                if ( $context['taxonomy'] !== sanitize_key( (string) $clause['taxonomy'] ) ) {
+                    continue;
+                }
+
+                $operator = isset( $clause['operator'] ) ? strtoupper( (string) $clause['operator'] ) : 'IN';
+                if ( in_array( $operator, array( 'NOT IN', 'NOT EXISTS' ), true ) ) {
+                    continue;
+                }
+
+                $field = $this->normalize_product_category_term_field( isset( $clause['field'] ) ? $clause['field'] : 'term_id' );
+                foreach ( isset( $clause['terms'] ) ? (array) $clause['terms'] : array() as $term ) {
+                    $this->add_term_to_product_category_context( $context, $field, $term );
+                }
+                continue;
+            }
+
+            $this->add_tax_query_terms_to_product_category_context( $context, $clause );
+        }
+    }
+
+    /**
+     * Determine whether a secondary product query targets the current category.
+     *
+     * @param WP_Query $query   Secondary query.
+     * @param array    $context Current category context.
+     * @return bool
+     */
+    private function query_targets_product_category_context( $query, $context ) {
+        $post_types = (array) $query->get( 'post_type', array() );
+        if ( ! in_array( 'product', $post_types, true ) ) {
+            return false;
+        }
+
+        $matches = $this->tax_query_targets_product_category_context( $query->get( 'tax_query', array() ), $context );
+
+        if ( ! $matches && $context['taxonomy'] === sanitize_key( (string) $query->get( 'taxonomy' ) ) ) {
+            $term = $query->get( 'term' );
+            $matches = $this->product_category_term_matches_context( $term, 'slug', $context );
+        }
+
+        return (bool) apply_filters( 'sschp_should_filter_custom_product_category_query', $matches, $query, $context );
+    }
+
+    /**
+     * Search nested tax_query clauses for the current category.
+     *
+     * @param array $tax_query Tax query clauses.
+     * @param array $context   Current category context.
+     * @return bool
+     */
+    private function tax_query_targets_product_category_context( $tax_query, $context ) {
+        foreach ( (array) $tax_query as $clause ) {
+            if ( ! is_array( $clause ) ) {
+                continue;
+            }
+
+            if ( isset( $clause['taxonomy'] ) ) {
+                if ( $context['taxonomy'] !== sanitize_key( (string) $clause['taxonomy'] ) ) {
+                    continue;
+                }
+
+                $operator = isset( $clause['operator'] ) ? strtoupper( (string) $clause['operator'] ) : 'IN';
+                if ( in_array( $operator, array( 'NOT IN', 'NOT EXISTS' ), true ) ) {
+                    continue;
+                }
+
+                $field = $this->normalize_product_category_term_field( isset( $clause['field'] ) ? $clause['field'] : 'term_id' );
+                foreach ( isset( $clause['terms'] ) ? (array) $clause['terms'] : array() as $term ) {
+                    if ( $this->product_category_term_matches_context( $term, $field, $context ) ) {
+                        return true;
+                    }
+                }
+                continue;
+            }
+
+            if ( $this->tax_query_targets_product_category_context( $clause, $context ) ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Normalize WordPress taxonomy term field aliases.
+     *
+     * @param string $field Taxonomy query field.
+     * @return string
+     */
+    private function normalize_product_category_term_field( $field ) {
+        $field = sanitize_key( (string) $field );
+
+        return 'id' === $field ? 'term_id' : $field;
+    }
+
+    /**
+     * Add one normalized term identity to a category context.
+     *
+     * @param array  $context Category context.
+     * @param string $field   Term field.
+     * @param mixed  $term    Term value.
+     */
+    private function add_term_to_product_category_context( &$context, $field, $term ) {
+        $field = $this->normalize_product_category_term_field( $field );
+        if ( ! isset( $context[ $field ] ) ) {
+            return;
+        }
+
+        $value = in_array( $field, array( 'term_id', 'term_taxonomy_id' ), true )
+            ? absint( $term )
+            : ( 'slug' === $field ? sanitize_title( (string) $term ) : mb_strtolower( sanitize_text_field( (string) $term ) ) );
+
+        if ( '' !== (string) $value && 0 !== $value ) {
+            $context[ $field ][] = $value;
+        }
+    }
+
+    /**
+     * Check a term value against a normalized category context.
+     *
+     * @param mixed  $term    Term value.
+     * @param string $field   Term field.
+     * @param array  $context Category context.
+     * @return bool
+     */
+    private function product_category_term_matches_context( $term, $field, $context ) {
+        $field = $this->normalize_product_category_term_field( $field );
+        if ( ! isset( $context[ $field ] ) ) {
+            return false;
+        }
+
+        $value = in_array( $field, array( 'term_id', 'term_taxonomy_id' ), true )
+            ? absint( $term )
+            : ( 'slug' === $field ? sanitize_title( (string) $term ) : mb_strtolower( sanitize_text_field( (string) $term ) ) );
+
+        return in_array( $value, $context[ $field ], true );
     }
 
     /**

@@ -1850,6 +1850,156 @@ function sschp_test_frontend_product_category_filters_the_full_category() {
     sschp_assert_same( 'product-category', $sschp_test_last_get_posts_args['taxonomy'], 'full-category analysis should preserve the custom product taxonomy' );
 }
 
+function sschp_test_frontend_product_category_filters_matching_custom_loop() {
+    global $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_post_terms, $sschp_test_taxonomies;
+
+    sschp_reset_test_state();
+    $sschp_test_query_vars['sschp_tags'] = 'Steel';
+    $sschp_test_taxonomies['product-category'] = (object) array(
+        'name'         => 'product-category',
+        'hierarchical' => true,
+        'object_type'  => array( 'product' ),
+    );
+
+    $category_term = (object) array(
+        'term_id'  => 66,
+        'slug'     => 'foot-switches',
+        'name'     => 'Foot switches',
+        'taxonomy' => 'product-category',
+    );
+    $other_term = (object) array(
+        'term_id'  => 77,
+        'slug'     => 'safety-relays',
+        'name'     => 'Safety relays',
+        'taxonomy' => 'product-category',
+    );
+    $all_posts = array();
+
+    foreach ( array( 1 => array( 'Steel' ), 2 => array( 'Plastic' ), 3 => array( 'Steel' ) ) as $post_id => $tags ) {
+        $all_posts[ $post_id ] = sschp_register_test_post_for_index( $post_id, 'product' );
+        $sschp_test_post_meta[ $post_id ][ SSCHP_Meta_Box::META_KEY ] = implode( '; ', $tags );
+        $sschp_test_post_terms[ $post_id . '|product-category' ] = array( $category_term );
+    }
+
+    $main_query = sschp_make_archive_query(
+        array( $all_posts[1], $all_posts[2] ),
+        array(
+            'is_search'    => false,
+            'is_tax'       => true,
+            'taxonomy'     => 'product-category',
+            'term'         => 'foot-switches',
+            'post_type'    => 'product',
+            'post_status'  => 'publish',
+            'tax_query'    => array(
+                array(
+                    'taxonomy' => 'product-category',
+                    'field'    => 'slug',
+                    'terms'    => array( 'foot-switches' ),
+                ),
+            ),
+        )
+    );
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $frontend->filter_archive_posts( $main_query->posts, $main_query );
+
+    $custom_loop = new WP_Query(
+        array(
+            'is_main_query' => false,
+            'post_type'     => 'product',
+            'post__in'      => array( 1, 2, 3 ),
+            'tax_query'     => array(
+                array(
+                    'taxonomy' => 'product-category',
+                    'field'    => 'slug',
+                    'terms'    => 'foot-switches',
+                ),
+            ),
+        )
+    );
+    $frontend->filter_custom_product_category_query( $custom_loop );
+
+    sschp_assert_same( array( 1, 3 ), $custom_loop->get( 'post__in' ), 'matching custom product loops should inherit the active category filter IDs' );
+
+    $other_loop = new WP_Query(
+        array(
+            'is_main_query' => false,
+            'post_type'     => 'product',
+            'post__in'      => array( 9 ),
+            'tax_query'     => array(
+                array(
+                    'taxonomy' => 'product-category',
+                    'field'    => 'slug',
+                    'terms'    => $other_term->slug,
+                ),
+            ),
+        )
+    );
+    $frontend->filter_custom_product_category_query( $other_loop );
+
+    sschp_assert_same( array( 9 ), $other_loop->get( 'post__in' ), 'secondary product queries for another category should remain untouched' );
+}
+
+function sschp_test_frontend_product_category_custom_loop_handles_zero_matches() {
+    global $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_post_terms, $sschp_test_taxonomies;
+
+    sschp_reset_test_state();
+    $sschp_test_query_vars['sschp_tags'] = 'No match';
+    $sschp_test_taxonomies['product-category'] = (object) array(
+        'name'         => 'product-category',
+        'hierarchical' => true,
+        'object_type'  => array( 'product' ),
+    );
+
+    $category_term = (object) array(
+        'term_id'  => 66,
+        'slug'     => 'foot-switches',
+        'name'     => 'Foot switches',
+        'taxonomy' => 'product-category',
+    );
+    $post = sschp_register_test_post_for_index( 1, 'product' );
+    $sschp_test_post_meta[1][ SSCHP_Meta_Box::META_KEY ] = 'Steel';
+    $sschp_test_post_terms['1|product-category'] = array( $category_term );
+
+    $main_query = sschp_make_archive_query(
+        array( $post ),
+        array(
+            'is_search' => false,
+            'is_tax'    => true,
+            'taxonomy'  => 'product-category',
+            'term'      => 'foot-switches',
+            'post_type' => 'product',
+            'tax_query' => array(
+                array(
+                    'taxonomy' => 'product-category',
+                    'field'    => 'slug',
+                    'terms'    => 'foot-switches',
+                ),
+            ),
+        )
+    );
+
+    $frontend = new SSCHP_Frontend( new SSCHP_Test_Settings(), new SSCHP_Chip_Engine() );
+    $frontend->filter_archive_posts( $main_query->posts, $main_query );
+
+    $custom_loop = new WP_Query(
+        array(
+            'is_main_query' => false,
+            'post_type'     => 'product',
+            'tax_query'     => array(
+                array(
+                    'taxonomy' => 'product-category',
+                    'field'    => 'slug',
+                    'terms'    => 'foot-switches',
+                ),
+            ),
+        )
+    );
+    $frontend->filter_custom_product_category_query( $custom_loop );
+
+    sschp_assert_same( array( 0 ), $custom_loop->get( 'post__in' ), 'zero-match custom loops should use an impossible ID instead of dropping the restriction' );
+}
+
 function sschp_test_frontend_product_category_chips_use_all_category_products() {
     global $sschp_test_post_meta, $sschp_test_post_terms, $sschp_test_taxonomies;
 
@@ -4433,6 +4583,7 @@ function sschp_test_frontend_registers_loop_fallback_for_block_themes() {
 
     sschp_assert_true( in_array( 'loop_start', $action_hooks, true ), 'frontend should always register the loop_start archive-chip fallback' );
     sschp_assert_true( in_array( 'wp_footer', $action_hooks, true ), 'frontend should register the custom-theme footer placement fallback' );
+    sschp_assert_true( in_array( 'pre_get_posts', $action_hooks, true ), 'frontend should register custom product-loop filtering' );
     sschp_assert_true( in_array( 'render_block', $filter_hooks, true ), 'frontend should still register block-theme query injection on block themes' );
 }
 
@@ -4500,6 +4651,8 @@ sschp_test_frontend_archive_filter_url_toggles_case_insensitively();
 sschp_test_frontend_archive_filters_current_page_posts();
 sschp_test_frontend_archive_filters_multiple_tags_with_and_logic();
 sschp_test_frontend_product_category_filters_the_full_category();
+sschp_test_frontend_product_category_filters_matching_custom_loop();
+sschp_test_frontend_product_category_custom_loop_handles_zero_matches();
 sschp_test_frontend_product_category_chips_use_all_category_products();
 sschp_test_frontend_archive_chip_toggle_removes_pagination_params();
 sschp_test_frontend_archive_clear_filters_restores_url_without_chip_params();
