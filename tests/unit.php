@@ -525,10 +525,14 @@ function sschp_test_range_chip_css_uses_aligned_desktop_thumbs() {
     sschp_assert_contains( 'background: var(--ssc-range-active-bg);', $css, 'selected range chips should use a filled active background like normal chips' );
     sschp_assert_contains( '.ssc-range-chip--active .ssc-range-chip__sliders::before', $css, 'selected range chip rail should change color on active chips' );
     sschp_assert_contains( 'background: rgba(255, 255, 255, 0.34);', $css, 'selected range chip rail should be softly visible on a filled chip' );
-    sschp_assert_contains( '.ssc-range-chip--active .ssc-range-chip__input::-webkit-slider-thumb', $css, 'selected range chip WebKit thumb should invert on active chips' );
-    sschp_assert_contains( '.ssc-range-chip--active .ssc-range-chip__input::-moz-range-thumb', $css, 'selected range chip Firefox thumb should invert on active chips' );
+    sschp_assert_contains( '.ssc-range-chip--active .ssc-range-chip__input[type="range"]::-webkit-slider-thumb', $css, 'selected range chip WebKit thumb should invert on active chips' );
+    sschp_assert_contains( '.ssc-range-chip--active .ssc-range-chip__input[type="range"]::-moz-range-thumb', $css, 'selected range chip Firefox thumb should invert on active chips' );
     sschp_assert_contains( 'top: 50%;', $css, 'range chip rail should be vertically centered in the drag area' );
     sschp_assert_contains( 'transform: translateY(-50%);', $css, 'range chip rail centering should not depend on hard-coded offsets' );
+    sschp_assert_contains( '.ssc-range-chip .ssc-range-chip__input[type="range"] {', $css, 'range inputs should outrank generic theme range styles' );
+    sschp_assert_contains( 'padding: 0;', $css, 'range inputs should reset theme field padding that can enlarge the controls' );
+    sschp_assert_contains( '.ssc-range-chip .ssc-range-chip__input[type="range"]::-webkit-slider-thumb', $css, 'WebKit thumb styling should outrank generic theme thumb styling' );
+    sschp_assert_contains( '.ssc-range-chip .ssc-range-chip__input[type="range"]::-moz-range-thumb', $css, 'Firefox thumb styling should outrank generic theme thumb styling' );
     sschp_assert_contains( 'margin-top: calc((var(--ssc-range-track-height) - var(--ssc-range-thumb-size)) / 2);', $css, 'range chip WebKit thumb should align from the track/thumb variables' );
     sschp_assert_contains( '@media (pointer: coarse)', $css, 'range chip should keep larger handles for touch/coarse pointers' );
     sschp_assert_contains( '--ssc-range-thumb-size: 13px;', $css, 'range chip coarse pointer handles should remain touch-friendly without looking bulky' );

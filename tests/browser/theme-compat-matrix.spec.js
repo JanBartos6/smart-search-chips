@@ -2,6 +2,7 @@ const { test, expect } = require("@playwright/test");
 const path = require("path");
 
 const chipsScriptPath = path.join(__dirname, "..", "..", "assets", "js", "chips.js");
+const rangeStylesPath = path.join(__dirname, "..", "..", "assets", "css", "range-filters__premium_only.css");
 const legacyEscapedSearchShortcode = "[ssc" + "_search";
 
 const inputSelector = [
@@ -425,6 +426,61 @@ function last(items) {
 }
 
 test.describe("Theme compatibility matrix", () => {
+  test("range controls resist theme-wide range input styling", async ({ page }) => {
+    await page.setContent(`
+      <div class="ssc-range-chip">
+        <div class="ssc-range-chip__label">Width</div>
+        <div class="ssc-range-chip__values">15 - 96.5 mm</div>
+        <div class="ssc-range-chip__sliders">
+          <input class="ssc-range-chip__input ssc-range-chip__input--min" type="range" min="15" max="96.5" value="15" />
+          <input class="ssc-range-chip__input ssc-range-chip__input--max" type="range" min="15" max="96.5" value="96.5" />
+        </div>
+      </div>
+    `);
+
+    await page.addStyleTag({ path: rangeStylesPath });
+    await page.addStyleTag({
+      content: `
+        input { padding: 20px; border-radius: 5px; }
+        [type='range'] {
+          height: 42px;
+          padding-right: 0;
+          padding-left: 0;
+          appearance: none;
+        }
+        [type='range']::-webkit-slider-runnable-track { height: 2px; background: #000; }
+        [type='range']::-webkit-slider-thumb {
+          width: 24px;
+          height: 24px;
+          margin-top: -12px;
+          appearance: none;
+          background: #000;
+          border: 1px solid #000;
+          border-radius: 5px;
+        }
+      `,
+    });
+
+    const geometry = await page.locator(".ssc-range-chip__input--min").evaluate((input) => {
+      const style = getComputedStyle(input);
+      const rect = input.getBoundingClientRect();
+
+      return {
+        height: rect.height,
+        paddingTop: style.paddingTop,
+        paddingBottom: style.paddingBottom,
+        borderTopWidth: style.borderTopWidth,
+        borderRadius: style.borderRadius,
+      };
+    });
+
+    expect(geometry.height).toBeCloseTo(22, 1);
+    expect(geometry.paddingTop).toBe("0px");
+    expect(geometry.paddingBottom).toBe("0px");
+    expect(geometry.borderTopWidth).toBe("0px");
+    expect(geometry.borderRadius).toBe("0px");
+  });
+
   test("moves custom-theme archive chips directly above the product list", async ({ page }) => {
     await page.setContent(`
       <main id="content" class="f-main f-main--products f-main--has-products">
