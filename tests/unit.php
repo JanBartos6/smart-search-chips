@@ -1426,6 +1426,53 @@ function sschp_test_range_filters_create_sliders_from_title_shared_unit_series()
     sschp_assert_same( 600.0, $chips['sschp_range|w|w']['range']['max'], 'dash ranges should expose the highest title wattage' );
 }
 
+function sschp_test_range_filters_prefer_named_dimensions_over_generic_title_mm() {
+    $range = new SSCHP_Range_Filters();
+    $chips = $range->add_range_chips(
+        array(),
+        array(
+            sschp_make_range_post( 1, array( 'šířka 400 mm', 'výška 320 mm', 'hloubka 130 mm' ), 'Skříňka 400 × 320 × 130 mm' ),
+            sschp_make_range_post( 2, array( 'šířka 480 mm', 'výška 400 mm', 'hloubka 155 mm' ), 'Skříňka 480 × 400 × 155 mm' ),
+        ),
+        array()
+    );
+
+    sschp_assert_true( isset( $chips['sschp_range|sirka|mm'] ), 'named width dimensions should remain filterable' );
+    sschp_assert_true( isset( $chips['sschp_range|vyska|mm'] ), 'named height dimensions should remain filterable' );
+    sschp_assert_true( isset( $chips['sschp_range|hloubka|mm'] ), 'named depth dimensions should remain filterable' );
+    sschp_assert_true( ! isset( $chips['sschp_range|mm|mm'] ), 'generic title mm range should be hidden when named dimensions exist' );
+}
+
+function sschp_test_range_filters_keep_generic_unit_when_named_range_is_not_filterable() {
+    $range = new SSCHP_Range_Filters();
+    $chips = $range->add_range_chips(
+        array(),
+        array(
+            sschp_make_range_post( 1, array( 'šířka 400 mm' ), 'Skříňka 400 × 320 mm' ),
+            sschp_make_range_post( 2, array(), 'Skříňka 480 × 400 mm' ),
+        ),
+        array()
+    );
+
+    sschp_assert_true( ! isset( $chips['sschp_range|sirka|mm'] ), 'a named dimension from only one product should not become a range chip' );
+    sschp_assert_true( isset( $chips['sschp_range|mm|mm'] ), 'an unusable named dimension should not suppress the usable generic title range' );
+}
+
+function sschp_test_range_filters_suppress_generic_groups_for_other_units() {
+    $range = new SSCHP_Range_Filters();
+    $chips = $range->add_range_chips(
+        array(),
+        array(
+            sschp_make_range_post( 1, array( '100 W', 'Power 100 W' ) ),
+            sschp_make_range_post( 2, array( '200 W', 'Power 200 W' ) ),
+        ),
+        array()
+    );
+
+    sschp_assert_true( isset( $chips['sschp_range|power|w'] ), 'a usable named power range should remain available' );
+    sschp_assert_true( ! isset( $chips['sschp_range|w|w'] ), 'generic-unit suppression should apply beyond millimeter dimensions' );
+}
+
 function sschp_test_range_filters_do_not_mix_prices_with_wattage() {
     $range = new SSCHP_Range_Filters();
     $chips = $range->add_range_chips(
@@ -4696,6 +4743,9 @@ sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reje
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_reject_model_numbers' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_normalize_dimensions_to_common_unit' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_sliders_from_title_shared_unit_series' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_prefer_named_dimensions_over_generic_title_mm' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_keep_generic_unit_when_named_range_is_not_filterable' );
+sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_suppress_generic_groups_for_other_units' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_do_not_mix_prices_with_wattage' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_splits_accepted_and_rejected_groups' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_debug_report_uses_structured_rejection_reason_codes' );

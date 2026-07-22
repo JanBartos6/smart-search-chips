@@ -4,7 +4,7 @@ Tags: woocommerce, product search, search filter, ajax search, filter
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.31
+Stable tag: 1.1.32
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -122,6 +122,9 @@ Smart Search Chips Pro is a separate add-on for sites that need to reuse existin
 3. Smart Search Chips Pro analytics details with recommendation cards, zero-result searches, chip CTR, result-click tracking, and query/chip tables.
 
 == Changelog ==
+
+= 1.1.32 =
+* Removed redundant unit-only Pro numeric ranges when usable named ranges for the same unit exist, while preserving generic ranges for title-only catalogs.
 
 = 1.1.31 =
 * Added editable minimum and maximum number fields to Pro numeric range chips, synchronized with the sliders and applied when visitors commit the value.
@@ -307,6 +310,9 @@ Smart Search Chips Pro is a separate add-on for sites that need to reuse existin
 Smart Search Chips uses [Freemius](https://freemius.com/) for license management and optional usage tracking. When you opt in during activation, basic diagnostic data (WordPress version, PHP version, site URL) is shared with Freemius. You can opt out at any time. The Pro analytics feature stores search data locally in your WordPress database. Optional analytics email digests are sent only by your WordPress site to recipients configured by the administrator; the plugin does not send analytics reports to Smart Search Chips or any third party. Full policy: https://smartsearchchips.app/privacy-policy/
 
 == Upgrade Notice ==
+
+= 1.1.32 =
+Keeps Pro numeric range chips focused on meaningful named dimensions instead of also showing a redundant unit-only range.
 
 = 1.1.31 =
 Adds direct numeric entry alongside Pro range sliders.

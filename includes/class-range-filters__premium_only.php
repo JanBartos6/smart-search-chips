@@ -1172,7 +1172,43 @@ class SSCHP_Range_Filters {
         }
         unset( $group );
 
-        return array_values( $groups );
+        return $this->suppress_generic_unit_groups( array_values( $groups ) );
+    }
+
+    /**
+     * Hide an axis-less fallback such as "mm" when named ranges for the same
+     * unit already provide usable filters (for example width and height).
+     * Title-only catalogs still retain their generic unit range.
+     *
+     * @param array $groups Numeric groups.
+     * @return array
+     */
+    private function suppress_generic_unit_groups( $groups ) {
+        $semantic_units = array();
+
+        foreach ( (array) $groups as $group ) {
+            $group_key = isset( $group['group_key'] ) ? sanitize_key( $group['group_key'] ) : '';
+            $unit_key  = isset( $group['unit_key'] ) ? sanitize_key( $group['unit_key'] ) : '';
+            if ( '' === $group_key || '' === $unit_key || $group_key === $unit_key ) {
+                continue;
+            }
+
+            if ( $this->group_is_filterable( $group ) ) {
+                $semantic_units[ $unit_key ] = true;
+            }
+        }
+
+        return array_values(
+            array_filter(
+                (array) $groups,
+                static function( $group ) use ( $semantic_units ) {
+                    $group_key = isset( $group['group_key'] ) ? sanitize_key( $group['group_key'] ) : '';
+                    $unit_key  = isset( $group['unit_key'] ) ? sanitize_key( $group['unit_key'] ) : '';
+
+                    return ! ( $group_key === $unit_key && isset( $semantic_units[ $unit_key ] ) );
+                }
+            )
+        );
     }
 
     /**
