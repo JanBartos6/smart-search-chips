@@ -3,10 +3,10 @@
 # This file is distributed under the GPL-2.0-or-later license.
 msgid ""
 msgstr ""
-"Project-Id-Version: Smart Search Chips 1.1.30\n"
+"Project-Id-Version: Smart Search Chips 1.1.31\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-21 00:00+0000\n"
-"PO-Revision-Date: 2026-07-21 00:00+0000\n"
+"POT-Creation-Date: 2026-07-22 00:00+0000\n"
+"PO-Revision-Date: 2026-07-22 00:00+0000\n"
 "Last-Translator: Jan Bartos\n"
 "Language-Team: Czech\n"
 "Language: cs_CZ\n"
@@ -70,3 +70,13 @@ msgstr "Čeština"
 #: includes/class-settings.php
 msgid "Controls the archive filter heading, description, clear link, and chip action labels. Use Czech when the storefront is Czech but WordPress is configured in English."
 msgstr "Určuje jazyk nadpisu a popisu filtrů na výpisu, odkazu pro vymazání filtrů a popisků akcí. Zvolte češtinu, pokud je obchod v češtině, ale WordPress je nastavený na angličtinu."
+
+#: includes/class-range-filters.php
+#, php-format
+msgid "Minimum %s"
+msgstr "Minimální hodnota: %s"
+
+#: includes/class-range-filters.php
+#, php-format
+msgid "Maximum %s"
+msgstr "Maximální hodnota: %s"

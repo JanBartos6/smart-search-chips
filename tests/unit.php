@@ -545,6 +545,8 @@ function sschp_test_range_chip_css_uses_aligned_desktop_thumbs() {
     sschp_assert_contains( 'flex: 0 1 96px;', $css, 'range chip slider should have a compact inline width' );
     sschp_assert_contains( '.ssc-range-chip__label', $css, 'range chip stylesheet should style a visible inline range label' );
     sschp_assert_contains( 'ssc-range-chip__label', file_get_contents( dirname( __DIR__ ) . '/includes/class-range-filters__premium_only.php' ), 'range chip markup should show the range label instead of exposing only numeric values' );
+    sschp_assert_contains( '.ssc-range-chip .ssc-range-chip__number[type="number"] {', $css, 'typed range values should resist generic theme number input styles' );
+    sschp_assert_contains( 'width: 7ch;', $css, 'typed range values should stay compact beside the sliders' );
 }
 
 function sschp_test_range_chip_renderer_exports_active_chip_colors() {
@@ -587,6 +589,13 @@ function sschp_test_range_chip_renderer_exports_active_chip_colors() {
     sschp_assert_contains( '--ssc-range-active-bg:#087b3f;', $html, 'active range chip markup should expose the selected chip background variable' );
     sschp_assert_contains( '--ssc-range-active-color:#ffffff;', $html, 'active range chip markup should expose the selected chip text variable' );
     sschp_assert_contains( 'data-range-label="Volume"', $html, 'range chip markup should keep the human range label for UI and analytics events' );
+    sschp_assert_contains( 'class="ssc-range-chip__number ssc-range-chip__number--min"', $html, 'range chip markup should expose an editable minimum field' );
+    sschp_assert_contains( 'class="ssc-range-chip__number ssc-range-chip__number--max"', $html, 'range chip markup should expose an editable maximum field' );
+    sschp_assert_contains( 'data-range-role="min-number"', $html, 'minimum field should synchronize through an explicit range role' );
+    sschp_assert_contains( 'data-range-role="max-number"', $html, 'maximum field should synchronize through an explicit range role' );
+    sschp_assert_contains( 'min="12"', $html, 'typed range values should keep the generated lower bound' );
+    sschp_assert_contains( 'max="45"', $html, 'typed range values should keep the generated upper bound' );
+    sschp_assert_contains( 'step="1"', $html, 'typed range values should keep the generated numeric step' );
 }
 
 function sschp_test_chip_engine_extract_tags() {

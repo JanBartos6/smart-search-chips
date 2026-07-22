@@ -73,10 +73,53 @@
     color: var(--ssc-range-active-color);
 }
 
-.ssc-range-chip__value,
 .ssc-range-chip__separator,
 .ssc-range-chip__unit {
     font: inherit;
+}
+
+.ssc-range-chip .ssc-range-chip__number[type="number"] {
+    flex: 0 0 7ch;
+    width: 7ch;
+    min-width: 0;
+    max-width: 7ch;
+    height: var(--ssc-range-hit-size);
+    min-height: 0;
+    margin: 0;
+    padding: 1px 3px;
+    border: 1px solid var(--ssc-range-border);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.82);
+    color: var(--ssc-range-color);
+    box-sizing: border-box;
+    box-shadow: none;
+    font: inherit;
+    line-height: 1;
+    text-align: center;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.ssc-range-chip .ssc-range-chip__number[type="number"]::-webkit-inner-spin-button,
+.ssc-range-chip .ssc-range-chip__number[type="number"]::-webkit-outer-spin-button {
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.ssc-range-chip .ssc-range-chip__number[type="number"]:focus {
+    outline: 2px solid var(--ssc-range-accent);
+    outline-offset: 1px;
+}
+
+.ssc-range-chip--active .ssc-range-chip__number[type="number"] {
+    border-color: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.14);
+    color: var(--ssc-range-active-color);
+}
+
+.ssc-range-chip--active .ssc-range-chip__number[type="number"]:focus {
+    outline-color: var(--ssc-range-active-color);
 }
 
 .ssc-range-chip__sliders {

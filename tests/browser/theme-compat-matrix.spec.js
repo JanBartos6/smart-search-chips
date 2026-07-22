@@ -3,6 +3,7 @@ const path = require("path");
 
 const chipsScriptPath = path.join(__dirname, "..", "..", "assets", "js", "chips.js");
 const rangeStylesPath = path.join(__dirname, "..", "..", "assets", "css", "range-filters__premium_only.css");
+const rangeScriptPath = path.join(__dirname, "..", "..", "assets", "js", "range-filters__premium_only.js");
 const legacyEscapedSearchShortcode = "[ssc" + "_search";
 
 const inputSelector = [
@@ -430,7 +431,12 @@ test.describe("Theme compatibility matrix", () => {
     await page.setContent(`
       <div class="ssc-range-chip">
         <div class="ssc-range-chip__label">Width</div>
-        <div class="ssc-range-chip__values">15 - 96.5 mm</div>
+        <div class="ssc-range-chip__values">
+          <input class="ssc-range-chip__number ssc-range-chip__number--min" type="number" min="15" max="96.5" step="0.1" value="15" data-range-role="min-number" />
+          <span class="ssc-range-chip__separator">-</span>
+          <input class="ssc-range-chip__number ssc-range-chip__number--max" type="number" min="15" max="96.5" step="0.1" value="96.5" data-range-role="max-number" />
+          <span class="ssc-range-chip__unit">mm</span>
+        </div>
         <div class="ssc-range-chip__sliders">
           <input class="ssc-range-chip__input ssc-range-chip__input--min" type="range" min="15" max="96.5" value="15" />
           <input class="ssc-range-chip__input ssc-range-chip__input--max" type="range" min="15" max="96.5" value="96.5" />
@@ -458,6 +464,16 @@ test.describe("Theme compatibility matrix", () => {
           border: 1px solid #000;
           border-radius: 5px;
         }
+        [type='number'] {
+          width: 280px;
+          height: 60px;
+          min-height: 60px;
+          padding: 20px;
+          border: 8px solid #000;
+          border-radius: 20px;
+          background: #000;
+          color: #fff;
+        }
       `,
     });
 
@@ -479,6 +495,71 @@ test.describe("Theme compatibility matrix", () => {
     expect(geometry.paddingBottom).toBe("0px");
     expect(geometry.borderTopWidth).toBe("0px");
     expect(geometry.borderRadius).toBe("0px");
+
+    const numberGeometry = await page.locator(".ssc-range-chip__number--min").evaluate((input) => {
+      const style = getComputedStyle(input);
+      const rect = input.getBoundingClientRect();
+
+      return {
+        width: rect.width,
+        height: rect.height,
+        minHeight: style.minHeight,
+        paddingTop: style.paddingTop,
+        borderTopWidth: style.borderTopWidth,
+        borderRadius: style.borderRadius,
+      };
+    });
+
+    expect(numberGeometry.width).toBeLessThan(70);
+    expect(numberGeometry.height).toBeCloseTo(22, 1);
+    expect(numberGeometry.minHeight).toBe("0px");
+    expect(numberGeometry.paddingTop).toBe("1px");
+    expect(numberGeometry.borderTopWidth).toBe("1px");
+    expect(numberGeometry.borderRadius).toBe("4px");
+  });
+
+  test("typed range values synchronize the sliders and apply after commit", async ({ page }) => {
+    await page.setContent(`
+      <div
+        class="ssc-range-chip"
+        data-range-context="ajax"
+        data-range-group-key="width"
+        data-range-unit-key="mm"
+        data-range-prefix="sschp_range|width|mm|"
+        data-range-bounds-min="15"
+        data-range-bounds-max="96.5"
+        data-range-value=""
+        data-range-label="Width"
+      >
+        <div class="ssc-range-chip__label">Width</div>
+        <div class="ssc-range-chip__values">
+          <input class="ssc-range-chip__number ssc-range-chip__number--min" type="number" min="15" max="96.5" step="0.1" value="15" data-range-role="min-number" />
+          <span class="ssc-range-chip__separator">-</span>
+          <input class="ssc-range-chip__number ssc-range-chip__number--max" type="number" min="15" max="96.5" step="0.1" value="96.5" data-range-role="max-number" />
+        </div>
+        <div class="ssc-range-chip__sliders">
+          <input class="ssc-range-chip__input ssc-range-chip__input--min" type="range" min="15" max="96.5" step="0.1" value="15" data-range-role="min" />
+          <input class="ssc-range-chip__input ssc-range-chip__input--max" type="range" min="15" max="96.5" step="0.1" value="96.5" data-range-role="max" />
+        </div>
+      </div>
+    `);
+
+    await page.evaluate(() => {
+      window.__rangeTags = [];
+      document.addEventListener("sschp:applyTag", (event) => window.__rangeTags.push(event.detail.tag));
+    });
+    await page.addScriptTag({ path: rangeScriptPath });
+
+    const minNumber = page.locator(".ssc-range-chip__number--min");
+    await minNumber.fill("31.1");
+
+    await expect(page.locator(".ssc-range-chip__input--min")).toHaveValue("31.1");
+    expect(await page.evaluate(() => window.__rangeTags)).toEqual([]);
+
+    await minNumber.press("Enter");
+    await expect.poll(() => page.evaluate(() => window.__rangeTags)).toEqual([
+      "sschp_range|width|mm|31.1|96.5|15|96.5",
+    ]);
   });
 
   test("moves custom-theme archive chips directly above the product list", async ({ page }) => {

@@ -766,10 +766,30 @@ class SSCHP_Range_Filters {
             data-range-label="<?php echo esc_attr( $chip['label'] ); ?>"
         >
             <div class="ssc-range-chip__label"><?php echo esc_html( $chip['label'] ); ?></div>
-            <div class="ssc-range-chip__values" aria-live="polite">
-                <span class="ssc-range-chip__value" data-range-role="min-label"><?php echo esc_html( $selected_min ); ?></span>
+            <div class="ssc-range-chip__values">
+                <input
+                    class="ssc-range-chip__number ssc-range-chip__number--min"
+                    type="number"
+                    min="<?php echo esc_attr( $bounds_min ); ?>"
+                    max="<?php echo esc_attr( $bounds_max ); ?>"
+                    step="<?php echo esc_attr( $step ); ?>"
+                    value="<?php echo esc_attr( $selected_min ); ?>"
+                    data-range-role="min-number"
+                    inputmode="decimal"
+                    aria-label="<?php echo esc_attr( sprintf( __( 'Minimum %s', 'smart-search-chips' ), $chip['label'] ) ); ?>"
+                />
                 <span class="ssc-range-chip__separator">-</span>
-                <span class="ssc-range-chip__value" data-range-role="max-label"><?php echo esc_html( $selected_max ); ?></span>
+                <input
+                    class="ssc-range-chip__number ssc-range-chip__number--max"
+                    type="number"
+                    min="<?php echo esc_attr( $bounds_min ); ?>"
+                    max="<?php echo esc_attr( $bounds_max ); ?>"
+                    step="<?php echo esc_attr( $step ); ?>"
+                    value="<?php echo esc_attr( $selected_max ); ?>"
+                    data-range-role="max-number"
+                    inputmode="decimal"
+                    aria-label="<?php echo esc_attr( sprintf( __( 'Maximum %s', 'smart-search-chips' ), $chip['label'] ) ); ?>"
+                />
                 <?php if ( '' !== $unit ) : ?>
                     <span class="ssc-range-chip__unit"><?php echo esc_html( $unit ); ?></span>
                 <?php endif; ?>

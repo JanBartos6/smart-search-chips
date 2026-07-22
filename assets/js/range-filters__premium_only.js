@@ -14,8 +14,16 @@
         return target && target.closest ? target.closest(".ssc-range-chip") : null;
     }
 
-    function getInput(chip, role) {
+    function getRangeInput(chip, role) {
         return chip.querySelector('.ssc-range-chip__input[data-range-role="' + role + '"]');
+    }
+
+    function getNumberInput(chip, role) {
+        return chip.querySelector('.ssc-range-chip__number[data-range-role="' + role + '-number"]');
+    }
+
+    function clamp(value, minimum, maximum) {
+        return Math.min(Math.max(value, minimum), maximum);
     }
 
     function formatNumber(value) {
@@ -47,18 +55,37 @@
         ].join("|");
     }
 
-    function syncChip(chip, changedRole) {
-        var minInput = getInput(chip, "min");
-        var maxInput = getInput(chip, "max");
-        var minLabel = chip.querySelector('[data-range-role="min-label"]');
-        var maxLabel = chip.querySelector('[data-range-role="max-label"]');
+    function syncChip(chip, changedRole, source, normalizeNumber) {
+        var minInput = getRangeInput(chip, "min");
+        var maxInput = getRangeInput(chip, "max");
+        var minNumber = getNumberInput(chip, "min");
+        var maxNumber = getNumberInput(chip, "max");
 
         if (!minInput || !maxInput) {
-            return "";
+            return null;
         }
 
         var minValue = parseFloat(minInput.value);
         var maxValue = parseFloat(maxInput.value);
+
+        if (source === "number") {
+            var changedNumber = changedRole === "min" ? minNumber : maxNumber;
+            var typedValue = changedNumber ? parseFloat(changedNumber.value) : NaN;
+
+            if (isNaN(typedValue)) {
+                if (normalizeNumber && changedNumber) {
+                    changedNumber.value = changedRole === "min" ? formatNumber(minValue) : formatNumber(maxValue);
+                }
+
+                return null;
+            }
+
+            if (changedRole === "min") {
+                minValue = typedValue;
+            } else {
+                maxValue = typedValue;
+            }
+        }
 
         if (isNaN(minValue)) {
             minValue = parseFloat(minInput.min || "0");
@@ -68,22 +95,29 @@
             maxValue = parseFloat(maxInput.max || "0");
         }
 
+        var boundsMin = parseFloat(minInput.min || minValue);
+        var boundsMax = parseFloat(maxInput.max || maxValue);
+
+        minValue = clamp(minValue, boundsMin, boundsMax);
+        maxValue = clamp(maxValue, boundsMin, boundsMax);
+
         if (minValue > maxValue) {
             if (changedRole === "min") {
                 maxValue = minValue;
-                maxInput.value = String(maxValue);
             } else {
                 minValue = maxValue;
-                minInput.value = String(minValue);
             }
         }
 
-        if (minLabel) {
-            minLabel.textContent = formatNumber(minValue);
+        minInput.value = formatNumber(minValue);
+        maxInput.value = formatNumber(maxValue);
+
+        if (minNumber && (source !== "number" || normalizeNumber || changedRole !== "min")) {
+            minNumber.value = formatNumber(minValue);
         }
 
-        if (maxLabel) {
-            maxLabel.textContent = formatNumber(maxValue);
+        if (maxNumber && (source !== "number" || normalizeNumber || changedRole !== "max")) {
+            maxNumber.value = formatNumber(maxValue);
         }
 
         var tag = buildRangeTag(chip, minValue, maxValue);
@@ -146,7 +180,7 @@
         applyAjaxRange(chip, tag);
     }
 
-    function scheduleAutoApply(chip, changedRole) {
+    function scheduleAutoApply(chip, changedRole, source) {
         var existingTimer = autoApplyTimers.get(chip);
         if (existingTimer) {
             clearTimeout(existingTimer);
@@ -154,7 +188,11 @@
 
         var timer = setTimeout(function () {
             autoApplyTimers.delete(chip);
-            applyRange(chip, syncChip(chip, changedRole || ""));
+            var tag = syncChip(chip, changedRole || "", source || "range", true);
+
+            if (tag !== null) {
+                applyRange(chip, tag);
+            }
         }, AUTO_APPLY_DELAY);
 
         autoApplyTimers.set(chip, timer);
@@ -171,8 +209,8 @@
         }
 
         var role = event.target.getAttribute("data-range-role") || "";
-        syncChip(chip, role);
-        scheduleAutoApply(chip, role);
+        syncChip(chip, role, "range", true);
+        scheduleAutoApply(chip, role, "range");
     });
 
     document.addEventListener("change", function (event) {
@@ -185,7 +223,44 @@
             return;
         }
 
-        scheduleAutoApply(chip, event.target.getAttribute("data-range-role") || "");
+        scheduleAutoApply(chip, event.target.getAttribute("data-range-role") || "", "range");
+    });
+
+    document.addEventListener("input", function (event) {
+        if (!event.target.matches || !event.target.matches(".ssc-range-chip__number")) {
+            return;
+        }
+
+        var chip = findRangeChip(event.target);
+        if (!chip) {
+            return;
+        }
+
+        var role = (event.target.getAttribute("data-range-role") || "").replace("-number", "");
+        syncChip(chip, role, "number", false);
+    });
+
+    document.addEventListener("change", function (event) {
+        if (!event.target.matches || !event.target.matches(".ssc-range-chip__number")) {
+            return;
+        }
+
+        var chip = findRangeChip(event.target);
+        if (!chip) {
+            return;
+        }
+
+        var role = (event.target.getAttribute("data-range-role") || "").replace("-number", "");
+        scheduleAutoApply(chip, role, "number");
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key !== "Enter" || !event.target.matches || !event.target.matches(".ssc-range-chip__number")) {
+            return;
+        }
+
+        event.preventDefault();
+        event.target.blur();
     });
 
     document.addEventListener("mousedown", function (event) {
@@ -214,7 +289,7 @@
 
     document.addEventListener("DOMContentLoaded", function () {
         Array.prototype.forEach.call(document.querySelectorAll(".ssc-range-chip"), function (chip) {
-            syncChip(chip, "");
+            syncChip(chip, "", "range", true);
         });
     });
 })();
