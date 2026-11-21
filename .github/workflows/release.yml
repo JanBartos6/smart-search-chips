@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   verify-build:
-    name: Verify and build release packages
+    name: Verify and build the release package
     runs-on: ubuntu-latest
 
     outputs:
@@ -44,9 +44,6 @@ jobs:
           grep -q "Version:     $version" smart-search-chips.php
           grep -q "define( 'SSCHP_VERSION', '$version' );" smart-search-chips.php
           grep -q "Stable tag: $version" readme.txt
-          grep -q "Version:     $version" build-sources/wporg/smart-search-chips.php
-          grep -q "define( 'SSCHP_VERSION', '$version' );" build-sources/wporg/smart-search-chips.php
-          grep -q "Stable tag: $version" build-sources/wporg/readme.txt
           grep -q "'version'      => '$version'" blocks/search/editor.asset.php
 
       - name: Set up Node.js
@@ -78,7 +75,7 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
 
-      - name: Build release packages
+      - name: Build release package
         run: npm run build:release
 
       - name: Validate WordPress.org package
@@ -90,18 +87,13 @@ jobs:
       - name: Run browser compatibility tests
         run: npm run test:browser:compat
 
-      - name: Prepare Freemius upload zip
-        run: cp build/smart-search-chips-pro.zip smart-search-chips-pro.zip
-
       - name: Upload release package artifacts
         uses: actions/upload-artifact@v4
         with:
           name: release-packages-${{ steps.release_version.outputs.version }}
           path: |
-            build/smart-search-chips-pro.zip
             build/smart-search-chips-wporg.zip
             build/smart-search-chips-wporg/smart-search-chips/**
-            smart-search-chips-pro.zip
           if-no-files-found: error
 
   deploy:
@@ -125,16 +117,11 @@ jobs:
       - name: Verify deployment secrets
         shell: bash
         env:
-          FREEMIUS_PUBLIC_KEY: ${{ secrets.FREEMIUS_PUBLIC_KEY }}
-          FREEMIUS_DEV_ID: ${{ secrets.FREEMIUS_DEV_ID || secrets.FREEMIUS_DEVELOPER_ID }}
-          FREEMIUS_SECRET_KEY: ${{ secrets.FREEMIUS_SECRET_KEY || secrets.FREEMIUS_PRIVATE_KEY }}
-          FREEMIUS_PLUGIN_SLUG: ${{ secrets.FREEMIUS_PLUGIN_SLUG || 'smart-search-chips' }}
-          FREEMIUS_PLUGIN_ID: ${{ secrets.FREEMIUS_PLUGIN_ID || '27046' }}
           SVN_USERNAME: ${{ secrets.WPORG_USERNAME || secrets.SVN_USERNAME }}
           SVN_PASSWORD: ${{ secrets.WPORG_PASSWORD || secrets.SVN_PASSWORD }}
         run: |
           missing=0
-          for name in FREEMIUS_PUBLIC_KEY FREEMIUS_DEV_ID FREEMIUS_SECRET_KEY FREEMIUS_PLUGIN_SLUG FREEMIUS_PLUGIN_ID SVN_USERNAME SVN_PASSWORD; do
+          for name in SVN_USERNAME SVN_PASSWORD; do
             if [ -z "${!name}" ]; then
               echo "::error::Missing required release secret: $name"
               missing=1
@@ -149,22 +136,7 @@ jobs:
           name: Smart Search Chips ${{ needs.verify-build.outputs.version }}
           files: |
             build/smart-search-chips-wporg.zip
-            build/smart-search-chips-pro.zip
           generate_release_notes: true
-
-      - name: Deploy released build to Freemius
-        uses: buttonizer/freemius-deploy@v0.1.3
-        with:
-          file_name: smart-search-chips-pro.zip
-          release_mode: released
-          version: ${{ needs.verify-build.outputs.version }}
-          sandbox: false
-        env:
-          PUBLIC_KEY: ${{ secrets.FREEMIUS_PUBLIC_KEY }}
-          DEV_ID: ${{ secrets.FREEMIUS_DEV_ID || secrets.FREEMIUS_DEVELOPER_ID }}
-          SECRET_KEY: ${{ secrets.FREEMIUS_SECRET_KEY || secrets.FREEMIUS_PRIVATE_KEY }}
-          PLUGIN_SLUG: ${{ secrets.FREEMIUS_PLUGIN_SLUG || 'smart-search-chips' }}
-          PLUGIN_ID: ${{ secrets.FREEMIUS_PLUGIN_ID || '27046' }}
 
       - name: Deploy WordPress.org package
         uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2

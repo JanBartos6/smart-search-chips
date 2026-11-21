@@ -1,5 +1,5 @@
 /**
- * Smart Search Chips Pro - numeric range chips.
+ * Smart Search Chips - numeric range chips.
  *
  * @package SmartSearchChips
  */

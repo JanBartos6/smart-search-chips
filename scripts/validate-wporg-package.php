@@ -104,12 +104,16 @@ $required_files = array(
 	'blocks/search/block.json',
 	'blocks/search/editor.asset.php',
 	'blocks/search/editor.js',
-	'includes/class-edition.php',
 	'includes/class-search-explainer.php',
+	'includes/class-chip-rules.php',
+	'includes/class-range-filters.php',
+	'includes/class-analytics.php',
+	'includes/class-ai-tagger.php',
 );
 
 $forbidden_paths = array(
-	'assets/js/analytics__premium_only.js',
+	'includes/class-license.php',
+	'includes/class-edition.php',
 );
 
 foreach ( $forbidden_paths as $forbidden_path ) {
@@ -154,13 +158,13 @@ $forbidden_patterns = array(
 	'wp_org_gatekeeper',
 	'has_paid_plans',
 	'is_premium',
-	'SSCHP_License',
-	'SSCHP_Analytics',
-	'sschp_track_event',
-	'SSCHP_AI_Tagger',
-	'SSCHP_Chip_Rules',
-	'sschp_export_chip_rules',
-	'sschp_import_chip_rules',
+	'SSCHP_License::',
+	'class SSCHP_License',
+	'SSCHP_Edition::',
+	'smartsearchchips.app',
+	'View Pro Features',
+	'Smart Search Chips Pro',
+	'Upgrade to Pro',
 	'[ssc' . '_search]',
 	'trial',
 	'quota',
@@ -174,17 +178,6 @@ $forbidden_patterns = array(
 	'becomes available in Pro',
 );
 
-$allowed_pro_link_files = array(
-	'readme.txt'                    => true,
-	'smart-search-chips.php'        => true,
-	'includes/class-edition.php'    => true,
-	'includes/class-settings.php'   => true,
-);
-$pro_link_patterns = array(
-	'smartsearchchips.app',
-	'View Pro Features',
-	'Smart Search Chips Pro',
-);
 
 foreach ( $files as $file ) {
 	if ( ! sschp_wporg_is_text_extension( $file->getExtension() ) ) {
@@ -210,20 +203,6 @@ foreach ( $files as $file ) {
 		);
 	}
 
-	foreach ( $pro_link_patterns as $pattern ) {
-		$position = stripos( $contents, $pattern );
-
-		if ( false === $position || isset( $allowed_pro_link_files[ $relative ] ) ) {
-			continue;
-		}
-
-		$line = 1 + substr_count( substr( $contents, 0, $position ), "\n" );
-		$failures[] = sprintf(
-			'Pro/product link or wording appears outside admin/settings/readme context in %s:%d',
-			$relative,
-			$line
-		);
-	}
 }
 
 $main_file  = $package_path . DIRECTORY_SEPARATOR . 'smart-search-chips.php';

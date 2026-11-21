@@ -407,7 +407,7 @@ class SSCHP_AI_Tagger {
     }
 
     /**
-     * Ensure a privileged, nonce-protected Pro request.
+     * Ensure a privileged, nonce-protected admin request.
      */
     private function assert_admin_request() {
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -415,10 +415,6 @@ class SSCHP_AI_Tagger {
         }
 
         check_ajax_referer( self::AJAX_NONCE, 'nonce' );
-
-        if ( ! SSCHP_License::is_pro() ) {
-            wp_send_json_error( array( 'message' => __( 'The AI prompt builder is available in Pro.', 'smart-search-chips' ) ), 403 );
-        }
     }
 
     /**

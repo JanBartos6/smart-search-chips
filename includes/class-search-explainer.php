@@ -320,7 +320,7 @@ class SSCHP_Search_Explainer {
     }
 
     /**
-     * Allow Pro modules and site code to extend explanations.
+     * Allow optional modules and site code to extend explanations.
      *
      * @param array $explanations Explanation rows.
      * @param array $context      Search/debug context.

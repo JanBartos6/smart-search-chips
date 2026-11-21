@@ -1,6 +1,6 @@
 <?php
 /**
- * Pro numeric range chips.
+ * Numeric range chips.
  *
  * @package SmartSearchChips
  */
@@ -31,19 +31,19 @@ class SSCHP_Range_Filters {
      * Enqueue frontend range chip assets.
      */
     public function enqueue_assets() {
-        $style_path  = SSCHP_PLUGIN_DIR . 'assets/css/range-filters__premium_only.css';
-        $script_path = SSCHP_PLUGIN_DIR . 'assets/js/range-filters__premium_only.js';
+        $style_path  = SSCHP_PLUGIN_DIR . 'assets/css/range-filters.css';
+        $script_path = SSCHP_PLUGIN_DIR . 'assets/js/range-filters.js';
 
         wp_enqueue_style(
             'smart-search-chips-range-filters',
-            SSCHP_PLUGIN_URL . 'assets/css/range-filters__premium_only.css',
+            SSCHP_PLUGIN_URL . 'assets/css/range-filters.css',
             array( 'smart-search-chips' ),
             file_exists( $style_path ) ? filemtime( $style_path ) : SSCHP_VERSION
         );
 
         wp_enqueue_script(
             'smart-search-chips-range-filters',
-            SSCHP_PLUGIN_URL . 'assets/js/range-filters__premium_only.js',
+            SSCHP_PLUGIN_URL . 'assets/js/range-filters.js',
             array( 'smart-search-chips' ),
             file_exists( $script_path ) ? filemtime( $script_path ) : SSCHP_VERSION,
             true
@@ -76,15 +76,16 @@ class SSCHP_Range_Filters {
             wp_die( esc_html__( 'You do not have permission to view this page.', 'smart-search-chips' ) );
         }
 
-        $request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
-        $query          = isset( $_GET['sschp_range_debug_query'] ) ? sanitize_text_field( wp_unslash( $_GET['sschp_range_debug_query'] ) ) : '';
-        $raw_ids        = isset( $_GET['sschp_range_debug_post_ids'] ) ? sanitize_textarea_field( wp_unslash( $_GET['sschp_range_debug_post_ids'] ) ) : '';
-        $limit          = isset( $_GET['sschp_range_debug_limit'] ) ? absint( wp_unslash( $_GET['sschp_range_debug_limit'] ) ) : 20;
-        $post_types     = isset( $_GET['sschp_range_debug_post_types'] )
-            ? $this->normalize_debug_post_types( wp_unslash( $_GET['sschp_range_debug_post_types'] ) )
+        $get_args   = filter_input_array( INPUT_GET, FILTER_UNSAFE_RAW );
+        $get_args   = is_array( $get_args ) ? $get_args : array();
+        $query      = isset( $get_args['sschp_range_debug_query'] ) ? sanitize_text_field( wp_unslash( $get_args['sschp_range_debug_query'] ) ) : '';
+        $raw_ids    = isset( $get_args['sschp_range_debug_post_ids'] ) ? sanitize_textarea_field( wp_unslash( $get_args['sschp_range_debug_post_ids'] ) ) : '';
+        $limit      = isset( $get_args['sschp_range_debug_limit'] ) ? absint( wp_unslash( $get_args['sschp_range_debug_limit'] ) ) : 20;
+        $post_types = isset( $get_args['sschp_range_debug_post_types'] )
+            ? $this->normalize_debug_post_types( wp_unslash( $get_args['sschp_range_debug_post_types'] ) )
             : $this->get_default_debug_post_types();
 
-        if ( 'POST' === $request_method ) {
+        if ( isset( $_POST['sschp_range_debug_nonce'] ) ) {
             check_admin_referer( 'sschp_range_debug', 'sschp_range_debug_nonce' );
             $query      = isset( $_POST['sschp_range_debug_query'] ) ? sanitize_text_field( wp_unslash( $_POST['sschp_range_debug_query'] ) ) : '';
             $raw_ids    = isset( $_POST['sschp_range_debug_post_ids'] ) ? sanitize_textarea_field( wp_unslash( $_POST['sschp_range_debug_post_ids'] ) ) : '';

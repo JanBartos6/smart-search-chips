@@ -7,7 +7,6 @@ on:
       - main
     paths:
       - '.github/workflows/deploy-wporg-listing.yml'
-      - 'build-sources/wporg/readme.txt'
       - 'readme.txt'
       - 'screenshot-1.png'
       - 'screenshot-2.png'
@@ -66,9 +65,9 @@ jobs:
         id: listing_version
         shell: bash
         run: |
-          version="$(awk -F': ' '/^Stable tag:/ { print $2; exit }' build-sources/wporg/readme.txt)"
+          version="$(awk -F': ' '/^Stable tag:/ { print $2; exit }' readme.txt)"
           if [ -z "$version" ]; then
-            echo "::error::Could not resolve Stable tag from build-sources/wporg/readme.txt"
+            echo "::error::Could not resolve Stable tag from readme.txt"
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"

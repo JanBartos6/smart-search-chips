@@ -2,9 +2,8 @@
   "name": "smart-search-chips-tests",
   "private": true,
   "scripts": {
-    "build:release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-release.ps1 -Target all",
-    "build:pro": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-release.ps1 -Target pro",
-    "build:wporg": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-release.ps1 -Target wporg",
+    "build:release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-release.ps1",
+    "build:wporg": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-release.ps1",
     "lint:php": "php scripts/lint-php.php .",
     "lint:wporg": "php scripts/validate-wporg-package.php",
     "release:wporg:check": "npm run build:wporg && npm run validate:wporg && npm run lint:wporg && npm run test:unit",
@@ -20,7 +19,8 @@
     "marketing:video:motion": "node ./marketing/record-motion-showcase.mjs",
     "test:browser": "playwright test",
     "test:browser:compat": "playwright test tests/browser/theme-compat-matrix.spec.js",
-    "test:browser:headed": "playwright test --headed"
+    "test:browser:headed": "playwright test --headed",
+    "build:sh": "bash ./build.sh"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2"

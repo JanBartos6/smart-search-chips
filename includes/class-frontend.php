@@ -148,17 +148,17 @@ class SSCHP_Frontend {
 
         $analytics_enabled = false;
         $analytics_nonce   = '';
-        if ( SSCHP_License::is_pro() && class_exists( 'SSCHP_Analytics' ) ) {
+        if ( class_exists( 'SSCHP_Analytics' ) ) {
             $analytics_enabled = SSCHP_Analytics::is_enabled();
             $analytics_nonce   = wp_create_nonce( 'sschp_analytics_nonce' );
         }
 
         $dependencies = array();
-        $analytics_script_path = SSCHP_PLUGIN_DIR . 'assets/js/analytics__premium_only.js';
+        $analytics_script_path = SSCHP_PLUGIN_DIR . 'assets/js/analytics.js';
         if ( $analytics_enabled && file_exists( $analytics_script_path ) ) {
             wp_enqueue_script(
                 'smart-search-chips-analytics',
-                SSCHP_PLUGIN_URL . 'assets/js/analytics__premium_only.js',
+                SSCHP_PLUGIN_URL . 'assets/js/analytics.js',
                 array(),
                 filemtime( $analytics_script_path ),
                 true
@@ -847,7 +847,7 @@ class SSCHP_Frontend {
             : $query->posts;
         $posts_data  = $this->collect_posts_data( $filtered_scope_posts );
         $active_tags = $this->get_active_archive_tags();
-        $max_chips   = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_License::max_chips() );
+        $max_chips   = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_Settings::MAX_CHIPS );
         $max_length  = (int) $this->settings->get( 'max_tag_length', 40 );
         $chips       = $this->engine->generate_chips( $posts_data, $active_tags, $max_chips, $max_length );
 
@@ -1021,17 +1021,15 @@ class SSCHP_Frontend {
             $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
             $extra   = '';
 
-            if ( SSCHP_License::is_pro() ) {
-                $tag_field   = $this->settings->get( 'tag_fields', '' );
-                $extra_field = $this->settings->get( 'extra_fields', '' );
+            $tag_field   = $this->settings->get( 'tag_fields', '' );
+            $extra_field = $this->settings->get( 'extra_fields', '' );
 
-                if ( ! empty( $tag_field ) || ! empty( $extra_field ) ) {
-                    $primary = $this->get_field_value( $post_id, $tag_field );
-                    $extra   = $this->get_field_value( $post_id, $extra_field );
+            if ( ! empty( $tag_field ) || ! empty( $extra_field ) ) {
+                $primary = $this->get_field_value( $post_id, $tag_field );
+                $extra   = $this->get_field_value( $post_id, $extra_field );
 
-                    if ( '' === $primary && '' === $extra && empty( $tag_field ) ) {
-                        $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
-                    }
+                if ( '' === $primary && '' === $extra && empty( $tag_field ) ) {
+                    $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
                 }
             }
 

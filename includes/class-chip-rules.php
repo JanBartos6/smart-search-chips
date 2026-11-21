@@ -1,6 +1,6 @@
 <?php
 /**
- * Pro chip rules for synonyms and manual chip curation.
+ * Chip rules for synonyms and manual chip curation.
  *
  * @package SmartSearchChips
  */
@@ -113,7 +113,7 @@ class SSCHP_Chip_Rules {
     }
 
     /**
-     * Return the JSON export payload for Pro chip rules.
+     * Return the JSON export payload for chip rules.
      *
      * @return array
      */

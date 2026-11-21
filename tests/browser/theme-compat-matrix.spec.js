@@ -2,8 +2,8 @@ const { test, expect } = require("@playwright/test");
 const path = require("path");
 
 const chipsScriptPath = path.join(__dirname, "..", "..", "assets", "js", "chips.js");
-const rangeStylesPath = path.join(__dirname, "..", "..", "assets", "css", "range-filters__premium_only.css");
-const rangeScriptPath = path.join(__dirname, "..", "..", "assets", "js", "range-filters__premium_only.js");
+const rangeStylesPath = path.join(__dirname, "..", "..", "assets", "css", "range-filters.css");
+const rangeScriptPath = path.join(__dirname, "..", "..", "assets", "js", "range-filters.js");
 const legacyEscapedSearchShortcode = "[ssc" + "_search";
 
 const inputSelector = [

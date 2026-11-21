@@ -2,7 +2,7 @@ const { test, expect } = require("@playwright/test");
 const path = require("path");
 
 const chipsScriptPath = path.join(__dirname, "..", "..", "assets", "js", "chips.js");
-const analyticsScriptPath = path.join(__dirname, "..", "..", "assets", "js", "analytics__premium_only.js");
+const analyticsScriptPath = path.join(__dirname, "..", "..", "assets", "js", "analytics.js");
 
 async function installSearchFixture(page, options = {}) {
   await page.setContent(`

@@ -47,8 +47,11 @@ function Add-Failure {
 $requiredFiles = @(
     'smart-search-chips.php',
     'readme.txt',
-    'includes\class-edition.php',
-    'includes\class-search-explainer.php'
+    'includes\class-search-explainer.php',
+    'includes\class-chip-rules.php',
+    'includes\class-range-filters.php',
+    'includes\class-analytics.php',
+    'includes\class-ai-tagger.php'
 )
 
 foreach ($path in $requiredFiles) {
@@ -61,15 +64,7 @@ foreach ($path in $requiredFiles) {
 $forbiddenPaths = @(
     'vendor',
     'includes\class-license.php',
-    'includes\class-ai-tagger__premium_only.php',
-    'includes\class-analytics__premium_only.php',
-    'includes\class-chip-rules__premium_only.php',
-    'includes\class-range-filters__premium_only.php',
-    'assets\js\analytics__premium_only.js',
-    'assets\js\admin-ai.js',
-    'assets\js\range-filters__premium_only.js',
-    'assets\css\range-filters__premium_only.css',
-    'assets\css\analytics.css',
+    'includes\class-edition.php',
     'languages\smart-search-chips.pot'
 )
 
@@ -87,10 +82,13 @@ $patterns = [ordered]@{
     '__premium_only'                   = 'Freemius premium-only marker is present.'
     "'is_premium'"                     = 'Freemius premium config is present.'
     "'has_paid_plans'"                 = 'Freemius paid-plan config is present.'
-    'SSCHP_Analytics'                  = 'Analytics module reference is present in the wp.org build.'
-    'sschp_track_event'                = 'Analytics tracking endpoint reference is present in the wp.org build.'
-    'SSCHP_AI_Tagger'                  = 'AI prompt module reference is present in the wp.org build.'
-    'SSCHP_License'                    = 'License-gating class reference is present in the wp.org build.'
+    'SSCHP_License::'                  = 'License-gating class reference is present.'
+    'class SSCHP_License'              = 'License-gating class is present.'
+    'SSCHP_Edition::'                  = 'Edition-split class reference is present.'
+    'smartsearchchips.app'             = 'Link to the retired product website is present.'
+    'View Pro Features'                = 'Pro upsell wording is present.'
+    'Smart Search Chips Pro'           = 'Pro product wording is present.'
+    'Upgrade to Pro'                   = 'Pro upgrade wording is present.'
     'license key'                      = 'License-key wording is present.'
     'trial'                            = 'Trial wording is present.'
     'quota'                            = 'Quota wording is present.'
@@ -128,33 +126,21 @@ foreach ($file in $files) {
     }
 }
 
+# Reviewed exceptions: internally built e-mail/chart markup and the JSON export body,
+# and the hashed remote address used only for analytics rate limiting.
+$allowedPatternFiles = @{
+    'Security.EscapeOutput' = @('includes/class-analytics.php', 'includes/class-chip-rules.php')
+    '$_SERVER['             = @('includes/class-analytics.php')
+}
+
 foreach ($entry in $patterns.GetEnumerator()) {
     $matches = $files | Select-String -Pattern $entry.Key -SimpleMatch -CaseSensitive:$false
     foreach ($match in $matches) {
         $relative = Get-RelativePath -BasePath $PackageDir -Path $match.Path
-        Add-Failure "$($entry.Value) ${relative}:$($match.LineNumber)"
-    }
-}
-
-$allowedProLinkFiles = @(
-    'readme.txt',
-    'smart-search-chips.php',
-    'includes/class-edition.php',
-    'includes/class-settings.php'
-)
-$proLinkPatterns = @(
-    'smartsearchchips.app',
-    'View Pro Features',
-    'Smart Search Chips Pro'
-)
-
-foreach ($pattern in $proLinkPatterns) {
-    $matches = $files | Select-String -Pattern $pattern -SimpleMatch -CaseSensitive:$false
-    foreach ($match in $matches) {
-        $relative = Get-RelativePath -BasePath $PackageDir -Path $match.Path
-        if ($allowedProLinkFiles -notcontains $relative) {
-            Add-Failure "Pro/product link or wording appears outside admin/settings/readme context. ${relative}:$($match.LineNumber)"
+        if ($allowedPatternFiles.ContainsKey($entry.Key) -and ($allowedPatternFiles[$entry.Key] -contains $relative)) {
+            continue
         }
+        Add-Failure "$($entry.Value) ${relative}:$($match.LineNumber)"
     }
 }
 

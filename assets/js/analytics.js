@@ -1,5 +1,5 @@
 /**
- * Smart Search Chips Pro - frontend analytics transport.
+ * Smart Search Chips - frontend analytics transport.
  *
  * @package SmartSearchChips
  */

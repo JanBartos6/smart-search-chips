@@ -20,7 +20,6 @@ $sschp_test_added_actions   = array();
 $sschp_test_added_filters   = array();
 $sschp_test_polylang_language = '';
 $sschp_test_locale          = 'en_US';
-$sschp_test_freemius        = null;
 $sschp_test_is_block_theme  = false;
 $sschp_test_current_user_can = array();
 $sschp_test_current_user_calls = array();
@@ -528,14 +527,6 @@ if ( ! function_exists( 'determine_locale' ) ) {
         global $sschp_test_locale;
 
         return $sschp_test_locale;
-    }
-}
-
-if ( ! function_exists( 'sschp_fs' ) ) {
-    function sschp_fs() {
-        global $sschp_test_freemius;
-
-        return $sschp_test_freemius;
     }
 }
 
@@ -1787,7 +1778,6 @@ if ( ! class_exists( 'WP_Query' ) ) {
     }
 }
 
-require_once dirname( __DIR__ ) . '/includes/class-license.php';
 require_once dirname( __DIR__ ) . '/includes/class-meta-box.php';
 require_once dirname( __DIR__ ) . '/includes/class-woocommerce.php';
 require_once dirname( __DIR__ ) . '/includes/class-language.php';
@@ -1801,27 +1791,15 @@ require_once dirname( __DIR__ ) . '/includes/class-search-index.php';
 require_once dirname( __DIR__ ) . '/includes/class-search-handler.php';
 
 $sschp_test_optional_requires = array(
-    dirname( __DIR__ ) . '/includes/class-chip-rules__premium_only.php',
-    dirname( __DIR__ ) . '/includes/class-ai-tagger__premium_only.php',
-    dirname( __DIR__ ) . '/includes/class-analytics__premium_only.php',
-    dirname( __DIR__ ) . '/includes/class-range-filters__premium_only.php',
+    dirname( __DIR__ ) . '/includes/class-chip-rules.php',
+    dirname( __DIR__ ) . '/includes/class-ai-tagger.php',
+    dirname( __DIR__ ) . '/includes/class-analytics.php',
+    dirname( __DIR__ ) . '/includes/class-range-filters.php',
 );
 
 foreach ( $sschp_test_optional_requires as $sschp_test_optional_require ) {
     if ( file_exists( $sschp_test_optional_require ) ) {
         require_once $sschp_test_optional_require;
-    }
-}
-
-class SSCHP_Test_Freemius {
-    public $premium = false;
-
-    public function can_use_premium_code() {
-        return (bool) $this->premium;
-    }
-
-    public function can_use_premium_code__premium_only() {
-        return (bool) $this->premium;
     }
 }
 

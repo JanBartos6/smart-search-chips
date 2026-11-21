@@ -19,7 +19,7 @@ test.describe("Analytics dashboard", () => {
     await loginAsAdmin(page);
 
     const analyticsAvailable = await ensureAnalyticsEnabled(page);
-    test.skip(!analyticsAvailable, "Analytics requires a Pro-enabled test site.");
+    test.skip(!analyticsAvailable, "Analytics could not be enabled on the test site.");
 
     await page.goto("/search/");
 

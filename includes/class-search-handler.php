@@ -83,7 +83,7 @@ class SSCHP_Search_Handler {
         $max_tag_length = (int) $this->settings->get( 'max_tag_length', 40 );
         $display_count  = $this->limit_rendered_results( (int) $this->settings->get( 'max_results', 10 ) );
 
-        $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_License::max_chips() );
+        $max_chips = min( (int) $this->settings->get( 'max_chips', 8 ), SSCHP_Settings::MAX_CHIPS );
 
         $posts_data = $this->get_posts_data_for_keyword( $keyword, $post_types, $active_tags, $language, $max_results, $threshold_pct );
 
@@ -511,20 +511,12 @@ class SSCHP_Search_Handler {
     }
 
     /**
-     * Get the edition-specific chip limit.
+     * Get the maximum number of chips a search may return.
      *
      * @return int
      */
     private function get_max_chips_limit() {
-        if ( class_exists( 'SSCHP_License' ) ) {
-            return SSCHP_License::max_chips();
-        }
-
-        if ( class_exists( 'SSCHP_Edition' ) ) {
-            return SSCHP_Edition::max_chips();
-        }
-
-        return 8;
+        return SSCHP_Settings::MAX_CHIPS;
     }
 
     /**
@@ -1143,20 +1135,18 @@ class SSCHP_Search_Handler {
         $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
         $extra   = '';
 
-        if ( SSCHP_License::is_pro() ) {
-            // Pro: use configured custom fields when present, otherwise keep
-            // the built-in fallback so sites do not lose chips just because
-            // Pro is active before field mapping is configured.
-            $tag_field   = $this->settings->get( 'tag_fields', '' );
-            $extra_field = $this->settings->get( 'extra_fields', '' );
+        // Use configured custom fields when present, otherwise keep the
+        // built-in fallback so sites do not lose chips before field
+        // mapping is configured.
+        $tag_field   = $this->settings->get( 'tag_fields', '' );
+        $extra_field = $this->settings->get( 'extra_fields', '' );
 
-            if ( ! empty( $tag_field ) || ! empty( $extra_field ) ) {
-                $primary = $this->get_field_value( $post_id, $tag_field );
-                $extra   = $this->get_field_value( $post_id, $extra_field );
+        if ( ! empty( $tag_field ) || ! empty( $extra_field ) ) {
+            $primary = $this->get_field_value( $post_id, $tag_field );
+            $extra   = $this->get_field_value( $post_id, $extra_field );
 
-                if ( '' === $primary && '' === $extra && empty( $tag_field ) ) {
-                    $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
-                }
+            if ( '' === $primary && '' === $extra && empty( $tag_field ) ) {
+                $primary = get_post_meta( $post_id, SSCHP_Meta_Box::META_KEY, true ) ?: '';
             }
         }
 

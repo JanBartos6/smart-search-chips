@@ -128,7 +128,7 @@ function sschp_test_scheduled_hooks() {
 }
 
 function sschp_reset_test_state() {
-    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_locale, $sschp_test_freemius, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_taxonomies, $sschp_test_terms, $sschp_test_last_get_posts_args, $sschp_test_registered_meta_keys, $sschp_test_index_rows, $sschp_test_index_table_exists, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls, $sschp_test_registered_blocks, $sschp_test_shortcodes;
+    global $sschp_test_options, $sschp_test_settings_errors, $sschp_test_filters, $sschp_test_actions, $sschp_test_polylang_language, $sschp_test_locale, $sschp_test_added_actions, $sschp_test_added_filters, $sschp_test_is_block_theme, $sschp_test_current_user_can, $sschp_test_current_user_calls, $sschp_test_transients, $sschp_test_nonce_valid, $sschp_test_query_vars, $sschp_test_post_meta, $sschp_test_current_url, $sschp_test_is_admin, $sschp_test_is_search, $sschp_test_products, $sschp_test_post_types, $sschp_test_post_terms, $sschp_test_post_revisions, $sschp_test_post_autosaves, $sschp_test_acf_fields, $sschp_test_posts, $sschp_test_taxonomies, $sschp_test_terms, $sschp_test_last_get_posts_args, $sschp_test_registered_meta_keys, $sschp_test_index_rows, $sschp_test_index_table_exists, $sschp_test_analytics_rows, $sschp_test_db_queries, $sschp_test_db_delta_sql, $sschp_test_scheduled_events, $sschp_test_mail, $sschp_test_wp_query_count, $sschp_test_post_terms_calls, $sschp_test_registered_blocks, $sschp_test_shortcodes;
 
     $sschp_test_options         = array();
     $sschp_test_settings_errors = array();
@@ -138,7 +138,6 @@ function sschp_reset_test_state() {
     $sschp_test_added_filters   = array();
     $sschp_test_polylang_language = '';
     $sschp_test_locale          = 'en_US';
-    $sschp_test_freemius        = null;
     $sschp_test_is_block_theme  = false;
     $sschp_test_current_user_can   = array();
     $sschp_test_current_user_calls = array();
@@ -279,7 +278,7 @@ function sschp_test_no_legacy_public_interface_references_in_fixtures() {
 }
 
 function sschp_test_wporg_settings_source_keeps_selector_safety() {
-    $path = dirname( __DIR__ ) . '/build-sources/wporg/includes/class-settings.php';
+    $path = dirname( __DIR__ ) . '/includes/class-settings.php';
 
     sschp_assert_true( is_file( $path ), 'WP.org settings source should exist for explicit release builds' );
 
@@ -304,7 +303,7 @@ function sschp_test_wporg_settings_source_keeps_selector_safety() {
 }
 
 function sschp_test_wporg_search_handler_keeps_admin_test_search_api() {
-    $path = dirname( __DIR__ ) . '/build-sources/wporg/includes/class-search-handler.php';
+    $path = dirname( __DIR__ ) . '/includes/class-search-handler.php';
 
     sschp_assert_true( is_file( $path ), 'WP.org search handler source should exist for explicit release builds' );
 
@@ -318,7 +317,7 @@ function sschp_test_wporg_search_handler_keeps_admin_test_search_api() {
 }
 
 function sschp_test_wporg_main_loads_search_explainer() {
-    $path = dirname( __DIR__ ) . '/build-sources/wporg/smart-search-chips.php';
+    $path = dirname( __DIR__ ) . '/smart-search-chips.php';
 
     sschp_assert_true( is_file( $path ), 'WP.org main plugin source should exist for explicit release builds' );
 
@@ -330,7 +329,7 @@ function sschp_test_wporg_main_loads_search_explainer() {
 
 function sschp_test_plugin_lifecycle_hooks_unschedule_background_work() {
     $root_contents  = file_get_contents( dirname( __DIR__ ) . '/smart-search-chips.php' );
-    $wporg_contents = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/smart-search-chips.php' );
+    $wporg_contents = file_get_contents( dirname( __DIR__ ) . '/smart-search-chips.php' );
 
     foreach ( array( 'root' => $root_contents, 'wporg' => $wporg_contents ) as $label => $contents ) {
         sschp_assert_contains( 'register_deactivation_hook', $contents, $label . ' plugin source should register a deactivation hook' );
@@ -341,11 +340,11 @@ function sschp_test_plugin_lifecycle_hooks_unschedule_background_work() {
     }
 
     sschp_assert_contains( 'sschp_delete_plugin_data( true )', $root_contents, 'root uninstall should use full table cleanup when data deletion is enabled' );
-    sschp_assert_contains( 'DROP TABLE IF EXISTS {$analytics_table_name}', $wporg_contents, 'WP.org cleanup should remove leftover plugin analytics tables from prior Pro installs' );
+    sschp_assert_contains( 'SSCHP_Analytics::drop_table()', $root_contents, 'full data deletion should drop the analytics table' );
 }
 
 function sschp_test_wporg_frontend_source_registers_search_block() {
-    $path = dirname( __DIR__ ) . '/build-sources/wporg/includes/class-frontend.php';
+    $path = dirname( __DIR__ ) . '/includes/class-frontend.php';
 
     sschp_assert_true( is_file( $path ), 'WP.org frontend source should exist for explicit release builds' );
 
@@ -384,7 +383,24 @@ function sschp_test_search_block_files_are_release_validated() {
     sschp_assert_contains( 'Refusing to validate a path outside the generated WordPress.org package directory', file_get_contents( $validator ), 'WP.org validator should explain when the caller passes the wrong package directory' );
 }
 
-function sschp_test_release_workflow_requires_version_tag_and_freemius_sdk() {
+function sschp_test_single_package_ships_every_module() {
+    $root      = dirname( __DIR__ );
+    $main      = file_get_contents( $root . '/smart-search-chips.php' );
+    $validator = file_get_contents( $root . '/scripts/validate-wporg-package.php' );
+    $modules   = array( 'class-chip-rules.php', 'class-range-filters.php', 'class-analytics.php', 'class-ai-tagger.php' );
+
+    foreach ( $modules as $module ) {
+        sschp_assert_true( is_file( $root . '/includes/' . $module ), 'module should exist: ' . $module );
+        sschp_assert_contains( "require_once SSCHP_PLUGIN_DIR . 'includes/" . $module . "';", $main, 'main plugin file should always load ' . $module );
+        sschp_assert_contains( 'includes/' . $module, $validator, 'package validator should require ' . $module );
+    }
+
+    sschp_assert_true( ! is_dir( $root . '/build-sources' ), 'there should be no separate WordPress.org source overlay' );
+    sschp_assert_true( ! is_file( $root . '/includes/class-license.php' ), 'license gating class should be gone' );
+    sschp_assert_true( false === strpos( $main, '__premium_only' ), 'main plugin file should not load premium-only files' );
+}
+
+function sschp_test_release_workflow_requires_version_tag() {
     $root     = dirname( __DIR__ );
     $workflow = sschp_normalize_newlines( file_get_contents( $root . '/.github/workflows/release.yml' ) );
     $build    = file_get_contents( $root . '/scripts/build-release.ps1' );
@@ -399,18 +415,12 @@ function sschp_test_release_workflow_requires_version_tag_and_freemius_sdk() {
     );
     sschp_assert_contains( "permissions:\n  contents: read", $workflow, 'release workflow should default to read-only repository permissions' );
     sschp_assert_contains( "permissions:\n      contents: write", $workflow, 'release workflow should grant write permissions only to the deploy job' );
-    sschp_assert_contains( 'FREEMIUS_DEVELOPER_ID', $workflow, 'release workflow should accept the Freemius developer ID secret alias' );
-    sschp_assert_contains( 'release_mode: released', $workflow, 'Freemius uploads should be released immediately for now' );
-    sschp_assert_true( false === strpos( $workflow, 'release_mode: pending' ), 'Freemius uploads should not be left pending by the release workflow' );
+    sschp_assert_true( false === stripos( $workflow, 'freemius' ), 'release workflow should not deploy to a licensing service' );
     sschp_assert_true( false === strpos( $workflow, '10up/action-wordpress-plugin-deploy@stable' ), 'WP.org deploy action should not use the floating stable branch' );
     sschp_assert_contains( '10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2', $workflow, 'WP.org deploy action should be pinned to a concrete revision' );
 
-    sschp_assert_contains( 'Ensure-FreemiusSdk', $build, 'release build should prepare the Freemius SDK before building the Pro zip' );
-    sschp_assert_contains( 'vendor\freemius\start.php', $build, 'release build should verify the Freemius SDK entrypoint exists' );
-    sschp_assert_contains( 'github.com/Freemius/wordpress-sdk', $build, 'release build should download the Freemius SDK when it is absent from the checkout' );
-    sschp_assert_contains( 'Get-FileHash -Algorithm SHA256', $build, 'release build should verify the downloaded Freemius SDK archive checksum' );
-    sschp_assert_contains( 'aab118b5fee33c66c9035fbe6aacc5f4cac6e87d1f8cac40df6610d18ca54442', $build, 'release build should pin the expected Freemius SDK checksum' );
-    sschp_assert_contains( 'Get-Command zip', $build, 'release build should prefer the native zip command for Freemius-compatible packages' );
+    sschp_assert_true( false === stripos( $build, 'freemius' ), 'release build should not download a licensing SDK' );
+    sschp_assert_contains( 'Get-Command zip', $build, 'release build should prefer the native zip command' );
 }
 
 function sschp_test_ci_workflow_runs_expanded_release_gates() {
@@ -442,55 +452,48 @@ function sschp_test_release_smoke_checklist_covers_manual_risks() {
 
     sschp_assert_true( is_file( $path ), 'manual release smoke checklist should exist for non-automatable checks' );
     foreach ( array(
-        'Freemius checkout',
-        'free-to-Pro handoff',
-        'Pro-to-free downgrade',
+        'upgrade from 1.1.x',
         'real analytics test digest',
         'real WooCommerce catalog',
         'block theme',
         'classic theme',
         'page-builder-like',
         'WordPress.org package',
-        'smartsearchchips.app',
     ) as $manual_check ) {
         sschp_assert_contains( $manual_check, $contents, 'manual release smoke checklist should cover: ' . $manual_check );
     }
 }
 
-function sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant() {
-    $root           = dirname( __DIR__ ) . '/build-sources/wporg';
-    $readme         = $root . '/readme.txt';
-    $settings       = $root . '/includes/class-settings.php';
-    $frontend       = $root . '/includes/class-frontend.php';
-    $search_handler = $root . '/includes/class-search-handler.php';
+function sschp_test_open_source_build_has_no_pro_promotion() {
+    $root  = dirname( __DIR__ );
+    $files = array(
+        'readme.txt',
+        'smart-search-chips.php',
+        'includes/class-settings.php',
+        'includes/class-frontend.php',
+        'includes/class-search-handler.php',
+        'includes/class-ai-tagger.php',
+        'includes/class-analytics.php',
+    );
 
-    $readme_contents   = is_file( $readme ) ? file_get_contents( $readme ) : '';
-    $settings_contents = is_file( $settings ) ? file_get_contents( $settings ) : '';
-    $frontend_contents = is_file( $frontend ) ? file_get_contents( $frontend ) : '';
-    $search_contents   = is_file( $search_handler ) ? file_get_contents( $search_handler ) : '';
+    foreach ( $files as $file ) {
+        $contents = file_get_contents( $root . '/' . $file );
 
-    foreach ( array( $readme_contents, $settings_contents ) as $contents ) {
-        foreach ( array( 'trial', 'quota', 'free limit', 'unlock included feature', 'unlock included functionality', 'Upgrade to Pro to unlock', 'becomes available in Pro' ) as $forbidden ) {
-            sschp_assert_true(
-                false === stripos( $contents, $forbidden ),
-                'WP.org Pro promotion copy should not use misleading wording: ' . $forbidden
-            );
+        foreach ( array( 'smartsearchchips.app', 'Smart Search Chips Pro', 'Upgrade to Pro', 'View Pro Features', 'available in Pro', 'trial', 'quota', 'free limit' ) as $forbidden ) {
+            sschp_assert_true( false === stripos( $contents, $forbidden ), $file . ' should not contain paid-edition wording: ' . $forbidden );
         }
     }
 
-    foreach ( array( 'Custom Fields and ACF', 'Numeric Range Chips', 'Analytics and Reporting', 'Support and Diagnostics' ) as $expected_card ) {
-        sschp_assert_contains( $expected_card, $settings_contents, 'WP.org settings should keep contextual Pro card: ' . $expected_card );
-    }
-
-    sschp_assert_true( false === stripos( $frontend_contents, 'smartsearchchips.app' ), 'WP.org frontend source should not contain public Pro links' );
-    sschp_assert_true( false === stripos( $search_contents, 'smartsearchchips.app' ), 'WP.org search handler should not contain public Pro links' );
+    $readme = file_get_contents( $root . '/readme.txt' );
+    sschp_assert_contains( 'https://github.com/JanBartos6/smart-search-chips', $readme, 'readme should link the public repository' );
+    sschp_assert_contains( 'Stable tag: 1.2.0', $readme, 'readme should describe the open-source 1.2.0 release' );
 }
 
 function sschp_test_premium_ajax_numeric_inputs_are_unslashed() {
     $root  = dirname( __DIR__ );
     $files = array(
-        $root . '/includes/class-ai-tagger__premium_only.php',
-        $root . '/includes/class-analytics__premium_only.php',
+        $root . '/includes/class-ai-tagger.php',
+        $root . '/includes/class-analytics.php',
     );
     $forbidden = array(
         'absint( $_' . 'POST',
@@ -512,7 +515,7 @@ function sschp_test_premium_ajax_numeric_inputs_are_unslashed() {
 }
 
 function sschp_test_range_chip_css_uses_aligned_desktop_thumbs() {
-    $path = dirname( __DIR__ ) . '/assets/css/range-filters__premium_only.css';
+    $path = dirname( __DIR__ ) . '/assets/css/range-filters.css';
 
     sschp_assert_true( is_file( $path ), 'Pro range chip stylesheet should exist' );
 
@@ -544,7 +547,7 @@ function sschp_test_range_chip_css_uses_aligned_desktop_thumbs() {
     sschp_assert_contains( 'white-space: nowrap;', $css, 'range chip label and values should stay inline in the compact layout' );
     sschp_assert_contains( 'flex: 0 1 96px;', $css, 'range chip slider should have a compact inline width' );
     sschp_assert_contains( '.ssc-range-chip__label', $css, 'range chip stylesheet should style a visible inline range label' );
-    sschp_assert_contains( 'ssc-range-chip__label', file_get_contents( dirname( __DIR__ ) . '/includes/class-range-filters__premium_only.php' ), 'range chip markup should show the range label instead of exposing only numeric values' );
+    sschp_assert_contains( 'ssc-range-chip__label', file_get_contents( dirname( __DIR__ ) . '/includes/class-range-filters.php' ), 'range chip markup should show the range label instead of exposing only numeric values' );
     sschp_assert_contains( '.ssc-range-chip .ssc-range-chip__number[type="number"] {', $css, 'typed range values should resist generic theme number input styles' );
     sschp_assert_contains( 'width: 7ch;', $css, 'typed range values should stay compact beside the sliders' );
 }
@@ -1078,7 +1081,7 @@ function sschp_test_chip_rules_unauthorized_import_is_rejected() {
 }
 
 function sschp_test_chip_rules_import_export_handlers_are_admin_secured() {
-    $path     = dirname( __DIR__ ) . '/includes/class-chip-rules__premium_only.php';
+    $path     = dirname( __DIR__ ) . '/includes/class-chip-rules.php';
     $contents = is_file( $path ) ? file_get_contents( $path ) : '';
 
     sschp_assert_contains( 'admin_post_\' . self::EXPORT_ACTION', $contents, 'chip rule export should register an admin-post handler' );
@@ -1134,28 +1137,6 @@ function sschp_test_chip_rules_preserve_range_chip_keys_for_prioritizer() {
     }
 
     sschp_assert_same( 1, $rekeyed_range_count, 'range prioritization should recognize an existing range chip even if another filter changed its array key' );
-}
-
-function sschp_test_wporg_build_excludes_pro_chip_rules_class() {
-    $root      = dirname( __DIR__ );
-    $build     = $root . '/scripts/build-release.ps1';
-    $wporg     = $root . '/build-sources/wporg';
-
-    sschp_assert_contains( 'includes\class-chip-rules__premium_only.php', file_get_contents( $build ), 'WP.org release build should remove the Pro chip rules class' );
-    sschp_assert_true( ! is_file( $wporg . '/includes/class-chip-rules__premium_only.php' ), 'WP.org source overrides should not contain the Pro chip rules class file' );
-
-    $main_contents = file_get_contents( $wporg . '/smart-search-chips.php' );
-    sschp_assert_true( false === strpos( $main_contents, 'class-chip-rules__premium_only.php' ), 'WP.org main plugin source should not load the Pro chip rules class' );
-    sschp_assert_true( false === strpos( $main_contents, 'SSCHP_Chip_Rules' ), 'WP.org main plugin source should not reference the Pro chip rules class' );
-
-    $settings_contents = file_get_contents( $wporg . '/includes/class-settings.php' );
-    sschp_assert_true( false === strpos( $settings_contents, 'SSCHP_Chip_Rules' ), 'WP.org settings source should not reference the Pro chip rules class' );
-    sschp_assert_true( false === strpos( $settings_contents, 'sschp_export_chip_rules' ), 'WP.org settings source should not expose Pro chip rule export handlers' );
-    sschp_assert_true( false === strpos( $settings_contents, 'sschp_import_chip_rules' ), 'WP.org settings source should not expose Pro chip rule import handlers' );
-
-    $validator_contents = file_get_contents( $root . '/scripts/validate-wporg-package.php' );
-    sschp_assert_contains( 'SSCHP_Chip_Rules', $validator_contents, 'WP.org package validation should reject Pro chip rule class references' );
-    sschp_assert_contains( 'sschp_import_chip_rules', $validator_contents, 'WP.org package validation should reject Pro chip rule import handlers' );
 }
 
 function sschp_make_range_post( $post_id, array $tags, $title = '' ) {
@@ -1624,9 +1605,9 @@ function sschp_test_range_debug_context_uses_search_query_first() {
 function sschp_test_range_debug_context_reuses_search_handler_pipeline() {
     global $sschp_test_options, $sschp_test_post_meta;
 
-    $range_source   = file_get_contents( dirname( __DIR__ ) . '/includes/class-range-filters__premium_only.php' );
+    $range_source   = file_get_contents( dirname( __DIR__ ) . '/includes/class-range-filters.php' );
     $handler_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-search-handler.php' );
-    $wporg_handler  = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-search-handler.php' );
+    $wporg_handler  = file_get_contents( dirname( __DIR__ ) . '/includes/class-search-handler.php' );
 
     sschp_assert_contains( 'get_diagnostic_posts_data', $handler_source, 'search handler should expose reusable diagnostic post data for internal tools' );
     sschp_assert_contains( 'get_diagnostic_posts_data', $wporg_handler, 'WP.org search handler should keep reusable diagnostic post data for free admin tools' );
@@ -2280,11 +2261,6 @@ function sschp_test_frontend_footer_fallback_renders_once_for_custom_theme_loops
     sschp_assert_same( '', $loop_markup, 'loop rendering should not duplicate chips after the footer fallback is generated' );
 }
 
-function sschp_test_license_is_pro_false_without_freemius() {
-    sschp_reset_test_state();
-
-    sschp_assert_same( false, SSCHP_License::is_pro(), 'is_pro should safely return false when Freemius is unavailable' );
-}
 
 function sschp_test_settings_numeric_sanitizers() {
     $settings = new SSCHP_Settings();
@@ -2453,18 +2429,10 @@ function sschp_test_ai_prompt_rest_mode() {
     sschp_assert_contains( 'REST route: http://example.test/wp-json/wp/v2/product/22', $prompt, 'REST-mode prompt should include the selected item route' );
 }
 
-function sschp_enable_pro_for_unit_tests() {
-    global $sschp_test_freemius;
-
-    $sschp_test_freemius          = new SSCHP_Test_Freemius();
-    $sschp_test_freemius->premium = true;
-}
-
 function sschp_register_ai_item_browser_fixture() {
     global $sschp_test_current_user_can, $sschp_test_taxonomies, $sschp_test_terms, $sschp_test_post_terms;
 
     sschp_reset_test_state();
-    sschp_enable_pro_for_unit_tests();
 
     $sschp_test_current_user_can['manage_options'] = true;
     update_option( 'sschp_post_types', array( 'product' ) );
@@ -2648,23 +2616,26 @@ function sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow() {
     sschp_assert_contains( '.ssc-ai-selected-items { max-height: 320px; }', $css, 'narrow selected items list should remain visible without taking over the page' );
 }
 
-function sschp_test_free_admin_menu_does_not_add_analytics_upsell_page() {
-    $contents       = sschp_normalize_newlines( file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' ) );
-    $wporg_contents = sschp_normalize_newlines( file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-settings.php' ) );
-    $plugin_file    = file_get_contents( dirname( __DIR__ ) . '/smart-search-chips.php' );
+function sschp_test_admin_menu_has_no_license_or_upsell() {
+    $contents    = sschp_normalize_newlines( file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' ) );
+    $plugin_file = file_get_contents( dirname( __DIR__ ) . '/smart-search-chips.php' );
 
     sschp_assert_contains( '$this->settings_page_hooks[] = add_menu_page(', $contents, 'Plugin settings should register as a top-level admin menu' );
-    sschp_assert_contains( '$this->settings_page_hooks[] = add_menu_page(', $wporg_contents, 'WP.org settings should register as a top-level admin menu' );
-    sschp_assert_contains( "if ( SSCHP_License::is_pro() ) {\n            \$this->analytics_page_hooks[] = add_submenu_page(\n                self::MENU_SLUG,\n                __( 'Search Chips Analytics'", $contents, 'Analytics menu page should only be registered for Pro sites' );
-    sschp_assert_contains( "'first-path'     => 'admin.php?page=smart-search-chips'", $plugin_file, 'Freemius first path should point at the top-level admin page' );
-    sschp_assert_true( false === strpos( $wporg_contents, 'smart-search-chips-analytics' ), 'WP.org settings should not register the Pro analytics page' );
+    sschp_assert_contains( "\$this->analytics_page_hooks[] = add_submenu_page(\n            self::MENU_SLUG,\n            __( 'Search Chips Analytics'", $contents, 'Analytics menu page should be registered on every site' );
+
+    foreach ( array( 'Upgrade to Pro', 'View Pro Features', 'Manage License', 'SSCHP_License', 'smartsearchchips.app' ) as $retired ) {
+        sschp_assert_true( false === stripos( $contents, $retired ), 'Settings should not contain licensing or upsell copy: ' . $retired );
+    }
+
+    sschp_assert_true( false === stripos( $plugin_file, 'freemius' ), 'Main plugin file should not bootstrap a licensing SDK' );
+    sschp_assert_contains( 'https://github.com/JanBartos6/smart-search-chips', $plugin_file, 'Plugin URI should point at the public repository' );
 }
 
 function sschp_test_frontend_count_markup_is_supported_in_both_editions() {
     $search_handler       = file_get_contents( dirname( __DIR__ ) . '/includes/class-search-handler.php' );
-    $wporg_search_handler = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-search-handler.php' );
+    $wporg_search_handler = file_get_contents( dirname( __DIR__ ) . '/includes/class-search-handler.php' );
     $frontend             = file_get_contents( dirname( __DIR__ ) . '/includes/class-frontend.php' );
-    $wporg_frontend       = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-frontend.php' );
+    $wporg_frontend       = file_get_contents( dirname( __DIR__ ) . '/includes/class-frontend.php' );
     $script               = file_get_contents( dirname( __DIR__ ) . '/assets/js/chips.js' );
     $styles               = file_get_contents( dirname( __DIR__ ) . '/assets/css/chips.css' );
 
@@ -2688,26 +2659,20 @@ function sschp_test_frontend_count_markup_is_supported_in_both_editions() {
 function sschp_test_public_contact_links_do_not_expose_private_email() {
     $paths = array(
         'smart-search-chips.php',
+        'readme.txt',
+        'README.md',
         'includes/class-settings.php',
-        'build-sources/wporg/includes/class-settings.php',
-        'marketing/launch-site/index.html',
-        'marketing/launch-site/privacy-policy/index.html',
-        'marketing/launch-site/refund-policy/index.html',
-        'marketing/launch-site/support-policy/index.html',
-        'marketing/launch-site/terms-of-service/index.html',
+        'includes/class-analytics.php',
     );
 
     foreach ( $paths as $path ) {
         $contents = file_get_contents( dirname( __DIR__ ) . '/' . $path );
-
-        sschp_assert_true( false === strpos( $contents, '[redacted]' ), $path . ' should not expose a private Gmail address' );
-        sschp_assert_true( false === strpos( $contents, '[redacted]' ), $path . ' should not expose the old Gmail support address' );
+        sschp_assert_true( 0 === preg_match( '/[A-Za-z0-9._%+-]+@gmail\.com/i', $contents ), $path . ' should not expose a personal Gmail address' );
     }
 
-    $plugin_file = file_get_contents( dirname( __DIR__ ) . '/smart-search-chips.php' );
-    sschp_assert_contains( "'contact'        => true", $plugin_file, 'Freemius contact submenu should remain available for licensed customer support' );
-    sschp_assert_contains( 'mailto:support@smartsearchchips.app', file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' ), 'Plugin feedback should use the public support email' );
-    sschp_assert_contains( 'mailto:support@smartsearchchips.app', file_get_contents( dirname( __DIR__ ) . '/marketing/launch-site/index.html' ), 'Launch site footer should use the public support email' );
+    $settings = file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' );
+    sschp_assert_contains( "const ISSUES_URL     = 'https://github.com/JanBartos6/smart-search-chips/issues';", $settings, 'Plugin feedback should go to the public GitHub issue tracker' );
+    sschp_assert_contains( 'esc_url( self::ISSUES_URL )', $settings, 'Settings footer should link the issue tracker' );
 }
 
 function sschp_test_setup_wizard_card_wraps_medium_width_copy() {
@@ -2723,7 +2688,7 @@ function sschp_test_setup_wizard_card_wraps_medium_width_copy() {
 
 function sschp_test_settings_page_has_section_navigation() {
     $root_settings  = file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' );
-    $wporg_settings = file_get_contents( dirname( __DIR__ ) . '/build-sources/wporg/includes/class-settings.php' );
+    $wporg_settings = file_get_contents( dirname( __DIR__ ) . '/includes/class-settings.php' );
     $css            = file_get_contents( dirname( __DIR__ ) . '/assets/css/settings.css' );
     $js             = file_get_contents( dirname( __DIR__ ) . '/assets/js/settings.js' );
     $tabs           = array( 'start', 'search', 'chips', 'index', 'diagnostics', 'pro-rules', 'range', 'analytics', 'ai', 'advanced' );
@@ -2822,7 +2787,7 @@ function sschp_test_czech_archive_filter_translation_bundle_is_packaged() {
     $po_path    = $root . '/languages/smart-search-chips-cs_CZ.po';
     $mo_path    = $root . '/languages/smart-search-chips-cs_CZ.mo';
     $pro_main   = file_get_contents( $root . '/smart-search-chips.php' );
-    $wporg_main = file_get_contents( $root . '/build-sources/wporg/smart-search-chips.php' );
+    $wporg_main = file_get_contents( $root . '/smart-search-chips.php' );
 
     sschp_assert_true( file_exists( $po_path ), 'Czech PO catalog should be present' );
     sschp_assert_true( file_exists( $mo_path ) && filesize( $mo_path ) > 0, 'compiled Czech MO catalog should be present' );
@@ -2980,7 +2945,7 @@ function sschp_test_analytics_result_click_tracking_stores_post_and_position() {
     global $sschp_test_analytics_rows, $sschp_test_post_terms;
 
     sschp_reset_test_state();
-    sschp_enable_pro_for_analytics_tests();
+    sschp_prepare_analytics_tests();
     update_option( 'sschp_analytics_enabled', '1' );
     update_option( 'sschp_analytics_consent_ack', '1' );
     update_option( 'sschp_analytics_ignore_admins', '0' );
@@ -3029,7 +2994,7 @@ function sschp_test_analytics_does_not_track_without_consent_acknowledgement() {
     global $sschp_test_analytics_rows;
 
     sschp_reset_test_state();
-    sschp_enable_pro_for_analytics_tests();
+    sschp_prepare_analytics_tests();
     update_option( 'sschp_analytics_enabled', '1' );
     update_option( 'sschp_analytics_consent_ack', '0' );
     update_option( 'sschp_analytics_ignore_admins', '0' );
@@ -3085,11 +3050,7 @@ function sschp_test_analytics_csv_helpers_omit_visitor_and_page_url() {
     sschp_assert_true( ! in_array( 'hashed-visitor', $row, true ), 'analytics CSV rows should not include visitor IDs' );
 }
 
-function sschp_enable_pro_for_analytics_tests() {
-    global $sschp_test_freemius;
-
-    $sschp_test_freemius          = new SSCHP_Test_Freemius();
-    $sschp_test_freemius->premium = true;
+function sschp_prepare_analytics_tests() {
     update_option( SSCHP_Analytics::DB_VERSION_OPTION, SSCHP_Analytics::DB_VERSION );
     update_option( 'sschp_analytics_consent_ack', '1' );
 }
@@ -3098,7 +3059,7 @@ function sschp_test_analytics_digest_schedules_when_enabled() {
     global $sschp_test_scheduled_events;
 
     sschp_reset_test_state();
-    sschp_enable_pro_for_analytics_tests();
+    sschp_prepare_analytics_tests();
     update_option( 'sschp_analytics_enabled', '1' );
     update_option( 'sschp_analytics_digest_enabled', '1' );
     update_option( 'sschp_analytics_digest_frequency', 'weekly' );
@@ -3115,7 +3076,7 @@ function sschp_test_analytics_digest_reports_next_scheduled_run() {
     global $sschp_test_scheduled_events;
 
     sschp_reset_test_state();
-    sschp_enable_pro_for_analytics_tests();
+    sschp_prepare_analytics_tests();
     update_option( 'sschp_analytics_enabled', '1' );
     update_option( 'sschp_analytics_digest_enabled', '1' );
     update_option( 'sschp_analytics_digest_frequency', 'weekly' );
@@ -3131,7 +3092,7 @@ function sschp_test_analytics_digest_reports_next_scheduled_run() {
 
 function sschp_test_analytics_digest_monthly_last_day_fallback() {
     sschp_reset_test_state();
-    sschp_enable_pro_for_analytics_tests();
+    sschp_prepare_analytics_tests();
     update_option( 'sschp_analytics_digest_frequency', 'monthly' );
     update_option( 'sschp_analytics_digest_day', '31' );
     update_option( 'sschp_analytics_digest_time', '09:00' );
@@ -3147,7 +3108,7 @@ function sschp_test_analytics_digest_unschedules_when_disabled() {
     global $sschp_test_scheduled_events;
 
     sschp_reset_test_state();
-    sschp_enable_pro_for_analytics_tests();
+    sschp_prepare_analytics_tests();
     update_option( 'sschp_analytics_enabled', '1' );
     update_option( 'sschp_analytics_digest_enabled', '1' );
     SSCHP_Analytics::schedule_digest( true );
@@ -3162,7 +3123,7 @@ function sschp_test_analytics_digest_test_email_uses_wp_mail() {
     global $sschp_test_mail;
 
     sschp_reset_test_state();
-    sschp_enable_pro_for_analytics_tests();
+    sschp_prepare_analytics_tests();
     update_option( 'sschp_analytics_enabled', '1' );
     update_option( 'sschp_analytics_digest_recipients', 'owner@example.test' );
     update_option( 'sschp_analytics_digest_include_csv', '0' );
@@ -3180,7 +3141,7 @@ function sschp_test_analytics_digest_can_attach_csv_export() {
     global $sschp_test_mail;
 
     sschp_reset_test_state();
-    sschp_enable_pro_for_analytics_tests();
+    sschp_prepare_analytics_tests();
     update_option( 'sschp_analytics_enabled', '1' );
     update_option( 'sschp_analytics_digest_recipients', 'owner@example.test' );
     update_option( 'sschp_analytics_digest_include_csv', '1' );
@@ -3195,7 +3156,7 @@ function sschp_test_analytics_digest_can_attach_chart_export() {
     global $sschp_test_mail;
 
     sschp_reset_test_state();
-    sschp_enable_pro_for_analytics_tests();
+    sschp_prepare_analytics_tests();
     update_option( 'sschp_analytics_enabled', '1' );
     update_option( 'sschp_analytics_digest_recipients', 'owner@example.test' );
     update_option( 'sschp_analytics_digest_include_csv', '0' );
@@ -3280,7 +3241,7 @@ function sschp_test_analytics_digest_preview_exposes_next_email_without_sending(
     global $sschp_test_mail;
 
     sschp_reset_test_state();
-    sschp_enable_pro_for_analytics_tests();
+    sschp_prepare_analytics_tests();
     update_option( 'sschp_analytics_enabled', '1' );
     update_option( 'sschp_analytics_digest_enabled', '0' );
     update_option( 'sschp_analytics_digest_recipients', "owner@example.test\nreports@example.test" );
@@ -3304,7 +3265,7 @@ function sschp_test_analytics_digest_does_not_send_when_analytics_disabled() {
     global $sschp_test_mail, $sschp_test_scheduled_events;
 
     sschp_reset_test_state();
-    sschp_enable_pro_for_analytics_tests();
+    sschp_prepare_analytics_tests();
     update_option( 'sschp_analytics_enabled', '0' );
     update_option( 'sschp_analytics_digest_enabled', '1' );
     update_option( 'sschp_analytics_digest_recipients', 'owner@example.test' );
@@ -3369,24 +3330,6 @@ function sschp_test_settings_digest_sanitizers_default_empty_without_warning() {
     sschp_assert_same( 'monday', $settings->sanitize_digest_day( '' ), 'empty digest day should default without treating an omitted Pro-only field as invalid' );
     sschp_assert_same( '09:00', $settings->sanitize_digest_time( '' ), 'empty digest time should default without treating an omitted Pro-only field as invalid' );
     sschp_assert_same( array(), $sschp_test_settings_errors, 'empty digest fields should not show analytics warnings on free settings saves' );
-}
-
-function sschp_test_wporg_build_excludes_pro_analytics_class() {
-    $root      = dirname( __DIR__ );
-    $build     = $root . '/scripts/build-release.ps1';
-    $validator = $root . '/scripts/validate-wporg-package.php';
-    $wporg     = $root . '/build-sources/wporg';
-
-    sschp_assert_contains( 'includes\class-analytics__premium_only.php', file_get_contents( $build ), 'WP.org release build should remove the Pro analytics class' );
-    sschp_assert_contains( 'assets\js\analytics__premium_only.js', file_get_contents( $build ), 'WP.org release build should remove the Pro analytics frontend transport' );
-    sschp_assert_contains( 'SSCHP_Analytics', file_get_contents( $validator ), 'WP.org validator should reject Pro analytics class references' );
-    sschp_assert_contains( 'sschp_track_event', file_get_contents( $validator ), 'WP.org validator should reject Pro analytics tracking endpoint references' );
-    sschp_assert_true( ! is_file( $wporg . '/includes/class-analytics__premium_only.php' ), 'WP.org source overrides should not contain the Pro analytics class file' );
-    sschp_assert_true( ! is_file( $wporg . '/assets/js/analytics__premium_only.js' ), 'WP.org source overrides should not contain the Pro analytics frontend transport' );
-
-    $main_contents = file_get_contents( $wporg . '/smart-search-chips.php' );
-    sschp_assert_true( false === strpos( $main_contents, 'class-analytics__premium_only.php' ), 'WP.org main plugin source should not load the Pro analytics class' );
-    sschp_assert_true( false === strpos( $main_contents, 'SSCHP_Analytics' ), 'WP.org main plugin source should not reference the Pro analytics class' );
 }
 
 function sschp_test_meta_auth_callback_requires_edit_post_capability() {
@@ -4728,7 +4671,6 @@ sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_invalid_im
 sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_unauthorized_import_is_rejected' );
 sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_import_export_handlers_are_admin_secured' );
 sschp_run_if_class_exists( 'SSCHP_Chip_Rules', 'sschp_test_chip_rules_preserve_range_chip_keys_for_prioritizer' );
-sschp_test_wporg_build_excludes_pro_chip_rules_class();
 sschp_test_range_chip_css_uses_aligned_desktop_thumbs();
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_chip_renderer_exports_active_chip_colors' );
 sschp_run_if_class_exists( 'SSCHP_Range_Filters', 'sschp_test_range_filters_create_watt_slider_from_consistent_facts' );
@@ -4775,7 +4717,6 @@ sschp_test_frontend_archive_active_chip_has_current_state();
 sschp_test_frontend_woocommerce_and_loop_do_not_render_archive_chips_twice();
 sschp_test_frontend_block_theme_and_loop_do_not_render_archive_chips_twice();
 sschp_test_frontend_footer_fallback_renders_once_for_custom_theme_loops();
-sschp_test_license_is_pro_false_without_freemius();
 sschp_test_settings_numeric_sanitizers();
 sschp_test_settings_reserved_custom_field_rejected();
 sschp_test_settings_duplicate_field_rejected();
@@ -4793,7 +4734,7 @@ sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_item_browser_caps_l
 sschp_run_if_class_exists( 'SSCHP_AI_Tagger', 'sschp_test_ai_item_browser_requires_manage_options' );
 sschp_test_ai_settings_card_wraps_narrow_copy();
 sschp_test_ai_prompt_picker_keeps_selection_visible_when_narrow();
-sschp_test_free_admin_menu_does_not_add_analytics_upsell_page();
+sschp_test_admin_menu_has_no_license_or_upsell();
 sschp_test_setup_wizard_card_wraps_medium_width_copy();
 sschp_test_settings_page_has_section_navigation();
 sschp_test_admin_test_search_range_chips_render_as_ranges();
@@ -4831,7 +4772,6 @@ sschp_run_if_class_exists( 'SSCHP_Analytics', 'sschp_test_analytics_digest_does_
 sschp_test_settings_source_renders_analytics_digest_preview_ui();
 sschp_test_settings_digest_day_sanitizer_accepts_controlled_choices();
 sschp_test_settings_digest_sanitizers_default_empty_without_warning();
-sschp_test_wporg_build_excludes_pro_analytics_class();
 sschp_test_meta_auth_callback_requires_edit_post_capability();
 sschp_test_woocommerce_bulk_generation_skips_uneditable_products();
 sschp_test_woocommerce_auto_generation_preserves_manual_tags();
@@ -4894,10 +4834,12 @@ sschp_test_wporg_main_loads_search_explainer();
 sschp_test_plugin_lifecycle_hooks_unschedule_background_work();
 sschp_test_wporg_frontend_source_registers_search_block();
 sschp_test_search_block_files_are_release_validated();
-sschp_test_release_workflow_requires_version_tag_and_freemius_sdk();
+sschp_test_release_workflow_requires_version_tag();
+sschp_test_public_contact_links_do_not_expose_private_email();
+sschp_test_single_package_ships_every_module();
 sschp_test_ci_workflow_runs_expanded_release_gates();
 sschp_test_release_smoke_checklist_covers_manual_risks();
-sschp_test_wporg_pro_promotion_copy_is_contextual_and_compliant();
+sschp_test_open_source_build_has_no_pro_promotion();
 sschp_test_premium_ajax_numeric_inputs_are_unslashed();
 
 if ( $sschp_test_failures > 0 ) {

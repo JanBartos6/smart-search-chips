@@ -19,12 +19,6 @@ async function gotoPluginSettings(page) {
   });
 }
 
-async function gotoPluginAccount(page) {
-  await page.goto("/wp-admin/admin.php?page=smart-search-chips-account", {
-    waitUntil: "domcontentloaded",
-  });
-}
-
 async function gotoAnalyticsPage(page) {
   await page.goto("/wp-admin/admin.php?page=smart-search-chips-analytics", {
     waitUntil: "domcontentloaded",
@@ -64,103 +58,6 @@ async function reactivatePlugin(page) {
 
   const activateHref = await page.locator("#activate-smart-search-chips").getAttribute("href");
   await page.goto("/wp-admin/" + activateHref, { waitUntil: "networkidle" });
-}
-
-async function activateProLicense(page, licenseKey) {
-  await reactivatePlugin(page);
-
-  const settingsText = await readBodyText(page);
-  if (settingsText.includes("Pro active")) {
-    return;
-  }
-
-  const licenseField = page.locator("#fs_license_key");
-  if (!await licenseField.count()) {
-    await gotoPluginSettings(page);
-
-    const postSettingsText = await readBodyText(page);
-    if (postSettingsText.includes("Pro active")) {
-      return;
-    }
-  }
-
-  await page.click("#fs_license_key");
-  await page.type("#fs_license_key", licenseKey, { delay: 20 });
-  await page.getByText("No - do NOT send me security").click();
-  await Promise.all([
-    page.waitForLoadState("networkidle"),
-    page.getByRole("button", { name: "Activate License" }).click(),
-  ]);
-
-  const consentButton = page.getByRole("button", { name: /Agree & Activate License/i });
-  if (await consentButton.count()) {
-    await Promise.all([
-      page.waitForLoadState("networkidle"),
-      consentButton.click(),
-    ]);
-  }
-
-  await page.waitForTimeout(6000);
-  await gotoPluginSettings(page);
-}
-
-async function deactivateProLicense(page) {
-  page.once("dialog", async (dialog) => {
-    await dialog.accept();
-  });
-
-  await gotoPluginAccount(page);
-  const deactivateButton = page.getByText("Deactivate License");
-
-  if (!await deactivateButton.count()) {
-    await gotoPluginSettings(page);
-    return {
-      outcome: "deactivated",
-      settingsState: "free",
-      accountText: "",
-    };
-  }
-
-  await deactivateButton.click({ noWaitAfter: true });
-
-  const timeoutPattern = /(CurlException|cURL error 28|Connection timed out|timed out)/i;
-  let accountText = "";
-  const deadline = Date.now() + 25000;
-
-  while (Date.now() < deadline) {
-    accountText = await readBodyText(page);
-
-    if (timeoutPattern.test(accountText)) {
-      break;
-    }
-
-    await page.waitForTimeout(1000);
-  }
-
-  await gotoPluginSettings(page);
-
-  const settingsText = await readBodyText(page);
-  let settingsState = "unknown";
-
-  if (settingsText.includes("This site is running the free tier.")) {
-    settingsState = "free";
-  } else if (settingsText.includes("Pro active")) {
-    settingsState = "pro";
-  }
-
-  let outcome = "unknown";
-
-  if (settingsState === "free") {
-    outcome = "deactivated";
-  } else if (timeoutPattern.test(accountText)) {
-    outcome = "timeout";
-  }
-
-  return {
-    outcome,
-    settingsState,
-    accountText: accountText.replace(/\s+/g, " ").trim(),
-  };
 }
 
 async function countAjaxResults(page) {
@@ -204,11 +101,8 @@ module.exports = {
   escapedChipRegexp,
   loginAsAdmin,
   gotoPluginSettings,
-  gotoPluginAccount,
   gotoAnalyticsPage,
   isLocalWordPressAvailable,
-  activateProLicense,
-  deactivateProLicense,
   countAjaxResults,
   countArchiveResults,
   ensureAnalyticsEnabled

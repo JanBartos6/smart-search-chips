@@ -62,7 +62,6 @@ jobs:
         with:
           name: release-package-candidates
           path: |
-            build/smart-search-chips-pro.zip
             build/smart-search-chips-wporg.zip
           if-no-files-found: error
 

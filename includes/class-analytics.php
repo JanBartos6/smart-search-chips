@@ -147,8 +147,7 @@ class SSCHP_Analytics {
      * @return bool
      */
     public static function is_enabled() {
-        return SSCHP_License::is_pro()
-            && get_option( 'sschp_analytics_enabled', '0' ) === '1'
+        return get_option( 'sschp_analytics_enabled', '0' ) === '1'
             && self::has_tracking_consent_acknowledgement();
     }
 

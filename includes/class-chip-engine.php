@@ -323,7 +323,7 @@ class SSCHP_Chip_Engine {
      *
      * The built-in `sschp_tags` field is stored as a comma-delimited string, while
      * some external sources are semicolon-delimited. Accept both separators from
-     * either field so the parser stays resilient across Free/Pro sources, but do
+     * either field so the parser stays resilient across tag sources, but do
      * not split decimal comma values such as 0,1 A into broken chip fragments.
      *
      * @param string $semicolon_field Primary field value.
