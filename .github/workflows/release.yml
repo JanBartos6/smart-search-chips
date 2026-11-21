@@ -112,7 +112,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-packages-${{ needs.verify-build.outputs.version }}
-          path: .
+          path: build
 
       - name: Verify deployment secrets
         shell: bash
